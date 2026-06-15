@@ -23,10 +23,11 @@ const ROLES = [
 export default function App() {
   const [showLogin, setShowLogin] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
+  const [chatbotCollapsed, setChatbotCollapsed] = useState(true)
 
   return (
     <div className="app">
-      <Header onLoginClick={() => setShowLogin(true)} onSignupClick={() => setShowSignup(true)} />
+      <Header onLoginClick={() => setShowLogin(true)} onSignupClick={() => setShowSignup(true)} onVirtualAssist={() => setChatbotCollapsed(false)} />
       <main>
         <Hero />
         <Profiles />
@@ -36,14 +37,14 @@ export default function App() {
       </main>
       <Footer />
       <WhatsAppFloat />
-      <Chatbot />
+      <Chatbot collapsed={chatbotCollapsed} onToggle={setChatbotCollapsed} />
       {showLogin && <LoginModal onClose={() => setShowLogin(false)} onSwitchToSignup={() => { setShowLogin(false); setShowSignup(true) }} />}
       {showSignup && <SignupModal onClose={() => setShowSignup(false)} onSwitchToLogin={() => { setShowSignup(false); setShowLogin(true) }} />}
     </div>
   )
 }
 
-function Header({ onLoginClick, onSignupClick }) {
+function Header({ onLoginClick, onSignupClick, onVirtualAssist }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
@@ -74,6 +75,10 @@ function Header({ onLoginClick, onSignupClick }) {
           <a href="#contact" onClick={(e) => { e.preventDefault(); scrollTo('contact') }}>Contact</a>
         </nav>
         <div className="header-actions">
+          <button className="btn btn-ghost-sm" onClick={onVirtualAssist} title="Assistant virtuel">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Assistance
+          </button>
           <button className="btn btn-outline" onClick={onLoginClick}>Login</button>
           <button className="btn btn-primary" onClick={onSignupClick}>Sign Up</button>
         </div>
@@ -377,16 +382,28 @@ function Footer() {
   )
 }
 
+function Spinner() {
+  return (
+    <svg className="spinner" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <circle cx="12" cy="12" r="10" opacity=".25" />
+      <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 /* ===== LOGIN MODAL ===== */
 function LoginModal({ onClose, onSwitchToSignup }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({})
 
   const submit = async (e) => {
     e.preventDefault()
     setError('')
+    setFieldErrors({})
+    if (!email || !password) { setError('Veuillez remplir tous les champs.'); return }
     setLoading(true)
     try {
       const res = await fetch(`${API}/token/`, {
@@ -396,7 +413,15 @@ function LoginModal({ onClose, onSwitchToSignup }) {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.detail || 'Email ou mot de passe incorrect.')
+        if (data.detail?.toLowerCase().includes('no active account')) {
+          setFieldErrors({ email: true, password: true })
+          setError('Aucun compte trouvé avec cet email.')
+        } else if (data.detail?.toLowerCase().includes('unable to log in')) {
+          setFieldErrors({ password: true })
+          setError('Mot de passe incorrect.')
+        } else {
+          setError(data.detail || 'Email ou mot de passe incorrect.')
+        }
         return
       }
       localStorage.setItem('access_token', data.access)
@@ -415,18 +440,29 @@ function LoginModal({ onClose, onSwitchToSignup }) {
       <div className="modal" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}>&times;</button>
         <div className="modal-header">
-          <span className="modal-logo">&#x2726;</span>
+          <span className="modal-logo">{'\u2726'}</span>
           <h2>Connexion</h2>
           <p>Accédez à votre espace personnel</p>
         </div>
-        <form onSubmit={submit} className="modal-form">
-          {error && <div className="modal-error">{error}</div>}
-          <label>Email</label>
-          <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="votre@email.com" />
-          <label>Mot de passe</label>
-          <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="Votre mot de passe" />
+        <form onSubmit={submit} className="modal-form" noValidate>
+          {error && (
+            <div className="modal-error">
+              <span className="modal-error-icon">{'\u26A0'}</span>
+              {error}
+            </div>
+          )}
+          <label htmlFor="login-email">Email</label>
+          <div className="input-wrap">
+            <input id="login-email" type="email" required value={email} onChange={e => { setEmail(e.target.value); setFieldErrors(f => ({ ...f, email: false })); setError('') }} placeholder="votre@email.com" className={fieldErrors.email ? 'error' : ''} />
+            {fieldErrors.email && <span className="input-err-icon">{'\u2716'}</span>}
+          </div>
+          <label htmlFor="login-pass">Mot de passe</label>
+          <div className="input-wrap">
+            <input id="login-pass" type="password" required value={password} onChange={e => { setPassword(e.target.value); setFieldErrors(f => ({ ...f, password: false })); setError('') }} placeholder="Votre mot de passe" className={fieldErrors.password ? 'error' : ''} />
+            {fieldErrors.password && <span className="input-err-icon">{'\u2716'}</span>}
+          </div>
           <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading}>
-            {loading ? 'Connexion...' : 'Se connecter'}
+            {loading ? <><Spinner /> Connexion...</> : 'Se connecter'}
           </button>
         </form>
         <p className="modal-switch">
@@ -444,6 +480,7 @@ function SignupModal({ onClose, onSwitchToLogin }) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [passFocused, setPassFocused] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({})
 
   const [form, setForm] = useState({
     first_name: '', last_name: '', email: '', country: '', role: '',
@@ -464,12 +501,17 @@ function SignupModal({ onClose, onSwitchToLogin }) {
 
   const allChecksPass = checks.every(c => c.pass)
   const match = form.password && form.confirm_password && form.password === form.confirm_password
+  const confirmDirty = form.confirm_password.length > 0
 
   const submit = async (e) => {
     e.preventDefault()
     setError('')
+    setFieldErrors({})
+    if (!form.first_name || !form.last_name || !form.email || !form.country || !form.role) {
+      setError('Veuillez remplir tous les champs.'); return
+    }
     if (!allChecksPass) { setError('Le mot de passe ne respecte pas toutes les contraintes.'); return }
-    if (form.password !== form.confirm_password) { setError('Les mots de passe ne correspondent pas.'); return }
+    if (!match) { setError('Les mots de passe ne correspondent pas.'); return }
     setLoading(true)
     try {
       const res = await fetch(`${API}/auth/signup/`, {
@@ -479,8 +521,13 @@ function SignupModal({ onClose, onSwitchToLogin }) {
       })
       const data = await res.json()
       if (!res.ok) {
-        const msg = data.email?.[0] || data.password?.[0] || data.detail || Object.values(data).flat().join(' ')
-        setError(msg || 'Erreur lors de l\'inscription.')
+        if (data.email?.[0]?.toLowerCase().includes('already exists')) {
+          setFieldErrors(f => ({ ...f, email: true }))
+          setError('Cet email est déjà utilisé. Connectez-vous ou utilisez un autre email.')
+        } else {
+          const msg = data.email?.[0] || data.password?.[0] || data.detail || Object.values(data).flat().join(' ')
+          setError(msg || 'Erreur lors de l\'inscription.')
+        }
         return
       }
       setStep('success')
@@ -516,55 +563,67 @@ function SignupModal({ onClose, onSwitchToLogin }) {
       <div className="modal modal-signup" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}>&times;</button>
         <div className="modal-header">
-          <span className="modal-logo">&#x2726;</span>
+          <span className="modal-logo">{'\u2726'}</span>
           <h2>Créer un compte</h2>
           <p>Rejoignez la Confédération des Orphelinats</p>
         </div>
-        <form onSubmit={submit} className="modal-form">
-          {error && <div className="modal-error">{error}</div>}
+        <form onSubmit={submit} className="modal-form" noValidate>
+          {error && (
+            <div className="modal-error">
+              <span className="modal-error-icon">{'\u26A0'}</span>
+              {error}
+            </div>
+          )}
 
           <div className="form-row">
             <div>
-              <label>Prénom</label>
-              <input type="text" required value={form.first_name} onChange={set('first_name')} placeholder="Jean" />
+              <label htmlFor="sig-fname">Prénom</label>
+              <input id="sig-fname" type="text" required value={form.first_name} onChange={e => { set('first_name')(e); setError('') }} placeholder="Jean" />
             </div>
             <div>
-              <label>Nom</label>
-              <input type="text" required value={form.last_name} onChange={set('last_name')} placeholder="Dupont" />
+              <label htmlFor="sig-lname">Nom</label>
+              <input id="sig-lname" type="text" required value={form.last_name} onChange={e => { set('last_name')(e); setError('') }} placeholder="Dupont" />
             </div>
           </div>
 
-          <label>Email</label>
-          <input type="email" required value={form.email} onChange={set('email')} placeholder="vous@exemple.com" />
+          <label htmlFor="sig-email">Email</label>
+          <div className="input-wrap">
+            <input id="sig-email" type="email" required value={form.email} onChange={e => { set('email')(e); setFieldErrors(f => ({ ...f, email: false })); setError('') }} placeholder="vous@exemple.com" className={fieldErrors.email ? 'error' : ''} />
+            {fieldErrors.email && <span className="input-err-icon">{'\u2716'}</span>}
+          </div>
 
-          <label>Pays</label>
-          <select required value={form.country} onChange={set('country')}>
+          <label htmlFor="sig-country">Pays</label>
+          <select id="sig-country" required value={form.country} onChange={set('country')}>
             <option value="">Sélectionnez votre pays</option>
             {AFRICAN_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
 
-          <label>Rôle</label>
-          <select required value={form.role} onChange={set('role')}>
+          <label htmlFor="sig-role">Rôle</label>
+          <select id="sig-role" required value={form.role} onChange={set('role')}>
             <option value="">Sélectionnez votre rôle</option>
             {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
 
-          <label>Mot de passe</label>
-          <input type="password" required value={form.password} onChange={set('password')} onFocus={() => setPassFocused(true)} onBlur={() => setPassFocused(false)} placeholder="8-16 car. dont maj, min, chiffre, spécial" />
+          <label htmlFor="sig-pass">Mot de passe</label>
+          <input id="sig-pass" type="password" required value={form.password} onChange={e => { set('password')(e); setError('') }} onFocus={() => setPassFocused(true)} onBlur={() => setPassFocused(false)} placeholder="8-16 car. dont maj, min, chiffre, spécial" className={form.password && !allChecksPass ? 'error' : ''} />
           {(passFocused || form.password) && (
             <div className="pw-checks">
               {checks.map((c, i) => (
-                <span key={i} className={`pw-check${c.pass ? ' ok' : ''}`}><span className="pw-sym">{c.pass ? '\u2713' : '\u25CF'}</span> {c.label}</span>
+                <span key={i} className={`pw-check${c.pass ? ' ok' : ''}`}>{c.pass ? '\u2713' : '\u25CF'} {c.label}</span>
               ))}
             </div>
           )}
 
-          <label>Confirmer le mot de passe</label>
-          <input type="password" required value={form.confirm_password} onChange={set('confirm_password')} placeholder="Répétez le mot de passe" />
-          {form.confirm_password && <span className={`pw-match${match ? ' ok' : ''}`}><span className="pw-sym">{match ? '\u2713' : '\u25CF'}</span> {match ? 'Mots de passe identiques' : 'Mots de passe différents'}</span>}
+          <label htmlFor="sig-confirm">Confirmer le mot de passe</label>
+          <input id="sig-confirm" type="password" required value={form.confirm_password} onChange={e => { set('confirm_password')(e); setError('') }} placeholder="Répétez le mot de passe" className={confirmDirty ? (match ? 'ok' : 'error') : ''} />
+          {confirmDirty && (
+            <span className={`pw-match${match ? ' ok' : ''}`}>
+              {match ? '\u2713' : '\u25CF'} {match ? 'Mots de passe identiques' : 'Mots de passe différents'}
+            </span>
+          )}
 
-          <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading || !allChecksPass || !match}>
-            {loading ? 'Inscription...' : 'Créer mon compte'}
+          <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading}>
+            {loading ? <><Spinner /> Inscription...</> : 'Créer mon compte'}
           </button>
         </form>
         <p className="modal-switch">
@@ -576,10 +635,104 @@ function SignupModal({ onClose, onSwitchToLogin }) {
   )
 }
 
+function useDraggable(id) {
+  const posRef = useRef(null)
+  const [pos, setPos] = useState(() => {
+    const saved = localStorage.getItem(id)
+    return saved ? JSON.parse(saved) : null
+  })
+  const dragging = useRef(false)
+  const offset = useRef({ x: 0, y: 0 })
+
+  const onMouseDown = useRef(null)
+
+  useEffect(() => {
+    const el = document.getElementById(id)
+    if (!el || !pos) return
+    el.style.left = pos.x + 'px'
+    el.style.top = pos.y + 'px'
+    el.style.right = 'auto'
+    el.style.bottom = 'auto'
+  }, [pos, id])
+
+  const startDrag = (e) => {
+    const el = document.getElementById(id)
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    offset.current = {
+      x: (e.clientX || e.touches[0].clientX) - rect.left,
+      y: (e.clientY || e.touches[0].clientY) - rect.top,
+    }
+    dragging.current = true
+    el.style.transition = 'none'
+    el.style.cursor = 'grabbing'
+    el.style.userSelect = 'none'
+    el.style.pointerEvents = 'auto'
+  }
+
+  const onMove = (e) => {
+    if (!dragging.current) return
+    const el = document.getElementById(id)
+    if (!el) return
+    const cx = e.clientX ?? e.touches?.[0]?.clientX
+    const cy = e.clientY ?? e.touches?.[0]?.clientY
+    if (cx == null) return
+    const x = cx - offset.current.x
+    const y = cy - offset.current.y
+    el.style.left = x + 'px'
+    el.style.top = y + 'px'
+    el.style.right = 'auto'
+    el.style.bottom = 'auto'
+  }
+
+  const stopDrag = () => {
+    if (!dragging.current) return
+    dragging.current = false
+    const el = document.getElementById(id)
+    if (!el) return
+    el.style.transition = ''
+    el.style.cursor = ''
+    el.style.userSelect = ''
+    const x = parseInt(el.style.left)
+    const y = parseInt(el.style.top)
+    if (!isNaN(x) && !isNaN(y)) {
+      const newPos = { x, y }
+      setPos(newPos)
+      localStorage.setItem(id, JSON.stringify(newPos))
+    }
+  }
+
+  useEffect(() => {
+    const el = document.getElementById(id)
+    if (!el) return
+    const md = (e) => { if (e.button === 0) startDrag(e) }
+    el.addEventListener('mousedown', md)
+    el.addEventListener('touchstart', startDrag, { passive: true })
+    return () => { el.removeEventListener('mousedown', md); el.removeEventListener('touchstart', startDrag) }
+  }, [id])
+
+  useEffect(() => {
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', stopDrag)
+    window.addEventListener('touchmove', onMove, { passive: true })
+    window.addEventListener('touchend', stopDrag)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', stopDrag)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', stopDrag)
+    }
+  }, [])
+
+  return null
+}
+
 function WhatsAppFloat() {
+  useDraggable('waFloat')
+
   return (
-    <a href="#" className="wa-float" onClick={e => e.preventDefault()} title="WhatsApp">
-      <svg viewBox="0 0 24 24" width="28" height="28" fill="white">
+    <a href="#" className="wa-float" id="waFloat" onClick={e => e.preventDefault()} title="WhatsApp">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="white">
         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.76-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
         <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.554 4.122 1.525 5.852L.525 24l6.403-1.553A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.776 0-3.468-.494-4.94-1.42l-.36-.215-3.8.922.996-3.677-.25-.39A9.963 9.963 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/>
       </svg>
@@ -587,18 +740,55 @@ function WhatsAppFloat() {
   )
 }
 
-function Chatbot() {
-  const [collapsed, setCollapsed] = useState(false)
-  const [messages, setMessages] = useState([{ text: 'Bonjour ! Je suis l\'assistant Hope. Comment puis-je vous aider ?', isUser: false }])
+const LS_WIDTH = 'cdobot_width'
+const MIN_W = 160
+const MAX_W = 460
+
+function Chatbot({ collapsed, onToggle }) {
+  useDraggable('chatbotFloat')
+
+  const [messages, setMessages] = useState([{ text: 'Bonjour ! Je suis l\'assistant. Puis-je vous aider ?', isUser: false }])
   const [input, setInput] = useState('')
-  const inputRef = useRef(null)
+  const [width, setWidth] = useState(() => {
+    try { return Math.min(MAX_W, Math.max(MIN_W, Number(localStorage.getItem(LS_WIDTH)) || 220)) } catch { return 220 }
+  })
+  const msgEndRef = useRef(null)
 
   const replies = [
-    'Merci pour votre message ! Un de nos agents vous répondra bientôt.',
+    'Merci ! Un agent vous répondra bientôt.',
     'Nous sommes touchés par votre intérêt. Ensemble pour les enfants !',
     'Voulez-vous en savoir plus sur nos programmes de parrainage ?',
     'Chaque geste compte. Merci de soutenir les orphelins d\'Afrique.',
   ]
+
+  const resizeRef = useRef(null)
+  const startXRef = useRef(0)
+  const startWRef = useRef(0)
+
+  const onResizeStart = (e) => {
+    e.stopPropagation()
+    startXRef.current = e.clientX ?? e.touches?.[0]?.clientX
+    startWRef.current = width
+    document.addEventListener('mousemove', onResizeMove)
+    document.addEventListener('mouseup', onResizeEnd)
+    document.addEventListener('touchmove', onResizeMove, { passive: true })
+    document.addEventListener('touchend', onResizeEnd)
+  }
+
+  const onResizeMove = (e) => {
+    const cx = e.clientX ?? e.touches?.[0]?.clientX
+    const dx = startXRef.current - cx
+    const w = Math.min(MAX_W, Math.max(MIN_W, startWRef.current + dx))
+    setWidth(w)
+  }
+
+  const onResizeEnd = () => {
+    document.removeEventListener('mousemove', onResizeMove)
+    document.removeEventListener('mouseup', onResizeEnd)
+    document.removeEventListener('touchmove', onResizeMove)
+    document.removeEventListener('touchend', onResizeEnd)
+    try { localStorage.setItem(LS_WIDTH, String(width)) } catch {}
+  }
 
   const send = () => {
     const text = input.trim()
@@ -613,23 +803,25 @@ function Chatbot() {
   const handleKey = (e) => { if (e.key === 'Enter') send() }
 
   useEffect(() => {
-    if (inputRef.current) inputRef.current.scrollIntoView({ behavior: 'smooth' })
+    msgEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   return (
-    <div className={`chatbot-float${collapsed ? ' collapsed' : ''}`}>
-      <div className="chatbot-header" onClick={() => setCollapsed(v => !v)}>
-        <span className="chatbot-avatar">&#x1F916;</span>
-        <span>Assistant Hope</span>
-        <span className="chatbot-toggle">{collapsed ? '+' : '–'}</span>
+    <div className={`chatbot-float${collapsed ? ' collapsed' : ''}`} id="chatbotFloat" style={{ width }}>
+      <div className="chatbot-resize-handle" onMouseDown={onResizeStart} onTouchStart={onResizeStart} />
+      <div className="chatbot-header" onClick={() => onToggle && onToggle(!collapsed)}>
+        <span className="chatbot-avatar">{'\uD83E\uDD16'}</span>
+        <span>Assistant</span>
+        <span className="chatbot-toggle">{collapsed ? '+' : '\u2013'}</span>
       </div>
       <div className="chatbot-body">
         {messages.map((m, i) => (
           <div key={i} className={`chat-message${m.isUser ? ' user' : ' bot'}`}>{m.text}</div>
         ))}
-        <div ref={inputRef} className="chat-input-area">
-          <input ref={inputRef} className="chat-input" placeholder="Écrivez un message..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey} />
-          <button className="chat-send" onClick={send}>&rarr;</button>
+        <div ref={msgEndRef} />
+        <div className="chat-input-area">
+          <input className="chat-input" placeholder="Message..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey} />
+          <button className="chat-send" onClick={send}>{'\u2192'}</button>
         </div>
       </div>
     </div>
