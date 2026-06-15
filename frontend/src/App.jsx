@@ -1,10 +1,32 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 
+const API = 'http://localhost:8000/api'
+
+const AFRICAN_COUNTRIES = [
+  "Angola","Bénin","Botswana","Burkina Faso","Burundi","Cameroun","Cap-Vert",
+  "République centrafricaine","Comores","Congo-Brazzaville","République démocratique du Congo",
+  "Côte d'Ivoire","Djibouti","Égypte","Guinée équatoriale","Érythrée","Eswatini","Éthiopie",
+  "Gabon","Gambie","Ghana","Guinée","Guinée-Bissau","Kenya","Lesotho","Liberia","Libye",
+  "Madagascar","Malawi","Mali","Mauritanie","Maurice","Maroc","Mozambique","Namibie","Niger",
+  "Nigeria","Rwanda","Sao Tomé-et-Principe","Sénégal","Seychelles","Sierra Leone","Somalie",
+  "Afrique du Sud","Soudan du Sud","Soudan","Tanzanie","Togo","Tunisie","Ouganda","Zambie","Zimbabwe",
+]
+
+const ROLES = [
+  { value: 'ambassador', label: 'Ambassadeur' },
+  { value: 'supermaster', label: 'Super Master' },
+  { value: 'partner', label: 'Partenaire' },
+  { value: 'director', label: "Chef d'orphelinat" },
+]
+
 export default function App() {
+  const [showLogin, setShowLogin] = useState(false)
+  const [showSignup, setShowSignup] = useState(false)
+
   return (
     <div className="app">
-      <Header />
+      <Header onLoginClick={() => setShowLogin(true)} onSignupClick={() => setShowSignup(true)} />
       <main>
         <Hero />
         <Profiles />
@@ -15,11 +37,13 @@ export default function App() {
       <Footer />
       <WhatsAppFloat />
       <Chatbot />
+      {showLogin && <LoginModal onClose={() => setShowLogin(false)} onSwitchToSignup={() => { setShowLogin(false); setShowSignup(true) }} />}
+      {showSignup && <SignupModal onClose={() => setShowSignup(false)} onSwitchToLogin={() => { setShowSignup(false); setShowLogin(true) }} />}
     </div>
   )
 }
 
-function Header() {
+function Header({ onLoginClick, onSignupClick }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
@@ -40,7 +64,7 @@ function Header() {
       <div className="header-inner container">
         <a href="#" className="logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
           <span className="logo-icon">&#x2726;</span>
-          <span className="logo-text">Hope<span className="accent">Horizons</span></span>
+          <span className="logo-text">Confédération<span className="accent"> des Orphelinats</span></span>
         </a>
         <nav className={`nav${menuOpen ? ' open' : ''}`}>
           <a href="#hero" onClick={(e) => { e.preventDefault(); scrollTo('hero') }}>Accueil</a>
@@ -50,8 +74,8 @@ function Header() {
           <a href="#contact" onClick={(e) => { e.preventDefault(); scrollTo('contact') }}>Contact</a>
         </nav>
         <div className="header-actions">
-          <button className="btn btn-outline">Login</button>
-          <button className="btn btn-primary">Sign Up</button>
+          <button className="btn btn-outline" onClick={onLoginClick}>Login</button>
+          <button className="btn btn-primary" onClick={onSignupClick}>Sign Up</button>
         </div>
         <button className={`hamburger${menuOpen ? ' active' : ''}`} onClick={() => setMenuOpen(v => !v)} aria-label="Menu">
           <span /><span /><span />
@@ -318,7 +342,7 @@ function Contact() {
             ))}
           </div>
           <div className="contact-info">
-            <p>&#9993; contact@hopehorizons.africa</p>
+            <p>&#9993; contact@cdo-africa.org</p>
             <p>&#9742; +243 800 123 456</p>
             <p>&#127758; Kinshasa, RDC</p>
           </div>
@@ -335,9 +359,9 @@ function Footer() {
         <div className="footer-brand">
           <a href="#" className="logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
             <span className="logo-icon">&#x2726;</span>
-            <span className="logo-text">Hope<span className="accent">Horizons</span></span>
+            <span className="logo-text">Confédération<span className="accent"> des Orphelinats</span></span>
           </a>
-          <p className="footer-desc">Orphelinat Network – Africa</p>
+          <p className="footer-desc">Confédération des Orphelinats – Africa</p>
         </div>
         <div className="footer-links">
           <a href="#" onClick={e => e.preventDefault()}>Politique de confidentialité</a>
@@ -345,11 +369,210 @@ function Footer() {
           <a href="#" onClick={e => e.preventDefault()}>FAQ</a>
         </div>
         <div className="footer-copy">
-          <p>&copy; 2026 Hope Horizons &mdash; v2.4.1</p>
+            <p>&copy; 2026 Confédération des Orphelinats &mdash; v2.4.1</p>
           <p className="footer-tech">Built on <span>Backend</span> &middot; <span>Frontend</span> &middot; <span>Desktop</span> &middot; <span>Mobile</span></p>
         </div>
       </div>
     </footer>
+  )
+}
+
+/* ===== LOGIN MODAL ===== */
+function LoginModal({ onClose, onSwitchToSignup }) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const res = await fetch(`${API}/token/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.detail || 'Email ou mot de passe incorrect.')
+        return
+      }
+      localStorage.setItem('access_token', data.access)
+      localStorage.setItem('refresh_token', data.refresh)
+      onClose()
+      window.location.reload()
+    } catch {
+      setError('Erreur de connexion au serveur.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>&times;</button>
+        <div className="modal-header">
+          <span className="modal-logo">&#x2726;</span>
+          <h2>Connexion</h2>
+          <p>Accédez à votre espace personnel</p>
+        </div>
+        <form onSubmit={submit} className="modal-form">
+          {error && <div className="modal-error">{error}</div>}
+          <label>Email</label>
+          <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="votre@email.com" />
+          <label>Mot de passe</label>
+          <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="Votre mot de passe" />
+          <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading}>
+            {loading ? 'Connexion...' : 'Se connecter'}
+          </button>
+        </form>
+        <p className="modal-switch">
+          Pas encore de compte ?{' '}
+          <button className="modal-link" onClick={onSwitchToSignup}>Inscrivez-vous</button>
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/* ===== SIGNUP MODAL ===== */
+function SignupModal({ onClose, onSwitchToLogin }) {
+  const [step, setStep] = useState('form')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [passFocused, setPassFocused] = useState(false)
+
+  const [form, setForm] = useState({
+    first_name: '', last_name: '', email: '', country: '', role: '',
+    password: '', confirm_password: '',
+  })
+
+  const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }))
+
+  const pw = form.password
+
+  const checks = [
+    { label: '8 à 16 caractères', pass: pw.length >= 8 && pw.length <= 16 },
+    { label: '1 majuscule (A-Z)', pass: /[A-Z]/.test(pw) },
+    { label: '1 minuscule (a-z)', pass: /[a-z]/.test(pw) },
+    { label: '1 chiffre (0-9)', pass: /\d/.test(pw) },
+    { label: '1 caractère spécial (!@#...)', pass: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(pw) },
+  ]
+
+  const allChecksPass = checks.every(c => c.pass)
+  const match = form.password && form.confirm_password && form.password === form.confirm_password
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setError('')
+    if (!allChecksPass) { setError('Le mot de passe ne respecte pas toutes les contraintes.'); return }
+    if (form.password !== form.confirm_password) { setError('Les mots de passe ne correspondent pas.'); return }
+    setLoading(true)
+    try {
+      const res = await fetch(`${API}/auth/signup/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        const msg = data.email?.[0] || data.password?.[0] || data.detail || Object.values(data).flat().join(' ')
+        setError(msg || 'Erreur lors de l\'inscription.')
+        return
+      }
+      setStep('success')
+    } catch {
+      setError('Erreur de connexion au serveur.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (step === 'success') {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal modal-success" onClick={e => e.stopPropagation()}>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+          <div className="modal-header">
+            <div className="success-icon">{'\u2713'}</div>
+            <h2>Inscription réussie !</h2>
+            <p>Un email d'activation a été envoyé à <strong>{form.email}</strong>.</p>
+          </div>
+          <div className="modal-success-box">
+            <p>{'\u2709'} Vérifiez votre boîte de réception</p>
+            <p>Valable <strong>2 heures</strong> &middot; Usage unique</p>
+          </div>
+          <button className="btn btn-primary btn-block btn-lg" onClick={onClose}>J'ai compris</button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal modal-signup" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>&times;</button>
+        <div className="modal-header">
+          <span className="modal-logo">&#x2726;</span>
+          <h2>Créer un compte</h2>
+          <p>Rejoignez la Confédération des Orphelinats</p>
+        </div>
+        <form onSubmit={submit} className="modal-form">
+          {error && <div className="modal-error">{error}</div>}
+
+          <div className="form-row">
+            <div>
+              <label>Prénom</label>
+              <input type="text" required value={form.first_name} onChange={set('first_name')} placeholder="Jean" />
+            </div>
+            <div>
+              <label>Nom</label>
+              <input type="text" required value={form.last_name} onChange={set('last_name')} placeholder="Dupont" />
+            </div>
+          </div>
+
+          <label>Email</label>
+          <input type="email" required value={form.email} onChange={set('email')} placeholder="vous@exemple.com" />
+
+          <label>Pays</label>
+          <select required value={form.country} onChange={set('country')}>
+            <option value="">Sélectionnez votre pays</option>
+            {AFRICAN_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          <label>Rôle</label>
+          <select required value={form.role} onChange={set('role')}>
+            <option value="">Sélectionnez votre rôle</option>
+            {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+          </select>
+
+          <label>Mot de passe</label>
+          <input type="password" required value={form.password} onChange={set('password')} onFocus={() => setPassFocused(true)} onBlur={() => setPassFocused(false)} placeholder="8-16 car. dont maj, min, chiffre, spécial" />
+          {(passFocused || form.password) && (
+            <div className="pw-checks">
+              {checks.map((c, i) => (
+                <span key={i} className={`pw-check${c.pass ? ' ok' : ''}`}><span className="pw-sym">{c.pass ? '\u2713' : '\u25CF'}</span> {c.label}</span>
+              ))}
+            </div>
+          )}
+
+          <label>Confirmer le mot de passe</label>
+          <input type="password" required value={form.confirm_password} onChange={set('confirm_password')} placeholder="Répétez le mot de passe" />
+          {form.confirm_password && <span className={`pw-match${match ? ' ok' : ''}`}><span className="pw-sym">{match ? '\u2713' : '\u25CF'}</span> {match ? 'Mots de passe identiques' : 'Mots de passe différents'}</span>}
+
+          <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading || !allChecksPass || !match}>
+            {loading ? 'Inscription...' : 'Créer mon compte'}
+          </button>
+        </form>
+        <p className="modal-switch">
+          Déjà un compte ?{' '}
+          <button className="modal-link" onClick={onSwitchToLogin}>Connectez-vous</button>
+        </p>
+      </div>
+    </div>
   )
 }
 
