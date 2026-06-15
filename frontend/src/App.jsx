@@ -4,13 +4,25 @@ import './App.css'
 const API = 'http://localhost:8000/api'
 
 const AFRICAN_COUNTRIES = [
-  "Angola","Bénin","Botswana","Burkina Faso","Burundi","Cameroun","Cap-Vert",
-  "République centrafricaine","Comores","Congo-Brazzaville","République démocratique du Congo",
-  "Côte d'Ivoire","Djibouti","Égypte","Guinée équatoriale","Érythrée","Eswatini","Éthiopie",
-  "Gabon","Gambie","Ghana","Guinée","Guinée-Bissau","Kenya","Lesotho","Liberia","Libye",
-  "Madagascar","Malawi","Mali","Mauritanie","Maurice","Maroc","Mozambique","Namibie","Niger",
-  "Nigeria","Rwanda","Sao Tomé-et-Principe","Sénégal","Seychelles","Sierra Leone","Somalie",
-  "Afrique du Sud","Soudan du Sud","Soudan","Tanzanie","Togo","Tunisie","Ouganda","Zambie","Zimbabwe",
+  { code: "AO", name: "Angola" }, { code: "BJ", name: "Bénin" }, { code: "BW", name: "Botswana" },
+  { code: "BF", name: "Burkina Faso" }, { code: "BI", name: "Burundi" }, { code: "CM", name: "Cameroun" },
+  { code: "CV", name: "Cap-Vert" }, { code: "CF", name: "République centrafricaine" },
+  { code: "KM", name: "Comores" }, { code: "CG", name: "Congo-Brazzaville" },
+  { code: "CD", name: "République démocratique du Congo" }, { code: "CI", name: "Côte d'Ivoire" },
+  { code: "DJ", name: "Djibouti" }, { code: "EG", name: "Égypte" }, { code: "GQ", name: "Guinée équatoriale" },
+  { code: "ER", name: "Érythrée" }, { code: "SZ", name: "Eswatini" }, { code: "ET", name: "Éthiopie" },
+  { code: "GA", name: "Gabon" }, { code: "GM", name: "Gambie" }, { code: "GH", name: "Ghana" },
+  { code: "GN", name: "Guinée" }, { code: "GW", name: "Guinée-Bissau" }, { code: "KE", name: "Kenya" },
+  { code: "LS", name: "Lesotho" }, { code: "LR", name: "Liberia" }, { code: "LY", name: "Libye" },
+  { code: "MG", name: "Madagascar" }, { code: "MW", name: "Malawi" }, { code: "ML", name: "Mali" },
+  { code: "MR", name: "Mauritanie" }, { code: "MU", name: "Maurice" }, { code: "MA", name: "Maroc" },
+  { code: "MZ", name: "Mozambique" }, { code: "NA", name: "Namibie" }, { code: "NE", name: "Niger" },
+  { code: "NG", name: "Nigeria" }, { code: "RW", name: "Rwanda" }, { code: "ST", name: "Sao Tomé-et-Principe" },
+  { code: "SN", name: "Sénégal" }, { code: "SC", name: "Seychelles" }, { code: "SL", name: "Sierra Leone" },
+  { code: "SO", name: "Somalie" }, { code: "ZA", name: "Afrique du Sud" }, { code: "SS", name: "Soudan du Sud" },
+  { code: "SD", name: "Soudan" }, { code: "TZ", name: "Tanzanie" }, { code: "TG", name: "Togo" },
+  { code: "TN", name: "Tunisie" }, { code: "UG", name: "Ouganda" }, { code: "ZM", name: "Zambie" },
+  { code: "ZW", name: "Zimbabwe" },
 ]
 
 const ROLES = [
@@ -19,6 +31,10 @@ const ROLES = [
   { value: 'partner', label: 'Partenaire' },
   { value: 'director', label: "Chef d'orphelinat" },
 ]
+
+function svgImg(initial, color, w, h) {
+  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="${color}" rx="${Math.min(w,h)*0.12}"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="${Math.round(Math.min(w,h)*0.42)}" font-weight="700" font-family="Arial,sans-serif">${initial}</text></svg>`)}`
+}
 
 export default function App() {
   const [showLogin, setShowLogin] = useState(false)
@@ -91,11 +107,11 @@ function Header({ onLoginClick, onSignupClick, onVirtualAssist }) {
 }
 
 const youthData = [
-  { name: 'Aminata', age: 7, country: 'Sénégal', color: '#f59e0b', img: 'https://picsum.photos/seed/aminata/500/600' },
-  { name: 'Kofi', age: 10, country: 'Ghana', color: '#22c55e', img: 'https://picsum.photos/seed/kofi/500/600' },
-  { name: 'Zara', age: 6, country: 'Éthiopie', color: '#a855f7', img: 'https://picsum.photos/seed/zara/500/600' },
-  { name: 'Moussa', age: 12, country: 'Mali', color: '#3b82f6', img: 'https://picsum.photos/seed/moussa/500/600' },
-  { name: 'Fatou', age: 8, country: 'RDC', color: '#ef4444', img: 'https://picsum.photos/seed/fatou/500/600' },
+  { name: 'Aminata', age: 7, country: 'Sénégal', color: '#f59e0b', img: svgImg('A', '#f59e0b', 500, 600) },
+  { name: 'Kofi', age: 10, country: 'Ghana', color: '#22c55e', img: svgImg('K', '#22c55e', 500, 600) },
+  { name: 'Zara', age: 6, country: 'Éthiopie', color: '#a855f7', img: svgImg('Z', '#a855f7', 500, 600) },
+  { name: 'Moussa', age: 12, country: 'Mali', color: '#3b82f6', img: svgImg('M', '#3b82f6', 500, 600) },
+  { name: 'Fatou', age: 8, country: 'RDC', color: '#ef4444', img: svgImg('F', '#ef4444', 500, 600) },
 ]
 
 function Hero() {
@@ -158,19 +174,19 @@ function Hero() {
 
 const childrenGrid = [
   [
-    { name: 'Aminata', color: '#f59e0b', img: 'https://picsum.photos/seed/amina-profile/200/250' },
-    { name: 'Kofi', color: '#22c55e', img: 'https://picsum.photos/seed/kofi-profile/200/250' },
-    { name: 'Zara', color: '#a855f7', img: 'https://picsum.photos/seed/zara-profile/200/250' },
+    { name: 'Aminata', color: '#f59e0b', img: svgImg('A', '#f59e0b', 200, 250) },
+    { name: 'Kofi', color: '#22c55e', img: svgImg('K', '#22c55e', 200, 250) },
+    { name: 'Zara', color: '#a855f7', img: svgImg('Z', '#a855f7', 200, 250) },
   ],
   [
-    { name: 'Moussa', color: '#3b82f6', img: 'https://picsum.photos/seed/moussa-profile/200/250' },
-    { name: 'Fatou', color: '#ef4444', img: 'https://picsum.photos/seed/fatou-profile/200/250' },
-    { name: 'Ekua', color: '#06b6d4', img: 'https://picsum.photos/seed/ekua-profile/200/250' },
+    { name: 'Moussa', color: '#3b82f6', img: svgImg('M', '#3b82f6', 200, 250) },
+    { name: 'Fatou', color: '#ef4444', img: svgImg('F', '#ef4444', 200, 250) },
+    { name: 'Ekua', color: '#06b6d4', img: svgImg('E', '#06b6d4', 200, 250) },
   ],
   [
-    { name: 'Thabo', color: '#eab308', img: 'https://picsum.photos/seed/thabo-profile/200/250' },
-    { name: 'Aminata', color: '#f59e0b', img: 'https://picsum.photos/seed/amina-profile/200/250' },
-    { name: 'Kofi', color: '#22c55e', img: 'https://picsum.photos/seed/kofi-profile/200/250' },
+    { name: 'Thabo', color: '#eab308', img: svgImg('T', '#eab308', 200, 250) },
+    { name: 'Aminata', color: '#f59e0b', img: svgImg('A', '#f59e0b', 200, 250) },
+    { name: 'Kofi', color: '#22c55e', img: svgImg('K', '#22c55e', 200, 250) },
   ],
 ]
 
@@ -479,7 +495,8 @@ function SignupModal({ onClose, onSwitchToLogin }) {
   const [step, setStep] = useState('form')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [passFocused, setPassFocused] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
 
   const [form, setForm] = useState({
@@ -500,6 +517,8 @@ function SignupModal({ onClose, onSwitchToLogin }) {
   ]
 
   const allChecksPass = checks.every(c => c.pass)
+  const passedCount = checks.filter(c => c.pass).length
+  const strengthPct = pw.length === 0 ? 0 : Math.round((passedCount / checks.length) * 100)
   const match = form.password && form.confirm_password && form.password === form.confirm_password
   const confirmDirty = form.confirm_password.length > 0
 
@@ -507,7 +526,7 @@ function SignupModal({ onClose, onSwitchToLogin }) {
     e.preventDefault()
     setError('')
     setFieldErrors({})
-    if (!form.first_name || !form.last_name || !form.email || !form.country || !form.role) {
+    if (!form.first_name || !form.last_name || !form.email || !form.country || !form.role || !form.password || !form.confirm_password) {
       setError('Veuillez remplir tous les champs.'); return
     }
     if (!allChecksPass) { setError('Le mot de passe ne respecte pas toutes les contraintes.'); return }
@@ -577,45 +596,68 @@ function SignupModal({ onClose, onSwitchToLogin }) {
 
           <div className="form-row">
             <div>
-              <label htmlFor="sig-fname">Prénom</label>
+              <label htmlFor="sig-fname">Prénom <span className="req">*</span></label>
               <input id="sig-fname" type="text" required value={form.first_name} onChange={e => { set('first_name')(e); setError('') }} placeholder="Jean" />
             </div>
             <div>
-              <label htmlFor="sig-lname">Nom</label>
+              <label htmlFor="sig-lname">Nom <span className="req">*</span></label>
               <input id="sig-lname" type="text" required value={form.last_name} onChange={e => { set('last_name')(e); setError('') }} placeholder="Dupont" />
             </div>
           </div>
 
-          <label htmlFor="sig-email">Email</label>
+          <label htmlFor="sig-email">Email <span className="req">*</span></label>
           <div className="input-wrap">
             <input id="sig-email" type="email" required value={form.email} onChange={e => { set('email')(e); setFieldErrors(f => ({ ...f, email: false })); setError('') }} placeholder="vous@exemple.com" className={fieldErrors.email ? 'error' : ''} />
             {fieldErrors.email && <span className="input-err-icon">{'\u2716'}</span>}
           </div>
 
-          <label htmlFor="sig-country">Pays</label>
+          <label htmlFor="sig-country">Pays <span className="req">*</span></label>
           <select id="sig-country" required value={form.country} onChange={set('country')}>
             <option value="">Sélectionnez votre pays</option>
-            {AFRICAN_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+            {AFRICAN_COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
           </select>
 
-          <label htmlFor="sig-role">Rôle</label>
+          <label htmlFor="sig-role">Rôle <span className="req">*</span></label>
           <select id="sig-role" required value={form.role} onChange={set('role')}>
             <option value="">Sélectionnez votre rôle</option>
             {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
 
-          <label htmlFor="sig-pass">Mot de passe</label>
-          <input id="sig-pass" type="password" required value={form.password} onChange={e => { set('password')(e); setError('') }} onFocus={() => setPassFocused(true)} onBlur={() => setPassFocused(false)} placeholder="8-16 car. dont maj, min, chiffre, spécial" className={form.password && !allChecksPass ? 'error' : ''} />
-          {(passFocused || form.password) && (
+          <label htmlFor="sig-pass">Mot de passe <span className="req">*</span></label>
+          <div className="input-wrap">
+            <input id="sig-pass" type={showPassword ? 'text' : 'password'} required value={form.password} onChange={e => { set('password')(e); setError('') }} placeholder="8-16 car. dont maj, min, chiffre, spécial" className={form.password && !allChecksPass ? 'error' : ''} />
+            {form.password && (
+              <button type="button" className="pw-toggle" onClick={() => setShowPassword(v => !v)} tabIndex={-1} aria-label={showPassword ? 'Masquer' : 'Afficher'}>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  {showPassword ? <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></> : <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>}
+                </svg>
+              </button>
+            )}
+          </div>
+          {pw.length > 0 && (
             <div className="pw-checks">
               {checks.map((c, i) => (
-                <span key={i} className={`pw-check${c.pass ? ' ok' : ''}`}>{c.pass ? '\u2713' : '\u25CF'} {c.label}</span>
+                <span key={i} className={`pw-check${c.pass ? ' ok' : ' no'}`} />
               ))}
             </div>
           )}
+          {pw.length > 0 && (
+            <div className="pw-strength-bar">
+              <div className="pw-strength-fill" style={{ width: `${strengthPct}%`, background: strengthPct < 40 ? '#ef4444' : strengthPct < 80 ? '#f59e0b' : '#22c55e' }} />
+            </div>
+          )}
 
-          <label htmlFor="sig-confirm">Confirmer le mot de passe</label>
-          <input id="sig-confirm" type="password" required value={form.confirm_password} onChange={e => { set('confirm_password')(e); setError('') }} placeholder="Répétez le mot de passe" className={confirmDirty ? (match ? 'ok' : 'error') : ''} />
+          <label htmlFor="sig-confirm">Confirmer le mot de passe <span className="req">*</span></label>
+          <div className="input-wrap">
+            <input id="sig-confirm" type={showConfirm ? 'text' : 'password'} required value={form.confirm_password} onChange={e => { set('confirm_password')(e); setError('') }} placeholder="Répétez le mot de passe" className={confirmDirty ? (match ? 'ok' : 'error') : ''} />
+            {form.confirm_password && (
+              <button type="button" className="pw-toggle" onClick={() => setShowConfirm(v => !v)} tabIndex={-1} aria-label={showConfirm ? 'Masquer' : 'Afficher'}>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  {showConfirm ? <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></> : <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>}
+                </svg>
+              </button>
+            )}
+          </div>
           {confirmDirty && (
             <span className={`pw-match${match ? ' ok' : ''}`}>
               {match ? '\u2713' : '\u25CF'} {match ? 'Mots de passe identiques' : 'Mots de passe différents'}

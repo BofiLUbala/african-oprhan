@@ -44,7 +44,7 @@ def send_activation_email(user, request):
         f"pour {country_labels.get(user.country, user.country)}.\n\n"
         f"Veuillez activer votre compte en cliquant sur le lien ci-dessous :\n"
         f"{activation_url}\n\n"
-        f"Ce lien est valable {expiry_hours} heures et ne peut être utilisé qu'une seule fois.\n\n"
+        f"Ce lien est valable 2 heures et ne peut être utilisé qu'une seule fois.\n\n"
         f"L'équipe Confédération des Orphelinats"
     )
 

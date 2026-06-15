@@ -80,6 +80,12 @@ else:
 # ── Custom User Model ──────────────────────────────────────────────────────
 AUTH_USER_MODEL = "accounts.User"
 
+# ── Password hashing (bcrypt, 20 rounds) ────────────────────────────────────
+PASSWORD_HASHERS = [
+    "accounts.hashers.CDOPasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+]
+
 # ── Password validation ────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},

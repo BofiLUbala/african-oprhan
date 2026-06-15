@@ -1,3 +1,4 @@
+import threading
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import status
@@ -19,7 +20,12 @@ def signup(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     user = serializer.save()
-    send_activation_email(user, request)
+
+    try:
+        t = threading.Thread(target=send_activation_email, args=(user, request), daemon=True)
+        t.start()
+    except Exception:
+        pass
 
     return Response(
         {
