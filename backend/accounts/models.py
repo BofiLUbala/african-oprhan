@@ -51,7 +51,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=False, verbose_name="Compte activé")
     is_staff = models.BooleanField(default=False, verbose_name="Staff")
 
-    email_verification_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    email_verification_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=True)
     verification_sent_at = models.DateTimeField(null=True, blank=True)
     email_verified_at = models.DateTimeField(null=True, blank=True)
 

@@ -32,14 +32,45 @@ const ROLES = [
   { value: 'director', label: "Chef d'orphelinat" },
 ]
 
-function svgImg(initial, color, w, h) {
-  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="${color}" rx="${Math.min(w,h)*0.12}"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="${Math.round(Math.min(w,h)*0.42)}" font-weight="700" font-family="Arial,sans-serif">${initial}</text></svg>`)}`
-}
-
 export default function App() {
   const [showLogin, setShowLogin] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
   const [chatbotCollapsed, setChatbotCollapsed] = useState(true)
+  const [verifyParams, setVerifyParams] = useState(null)
+  const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get('token')
+    const uid = params.get('uid')
+    if (token && uid) setVerifyParams({ token, uid })
+  }, [])
+
+  useEffect(() => {
+    const access = localStorage.getItem('access_token')
+    if (!access) return
+    fetch(`${API}/auth/me/`, {
+      headers: { Authorization: `Bearer ${access}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => data && setUser(data))
+      .catch(() => {})
+  }, [])
+
+  const logout = () => {
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    setUser(null)
+  }
+
+  if (user && user.role === 'director') {
+    return (
+      <div className="app">
+        <DirectorHeader user={user} onLogout={logout} />
+        <main><DirectorDashboard user={user} /></main>
+      </div>
+    )
+  }
 
   return (
     <div className="app">
@@ -54,8 +85,9 @@ export default function App() {
       <Footer />
       <WhatsAppFloat />
       <Chatbot collapsed={chatbotCollapsed} onToggle={setChatbotCollapsed} />
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} onSwitchToSignup={() => { setShowLogin(false); setShowSignup(true) }} />}
+      {showLogin && <LoginModal onClose={() => setShowLogin(false)} onSwitchToSignup={() => { setShowLogin(false); setShowSignup(true) }} onLogin={setUser} />}
       {showSignup && <SignupModal onClose={() => setShowSignup(false)} onSwitchToLogin={() => { setShowSignup(false); setShowLogin(true) }} />}
+      {verifyParams && <VerifyEmail params={verifyParams} onDone={() => setVerifyParams(null)} />}
     </div>
   )
 }
@@ -106,12 +138,16 @@ function Header({ onLoginClick, onSignupClick, onVirtualAssist }) {
   )
 }
 
+function svgUrl(letter, bg, w, h) {
+  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${bg}dd"/><stop offset="100%" stop-color="${bg}88"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#g)" rx="${Math.round(Math.min(w,h)*0.08)}"/><text x="${w/2}" y="${h*0.58}" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="${Math.round(Math.min(w,h)*0.45)}" font-weight="bold" font-family="Arial,sans-serif">${letter}</text></svg>`)}`
+}
+
 const youthData = [
-  { name: 'Aminata', age: 7, country: 'Sénégal', color: '#f59e0b', img: svgImg('A', '#f59e0b', 500, 600) },
-  { name: 'Kofi', age: 10, country: 'Ghana', color: '#22c55e', img: svgImg('K', '#22c55e', 500, 600) },
-  { name: 'Zara', age: 6, country: 'Éthiopie', color: '#a855f7', img: svgImg('Z', '#a855f7', 500, 600) },
-  { name: 'Moussa', age: 12, country: 'Mali', color: '#3b82f6', img: svgImg('M', '#3b82f6', 500, 600) },
-  { name: 'Fatou', age: 8, country: 'RDC', color: '#ef4444', img: svgImg('F', '#ef4444', 500, 600) },
+  { name: 'Aminata', age: 7, country: 'Sénégal', color: '#f59e0b', img: svgUrl('A', '#f59e0b', 500, 600) },
+  { name: 'Kofi', age: 10, country: 'Ghana', color: '#22c55e', img: svgUrl('K', '#22c55e', 500, 600) },
+  { name: 'Zara', age: 6, country: 'Éthiopie', color: '#a855f7', img: svgUrl('Z', '#a855f7', 500, 600) },
+  { name: 'Moussa', age: 12, country: 'Mali', color: '#3b82f6', img: svgUrl('M', '#3b82f6', 500, 600) },
+  { name: 'Fatou', age: 8, country: 'RDC', color: '#ef4444', img: svgUrl('F', '#ef4444', 500, 600) },
 ]
 
 function Hero() {
@@ -174,19 +210,19 @@ function Hero() {
 
 const childrenGrid = [
   [
-    { name: 'Aminata', color: '#f59e0b', img: svgImg('A', '#f59e0b', 200, 250) },
-    { name: 'Kofi', color: '#22c55e', img: svgImg('K', '#22c55e', 200, 250) },
-    { name: 'Zara', color: '#a855f7', img: svgImg('Z', '#a855f7', 200, 250) },
+    { name: 'Aminata', color: '#f59e0b', img: svgUrl('A', '#f59e0b', 200, 250) },
+    { name: 'Kofi', color: '#22c55e', img: svgUrl('K', '#22c55e', 200, 250) },
+    { name: 'Zara', color: '#a855f7', img: svgUrl('Z', '#a855f7', 200, 250) },
   ],
   [
-    { name: 'Moussa', color: '#3b82f6', img: svgImg('M', '#3b82f6', 200, 250) },
-    { name: 'Fatou', color: '#ef4444', img: svgImg('F', '#ef4444', 200, 250) },
-    { name: 'Ekua', color: '#06b6d4', img: svgImg('E', '#06b6d4', 200, 250) },
+    { name: 'Moussa', color: '#3b82f6', img: svgUrl('M', '#3b82f6', 200, 250) },
+    { name: 'Fatou', color: '#ef4444', img: svgUrl('F', '#ef4444', 200, 250) },
+    { name: 'Ekua', color: '#06b6d4', img: svgUrl('E', '#06b6d4', 200, 250) },
   ],
   [
-    { name: 'Thabo', color: '#eab308', img: svgImg('T', '#eab308', 200, 250) },
-    { name: 'Aminata', color: '#f59e0b', img: svgImg('A', '#f59e0b', 200, 250) },
-    { name: 'Kofi', color: '#22c55e', img: svgImg('K', '#22c55e', 200, 250) },
+    { name: 'Thabo', color: '#eab308', img: svgUrl('T', '#eab308', 200, 250) },
+    { name: 'Aminata', color: '#f59e0b', img: svgUrl('A', '#f59e0b', 200, 250) },
+    { name: 'Kofi', color: '#22c55e', img: svgUrl('K', '#22c55e', 200, 250) },
   ],
 ]
 
@@ -373,6 +409,114 @@ function Contact() {
   )
 }
 
+/* ===== DIRECTOR DASHBOARD ===== */
+const TASKS = [
+  {
+    icon: '\u{1F465}', title: 'Gestion des enfants',
+    desc: 'Inscription, suivi et répartition des enfants dans l\'orphelinat.',
+    items: ['Ajouter un enfant', 'Liste des enfants', 'Répartition par classe d\'âge', 'Transfert entre orphelinats'],
+  },
+  {
+    icon: '\u{1F4E2}', title: 'Publication des besoins',
+    desc: 'Lancer des appels aux dons, signaler les urgences et besoins matériels.',
+    items: ['Publier un besoin urgent', 'Campagne de collecte', 'État des dons reçus', 'Historique des publications'],
+  },
+  {
+    icon: '\u{1F4C4}', title: 'Gestion des documents',
+    desc: 'Archiver les actes de naissance, rapports médicaux et documents administratifs.',
+    items: ['Actes de naissance', 'Rapports médicaux', 'Documents administratifs', 'Archives'],
+  },
+  {
+    icon: '\u{1F3EB}', title: 'Suivi scolaire et médical',
+    desc: 'Coordonner la scolarité et les soins de santé des enfants.',
+    items: ['Calendrier scolaire', 'Bulletins et notes', 'Rendez-vous médicaux', 'Carnet de vaccination'],
+  },
+  {
+    icon: '\u{1F3D7}', title: 'Gestion des projets locaux',
+    desc: 'Planifier et exécuter les projets de développement de l\'orphelinat.',
+    items: ['Nouveau projet', 'Projets en cours', 'Budget et financement', 'Rapport d\'impact'],
+  },
+  {
+    icon: '\u{1F91D}', title: 'Communication avec les ambassadeurs',
+    desc: 'Échanger avec les ambassadeurs et partenaires sur l\'évolution des projets.',
+    items: ['Messagerie', 'Liste des ambassadeurs', 'Rapports mensuels', 'Demandes de parrainage'],
+  },
+]
+
+function DirectorHeader({ user, onLogout }) {
+  return (
+    <header className="dash-header">
+      <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 22, color: '#f59e0b' }}>{'\u2699'}</span>
+          <span style={{ fontSize: 17, fontWeight: 800 }}>Orphelinat<span style={{ color: '#f59e0b' }}> · Pilotage</span></span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 13, color: '#94a3b8' }}>{user.first_name} {user.last_name}</span>
+          <button className="btn btn-ghost-sm" onClick={onLogout}>Déconnexion</button>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+function DirectorDashboard({ user }) {
+  const [activeIdx, setActiveIdx] = useState(0)
+  const t = TASKS[activeIdx]
+
+  return (
+    <div className="dash">
+      <div className="dash-top">
+        <div className="container">
+          <div className="dash-greeting">
+            <span className="dash-badge">CHEF D'ORPHELINAT</span>
+            <h2><span className="accent">{user.first_name}</span> · Centre de commandement</h2>
+          </div>
+          <div className="dash-stats">
+            <div className="dash-stat"><span className="dash-stat-nb">24</span><span className="dash-stat-lb">Enfants</span></div>
+            <div className="dash-stat"><span className="dash-stat-nb">6</span><span className="dash-stat-lb">Projets</span></div>
+            <div className="dash-stat"><span className="dash-stat-nb">12</span><span className="dash-stat-lb">Ambassadeurs</span></div>
+            <div className="dash-stat"><span className="dash-stat-nb">8</span><span className="dash-stat-lb">Demandes</span></div>
+          </div>
+        </div>
+      </div>
+      <div className="container" style={{ marginTop: 28 }}>
+        <div className="dash-panel">
+          <div className="dash-nav">
+            {TASKS.map((task, i) => (
+              <button key={i} className={`dash-btn${i === activeIdx ? ' active' : ''}`} onClick={() => setActiveIdx(i)}>
+                <span className="dash-btn-icon">{task.icon}</span>
+                <span className="dash-btn-label">{task.title}</span>
+                {i === activeIdx && <span className="dash-btn-ind" />}
+              </button>
+            ))}
+          </div>
+          <div className="dash-board">
+            <div className="dash-board-top">
+              <span style={{ fontSize: 32 }}>{t.icon}</span>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 800 }}>{t.title}</h3>
+                <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 2 }}>{t.desc}</p>
+              </div>
+            </div>
+            <div className="dash-actions">
+              {t.items.map((item, i) => (
+                <button key={i} className="dash-action">
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span className="dash-action-n">{String(i + 1).padStart(2, '0')}</span>
+                    <span>{item}</span>
+                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Footer() {
   return (
     <footer className="footer">
@@ -407,8 +551,70 @@ function Spinner() {
   )
 }
 
+/* ===== VERIFY EMAIL ===== */
+function VerifyEmail({ params, onDone }) {
+  const [status, setStatus] = useState('verifying')
+  const called = useRef(false)
+
+  useEffect(() => {
+    if (called.current) return
+    called.current = true
+    const verify = async () => {
+      try {
+        const res = await fetch(`${API}/auth/verify-email/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: params.token, uid: params.uid }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          setStatus('success')
+          window.history.replaceState({}, document.title, window.location.pathname)
+        } else {
+          setStatus(data.error || 'Lien invalide ou expiré.')
+        }
+      } catch (err) {
+        setStatus('Erreur de connexion au serveur. Vérifiez que le backend est lancé (python manage.py runserver).')
+      }
+    }
+    verify()
+  }, [])
+
+  return (
+    <div className="modal-overlay" onClick={onDone}>
+      <div className="modal modal-success" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onDone}>&times;</button>
+        <div className="modal-header">
+          {status === 'verifying' ? (
+            <>
+              <div className="success-icon" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>{'\u23F3'}</div>
+              <h2>Vérification...</h2>
+              <p>Activation de votre compte en cours.</p>
+            </>
+          ) : status === 'success' ? (
+            <>
+              <div className="success-icon">{'\u2713'}</div>
+              <h2>Compte activé !</h2>
+              <p>Votre compte est maintenant actif. Vous pouvez vous connecter.</p>
+            </>
+          ) : (
+            <>
+              <div className="success-icon" style={{ borderColor: '#ef4444', color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}>{'\u2716'}</div>
+              <h2>Échec d'activation</h2>
+              <p>{status}</p>
+            </>
+          )}
+        </div>
+        <button className="btn btn-primary btn-block btn-lg" onClick={onDone}>
+          {status === 'success' ? 'Se connecter' : 'Fermer'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 /* ===== LOGIN MODAL ===== */
-function LoginModal({ onClose, onSwitchToSignup }) {
+function LoginModal({ onClose, onSwitchToSignup, onLogin }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -442,8 +648,14 @@ function LoginModal({ onClose, onSwitchToSignup }) {
       }
       localStorage.setItem('access_token', data.access)
       localStorage.setItem('refresh_token', data.refresh)
+      const me = await fetch(`${API}/auth/me/`, {
+        headers: { Authorization: `Bearer ${data.access}` },
+      })
+      if (me.ok) {
+        const userData = await me.json()
+        onLogin(userData)
+      }
       onClose()
-      window.location.reload()
     } catch {
       setError('Erreur de connexion au serveur.')
     } finally {

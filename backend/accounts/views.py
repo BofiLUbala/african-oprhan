@@ -12,6 +12,23 @@ from .utils import send_activation_email, is_token_valid
 User = get_user_model()
 
 
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def me(request):
+    user = request.user
+    if user.is_anonymous:
+        return Response({"error": "Non authentifié."}, status=status.HTTP_401_UNAUTHORIZED)
+    return Response({
+        "id": user.pk,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "country": user.country,
+        "role": user.role,
+        "is_active": user.is_active,
+    })
+
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def signup(request):
@@ -53,6 +70,15 @@ def verify_email(request):
     try:
         user = User.objects.get(pk=uid, email_verification_token=token)
     except User.DoesNotExist:
+        try:
+            user = User.objects.get(pk=uid)
+            if user.is_active:
+                return Response(
+                    {"message": "Ce compte est déjà activé."},
+                    status=status.HTTP_200_OK,
+                )
+        except User.DoesNotExist:
+            pass
         return Response(
             {"error": "Lien d'activation invalide ou déjà utilisé."},
             status=status.HTTP_400_BAD_REQUEST,
