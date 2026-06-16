@@ -25,12 +25,23 @@ const AFRICAN_COUNTRIES = [
   { code: "ZW", name: "Zimbabwe" },
 ]
 
+function countryFlag(code) {
+  return String.fromCodePoint(0x1F1E6 + code.charCodeAt(0) - 65, 0x1F1E6 + code.charCodeAt(1) - 65)
+}
+function countryName(code) {
+  const c = AFRICAN_COUNTRIES.find(c => c.code === code)
+  return c ? c.name : code
+}
+
 const ROLES = [
   { value: 'ambassador', label: 'Ambassadeur' },
   { value: 'supermaster', label: 'Super Master' },
   { value: 'partner', label: 'Partenaire' },
   { value: 'director', label: "Chef d'orphelinat" },
+  { value: 'federation', label: 'Fédération' },
 ]
+
+const CATEGORY_ICONS = ['\u{1F4CB}', '\u{1F4C8}', '\u{26A1}', '\u{1F4C5}', '\u{1F4C4}', '\u{1F3EB}', '\u{1F4E2}', '\u{1F91D}', '\u{1F464}', '\u{1F3E0}']
 
 export default function App() {
   const [showLogin, setShowLogin] = useState(false)
@@ -63,13 +74,17 @@ export default function App() {
     setUser(null)
   }
 
-  if (user && user.role === 'director') {
-    return (
-      <div className="app">
-        <DirectorHeader user={user} onLogout={logout} />
-        <main><DirectorDashboard user={user} /></main>
-      </div>
-    )
+  if (user) {
+    const roleLower = (user.role || '').toLowerCase()
+    const rolesWithDashboard = ['director', 'ambassador', 'supermaster', 'federation', 'partner']
+    if (rolesWithDashboard.includes(roleLower)) {
+      return (
+        <div className="app">
+          <DashboardHeader user={user} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} />
+          <main><DashboardShell user={user} role={roleLower} onLogout={logout} /></main>
+        </div>
+      )
+    }
   }
 
   return (
@@ -143,11 +158,11 @@ function svgUrl(letter, bg, w, h) {
 }
 
 const youthData = [
-  { name: 'Aminata', age: 7, country: 'Sénégal', color: '#f59e0b', img: svgUrl('A', '#f59e0b', 500, 600) },
-  { name: 'Kofi', age: 10, country: 'Ghana', color: '#22c55e', img: svgUrl('K', '#22c55e', 500, 600) },
-  { name: 'Zara', age: 6, country: 'Éthiopie', color: '#a855f7', img: svgUrl('Z', '#a855f7', 500, 600) },
-  { name: 'Moussa', age: 12, country: 'Mali', color: '#3b82f6', img: svgUrl('M', '#3b82f6', 500, 600) },
-  { name: 'Fatou', age: 8, country: 'RDC', color: '#ef4444', img: svgUrl('F', '#ef4444', 500, 600) },
+  { name: 'Aminata', age: 7, country: 'Sénégal', code: 'SN', color: '#f59e0b', img: svgUrl('A', '#f59e0b', 500, 600) },
+  { name: 'Kofi', age: 10, country: 'Ghana', code: 'GH', color: '#22c55e', img: svgUrl('K', '#22c55e', 500, 600) },
+  { name: 'Zara', age: 6, country: 'Éthiopie', code: 'ET', color: '#a855f7', img: svgUrl('Z', '#a855f7', 500, 600) },
+  { name: 'Moussa', age: 12, country: 'Mali', code: 'ML', color: '#3b82f6', img: svgUrl('M', '#3b82f6', 500, 600) },
+  { name: 'Fatou', age: 8, country: 'RDC', code: 'CD', color: '#ef4444', img: svgUrl('F', '#ef4444', 500, 600) },
 ]
 
 function Hero() {
@@ -173,7 +188,7 @@ function Hero() {
                   <div className="hero-slide-overlay" style={{ background: `linear-gradient(transparent 50%, ${y.color}dd 100%)` }}>
                     <div className="hero-slide-info">
                       <span className="hero-slide-name">{y.name}</span>
-                      <span className="hero-slide-age">{y.age} ans &middot; {y.country}</span>
+                      <span className="hero-slide-age">{y.age} ans &middot; {countryFlag(y.code)} {y.country}</span>
                     </div>
                   </div>
                 </div>
@@ -332,12 +347,12 @@ function Stats() {
   }, [])
 
   const countries = [
-    { name: 'Rép. Dém. Congo', count: 342, pct: 85 },
-    { name: 'Côte d\'Ivoire', count: 218, pct: 55 },
-    { name: 'Cameroun', count: 307, pct: 77 },
-    { name: 'Sénégal', count: 195, pct: 49 },
-    { name: 'Burkina Faso', count: 178, pct: 45 },
-    { name: 'Madagascar', count: 412, pct: 100 },
+    { name: 'Rép. Dém. Congo', count: 342, pct: 85, code: 'CD' },
+    { name: 'Côte d\'Ivoire', count: 218, pct: 55, code: 'CI' },
+    { name: 'Cameroun', count: 307, pct: 77, code: 'CM' },
+    { name: 'Sénégal', count: 195, pct: 49, code: 'SN' },
+    { name: 'Burkina Faso', count: 178, pct: 45, code: 'BF' },
+    { name: 'Madagascar', count: 412, pct: 100, code: 'MG' },
   ]
 
   return (
@@ -351,7 +366,7 @@ function Stats() {
           {countries.map((c, i) => (
             <div key={i} className="stat-item">
               <span className="stat-number">{c.count}</span>
-              <span className="stat-label">{c.name}</span>
+              <span className="stat-label">{countryFlag(c.code)} {c.name}</span>
               <div className="stat-bar">
                 <div className="stat-fill" style={{ width: visible ? `${c.pct}%` : '0%' }} />
               </div>
@@ -409,109 +424,611 @@ function Contact() {
   )
 }
 
-/* ===== DIRECTOR DASHBOARD ===== */
-const TASKS = [
-  {
-    icon: '\u{1F465}', title: 'Gestion des enfants',
-    desc: 'Inscription, suivi et répartition des enfants dans l\'orphelinat.',
-    items: ['Ajouter un enfant', 'Liste des enfants', 'Répartition par classe d\'âge', 'Transfert entre orphelinats'],
+/* ===== ROLE DASHBOARDS ===== */
+const ROLE_NAV = {
+  director: [
+    { label: 'Tableau de bord', key: 'dashboard' },
+    { label: 'Enfants', key: 'enfants' },
+    { label: 'Projets', key: 'projets' },
+    { label: 'Documents', key: 'documents' },
+    { label: 'Ambassadeurs', key: 'ambassadeurs' },
+    { label: 'Demandes', key: 'demandes' },
+    { label: 'Paramètres', key: 'parametres' },
+  ],
+  ambassador: [
+    { label: 'Tableau de bord', key: 'dashboard' },
+    { label: 'Gestion multi-orphelinats', key: 'multiOrphelinats' },
+    { label: 'Validation locale', key: 'validationLocale' },
+    { label: 'Projets', key: 'projets' },
+    { label: 'Vérifications', key: 'verifications' },
+    { label: 'Dons', key: 'dons' },
+    { label: 'Rapports', key: 'rapports' },
+    { label: 'Paramètres', key: 'parametres' },
+  ],
+  supermaster: [
+    { label: 'Tableau de bord', key: 'dashboard' },
+    { label: 'Système', key: 'systeme' },
+    { label: 'Utilisateurs', key: 'users' },
+    { label: 'Orphelinats', key: 'orphelinats' },
+    { label: 'Ambassadeurs', key: 'ambassadeurs' },
+    { label: 'Rapports', key: 'rapports' },
+    { label: 'Paramètres', key: 'parametres' },
+  ],
+  federation: [
+    { label: 'Tableau de bord', key: 'dashboard' },
+    { label: 'Utilisateurs', key: 'users' },
+    { label: 'Orphelinats', key: 'orphelinats' },
+    { label: 'Ambassadeurs', key: 'ambassadeurs' },
+    { label: 'Partenaires', key: 'partenaires' },
+    { label: 'Rapports', key: 'rapports' },
+    { label: 'Paramètres', key: 'parametres' },
+  ],
+  partner: [
+    { label: 'Tableau de bord', key: 'dashboard' },
+    { label: 'Besoins', key: 'besoins' },
+    { label: 'Projets', key: 'projets' },
+    { label: 'Parrainages', key: 'parrainages' },
+    { label: 'Rapports', key: 'rapports' },
+    { label: 'Paramètres', key: 'parametres' },
+  ],
+}
+
+const ROLE_PAGES = {
+  director: {
+    dashboard: { title: 'Tableau de bord général', subtitle: "Vue d'ensemble de l'état de l'orphelinat.", categories: [
+      { id: 'D1', title: 'Résumé des opérations', subtitle: '5 Alertes', count: 5 },
+      { id: 'D2', title: 'Indicateurs de performance', subtitle: '12 Métriques', count: 12 },
+      { id: 'D3', title: 'Actions prioritaires', subtitle: '3 En attente', count: 3 },
+      { id: 'D4', title: 'Calendrier', subtitle: '8 Événements', count: 8 },
+    ]},
+    enfants: { title: 'Profil Complet', subtitle: 'Dossier numérique complet de chaque enfant.', categories: [
+      { id: 'E1', title: 'Profil & identité', subtitle: 'Nom, prénom, sexe, âge, photo', count: 24 },
+      { id: 'E2', title: 'Situation familiale', subtitle: 'Parents, tuteurs, fratrie, historique', count: 24 },
+      { id: 'E3', title: 'Documents administratifs', subtitle: 'Acte de naissance, pièces, décisions', count: 24 },
+      { id: 'E4', title: 'Santé & médical', subtitle: 'Groupe sanguin, vaccins, allergies, traitements', count: 24 },
+      { id: 'E5', title: 'Scolarité', subtitle: 'Établissement, classe, résultats, bulletins', count: 24 },
+    ]},
+    projets: { title: 'Gestion des projets', subtitle: 'Planifier et exécuter les projets.', categories: [
+      { id: 'P1', title: 'Projets en cours', subtitle: '6 Projets', count: 6 },
+      { id: 'P2', title: 'Budget et financement', subtitle: '4 Sources', count: 4 },
+      { id: 'P3', title: "Rapports d'impact", subtitle: '8 Rapports', count: 8 },
+      { id: 'P4', title: 'Nouveaux projets', subtitle: '2 Propositions', count: 2 },
+    ]},
+    documents: { title: 'Gestion des documents', subtitle: 'Archives administratives.', categories: [
+      { id: 'B1', title: 'Actes de naissance', subtitle: '16 Fichiers', count: 16 },
+      { id: 'B2', title: 'Rapports médicaux', subtitle: '28 Fichiers', count: 28 },
+      { id: 'B3', title: 'Documents administratifs', subtitle: '15 Fichiers', count: 15 },
+      { id: 'B4', title: 'Archives historiques', subtitle: '106 Fichiers', count: 106 },
+    ]},
+    ambassadeurs: { title: 'Communication ambassadeurs', subtitle: 'Échanges et parrainages.', categories: [
+      { id: 'A1', title: 'Liste des ambassadeurs', subtitle: '12 Ambassadeurs', count: 12 },
+      { id: 'A2', title: 'Messagerie', subtitle: '5 Conversations', count: 5 },
+      { id: 'A3', title: 'Rapports mensuels', subtitle: '10 Rapports', count: 10 },
+      { id: 'A4', title: 'Demandes de parrainage', subtitle: '7 Demandes', count: 7 },
+    ]},
+    demandes: { title: 'Gestion des demandes', subtitle: 'Besoins et appels aux dons.', categories: [
+      { id: 'R1', title: 'Besoins urgents', subtitle: '3 Prioritaires', count: 3 },
+      { id: 'R2', title: 'Campagnes de collecte', subtitle: '2 Campagnes', count: 2 },
+      { id: 'R3', title: 'État des dons', subtitle: '45 Dons', count: 45 },
+      { id: 'R4', title: 'Publications', subtitle: '18 Publications', count: 18 },
+    ]},
+    parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
+      { id: 'S1', title: 'Profil utilisateur', subtitle: 'Photo, mot de passe', count: 3 },
+      { id: 'S2', title: 'Notifications', subtitle: 'Alertes et rappels', count: 6 },
+      { id: 'S3', title: 'Sécurité', subtitle: 'Authentification', count: 4 },
+      { id: 'S4', title: 'Configuration', subtitle: 'Paramètres système', count: 2 },
+    ]},
   },
-  {
-    icon: '\u{1F4E2}', title: 'Publication des besoins',
-    desc: 'Lancer des appels aux dons, signaler les urgences et besoins matériels.',
-    items: ['Publier un besoin urgent', 'Campagne de collecte', 'État des dons reçus', 'Historique des publications'],
+  ambassador: {
+    dashboard: { title: 'Tableau de bord', subtitle: "Vue d'ensemble des orphelinats suivis.", categories: [
+      { id: 'D1', title: 'Orphelinats actifs', subtitle: '8 Centres', count: 8 },
+      { id: 'D2', title: 'Alertes en cours', subtitle: '3 Non résolues', count: 3 },
+      { id: 'D3', title: 'Projets en suivi', subtitle: '12 Projets', count: 12 },
+      { id: 'D4', title: 'Dons vérifiés', subtitle: '45 Ce mois', count: 45 },
+    ]},
+    multiOrphelinats: { title: 'Gestion multi-orphelinats', subtitle: "Supervision de l'ensemble des centres rattachés.", categories: [
+      { id: 'O1', title: 'Liste des centres', subtitle: '8 Orphelinats', count: 8 },
+      { id: 'O2', title: 'Visites terrain', subtitle: '3 Planifiées', count: 3 },
+      { id: 'O3', title: 'Rapports de visite', subtitle: '12 Rapports', count: 12 },
+      { id: 'O4', title: "Accompagnement d'équipe", subtitle: '6 Directeurs', count: 6 },
+    ]},
+    validationLocale: { title: 'Validation locale', subtitle: "Vérification et approbation sur le terrain.", categories: [
+      { id: 'V1', title: 'Validations en attente', subtitle: '12 Demandes', count: 12 },
+      { id: 'V2', title: "Données d'état civil", subtitle: '8 À vérifier', count: 8 },
+      { id: 'V3', title: 'Rapports de terrain', subtitle: '4 En attente', count: 4 },
+      { id: 'V4', title: 'Validations approuvées', subtitle: '23 Ce mois', count: 23 },
+    ]},
+    projets: { title: 'Suivi des projets', subtitle: 'Superviser les projets locaux.', categories: [
+      { id: 'P1', title: 'Projets en cours', subtitle: '12 Projets', count: 12 },
+      { id: 'P2', title: 'Évaluation', subtitle: '4 En cours', count: 4 },
+      { id: 'P3', title: "Rapports d'impact", subtitle: '8 Reçus', count: 8 },
+      { id: 'P4', title: "Validation d'étape", subtitle: '3 En attente', count: 3 },
+    ]},
+    verifications: { title: 'Vérifications', subtitle: "Contrôle et validation des données.", categories: [
+      { id: 'V1', title: 'Données à vérifier', subtitle: '15 En attente', count: 15 },
+      { id: 'V2', title: 'Validations récentes', subtitle: '28 Cette semaine', count: 28 },
+      { id: 'V3', title: "Anomalies détectées", subtitle: '2 Signalées', count: 2 },
+      { id: 'V4', title: "Rapport d'audit", subtitle: '6 Audits', count: 6 },
+    ]},
+    dons: { title: "Contrôle des dons", subtitle: 'Suivi et répartition des contributions.', categories: [
+      { id: 'N1', title: 'Dons reçus', subtitle: '45 Ce mois', count: 45 },
+      { id: 'N2', title: 'Répartition', subtitle: '12 Centres', count: 12 },
+      { id: 'N3', title: 'Dons en transit', subtitle: '5 En cours', count: 5 },
+      { id: 'N4', title: "Reçus et attestations", subtitle: '30 Documents', count: 30 },
+    ]},
+    rapports: { title: 'Rapports', subtitle: "Production des rapports d'activité.", categories: [
+      { id: 'R1', title: 'Rapport mensuel', subtitle: 'À soumettre', count: 1 },
+      { id: 'R2', title: 'Rapport trimestriel', subtitle: '2 Reçus', count: 2 },
+      { id: 'R3', title: 'Rapport annuel', subtitle: '2025 Généré', count: 1 },
+      { id: 'R4', title: 'Statistiques', subtitle: '8 Graphiques', count: 8 },
+    ]},
+    parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
+      { id: 'S1', title: 'Profil', subtitle: 'Photo, mot de passe', count: 3 },
+      { id: 'S2', title: 'Notifications', subtitle: 'Alertes', count: 6 },
+      { id: 'S3', title: 'Sécurité', subtitle: 'Authentification', count: 4 },
+      { id: 'S4', title: 'Configuration', subtitle: 'Préférences', count: 2 },
+    ]},
   },
-  {
-    icon: '\u{1F4C4}', title: 'Gestion des documents',
-    desc: 'Archiver les actes de naissance, rapports médicaux et documents administratifs.',
-    items: ['Actes de naissance', 'Rapports médicaux', 'Documents administratifs', 'Archives'],
+  supermaster: {
+    dashboard: { title: 'Supervision générale', subtitle: "Administration centrale du système.", categories: [
+      { id: 'D1', title: 'État du système', subtitle: 'Opérationnel', count: 100 },
+      { id: 'D2', title: 'Utilisateurs actifs', subtitle: '42 Connectés', count: 42 },
+      { id: 'D3', title: 'Alertes sécurité', subtitle: '0 Critique', count: 0 },
+      { id: 'D4', title: 'Maintenance', subtitle: 'Planifiée', count: 2 },
+    ]},
+    systeme: { title: 'Configuration système', subtitle: 'Paramétrage global de la plateforme.', categories: [
+      { id: 'C1', title: 'Paramètres généraux', subtitle: 'Nom, fuseau, langue', count: 6 },
+      { id: 'C2', title: 'Sécurité système', subtitle: 'Firewall, SSL, 2FA', count: 4 },
+      { id: 'C3', title: 'Maintenance', subtitle: 'Sauvegardes logs', count: 3 },
+      { id: 'C4', title: 'API et intégrations', subtitle: '3 Services', count: 3 },
+    ]},
+    users: { title: 'Gestion des utilisateurs', subtitle: "Création et gestion des accès.", categories: [
+      { id: 'U1', title: 'Tous les utilisateurs', subtitle: '156 Comptes', count: 156 },
+      { id: 'U2', title: "Demandes d'inscription", subtitle: '8 En attente', count: 8 },
+      { id: 'U3', title: 'Rôles et permissions', subtitle: '5 Rôles', count: 5 },
+      { id: 'U4', title: "Audit d'accès", subtitle: '28 Journaux', count: 28 },
+    ]},
+    orphelinats: { title: 'Gestion des orphelinats', subtitle: "Supervision des centres.", categories: [
+      { id: 'O1', title: 'Tous les centres', subtitle: '12 Orphelinats', count: 12 },
+      { id: 'O2', title: "Validations d'activité", subtitle: '6 En attente', count: 6 },
+      { id: 'O3', title: 'Statistiques', subtitle: 'Par région', count: 4 },
+      { id: 'O4', title: 'Affectations', subtitle: '3 Ambassadeurs', count: 3 },
+    ]},
+    ambassadeurs: { title: 'Supervision ambassadeurs', subtitle: "Gestion des ambassadeurs terrain.", categories: [
+      { id: 'A1', title: 'Liste des ambassadeurs', subtitle: '12 Ambassadeurs', count: 12 },
+      { id: 'A2', title: 'Rapports reçus', subtitle: '8 Ce mois', count: 8 },
+      { id: 'A3', title: 'Évaluations', subtitle: '3 En cours', count: 3 },
+      { id: 'A4', title: "Demandes d'affectation", subtitle: '2 Nouvelles', count: 2 },
+    ]},
+    rapports: { title: 'Rapports nationaux', subtitle: "Production et consultation des rapports.", categories: [
+      { id: 'R1', title: 'Rapport national', subtitle: 'À générer', count: 1 },
+      { id: 'R2', title: 'Rapports régionaux', subtitle: '4 Reçus', count: 4 },
+      { id: 'R3', title: "Statistiques globales", subtitle: '12 Indicateurs', count: 12 },
+      { id: 'R4', title: 'Export de données', subtitle: 'Formats PDF/CSV', count: 3 },
+    ]},
+    parametres: { title: 'Paramètres', subtitle: 'Configuration globale.', categories: [
+      { id: 'S1', title: 'Profil', subtitle: 'Informations', count: 3 },
+      { id: 'S2', title: 'Sécurité', subtitle: 'Accès et logs', count: 4 },
+      { id: 'S3', title: 'Notifications', subtitle: 'Alertes système', count: 6 },
+      { id: 'S4', title: 'API', subtitle: 'Jetons et clés', count: 2 },
+    ]},
   },
-  {
-    icon: '\u{1F3EB}', title: 'Suivi scolaire et médical',
-    desc: 'Coordonner la scolarité et les soins de santé des enfants.',
-    items: ['Calendrier scolaire', 'Bulletins et notes', 'Rendez-vous médicaux', 'Carnet de vaccination'],
+  federation: {
+    dashboard: { title: "Tableau de bord de la Fédération", subtitle: "Gouvernance centrale des orphelinats.", categories: [
+      { id: 'D1', title: 'Activités en cours', subtitle: '32 Actions', count: 32 },
+      { id: 'D2', title: 'Validations requises', subtitle: '8 En attente', count: 8 },
+      { id: 'D3', title: 'Partenariats actifs', subtitle: '6 Partenaires', count: 6 },
+      { id: 'D4', title: 'Rapports du mois', subtitle: '4 Reçus', count: 4 },
+    ]},
+    users: { title: 'Gestion des utilisateurs', subtitle: "Créer et gérer les comptes.", categories: [
+      { id: 'U1', title: "Liste d'utilisateurs", subtitle: '156 Comptes', count: 156 },
+      { id: 'U2', title: 'Créer un compte', subtitle: "Nouvel utilisateur", count: 1 },
+      { id: 'U3', title: 'Rôles', subtitle: '5 Types', count: 5 },
+      { id: 'U4', title: "Demandes d'activation", subtitle: '8 En attente', count: 8 },
+    ]},
+    orphelinats: { title: 'Gestion des orphelinats', subtitle: "Administration des centres.", categories: [
+      { id: 'O1', title: 'Centres actifs', subtitle: '12 Orphelinats', count: 12 },
+      { id: 'O2', title: "Validations données", subtitle: '15 En attente', count: 15 },
+      { id: 'O3', title: "Contrôle d'activités", subtitle: '6 Rapports', count: 6 },
+      { id: 'O4', title: "Affectations", subtitle: '3 En cours', count: 3 },
+    ]},
+    ambassadeurs: { title: 'Supervision ambassadeurs', subtitle: "Gestion et suivi des ambassadeurs.", categories: [
+      { id: 'A1', title: 'Ambassadeurs actifs', subtitle: '12 En poste', count: 12 },
+      { id: 'A2', title: 'Rapports reçus', subtitle: '8 Ce mois', count: 8 },
+      { id: 'A3', title: 'Évaluations', subtitle: '3 En cours', count: 3 },
+      { id: 'A4', title: 'Affectations', subtitle: '5 Demandes', count: 5 },
+    ]},
+    partenaires: { title: 'Gestion des partenariats', subtitle: "Partenaires et relations.", categories: [
+      { id: 'N1', title: 'Partenaires actifs', subtitle: '6 Partenaires', count: 6 },
+      { id: 'N2', title: 'Nouveaux prospects', subtitle: '3 En discussion', count: 3 },
+      { id: 'N3', title: 'Conventions', subtitle: '8 Signées', count: 8 },
+      { id: 'N4', title: "Appels d'offres", subtitle: '2 En cours', count: 2 },
+    ]},
+    rapports: { title: 'Rapports nationaux', subtitle: "Production des rapports.", categories: [
+      { id: 'R1', title: 'Rapport mensuel', subtitle: 'Avril 2026', count: 1 },
+      { id: 'R2', title: 'Rapport financier', subtitle: 'Trimestre 2', count: 1 },
+      { id: 'R3', title: 'Statistiques globales', subtitle: '12 Indicateurs', count: 12 },
+      { id: 'R4', title: 'Export', subtitle: 'PDF/CSV', count: 3 },
+    ]},
+    parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
+      { id: 'S1', title: 'Profil', subtitle: 'Informations', count: 3 },
+      { id: 'S2', title: 'Sécurité', subtitle: 'Accès', count: 4 },
+      { id: 'S3', title: 'Notifications', subtitle: 'Alertes', count: 6 },
+      { id: 'S4', title: 'Configuration', subtitle: 'Préférences', count: 2 },
+    ]},
   },
-  {
-    icon: '\u{1F3D7}', title: 'Gestion des projets locaux',
-    desc: 'Planifier et exécuter les projets de développement de l\'orphelinat.',
-    items: ['Nouveau projet', 'Projets en cours', 'Budget et financement', 'Rapport d\'impact'],
+  partner: {
+    dashboard: { title: 'Tableau de bord', subtitle: "Vue d'ensemble des contributions.", categories: [
+      { id: 'D1', title: 'Mes contributions', subtitle: '12 Projets financés', count: 12 },
+      { id: 'D2', title: 'Parrainages en cours', subtitle: '3 Enfants', count: 3 },
+      { id: 'D3', title: 'Besoins urgents', subtitle: '5 Nouveaux', count: 5 },
+      { id: 'D4', title: 'Rapports disponibles', subtitle: '8 Documents', count: 8 },
+    ]},
+    besoins: { title: 'Consultation des besoins', subtitle: "Consulter les besoins des orphelinats.", categories: [
+      { id: 'N1', title: 'Besoins matériels', subtitle: '15 Demandes', count: 15 },
+      { id: 'N2', title: "Besoins financiers", subtitle: '8 Projets', count: 8 },
+      { id: 'N3', title: 'Urgences', subtitle: '3 Critiques', count: 3 },
+      { id: 'N4', title: "Appels aux dons", subtitle: '2 Campagnes', count: 2 },
+    ]},
+    projets: { title: 'Financement de projets', subtitle: 'Contribuer aux projets locaux.', categories: [
+      { id: 'P1', title: 'Projets ouverts', subtitle: '6 Disponibles', count: 6 },
+      { id: 'P2', title: 'Mes financements', subtitle: '12 Projets', count: 12 },
+      { id: 'P3', title: "Rapports d'impact", subtitle: '8 Reçus', count: 8 },
+      { id: 'P4', title: "Propositions", subtitle: '2 Nouvelles', count: 2 },
+    ]},
+    parrainages: { title: 'Parrainage', subtitle: "Parrainer un enfant à distance.", categories: [
+      { id: 'F1', title: 'Enfants disponibles', subtitle: '18 Profils', count: 18 },
+      { id: 'F2', title: 'Mes filleuls', subtitle: '3 Enfants', count: 3 },
+      { id: 'F3', title: 'Échanges reçus', subtitle: '6 Messages', count: 6 },
+      { id: 'F4', title: "Photos et rapports", subtitle: '9 Documents', count: 9 },
+    ]},
+    rapports: { title: 'Rapports et documents', subtitle: 'Télécharger les rapports.', categories: [
+      { id: 'R1', title: "Rapports d'impact", subtitle: '8 Documents', count: 8 },
+      { id: 'R2', title: "Rapports financiers", subtitle: '4 Documents', count: 4 },
+      { id: 'R3', title: 'Attestations fiscales', subtitle: '3 Disponibles', count: 3 },
+      { id: 'R4', title: "Suivi des contributions", subtitle: '12 Mois', count: 12 },
+    ]},
+    parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
+      { id: 'S1', title: 'Profil', subtitle: 'Mes informations', count: 3 },
+      { id: 'S2', title: 'Notifications', subtitle: "Alertes d'activité", count: 6 },
+      { id: 'S3', title: 'Sécurité', subtitle: 'Mot de passe', count: 4 },
+      { id: 'S4', title: 'Configuration', subtitle: 'Préférences', count: 2 },
+    ]},
   },
-  {
-    icon: '\u{1F91D}', title: 'Communication avec les ambassadeurs',
-    desc: 'Échanger avec les ambassadeurs et partenaires sur l\'évolution des projets.',
-    items: ['Messagerie', 'Liste des ambassadeurs', 'Rapports mensuels', 'Demandes de parrainage'],
-  },
+}
+
+const ROLE_STATS = {
+  director: [
+    { label: 'ENFANTS', value: '24', sub: 'CAPACITÉ : 95%', color: '#f59e0b' },
+    { label: 'PROJETS', value: '6', sub: 'ACTIFS', color: '#3b82f6' },
+    { label: 'AMBASSADEURS', value: '12', sub: 'CONNECTÉS', color: '#a855f7' },
+    { label: 'DEMANDES', value: '5', sub: 'CRITIQUES', color: '#ef4444' },
+  ],
+  ambassador: [
+    { label: 'ORPHELINATS', value: '8', sub: 'SUIVIS', color: '#f59e0b' },
+    { label: 'PROJETS', value: '12', sub: 'EN COURS', color: '#3b82f6' },
+    { label: 'VALIDATIONS', value: '28', sub: 'CE MOIS', color: '#22c55e' },
+    { label: 'ALERTES', value: '3', sub: 'NON RÉSOLUES', color: '#ef4444' },
+  ],
+  supermaster: [
+    { label: 'UTILISATEURS', value: '156', sub: 'ACTIFS : 42', color: '#3b82f6' },
+    { label: 'CENTRES', value: '12', sub: 'OPÉRATIONNELS', color: '#22c55e' },
+    { label: 'AMBASSADEURS', value: '12', sub: 'EN POSTE', color: '#f59e0b' },
+    { label: 'ALERTES', value: '0', sub: 'CRITIQUES', color: '#ef4444' },
+  ],
+  federation: [
+    { label: 'ORPHELINATS', value: '12', sub: 'SUPERVISÉS', color: '#f59e0b' },
+    { label: 'AMBASSADEURS', value: '12', sub: 'ACTIFS', color: '#3b82f6' },
+    { label: 'PARTENAIRES', value: '6', sub: 'ACTIFS', color: '#22c55e' },
+    { label: 'VALIDATIONS', value: '8', sub: 'EN ATTENTE', color: '#ef4444' },
+  ],
+  partner: [
+    { label: 'CONTRIBUTIONS', value: '12', sub: 'PROJETS', color: '#f59e0b' },
+    { label: 'PARRAINAGES', value: '3', sub: 'ENFANTS', color: '#3b82f6' },
+    { label: 'DONS', value: '5', sub: 'CETTE ANNÉE', color: '#22c55e' },
+    { label: 'RAPPORTS', value: '8', sub: 'DISPO.', color: '#a855f7' },
+  ],
+}
+
+const RECENT_ACTIVITIES = [
+  { text: 'Rapport médical ajouté · S. Kone', time: 'il y a 10 min' },
+  { text: 'Validation administrative · Dossier 04', time: 'il y a 1h' },
 ]
 
-function DirectorHeader({ user, onLogout }) {
+const INTEGRITY_BARS = [
+  { height: 65, color: '#f59e0b' },
+  { height: 85, color: '#22c55e' },
+  { height: 45, color: '#3b82f6' },
+  { height: 70, color: '#a855f7' },
+  { height: 55, color: '#f59e0b' },
+  { height: 90, color: '#22c55e' },
+]
+
+function DashboardHeader({ user, roleLabel }) {
+  const [time, setTime] = useState(new Date())
+  const [profileImg, setProfileImg] = useState(null)
+  const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const initials = (user.first_name?.[0] || '') + (user.last_name?.[0] || '')
+  const hue = user.first_name ? user.first_name.charCodeAt(0) * 37 % 360 : 200
+  const avatarSvg = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="hsl(${hue},50%,35%)"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700" font-family="system-ui">${initials}</text></svg>`)}`
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      const url = URL.createObjectURL(file)
+      setProfileImg(url)
+    }
+  }
+
   return (
     <header className="dash-header">
-      <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 22, color: '#f59e0b' }}>{'\u2699'}</span>
-          <span style={{ fontSize: 17, fontWeight: 800 }}>Orphelinat<span style={{ color: '#f59e0b' }}> · Pilotage</span></span>
+      <div className="dash-header-inner">
+        <div className="dash-header-left">
+          <div className="dash-avatar-wrapper" onClick={() => fileInputRef.current?.click()} title="Modifier la photo" style={{ borderRadius: '50%', cursor: 'pointer' }}>
+            <img src={profileImg || avatarSvg} alt="" className="dash-avatar" style={{ borderRadius: '50%', width: '40px', height: '40px' }} />
+            <div className="dash-avatar-overlay" style={{ borderRadius: '50%' }}>+</div>
+            <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: 'none' }} />
+          </div>
+          <div className="dash-profile-text">
+            <div className="dash-profile-name">{user.first_name || user.last_name}</div>
+            <div className="dash-profile-country">
+              <span>{countryFlag(user.country || 'CD')}</span> {countryName(user.country || 'CD')}
+            </div>
+          </div>
+          <span className="dash-header-role">{roleLabel}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ fontSize: 13, color: '#94a3b8' }}>{user.first_name} {user.last_name}</span>
-          <button className="btn btn-ghost-sm" onClick={onLogout}>Déconnexion</button>
+
+        <div className="dash-header-center">
+          <span className="dash-status-dot"></span>
+          <span className="dash-status-text">SYSTÈME OPÉRATIONNEL</span>
+          <span className="dash-status-star">★</span>
+        </div>
+
+        <div className="dash-header-right">
+          <div className="dash-header-time">
+            <span className="dash-time-label">TEMPS RÉEL</span>
+            <span className="dash-time-value">{time.toLocaleTimeString('fr-FR')}</span>
+          </div>
         </div>
       </div>
     </header>
   )
 }
 
-function DirectorDashboard({ user }) {
-  const [activeIdx, setActiveIdx] = useState(0)
-  const t = TASKS[activeIdx]
+function DashboardShell({ user, role, onLogout }) {
+  const [activeKey, setActiveKey] = useState('dashboard')
+  const [subKey, setSubKey] = useState(null)
+  const navItems = ROLE_NAV[role] || ROLE_NAV.director
+  const pages = ROLE_PAGES[role] || ROLE_PAGES.director
+  const statCards = ROLE_STATS[role] || ROLE_STATS.director
+  const roleLabel = ROLES.find(r => r.value === role)?.label || role
+
+  const page = pages[activeKey]
+  const initials = (user.first_name?.[0] || '') + (user.last_name?.[0] || '')
+  const hue = user.first_name ? user.first_name.charCodeAt(0) * 37 % 360 : 200
+  const avatarSvg = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56"><rect width="56" height="56" rx="12" fill="hsl(${hue},50%,35%)"/><text x="28" y="28" dominant-baseline="central" text-anchor="middle" fill="white" font-size="22" font-weight="700" font-family="system-ui">${initials}</text></svg>`)}`
+
+  const CHILD_FORMS = {
+    'Profil & identité': {
+      title: 'Profil & identité',
+      fields: [
+        { label: 'Numéro unique', type: 'text' },
+        { label: 'Nom', type: 'text' },
+        { label: 'Prénom', type: 'text' },
+        { label: 'Sexe', type: 'select', options: ['Masculin', 'Féminin'] },
+        { label: 'Date de naissance', type: 'date' },
+        { label: 'Nationalité', type: 'select', options: AFRICAN_COUNTRIES.map(c => c.name) },
+        { label: 'Photo', type: 'file' },
+        { label: "Adresse d'origine", type: 'text' },
+      ]
+    },
+    'Situation familiale': {
+      title: 'Situation familiale',
+      fields: [
+        { label: 'Parents connus', type: 'select', options: ['Oui', 'Non', 'Non renseigné'] },
+        { label: 'Tuteurs', type: 'text' },
+        { label: 'Fratrie', type: 'textarea' },
+        { label: 'Historique familial', type: 'textarea' },
+      ]
+    },
+    'Documents administratifs': {
+      title: 'Documents administratifs',
+      fields: [
+        { label: 'Acte de naissance', type: 'file' },
+        { label: "Documents d'identité", type: 'file' },
+        { label: 'Décisions judiciaires', type: 'file' },
+      ]
+    },
+    'Santé & médical': {
+      title: 'Santé & médical',
+      fields: [
+        { label: 'Groupe sanguin', type: 'select', options: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] },
+        { label: 'Vaccinations', type: 'textarea' },
+        { label: 'Allergies', type: 'textarea' },
+        { label: 'Traitements', type: 'textarea' },
+      ]
+    },
+    'Scolarité': {
+      title: 'Scolarité',
+      fields: [
+        { label: 'Établissement', type: 'text' },
+        { label: 'Classe', type: 'text' },
+        { label: 'Résultats', type: 'textarea' },
+        { label: 'Bulletins', type: 'file' },
+      ]
+    },
+  }
 
   return (
     <div className="dash">
-      <div className="dash-top">
-        <div className="container">
-          <div className="dash-greeting">
-            <span className="dash-badge">CHEF D'ORPHELINAT</span>
-            <h2><span className="accent">{user.first_name}</span> · Centre de commandement</h2>
-          </div>
-          <div className="dash-stats">
-            <div className="dash-stat"><span className="dash-stat-nb">24</span><span className="dash-stat-lb">Enfants</span></div>
-            <div className="dash-stat"><span className="dash-stat-nb">6</span><span className="dash-stat-lb">Projets</span></div>
-            <div className="dash-stat"><span className="dash-stat-nb">12</span><span className="dash-stat-lb">Ambassadeurs</span></div>
-            <div className="dash-stat"><span className="dash-stat-nb">8</span><span className="dash-stat-lb">Demandes</span></div>
-          </div>
-        </div>
-      </div>
-      <div className="container" style={{ marginTop: 28 }}>
-        <div className="dash-panel">
-          <div className="dash-nav">
-            {TASKS.map((task, i) => (
-              <button key={i} className={`dash-btn${i === activeIdx ? ' active' : ''}`} onClick={() => setActiveIdx(i)}>
-                <span className="dash-btn-icon">{task.icon}</span>
-                <span className="dash-btn-label">{task.title}</span>
-                {i === activeIdx && <span className="dash-btn-ind" />}
+      <div className="dash-layout">
+        <aside className="dash-sidebar">
+          <div className="dash-sidebar-divider" />
+          <span className="dash-sidebar-section-label">NAVIGATION</span>
+
+          <div className="dash-sidebar-nav">
+            {navItems.map((item) => (
+              <button
+                key={item.key}
+                className={`dash-nav-btn${item.key === activeKey ? ' active' : ''}`}
+                onClick={() => { setActiveKey(item.key); setSubKey(null) }}
+              >
+                <span className="dash-nav-label" style={{ paddingLeft: '8px' }}>{item.label}</span>
+                {item.key === activeKey && <span className="dash-nav-ind" />}
               </button>
             ))}
           </div>
-          <div className="dash-board">
-            <div className="dash-board-top">
-              <span style={{ fontSize: 32 }}>{t.icon}</span>
-              <div>
-                <h3 style={{ fontSize: 18, fontWeight: 800 }}>{t.title}</h3>
-                <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 2 }}>{t.desc}</p>
+
+          <div className="dash-sidebar-bot">
+            <button className="dash-nav-btn" onClick={onLogout}>
+              <span className="dash-nav-label" style={{ paddingLeft: '8px' }}>Déconnexion</span>
+            </button>
+          </div>
+        </aside>
+
+        <main className="dash-main">
+          {activeKey === 'dashboard' ? (
+            <div className="dash-features-grid">
+              <div className="dash-title-bar" style={{ marginBottom: '24px' }}>
+                <div>
+                  <h2 className="dash-page-title">{page?.title || 'Tableau de bord'}</h2>
+                  <p className="dash-page-subtitle">{page?.subtitle}</p>
+                </div>
+                <button className="dash-export-btn">{'\u{1F4E4}'} EXPORTER</button>
+              </div>
+              <div className="dash-stat-row">
+                {statCards.map((card, i) => (
+                  <div key={i} className="dash-stat-card" style={{ '--card-color': card.color }}>
+                    <span className="dash-stat-card-value">{card.value}</span>
+                    <div className="dash-stat-card-info">
+                      <span className="dash-stat-card-label">{card.label}</span>
+                      <span className="dash-stat-card-sub" style={{ color: card.color }}>{card.sub}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="dash-section-header" style={{ marginBottom: '16px' }}>
+                <span className="dash-section-title">Accès rapide aux modules</span>
+              </div>
+              <div className="dash-grid-cards" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                {navItems.filter(n => n.key !== 'dashboard' && n.key !== 'parametres').map((item, i) => {
+                  const color = statCards[i]?.color || '#f59e0b'
+                  return (
+                    <div key={item.key} className="dash-stat-card" style={{ '--card-color': color, cursor: 'pointer' }} onClick={() => { setActiveKey(item.key); setSubKey(null) }}>
+                      <h3 className="dash-stat-card-label" style={{ fontSize: '14px', marginBottom: '8px' }}>{item.label.toUpperCase()}</h3>
+                      <p className="dash-stat-card-sub">Accéder à {item.label.toLowerCase()}</p>
+                    </div>
+                  )
+                })}
               </div>
             </div>
-            <div className="dash-actions">
-              {t.items.map((item, i) => (
-                <button key={i} className="dash-action">
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span className="dash-action-n">{String(i + 1).padStart(2, '0')}</span>
-                    <span>{item}</span>
-                  </span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                </button>
-              ))}
+          ) : (
+            <div className="dash-content-grid">
+              <div className="dash-content-left">
+                <div className="dash-section-header">
+                  <span className="dash-section-title">{page?.title || activeKey}</span>
+                </div>
+                <div className="dash-subtitle-box">
+                  <p>{page?.subtitle}</p>
+                </div>
+
+                {activeKey === 'parametres' && (
+                  <div className="dash-role-card">
+                    <div className="dash-role-avatar-wrap">
+                      <img src={avatarSvg} alt="" className="dash-role-avatar" />
+                    </div>
+                    <div className="dash-role-info">
+                      <span className="dash-role-name">{user.first_name} {user.last_name}</span>
+                      <span className="dash-role-badge">{roleLabel}</span>
+                    </div>
+                  </div>
+                )}
+
+                {subKey && activeKey === 'enfants' ? (
+                  <div className="dash-sub-form">
+                    <div className="dash-sub-form-top">
+                      <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'\u2190'} Retour</button>
+                      <h3 className="dash-sub-form-title">{subKey}</h3>
+                    </div>
+                    <div className="dash-sub-form-fields">
+                      {CHILD_FORMS[subKey]?.fields.map((f, i) => (
+                        <div key={i} className="dash-form-field">
+                          <label className="dash-form-label">{f.label}</label>
+                          {f.type === 'select' ? (
+                            <select className="dash-form-input">
+                              <option value="">Sélectionner...</option>
+                              {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          ) : f.type === 'textarea' ? (
+                            <textarea className="dash-form-input dash-form-textarea" rows={3} />
+                          ) : f.type === 'file' ? (
+                            <input type="file" className="dash-form-file" />
+                          ) : (
+                            <input type={f.type} className="dash-form-input" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button className="dash-form-save">Enregistrer</button>
+                  </div>
+                ) : (
+                  <div className="dash-category-cards">
+                    {page?.categories?.map((cat, i) => (
+                      <button key={i} className="dash-category-card" onClick={() => { setSubKey(cat.title); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
+                        <div className="dash-card-icon-wrap">
+                          <span className="dash-card-icon">{CATEGORY_ICONS[i % CATEGORY_ICONS.length]}</span>
+                        </div>
+                        <span className="dash-card-title">{cat.title}</span>
+                        <span className="dash-card-desc">{cat.subtitle}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="dash-content-right">
+                <div className="dash-widget">
+                  <span className="dash-widget-title">INTÉGRITÉ DE SYSTÈME</span>
+                  <div className="dash-integrity-chart">
+                    {INTEGRITY_BARS.map((bar, i) => (
+                      <div key={i} className="dash-integrity-bar-wrap">
+                        <div className="dash-integrity-bar" style={{ height: `${bar.height}%`, background: bar.color }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="dash-storage-row">
+                    <span className="dash-storage-label">STOCKAGE</span>
+                    <span className="dash-storage-value">44%</span>
+                  </div>
+                  <div className="dash-storage-bar">
+                    <div className="dash-storage-fill" style={{ width: '44%' }} />
+                  </div>
+                </div>
+
+                <div className="dash-widget">
+                  <span className="dash-widget-title">ACTIVITÉS RÉCENTES</span>
+                  <div className="dash-activity-list">
+                    {RECENT_ACTIVITIES.map((act, i) => (
+                      <div key={i} className="dash-activity-item">
+                        <div className="dash-activity-dot" />
+                        <div className="dash-activity-content">
+                          <span className="dash-activity-text">{act.text}</span>
+                          <span className="dash-activity-time">{act.time}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </main>
       </div>
     </div>
   )
@@ -826,7 +1343,7 @@ function SignupModal({ onClose, onSwitchToLogin }) {
           <label htmlFor="sig-country">Pays <span className="req">*</span></label>
           <select id="sig-country" required value={form.country} onChange={set('country')}>
             <option value="">Sélectionnez votre pays</option>
-            {AFRICAN_COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+            {AFRICAN_COUNTRIES.map(c => <option key={c.code} value={c.code}>{countryFlag(c.code)} {c.name}</option>)}
           </select>
 
           <label htmlFor="sig-role">Rôle <span className="req">*</span></label>
