@@ -429,10 +429,12 @@ const ROLE_NAV = {
   director: [
     { label: 'Tableau de bord', key: 'dashboard' },
     { label: 'Enfants', key: 'enfants' },
+    { label: 'Enfants enregistrés', key: 'enfants-enregistres' },
     { label: 'Projets', key: 'projets' },
     { label: 'Documents', key: 'documents' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
     { label: 'Demandes', key: 'demandes' },
+    { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
   ],
   ambassador: [
@@ -443,6 +445,7 @@ const ROLE_NAV = {
     { label: 'Vérifications', key: 'verifications' },
     { label: 'Dons', key: 'dons' },
     { label: 'Rapports', key: 'rapports' },
+    { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
   ],
   supermaster: [
@@ -452,6 +455,7 @@ const ROLE_NAV = {
     { label: 'Orphelinats', key: 'orphelinats' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
     { label: 'Rapports', key: 'rapports' },
+    { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
   ],
   federation: [
@@ -461,6 +465,7 @@ const ROLE_NAV = {
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
     { label: 'Partenaires', key: 'partenaires' },
     { label: 'Rapports', key: 'rapports' },
+    { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
   ],
   partner: [
@@ -469,6 +474,7 @@ const ROLE_NAV = {
     { label: 'Projets', key: 'projets' },
     { label: 'Parrainages', key: 'parrainages' },
     { label: 'Rapports', key: 'rapports' },
+    { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
   ],
 }
@@ -488,6 +494,7 @@ const ROLE_PAGES = {
       { id: 'E4', title: 'Santé & médical', subtitle: 'Groupe sanguin, vaccins, allergies, traitements', count: 24 },
       { id: 'E5', title: 'Scolarité', subtitle: 'Établissement, classe, résultats, bulletins', count: 24 },
     ]},
+    'enfants-enregistres': { title: 'Enfants Enregistrés', subtitle: 'Tous les enfants enregistrés via la gestion des enfants.' },
     projets: { title: 'Gestion des projets', subtitle: 'Planifier et exécuter les projets.', categories: [
       { id: 'P1', title: 'Projets en cours', subtitle: '6 Projets', count: 6 },
       { id: 'P2', title: 'Budget et financement', subtitle: '4 Sources', count: 4 },
@@ -801,9 +808,353 @@ function DashboardHeader({ user, roleLabel }) {
   )
 }
 
+function genChildUid() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let uid = ''
+  for (let i = 0; i < 12; i++) uid += chars[Math.floor(Math.random() * chars.length)]
+  return uid
+}
+
+/* ===== L'ÉCLAT SOCIAL APP ===== */
+function EclatSocialApp({ user, onReturn }) {
+  const [esView, setEsView] = useState('home')
+  const [esModal, setEsModal] = useState(null) // 'create' | 'detail' | null
+  const [esSelectedPost, setEsSelectedPost] = useState(null)
+  const [esNavActive, setEsNavActive] = useState('home')
+
+  const initials = (user.first_name?.[0] || '') + (user.last_name?.[0] || '')
+  const hue = user.first_name ? user.first_name.charCodeAt(0) * 37 % 360 : 200
+  const avatarSvg = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" rx="20" fill="hsl(${hue},50%,45%)"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700" font-family="system-ui">${initials}</text></svg>`)}`
+  const displayName = user.first_name ? `${user.first_name} ${user.last_name?.[0] || ''}`.trim() : 'DarloK'
+
+  const ES_STORIES = [
+    { name: 'Vous', avatar: avatarSvg, isYou: true, active: false },
+    { name: 'Sarah', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#F472B6"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">SM</text></svg>')}`, active: true },
+    { name: 'Johnson', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#60A5FA"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">JN</text></svg>')}`, active: true },
+    { name: 'Mike', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#34D399"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">MT</text></svg>')}`, active: false },
+    { name: 'Emma', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#A78BFA"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">EW</text></svg>')}`, active: true },
+    { name: 'David', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#FBBF24"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">DK</text></svg>')}`, active: false },
+  ]
+
+  const ES_POSTS = [
+    {
+      id: 1,
+      author: 'Johnson',
+      avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="#60A5FA"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">JN</text></svg>')}`,
+      time: 'Il y a 2 heures',
+      text: 'Nouvelle interface de monitoring en cours de développement. 🚀',
+      image: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="680" height="380" viewBox="0 0 680 380"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1E293B"/><stop offset="100%" stop-color="#0F172A"/></linearGradient></defs><rect width="680" height="380" fill="url(#bg)"/><rect x="40" y="40" width="200" height="120" rx="12" fill="#1E40AF" opacity="0.4"/><rect x="40" y="60" width="120" height="8" rx="4" fill="#60A5FA"/><rect x="40" y="80" width="80" height="6" rx="3" fill="#94A3B8"/><rect x="40" y="100" width="160" height="40" rx="8" fill="#1E40AF" opacity="0.6"/><rect x="260" y="40" width="380" height="120" rx="12" fill="#1E40AF" opacity="0.3"/><rect x="280" y="60" width="200" height="8" rx="4" fill="#60A5FA"/><rect x="280" y="80" width="340" height="60" rx="8" fill="#1E40AF" opacity="0.5"/><rect x="40" y="180" width="600" height="160" rx="12" fill="#1E40AF" opacity="0.25"/><rect x="60" y="200" width="100" height="8" rx="4" fill="#60A5FA"/><circle cx="110" cy="280" r="40" fill="#3B82F6" opacity="0.3"/><rect x="200" y="200" width="420" height="6" rx="3" fill="#475569"/><rect x="200" y="220" width="380" height="6" rx="3" fill="#334155"/><rect x="200" y="240" width="300" height="6" rx="3" fill="#334155"/><text x="340" y="300" text-anchor="middle" fill="#60A5FA" font-size="18" font-family="system-ui" font-weight="600">▶ Video Preview</text></svg>')}`,
+      isVideo: true,
+      duration: '2:34',
+      likes: 124,
+      comments: 12,
+      views: '1.2K'
+    },
+    {
+      id: 2,
+      author: 'Sarah M.',
+      avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="#F472B6"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">SM</text></svg>')}`,
+      time: 'Il y a 5 heures',
+      text: 'Setup de la journée 💻',
+      image: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="680" height="380" viewBox="0 0 680 380"><defs><linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F8FAFC"/><stop offset="100%" stop-color="#E2E8F0"/></linearGradient></defs><rect width="680" height="380" fill="url(#bg2)"/><rect x="180" y="80" width="320" height="200" rx="12" fill="#CBD5E1"/><rect x="200" y="100" width="280" height="160" rx="8" fill="#1E293B"/><rect x="220" y="120" width="100" height="6" rx="3" fill="#60A5FA"/><rect x="220" y="136" width="240" height="4" rx="2" fill="#475569"/><rect x="220" y="150" width="200" height="4" rx="2" fill="#475569"/><rect x="220" y="164" width="160" height="4" rx="2" fill="#475569"/><rect x="220" y="190" width="60" height="20" rx="4" fill="#3B82F6"/><rect x="290" y="190" width="60" height="20" rx="4" fill="#1E40AF"/><rect x="280" y="290" width="120" height="8" rx="4" fill="#94A3B8"/><text x="340" y="340" text-anchor="middle" fill="#64748B" font-size="14" font-family="system-ui" font-weight="500">💻 Setup</text></svg>')}`,
+      isVideo: false,
+      likes: 342,
+      comments: 45,
+      views: '3.8K'
+    },
+  ]
+
+  const ES_SUGGESTIONS = [
+    { name: 'Mike T.', role: 'Designer UI', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="#34D399"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">MT</text></svg>')}` },
+    { name: 'Emma W.', role: 'DevOps', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="#A78BFA"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">EW</text></svg>')}` },
+  ]
+
+  const ES_COMMENTS = [
+    { author: 'Sarah M.', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="16" fill="#F472B6"/><text x="16" y="16" dominant-baseline="central" text-anchor="middle" fill="white" font-size="12" font-weight="700">SM</text></svg>')}`, text: 'Magnifique ! Hâte de voir le résultat final 🔥', time: 'il y a 1h', likes: 5 },
+    { author: 'Mike T.', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="16" fill="#34D399"/><text x="16" y="16" dominant-baseline="central" text-anchor="middle" fill="white" font-size="12" font-weight="700">MT</text></svg>')}`, text: 'Super clean! Les animations sont fluides.', time: 'il y a 45min', likes: 3 },
+    { author: 'Emma W.', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="16" fill="#A78BFA"/><text x="16" y="16" dominant-baseline="central" text-anchor="middle" fill="white" font-size="12" font-weight="700">EW</text></svg>')}`, text: 'Le pipeline CI/CD est prêt pour ça 💪', time: 'il y a 30min', likes: 2 },
+  ]
+
+  const openPostDetail = (post) => {
+    setEsSelectedPost(post)
+    setEsModal('detail')
+  }
+
+  return (
+    <div className="es-wrapper">
+      {/* LEFT SIDEBAR */}
+      <aside className="es-sidebar">
+        <div className="es-logo-area">
+          <span className="es-logo-icon">✦</span>
+          <h2>L'Éclat</h2>
+        </div>
+
+        <div className="es-sidebar-profile" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#F8FAFC', borderRadius: '12px', marginBottom: '24px' }}>
+          <img src={avatarSvg} alt="" className="es-avatar-sm" />
+          <div>
+            <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '14px' }}>{displayName}</div>
+            <div style={{ fontSize: '12px', color: '#64748B' }}>Développeur Fullstack</div>
+          </div>
+        </div>
+
+        <nav className="es-nav">
+          <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => setEsNavActive('home')}>🏠 Accueil</button>
+          <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => setEsNavActive('profil')}>👤 Profil</button>
+          <button className={esNavActive === 'messages' ? 'active' : ''} onClick={() => setEsNavActive('messages')}>💬 Messages <span className="es-badge">3</span></button>
+          <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => setEsNavActive('notifs')}>🔔 Notifications</button>
+          <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => setEsNavActive('settings')}>⚙️ Paramètres</button>
+        </nav>
+
+        <div className="es-sidebar-bottom">
+          <button className="es-return-btn" onClick={onReturn}>← Retourner au dashboard</button>
+        </div>
+      </aside>
+
+      {/* MAIN FEED */}
+      <main className="es-main">
+        {/* Mobile Header */}
+        <div className="es-mobile-header">
+          <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', margin: 0 }}>L'Éclat</h2>
+          <div className="es-header-actions">
+            <button onClick={onReturn} title="Retourner au dashboard">🚪</button>
+            <button onClick={() => setEsModal('create')}>✏️</button>
+          </div>
+        </div>
+
+        <div className="es-feed-container">
+          {/* STORIES ROW */}
+          <div className="es-stories-row">
+            {ES_STORIES.map((s, i) => (
+              <div key={i} className="es-story">
+                <div className={`es-story-avatar${s.active ? ' active' : ''}`}>
+                  <img src={s.avatar} alt={s.name} />
+                  {s.isYou && <span className="es-story-add-icon">+</span>}
+                </div>
+                <span>{s.name}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* QUICK CREATE */}
+          <div className="es-quick-create" onClick={() => setEsModal('create')}>
+            <img src={avatarSvg} alt="" className="es-avatar-sm" />
+            <div className="es-quick-input">Quoi de neuf ?</div>
+            <button className="es-publish-btn" style={{ fontSize: '13px' }}>Publier</button>
+          </div>
+
+          {/* POSTS */}
+          <div className="es-posts">
+            {ES_POSTS.map(post => (
+              <article key={post.id} className="es-post">
+                <div className="es-post-header">
+                  <img src={post.avatar} alt={post.author} className="es-avatar-sm" />
+                  <div className="es-post-meta">
+                    <span className="es-post-author">{post.author}</span>
+                    <span className="es-author-time">{post.time}</span>
+                  </div>
+                  <button className="es-post-options">⋮</button>
+                </div>
+                <div className="es-post-content" onClick={() => openPostDetail(post)}>
+                  <p>{post.text}</p>
+                  {post.isVideo ? (
+                    <div className="es-video-preview">
+                      <img src={post.image} alt="Video preview" className="es-post-image" />
+                      <span className="es-play-icon">▶</span>
+                      {post.duration && <span className="es-duration">{post.duration}</span>}
+                    </div>
+                  ) : (
+                    <img src={post.image} alt="Post" className="es-post-image" />
+                  )}
+                </div>
+                <div className="es-post-actions-bar">
+                  <button>❤️ {post.likes}</button>
+                  <button>💬 {post.comments}</button>
+                  <button>➦ Partager</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </main>
+
+      {/* RIGHT SIDEBAR */}
+      <aside className="es-right-sidebar">
+        <div className="es-search-bar">
+          <span>🔍</span>
+          <input placeholder="Rechercher..." />
+        </div>
+
+        <div className="es-suggestions-widget">
+          <h3>Suggestions</h3>
+          {ES_SUGGESTIONS.map((s, i) => (
+            <div key={i} className="es-suggestion">
+              <img src={s.avatar} alt={s.name} className="es-avatar-sm" />
+              <div className="es-suggestion-info">
+                <span className="es-sugg-name">{s.name}</span>
+                <span className="es-sugg-mutual">{s.role}</span>
+              </div>
+              <button className="es-sugg-add">+</button>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: '32px' }}>
+          <h3 style={{ fontSize: '16px', color: '#0F172A', margin: '0 0 16px 0' }}>Tendances</h3>
+          {['#WebDevelopment', '#ReactJS', '#UIUX'].map((tag, i) => (
+            <div key={i} style={{ padding: '8px 0', color: '#2563EB', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>{tag}</div>
+          ))}
+        </div>
+      </aside>
+
+      {/* MOBILE BOTTOM NAV */}
+      <nav className="es-bottom-nav">
+        <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => setEsNavActive('home')}>
+          <span className="es-nav-icon">🏠</span>
+          <span className="es-nav-label">Accueil</span>
+        </button>
+        <button className={esNavActive === 'search' ? 'active' : ''} onClick={() => setEsNavActive('search')}>
+          <span className="es-nav-icon">🔍</span>
+          <span className="es-nav-label">Explorer</span>
+        </button>
+        <button className="es-nav-publish" onClick={() => setEsModal('create')}>
+          <span className="es-nav-icon">+</span>
+          <span className="es-nav-label">Publier</span>
+        </button>
+        <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => setEsNavActive('notifs')}>
+          <span className="es-nav-icon">🔔</span>
+          <span className="es-nav-label">Notifs</span>
+        </button>
+        <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => setEsNavActive('profil')}>
+          <span className="es-nav-icon">👤</span>
+          <span className="es-nav-label">Profil</span>
+        </button>
+      </nav>
+
+      {/* CREATE POST MODAL */}
+      {esModal === 'create' && (
+        <div className="es-modal-overlay" onClick={() => setEsModal(null)}>
+          <div className="es-create-modal" onClick={e => e.stopPropagation()}>
+            <div className="es-modal-header">
+              <button className="es-close-btn" onClick={() => setEsModal(null)}>✕</button>
+              <h3>Créer une publication</h3>
+              <button className="es-publish-btn">Publier</button>
+            </div>
+            <div className="es-create-tabs">
+              <button className="active">📷 Image</button>
+              <button>🎬 Vidéo</button>
+              <button>📝 Texte</button>
+            </div>
+            <div className="es-create-media-area">
+              <div className="es-upload-placeholder">
+                <span className="es-upload-icon">📁</span>
+                <p>Glissez vos fichiers ici ou cliquez pour parcourir</p>
+                <span style={{ fontSize: '12px', color: '#94A3B8' }}>JPG, PNG, MP4 · Max 50 Mo</span>
+              </div>
+            </div>
+            <div className="es-create-input-area">
+              <div className="es-post-author-row">
+                <img src={avatarSvg} alt="" className="es-avatar-sm" />
+                <div className="es-author-info">
+                  <span className="es-author-name">{displayName}</span>
+                  <span className="es-author-visibility">🌍 Tout le monde</span>
+                </div>
+              </div>
+              <textarea placeholder="Quoi de neuf ?" rows={3}></textarea>
+            </div>
+            <div className="es-create-options">
+              <button>📍 Ajouter un lieu <span>›</span></button>
+              <button>🏷️ Taguer des personnes <span>›</span></button>
+              <button>😊 Humeur / Activité <span>›</span></button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POST DETAIL MODAL */}
+      {esModal === 'detail' && esSelectedPost && (
+        <div className="es-modal-overlay" onClick={() => { setEsModal(null); setEsSelectedPost(null) }}>
+          <div className="es-post-modal" onClick={e => e.stopPropagation()}>
+            <div className="es-modal-header">
+              <button className="es-back-btn" onClick={() => { setEsModal(null); setEsSelectedPost(null) }}>← Retour</button>
+              <h3>{esSelectedPost.author}</h3>
+              <button className="es-more-btn">⋮</button>
+            </div>
+            <div className="es-modal-content">
+              {/* LEFT: MEDIA */}
+              <div className="es-modal-media">
+                <div className="es-post-header" style={{ padding: '0 0 16px 0' }}>
+                  <img src={esSelectedPost.avatar} alt="" className="es-avatar-sm" />
+                  <div className="es-post-meta">
+                    <span className="es-post-author">{esSelectedPost.author}</span>
+                    <span className="es-author-time">{esSelectedPost.time}</span>
+                  </div>
+                  <button className="es-follow-btn-sm">Suivre</button>
+                </div>
+                <p className="es-post-caption">{esSelectedPost.text}</p>
+                <div className="es-video-container">
+                  <img src={esSelectedPost.image} alt="" className="es-media-img" />
+                  {esSelectedPost.isVideo && <span className="es-play-icon-large">▶</span>}
+                  <span className="es-views-badge">👁️ {esSelectedPost.views} vues</span>
+                </div>
+                <div className="es-post-actions-bar" style={{ borderTop: 'none', padding: '16px 0' }}>
+                  <button>❤️ {esSelectedPost.likes}</button>
+                  <button>💬 {esSelectedPost.comments}</button>
+                  <button>➦ Partager</button>
+                  <button className="es-save-btn">🔖</button>
+                </div>
+                <div className="es-likes-summary">
+                  <div className="es-avatar-stack">
+                    {ES_COMMENTS.slice(0, 3).map((c, i) => (
+                      <img key={i} src={c.avatar} alt="" />
+                    ))}
+                  </div>
+                  <span>Aimé par <b>Sarah M.</b> et <b>{esSelectedPost.likes - 1} autres</b></span>
+                </div>
+              </div>
+
+              {/* RIGHT: COMMENTS */}
+              <div className="es-modal-comments">
+                <div className="es-comments-header">
+                  <h4>Commentaires ({ES_COMMENTS.length})</h4>
+                  <span>Les plus récents ▾</span>
+                </div>
+                <div className="es-comments-list">
+                  {ES_COMMENTS.map((c, i) => (
+                    <div key={i} className="es-comment">
+                      <img src={c.avatar} alt="" className="es-comment-avatar" />
+                      <div>
+                        <div className="es-comment-body">
+                          <span className="es-comment-author">{c.author}</span>
+                          <p>{c.text}</p>
+                        </div>
+                        <div className="es-comment-actions">
+                          <span>{c.time}</span>
+                          <button>❤️ {c.likes}</button>
+                          <button>Répondre</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="es-comment-input-area">
+                  <img src={avatarSvg} alt="" className="es-comment-avatar" />
+                  <input placeholder="Écrire un commentaire..." />
+                  <button className="es-send-btn">➤</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function DashboardShell({ user, role, onLogout }) {
   const [activeKey, setActiveKey] = useState('dashboard')
   const [subKey, setSubKey] = useState(null)
+  const [registeredChildren, setRegisteredChildren] = useState([])
+  const [selectedRegChild, setSelectedRegChild] = useState(null)
   const navItems = ROLE_NAV[role] || ROLE_NAV.director
   const pages = ROLE_PAGES[role] || ROLE_PAGES.director
   const statCards = ROLE_STATS[role] || ROLE_STATS.director
@@ -818,7 +1169,7 @@ function DashboardShell({ user, role, onLogout }) {
     'Profil & identité': {
       title: 'Profil & identité',
       fields: [
-        { label: 'Numéro unique', type: 'text' },
+        { label: 'Numéro unique', type: 'uid' },
         { label: 'Nom', type: 'text' },
         { label: 'Prénom', type: 'text' },
         { label: 'Sexe', type: 'select', options: ['Masculin', 'Féminin'] },
@@ -863,6 +1214,10 @@ function DashboardShell({ user, role, onLogout }) {
         { label: 'Bulletins', type: 'file' },
       ]
     },
+  }
+
+  if (activeKey === 'communication') {
+    return <EclatSocialApp user={user} onReturn={() => { setActiveKey('dashboard'); setSubKey(null) }} />
   }
 
   return (
@@ -960,22 +1315,136 @@ function DashboardShell({ user, role, onLogout }) {
                       {CHILD_FORMS[subKey]?.fields.map((f, i) => (
                         <div key={i} className="dash-form-field">
                           <label className="dash-form-label">{f.label}</label>
-                          {f.type === 'select' ? (
-                            <select className="dash-form-input">
+                          {f.type === 'uid' ? (
+                            <input type="text" className="dash-form-input dash-form-uid" value={genChildUid()} readOnly />
+                          ) : f.type === 'select' ? (
+                            <select className="dash-form-input" required>
                               <option value="">Sélectionner...</option>
                               {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
                             </select>
                           ) : f.type === 'textarea' ? (
-                            <textarea className="dash-form-input dash-form-textarea" rows={3} />
+                            <textarea className="dash-form-input dash-form-textarea" rows={3} required />
                           ) : f.type === 'file' ? (
-                            <input type="file" className="dash-form-file" />
+                            <input type="file" className="dash-form-file" required />
                           ) : (
-                            <input type={f.type} className="dash-form-input" />
+                            <input type={f.type} className="dash-form-input" required />
                           )}
                         </div>
                       ))}
                     </div>
-                    <button className="dash-form-save">Enregistrer</button>
+                    <button className="dash-form-save" onClick={() => {
+                      const form = document.querySelector('.dash-sub-form')
+                      if (!form) return
+                      const items = form.querySelectorAll('.dash-form-field')
+                      const data = {}
+                      items.forEach(item => {
+                        const label = item.querySelector('.dash-form-label')?.textContent || ''
+                        const input = item.querySelector('input, select, textarea')
+                        if (input) data[label] = input.value || input.files?.[0]?.name || ''
+                      })
+                      if (Object.keys(data).length) {
+                        const token = localStorage.getItem('access_token')
+                        fetch(`${API}/enfants/`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                          body: JSON.stringify({
+                            uid: data['Numéro unique'] || genChildUid(),
+                            nom: data['Nom'] || '',
+                            prenom: data['Prénom'] || '',
+                            sexe: data['Sexe'] === 'Masculin' ? 'M' : data['Sexe'] === 'Féminin' ? 'F' : '',
+                            date_naissance: data['Date de naissance'] || null,
+                            nationalite: data['Nationalité'] || '',
+                            adresse: data["Adresse d'origine"] || '',
+                            extra_data: data,
+                          }),
+                        }).then(r => {
+                          if (r.ok) return r.json()
+                          throw new Error('Erreur sauvegarde')
+                        }).then(saved => {
+                          setRegisteredChildren(prev => prev.some(c => c.uid === saved.uid) ? prev : [...prev, saved])
+                          setSubKey(null)
+                        }).catch(err => alert("Erreur lors de l'enregistrement: " + err.message))
+                      }
+                    }}>Enregistrer</button>
+                  </div>
+                ) : activeKey === 'enfants-enregistres' ? (
+                  <div className="dash-content-grid">
+                    <div className="dash-content-left">
+                      <div className="dash-section-header">
+                        <span className="dash-section-title">Enfants Enregistrés</span>
+                      </div>
+                      <div className="dash-subtitle-box">
+                        <p>Tous les enfants enregistrés via la gestion des enfants.</p>
+                      </div>
+                      {selectedRegChild ? (
+                        <div className="dash-sub-form">
+                          <div className="dash-sub-form-top">
+                            <button className="dash-back-btn" onClick={() => setSelectedRegChild(null)}>{'\u2190'} Retour</button>
+                            <h3 className="dash-sub-form-title">{selectedRegChild['Prénom'] || ''} {selectedRegChild['Nom'] || ''}</h3>
+                          </div>
+                          <div className="dash-reg-child-detail">
+                            <div className="dash-reg-child-detail-header">
+                              {selectedRegChild['Photo'] && (
+                                <div className="dash-reg-child-detail-avatar">
+                                  <img src={selectedRegChild['Photo']} alt="" />
+                                </div>
+                              )}
+                              <div className="dash-reg-child-detail-id">
+                                <span className="dash-reg-child-detail-label">UID</span>
+                                <span className="dash-reg-child-detail-value">{selectedRegChild.uid}</span>
+                              </div>
+                            </div>
+                            <div className="dash-reg-child-detail-fields">
+                              {Object.entries(selectedRegChild).filter(([k]) => k !== 'uid').map(([key, val]) => (
+                                <div key={key} className="dash-reg-child-detail-row">
+                                  <span className="dash-reg-child-detail-row-label">{key}</span>
+                                  <span className="dash-reg-child-detail-row-value">{val || '-'}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ) : registeredChildren.length === 0 ? (
+                        <div className="dash-empty-state">
+                          <span className="dash-empty-icon">{'\u{1F466}'}</span>
+                          <p className="dash-empty-text">Aucun enfant enregistré pour le moment.</p>
+                          <p className="dash-empty-hint">Remplissez le formulaire dans "Gestion des enfants" pour ajouter un enfant.</p>
+                        </div>
+                      ) : (
+                        <div className="dash-reg-child-list">
+                          {registeredChildren.map(child => (
+                            <div key={child.uid} className="dash-reg-child-item" onClick={() => setSelectedRegChild(child)}>
+                              <div className="dash-reg-child-item-avatar">
+                                {child['Photo'] ? (
+                                  <img src={child['Photo']} alt="" />
+                                ) : (
+                                  <div className="dash-reg-child-item-placeholder">
+                                    {(child['Prénom']?.[0] || child['Nom']?.[0] || '?').toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="dash-reg-child-item-info">
+                                <span className="dash-reg-child-item-name">{child['Prénom'] || ''} {child['Nom'] || ''}</span>
+                                <span className="dash-reg-child-item-id">UID: {child.uid}</span>
+                              </div>
+                              <span className="dash-reg-child-item-arrow">{'\u203A'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="dash-content-right">
+                      <div className="dash-widget">
+                        <span className="dash-widget-title">RÉCAPITULATIF</span>
+                        <div className="dash-storage-row">
+                          <span className="dash-storage-label">ENFANTS</span>
+                          <span className="dash-storage-value">{registeredChildren.length}</span>
+                        </div>
+                        <div className="dash-storage-bar">
+                          <div className="dash-storage-fill" style={{ width: `${Math.min(100, registeredChildren.length * 4)}%` }} />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="dash-category-cards">

@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Confédération des Orphelinats",
+    "slug": "cdo-mobile",
+    "version": "2.4.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0b1121"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.cdo.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0b1121"
+      },
+      "package": "org.cdo.mobile"
+    }
+  }
+}
