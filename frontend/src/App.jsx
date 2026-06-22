@@ -1171,6 +1171,33 @@ function DashboardShell({ user, role, onLogout }) {
   const [selectedRegChild, setSelectedRegChild] = useState(null)
   const [editingChild, setEditingChild] = useState(null)
   const uidRef = useRef(genChildUid())
+  const sidebarRef = useRef(null)
+  const [sidebarWidth, setSidebarWidth] = useState(() => parseInt(localStorage.getItem('cdo_sidebar_width')) || 220)
+  const isResizing = useRef(false)
+  const liveWidth = useRef(sidebarWidth)
+
+  useEffect(() => {
+    const onMouseMove = (e) => {
+      if (!isResizing.current) return
+      const newWidth = Math.max(160, Math.min(400, e.clientX))
+      liveWidth.current = newWidth
+      setSidebarWidth(newWidth)
+    }
+    const onMouseUp = () => {
+      if (!isResizing.current) return
+      isResizing.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      localStorage.setItem('cdo_sidebar_width', liveWidth.current)
+    }
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [])
+
   const [theme, setTheme] = useState(localStorage.getItem('cdo_theme') || 'dark')
   const [lang, setLang] = useState(localStorage.getItem('cdo_lang') || 'fr')
   const [orphanageName, setOrphanageName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
@@ -1297,8 +1324,8 @@ function DashboardShell({ user, role, onLogout }) {
 
   return (
     <div className="dash">
-      <div className="dash-layout">
-        <aside className="dash-sidebar">
+      <div className="dash-layout" style={{ gridTemplateColumns: `${sidebarWidth}px 4px 1fr` }}>
+        <aside className="dash-sidebar" ref={sidebarRef}>
           <div className="dash-sidebar-divider" />
           <span className="dash-sidebar-section-label">NAVIGATION</span>
 
@@ -1321,6 +1348,12 @@ function DashboardShell({ user, role, onLogout }) {
             </button>
           </div>
         </aside>
+
+        <div className="dash-resize-handle" onMouseDown={() => {
+          isResizing.current = true
+          document.body.style.cursor = 'col-resize'
+          document.body.style.userSelect = 'none'
+        }} />
 
         <main className="dash-main">
           {activeKey === 'dashboard' ? (
@@ -1346,7 +1379,7 @@ function DashboardShell({ user, role, onLogout }) {
               <div className="dash-section-header" style={{ marginBottom: '16px' }}>
                 <span className="dash-section-title">Accès rapide aux modules</span>
               </div>
-              <div className="dash-grid-cards" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="dash-grid-cards">
                 {navItems.filter(n => n.key !== 'dashboard' && n.key !== 'parametres').map((item, i) => {
                   const color = statCards[i]?.color || '#f59e0b'
                   return (
