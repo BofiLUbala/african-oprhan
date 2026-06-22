@@ -808,10 +808,13 @@ function DashboardHeader({ user, roleLabel }) {
   )
 }
 
-function genChildUid() {
+function genChildUid(exclude = new Set()) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let uid = ''
-  for (let i = 0; i < 12; i++) uid += chars[Math.floor(Math.random() * chars.length)]
+  let uid
+  do {
+    uid = ''
+    for (let i = 0; i < 12; i++) uid += chars[Math.floor(Math.random() * chars.length)]
+  } while (exclude.has(uid))
   return uid
 }
 
@@ -898,11 +901,11 @@ function EclatSocialApp({ user, onReturn }) {
         </div>
 
         <nav className="es-nav">
-          <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => setEsNavActive('home')}>🏠 Accueil</button>
-          <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => setEsNavActive('profil')}>👤 Profil</button>
-          <button className={esNavActive === 'messages' ? 'active' : ''} onClick={() => setEsNavActive('messages')}>💬 Messages <span className="es-badge">3</span></button>
-          <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => setEsNavActive('notifs')}>🔔 Notifications</button>
-          <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => setEsNavActive('settings')}>⚙️ Paramètres</button>
+          <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => setEsNavActive('home')}>{"<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style={{marginRight: 8}}><path d=\"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"></path><polyline points=\"9 22 9 12 15 12 15 22\"></polyline></svg>"} Accueil</button>
+          <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => setEsNavActive('profil')}>{"<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style={{marginRight: 8}}><path d=\"M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\"></path><circle cx=\"12\" cy=\"7\" r=\"4\"></circle></svg>"} Profil</button>
+          <button className={esNavActive === 'messages' ? 'active' : ''} onClick={() => setEsNavActive('messages')}>{"<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style={{marginRight: 8}}><path d=\"M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\"></path></svg>"} Messages <span className="es-badge">3</span></button>
+          <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => setEsNavActive('notifs')}>{"<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style={{marginRight: 8}}><path d=\"M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9\"></path><path d=\"M13.73 21a2 2 0 0 1-3.46 0\"></path></svg>"} Notifications</button>
+          <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => setEsNavActive('settings')}>{"<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style={{marginRight: 8}}><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>"} Paramètres</button>
         </nav>
 
         <div className="es-sidebar-bottom">
@@ -1009,11 +1012,11 @@ function EclatSocialApp({ user, onReturn }) {
       {/* MOBILE BOTTOM NAV */}
       <nav className="es-bottom-nav">
         <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => setEsNavActive('home')}>
-          <span className="es-nav-icon">🏠</span>
+          <span className="es-nav-icon">{<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: 8}}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>}</span>
           <span className="es-nav-label">Accueil</span>
         </button>
         <button className={esNavActive === 'search' ? 'active' : ''} onClick={() => setEsNavActive('search')}>
-          <span className="es-nav-icon">🔍</span>
+          <span className="es-nav-icon">{<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: 8}}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>}</span>
           <span className="es-nav-label">Explorer</span>
         </button>
         <button className="es-nav-publish" onClick={() => setEsModal('create')}>
@@ -1021,11 +1024,11 @@ function EclatSocialApp({ user, onReturn }) {
           <span className="es-nav-label">Publier</span>
         </button>
         <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => setEsNavActive('notifs')}>
-          <span className="es-nav-icon">🔔</span>
+          <span className="es-nav-icon">{<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: 8}}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>}</span>
           <span className="es-nav-label">Notifs</span>
         </button>
         <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => setEsNavActive('profil')}>
-          <span className="es-nav-icon">👤</span>
+          <span className="es-nav-icon">{<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: 8}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>}</span>
           <span className="es-nav-label">Profil</span>
         </button>
       </nav>
@@ -1155,6 +1158,49 @@ function DashboardShell({ user, role, onLogout }) {
   const [subKey, setSubKey] = useState(null)
   const [registeredChildren, setRegisteredChildren] = useState([])
   const [selectedRegChild, setSelectedRegChild] = useState(null)
+  const [editingChild, setEditingChild] = useState(null)
+  const uidRef = useRef(genChildUid())
+
+  useEffect(() => {
+    const fetchChildren = async () => {
+      let token = localStorage.getItem('access_token')
+      if (!token) return
+      try {
+        const res = await fetch(`${API}/enfants/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setRegisteredChildren(data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch children:', err)
+      }
+    }
+    fetchChildren()
+  }, [activeKey])
+
+  useEffect(() => {
+    if (editingChild) {
+      uidRef.current = editingChild.uid
+    } else {
+      const existing = new Set(registeredChildren.map(c => c.uid))
+      uidRef.current = genChildUid(existing)
+    }
+  }, [subKey, registeredChildren, editingChild])
+
+  const getFieldValue = (label) => {
+    if (!editingChild) return ''
+    if (label === 'Numéro unique') return editingChild.uid || ''
+    if (label === 'Nom') return editingChild.nom || ''
+    if (label === 'Prénom') return editingChild.prenom || ''
+    if (label === 'Sexe') return editingChild.sexe === 'M' ? 'Masculin' : editingChild.sexe === 'F' ? 'Féminin' : ''
+    if (label === 'Date de naissance') return editingChild.date_naissance || ''
+    if (label === 'Nationalité') return editingChild.nationalite || ''
+    if (label === "Adresse d'origine") return editingChild.adresse || ''
+    return editingChild.extra_data?.[label] || editingChild[label] || ''
+  }
+
   const navItems = ROLE_NAV[role] || ROLE_NAV.director
   const pages = ROLE_PAGES[role] || ROLE_PAGES.director
   const statCards = ROLE_STATS[role] || ROLE_STATS.director
@@ -1232,7 +1278,7 @@ function DashboardShell({ user, role, onLogout }) {
               <button
                 key={item.key}
                 className={`dash-nav-btn${item.key === activeKey ? ' active' : ''}`}
-                onClick={() => { setActiveKey(item.key); setSubKey(null) }}
+                onClick={() => { setActiveKey(item.key); setSubKey(null); setEditingChild(null); }}
               >
                 <span className="dash-nav-label" style={{ paddingLeft: '8px' }}>{item.label}</span>
                 {item.key === activeKey && <span className="dash-nav-ind" />}
@@ -1275,7 +1321,7 @@ function DashboardShell({ user, role, onLogout }) {
                 {navItems.filter(n => n.key !== 'dashboard' && n.key !== 'parametres').map((item, i) => {
                   const color = statCards[i]?.color || '#f59e0b'
                   return (
-                    <div key={item.key} className="dash-stat-card" style={{ '--card-color': color, cursor: 'pointer' }} onClick={() => { setActiveKey(item.key); setSubKey(null) }}>
+                    <div key={item.key} className="dash-stat-card" style={{ '--card-color': color, cursor: 'pointer' }} onClick={() => { setActiveKey(item.key); setSubKey(null); setEditingChild(null); }}>
                       <h3 className="dash-stat-card-label" style={{ fontSize: '14px', marginBottom: '8px' }}>{item.label.toUpperCase()}</h3>
                       <p className="dash-stat-card-sub">Accéder à {item.label.toLowerCase()}</p>
                     </div>
@@ -1308,7 +1354,7 @@ function DashboardShell({ user, role, onLogout }) {
                 {subKey && activeKey === 'enfants' ? (
                   <div className="dash-sub-form">
                     <div className="dash-sub-form-top">
-                      <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'\u2190'} Retour</button>
+                      <button className="dash-back-btn" onClick={() => { setSubKey(null); setEditingChild(null); }}>{'\u2190'} Retour</button>
                       <h3 className="dash-sub-form-title">{subKey}</h3>
                     </div>
                     <div className="dash-sub-form-fields">
@@ -1316,56 +1362,113 @@ function DashboardShell({ user, role, onLogout }) {
                         <div key={i} className="dash-form-field">
                           <label className="dash-form-label">{f.label}</label>
                           {f.type === 'uid' ? (
-                            <input type="text" className="dash-form-input dash-form-uid" value={genChildUid()} readOnly />
+                            <input type="text" className="dash-form-input dash-form-uid" value={editingChild ? editingChild.uid : uidRef.current} readOnly />
                           ) : f.type === 'select' ? (
-                            <select className="dash-form-input" required>
+                            <select className="dash-form-input" defaultValue={getFieldValue(f.label)}>
                               <option value="">Sélectionner...</option>
                               {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
                             </select>
                           ) : f.type === 'textarea' ? (
-                            <textarea className="dash-form-input dash-form-textarea" rows={3} required />
+                            <textarea className="dash-form-input dash-form-textarea" rows={3} defaultValue={getFieldValue(f.label)} />
                           ) : f.type === 'file' ? (
-                            <input type="file" className="dash-form-file" required />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <input type="file" className="dash-form-file" />
+                              {getFieldValue(f.label) && <span style={{ fontSize: '12px', color: '#64748B' }}>Fichier actuel : {getFieldValue(f.label)}</span>}
+                            </div>
                           ) : (
-                            <input type={f.type} className="dash-form-input" required />
+                            <input type={f.type} className="dash-form-input" defaultValue={getFieldValue(f.label)} />
                           )}
                         </div>
                       ))}
-                    </div>
-                    <button className="dash-form-save" onClick={() => {
-                      const form = document.querySelector('.dash-sub-form')
-                      if (!form) return
-                      const items = form.querySelectorAll('.dash-form-field')
-                      const data = {}
-                      items.forEach(item => {
-                        const label = item.querySelector('.dash-form-label')?.textContent || ''
-                        const input = item.querySelector('input, select, textarea')
-                        if (input) data[label] = input.value || input.files?.[0]?.name || ''
-                      })
-                      if (Object.keys(data).length) {
-                        const token = localStorage.getItem('access_token')
-                        fetch(`${API}/enfants/`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                          body: JSON.stringify({
-                            uid: data['Numéro unique'] || genChildUid(),
-                            nom: data['Nom'] || '',
-                            prenom: data['Prénom'] || '',
-                            sexe: data['Sexe'] === 'Masculin' ? 'M' : data['Sexe'] === 'Féminin' ? 'F' : '',
-                            date_naissance: data['Date de naissance'] || null,
-                            nationalite: data['Nationalité'] || '',
-                            adresse: data["Adresse d'origine"] || '',
-                            extra_data: data,
-                          }),
-                        }).then(r => {
-                          if (r.ok) return r.json()
-                          throw new Error('Erreur sauvegarde')
-                        }).then(saved => {
-                          setRegisteredChildren(prev => prev.some(c => c.uid === saved.uid) ? prev : [...prev, saved])
+                      <button className="dash-form-save" onClick={async () => {
+                        const data = {}
+                        document.querySelectorAll('.dash-sub-form .dash-form-field').forEach(field => {
+                          const label = field.querySelector('.dash-form-label')?.textContent || ''
+                          const input = field.querySelector('input, select, textarea')
+                          if (input) data[label] = input.value || input.files?.[0]?.name || ''
+                        })
+                        if (!Object.keys(data).length) return
+
+                        const body = {
+                          uid: editingChild ? editingChild.uid : uidRef.current,
+                          nom: data['Nom'] !== undefined ? data['Nom'] : (editingChild ? editingChild.nom : ''),
+                          prenom: data['Prénom'] !== undefined ? data['Prénom'] : (editingChild ? editingChild.prenom : ''),
+                          sexe: data['Sexe'] !== undefined ? (data['Sexe'] === 'Masculin' ? 'M' : data['Sexe'] === 'Féminin' ? 'F' : '') : (editingChild ? editingChild.sexe : ''),
+                          date_naissance: data['Date de naissance'] !== undefined ? (data['Date de naissance'] || null) : (editingChild ? editingChild.date_naissance : null),
+                          nationalite: data['Nationalité'] !== undefined ? data['Nationalité'] : (editingChild ? editingChild.nationalite : ''),
+                          adresse: data["Adresse d'origine"] !== undefined ? data["Adresse d'origine"] : (editingChild ? editingChild.adresse : ''),
+                          extra_data: editingChild ? { ...editingChild.extra_data, ...data } : data,
+                        }
+
+                        let url = `${API}/enfants/`
+                        let method = 'POST'
+                        if (editingChild) {
+                          url = `${API}/enfants/${editingChild.id}/`
+                          method = 'PUT'
+                        }
+
+                        let token = localStorage.getItem('access_token')
+                        if (!token) { alert('Session expirée'); return }
+                        try {
+                          let res = await fetch(url, {
+                            method: method,
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify(body),
+                          })
+                          if (res.status === 401) {
+                            const refresh = localStorage.getItem('refresh_token')
+                            if (!refresh) throw new Error('Session expirée')
+                            const refRes = await fetch(`${API}/token/refresh/`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ refresh }),
+                            })
+                            if (!refRes.ok) throw new Error('Session expirée')
+                            const tokens = await refRes.json()
+                            localStorage.setItem('access_token', tokens.access)
+                            res = await fetch(url, {
+                              method: method,
+                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokens.access}` },
+                              body: JSON.stringify(body),
+                            })
+                          }
+                          if (!res.ok) {
+                            const errData = await res.json().catch(() => ({}))
+                            const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'
+                            throw new Error(errMsg)
+                          }
+                          const saved = await res.json()
+                          setRegisteredChildren(prev => {
+                            if (prev.some(c => c.id === saved.id)) {
+                              return prev.map(c => c.id === saved.id ? saved : c)
+                            }
+                            return [...prev, saved]
+                          })
                           setSubKey(null)
-                        }).catch(err => alert("Erreur lors de l'enregistrement: " + err.message))
-                      }
-                    }}>Enregistrer</button>
+                          setEditingChild(null)
+                        } catch (e) {
+                          if (method === 'POST' && e.message && e.message.includes('dupliquée')) {
+                            uidRef.current = genChildUid()
+                            body.uid = uidRef.current
+                            try {
+                              let retry = await fetch(`${API}/enfants/`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+                                body: JSON.stringify(body),
+                              })
+                              if (retry.ok) {
+                                const saved = await retry.json()
+                                setRegisteredChildren(prev => [...prev, saved])
+                                setSubKey(null)
+                                setEditingChild(null)
+                                return
+                              }
+                            } catch (_) {}
+                          }
+                          alert(e.message || 'Erreur lors de l\'enregistrement')
+                        }
+                      }}>Enregistrer</button>
+                    </div>
                   </div>
                 ) : activeKey === 'enfants-enregistres' ? (
                   <div className="dash-content-grid">
@@ -1378,15 +1481,23 @@ function DashboardShell({ user, role, onLogout }) {
                       </div>
                       {selectedRegChild ? (
                         <div className="dash-sub-form">
-                          <div className="dash-sub-form-top">
-                            <button className="dash-back-btn" onClick={() => setSelectedRegChild(null)}>{'\u2190'} Retour</button>
-                            <h3 className="dash-sub-form-title">{selectedRegChild['Prénom'] || ''} {selectedRegChild['Nom'] || ''}</h3>
+                          <div className="dash-sub-form-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                              <button className="dash-back-btn" onClick={() => setSelectedRegChild(null)}>{'\u2190'} Retour</button>
+                              <h3 className="dash-sub-form-title" style={{ margin: 0 }}>{selectedRegChild.prenom || ''} {selectedRegChild.nom || ''}</h3>
+                            </div>
+                            <button className="dash-form-save" style={{ margin: 0, padding: '6px 16px', fontSize: '14px' }} onClick={() => {
+                              setEditingChild(selectedRegChild)
+                              setActiveKey('enfants')
+                              setSubKey('Profil & identité')
+                              setSelectedRegChild(null)
+                            }}>Modifier</button>
                           </div>
                           <div className="dash-reg-child-detail">
                             <div className="dash-reg-child-detail-header">
-                              {selectedRegChild['Photo'] && (
+                              {selectedRegChild.photo && (
                                 <div className="dash-reg-child-detail-avatar">
-                                  <img src={selectedRegChild['Photo']} alt="" />
+                                  <img src={selectedRegChild.photo} alt="" />
                                 </div>
                               )}
                               <div className="dash-reg-child-detail-id">
@@ -1395,7 +1506,31 @@ function DashboardShell({ user, role, onLogout }) {
                               </div>
                             </div>
                             <div className="dash-reg-child-detail-fields">
-                              {Object.entries(selectedRegChild).filter(([k]) => k !== 'uid').map(([key, val]) => (
+                              <div className="dash-reg-child-detail-row">
+                                <span className="dash-reg-child-detail-row-label">Nom</span>
+                                <span className="dash-reg-child-detail-row-value">{selectedRegChild.nom || '-'}</span>
+                              </div>
+                              <div className="dash-reg-child-detail-row">
+                                <span className="dash-reg-child-detail-row-label">Prénom</span>
+                                <span className="dash-reg-child-detail-row-value">{selectedRegChild.prenom || '-'}</span>
+                              </div>
+                              <div className="dash-reg-child-detail-row">
+                                <span className="dash-reg-child-detail-row-label">Sexe</span>
+                                <span className="dash-reg-child-detail-row-value">{selectedRegChild.sexe === 'M' ? 'Masculin' : selectedRegChild.sexe === 'F' ? 'Féminin' : '-'}</span>
+                              </div>
+                              <div className="dash-reg-child-detail-row">
+                                <span className="dash-reg-child-detail-row-label">Date de naissance</span>
+                                <span className="dash-reg-child-detail-row-value">{selectedRegChild.date_naissance || '-'}</span>
+                              </div>
+                              <div className="dash-reg-child-detail-row">
+                                <span className="dash-reg-child-detail-row-label">Nationalité</span>
+                                <span className="dash-reg-child-detail-row-value">{selectedRegChild.nationalite || '-'}</span>
+                              </div>
+                              <div className="dash-reg-child-detail-row">
+                                <span className="dash-reg-child-detail-row-label">Adresse d'origine</span>
+                                <span className="dash-reg-child-detail-row-value">{selectedRegChild.adresse || '-'}</span>
+                              </div>
+                              {selectedRegChild.extra_data && Object.entries(selectedRegChild.extra_data).map(([key, val]) => (
                                 <div key={key} className="dash-reg-child-detail-row">
                                   <span className="dash-reg-child-detail-row-label">{key}</span>
                                   <span className="dash-reg-child-detail-row-value">{val || '-'}</span>
@@ -1415,16 +1550,16 @@ function DashboardShell({ user, role, onLogout }) {
                           {registeredChildren.map(child => (
                             <div key={child.uid} className="dash-reg-child-item" onClick={() => setSelectedRegChild(child)}>
                               <div className="dash-reg-child-item-avatar">
-                                {child['Photo'] ? (
-                                  <img src={child['Photo']} alt="" />
+                                {child.photo ? (
+                                  <img src={child.photo} alt="" />
                                 ) : (
                                   <div className="dash-reg-child-item-placeholder">
-                                    {(child['Prénom']?.[0] || child['Nom']?.[0] || '?').toUpperCase()}
+                                    {(child.prenom?.[0] || child.nom?.[0] || '?').toUpperCase()}
                                   </div>
                                 )}
                               </div>
                               <div className="dash-reg-child-item-info">
-                                <span className="dash-reg-child-item-name">{child['Prénom'] || ''} {child['Nom'] || ''}</span>
+                                <span className="dash-reg-child-item-name">{child.prenom || ''} {child.nom || ''}</span>
                                 <span className="dash-reg-child-item-id">UID: {child.uid}</span>
                               </div>
                               <span className="dash-reg-child-item-arrow">{'\u203A'}</span>
@@ -1449,7 +1584,14 @@ function DashboardShell({ user, role, onLogout }) {
                 ) : (
                   <div className="dash-category-cards">
                     {page?.categories?.map((cat, i) => (
-                      <button key={i} className="dash-category-card" onClick={() => { setSubKey(cat.title); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
+                      <button key={i} className="dash-category-card" onClick={() => {
+                        if (!editingChild && cat.title !== 'Profil & identité') {
+                          alert("Veuillez d'abord remplir et enregistrer le 'Profil & identité' de l'enfant.");
+                          return;
+                        }
+                        setSubKey(cat.title);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}>
                         <div className="dash-card-icon-wrap">
                           <span className="dash-card-icon">{CATEGORY_ICONS[i % CATEGORY_ICONS.length]}</span>
                         </div>

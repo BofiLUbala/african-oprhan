@@ -10,7 +10,10 @@ class ChildSerializer(serializers.ModelSerializer):
             "nationalite", "photo", "adresse", "extra_data",
             "created_by", "created_at", "updated_at",
         ]
-        read_only_fields = ["uid", "created_by", "created_at", "updated_at"]
+        read_only_fields = ["created_by", "created_at", "updated_at"]
+        extra_kwargs = {
+            "uid": {"required": False, "read_only": False}
+        }
 
     def create(self, validated_data):
         validated_data["created_by"] = self.context["request"].user
