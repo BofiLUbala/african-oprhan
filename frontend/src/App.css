@@ -50,13 +50,126 @@ body {
   transition:background .3s,color .3s;
 }
 :root { --bg-overlay: radial-gradient(ellipse 80% 60% at 0% 20%, rgba(245,158,11,0.06) 0%, transparent 50%), radial-gradient(ellipse 60% 50% at 100% 40%, rgba(168,85,247,0.05) 0%, transparent 50%), radial-gradient(ellipse 70% 40% at 50% 80%, rgba(34,197,94,0.04) 0%, transparent 50%), radial-gradient(ellipse 50% 30% at 20% 60%, rgba(59,130,246,0.04) 0%, transparent 50%); }
-[data-bg="1"] { --bg-overlay: linear-gradient(135deg, rgba(47,47,47,0.20) 0%, rgba(180,180,180,0.10) 50%, rgba(255,140,0,0.12) 100%); }
-[data-bg="2"] { --bg-overlay: linear-gradient(135deg, rgba(30,30,30,0.20) 0%, rgba(180,170,160,0.10) 50%, rgba(160,80,40,0.12) 100%); }
-[data-bg="3"] { --bg-overlay: linear-gradient(135deg, rgba(10,20,50,0.22) 0%, rgba(180,185,190,0.10) 50%, rgba(255,200,0,0.12) 100%); }
-[data-bg="4"] { --bg-overlay: linear-gradient(135deg, rgba(10,10,10,0.18) 0%, rgba(190,190,195,0.10) 50%, rgba(180,180,190,0.12) 100%); }
-[data-bg="5"] { --bg-overlay: linear-gradient(135deg, rgba(50,30,20,0.22) 0%, rgba(200,195,185,0.10) 50%, rgba(30,30,30,0.12) 100%); }
-[data-bg="6"] { --bg-overlay: linear-gradient(135deg, rgba(15,50,40,0.22) 0%, rgba(195,195,190,0.12) 50%, rgba(180,100,30,0.12) 100%); }
-[data-bg="7"] { --bg-overlay: linear-gradient(135deg, rgba(40,40,40,0.18) 0%, rgba(210,205,195,0.10) 50%, rgba(80,140,80,0.12) 100%); }
+
+/* ===== THEME 1 — Cyber Blueprint ===== */
+[data-bg="1"] {
+  --bg-body: #0B1026; --bg-card: #1A2342; --bg-sidebar: #0B1026;
+  --text-body: #FFFFFF; --text-muted: rgba(255,255,255,0.7);
+  --border-card: rgba(0,229,255,0.15); --border-input: rgba(0,229,255,0.15);
+  --bg-input: rgba(26,35,66,0.8);
+  --bg-overlay: linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px), linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px), #0B1026;
+}
+[data-bg="1"] .dash-sidebar { border-right-color: rgba(0,229,255,0.2); }
+[data-bg="1"] .dash-nav-btn.active { border-left:3px solid #00E5FF; color:#00E5FF; }
+
+/* ===== THEME 2 — Frosted Carbon ===== */
+[data-bg="2"] {
+  --bg-body: #1A1A1A; --bg-card: rgba(255,255,255,0.03); --bg-sidebar: rgba(255,255,255,0.05);
+  --text-body: #FFFFFF; --text-muted: rgba(255,255,255,0.6);
+  --border-card: rgba(255,255,255,0.15); --border-input: rgba(255,255,255,0.12);
+  --bg-input: rgba(255,255,255,0.06);
+  --bg-overlay: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.008) 2px, rgba(255,255,255,0.008) 4px), #1A1A1A;
+}
+[data-bg="2"] .dash-sidebar { backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-right-color:rgba(255,255,255,0.15); }
+[data-bg="2"] .dash-nav-btn.active { border-left:3px solid rgba(255,255,255,0.6); }
+
+/* ===== THEME 3 — Industrial Gold & Slate ===== */
+[data-bg="3"] {
+  --bg-body: #2A2B2E; --bg-card: #3B3D42; --bg-sidebar: #2A2B2E;
+  --text-body: #FFFFFF; --text-muted: #8A8B8E;
+  --border-card: rgba(201,168,76,0.25); --border-input: rgba(201,168,76,0.2);
+  --bg-input: rgba(59,61,66,0.8); --bg-overlay: #2A2B2E;
+}
+[data-bg="3"] .dash-sidebar { border-right:4px solid #C9A84C; }
+[data-bg="3"] .dash-nav-btn.active { color:#C9A84C; }
+[data-bg="3"] .dash-nav-btn.active .dash-nav-ind { background:#C9A84C; }
+
+/* ===== THEME 4 — Tactical HUD ===== */
+[data-bg="4"] {
+  --bg-body: #1A1E1A; --bg-card: #2A302A; --bg-sidebar: #1A1E1A;
+  --text-body: #FFFFFF; --text-muted: #94A3B8;
+  --border-card: rgba(230,168,34,0.2); --border-input: rgba(230,168,34,0.15);
+  --bg-input: rgba(42,48,42,0.8);
+  --bg-overlay: repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(230,168,34,0.02) 40px, rgba(230,168,34,0.02) 41px), repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(230,168,34,0.02) 40px, rgba(230,168,34,0.02) 41px), #1A1E1A;
+}
+[data-bg="4"] .dash-sidebar { border-right-color:rgba(230,168,34,0.3); }
+[data-bg="4"] .dash-nav-btn.active { border-left:3px solid #E6A822; color:#E6A822; }
+
+/* ===== THEME 5 — Pure Distraction-Free ===== */
+[data-bg="5"] {
+  --bg-body: #121212; --bg-card: #1E1E1E; --bg-sidebar: #121212;
+  --text-body: #FFFFFF; --text-muted: #94A3B8;
+  --border-card: rgba(255,255,255,0.04); --border-input: #2A2A2A;
+  --bg-input: #1E1E1E; --bg-overlay: #121212;
+}
+[data-bg="5"] .dash-layout { gap:0; }
+[data-bg="5"] .dash-sidebar { border-right:1px solid #2A2A2A; box-shadow:4px 0 16px rgba(0,0,0,0.3); }
+[data-bg="5"] .dash-nav-btn.active { border-left:3px solid #FFFFFF; }
+
+/* ===== THEME 6 — Architectural Blueprint (Light) ===== */
+[data-bg="6"] {
+  --bg-body: #F4F6F9; --bg-card: #FFFFFF; --bg-sidebar: #F4F6F9;
+  --text-body: #1e293b; --text-muted: #6B7B8D;
+  --border-card: #D0DCE8; --border-input: #D0DCE8;
+  --bg-input: #FFFFFF;
+  --bg-overlay: repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(59,89,152,0.04) 30px, rgba(59,89,152,0.04) 31px), repeating-linear-gradient(90deg, transparent, transparent 30px, rgba(59,89,152,0.04) 30px, rgba(59,89,152,0.04) 31px), #F4F6F9;
+}
+[data-bg="6"] .dash-sidebar { border-right:1px solid #D0DCE8; }
+[data-bg="6"] .dash-nav-btn.active { border-left:1px solid #3B5998; color:#3B5998; font-weight:700; }
+[data-bg="6"] .dash-nav-ind { background:#3B5998; }
+[data-bg="6"] .dash-stat-card,
+[data-bg="6"] .dash-category-card,
+[data-bg="6"] .dash-widget { box-shadow:none; border-radius:0; }
+
+/* ===== THEME 7 — Neon Pulse ===== */
+[data-bg="7"] {
+  --bg-body: #0A071D; --bg-card: rgba(10,7,29,0.6); --bg-sidebar: #0A071D;
+  --text-body: #FFFFFF; --text-muted: #B0B0B0;
+  --border-card: rgba(0,240,255,0.12); --border-input: rgba(0,240,255,0.1);
+  --bg-input: rgba(10,7,29,0.8);
+  --bg-overlay: radial-gradient(ellipse 100% 50% at 0% 100%, rgba(255,0,127,0.06) 0%, transparent 60%), radial-gradient(ellipse 80% 40% at 100% 0%, rgba(0,240,255,0.06) 0%, transparent 60%), #0A071D;
+}
+[data-bg="7"] .dash-sidebar { border-right:1px solid rgba(0,240,255,0.15); }
+[data-bg="7"] .dash-nav-btn.active { border-left:3px solid #00F0FF; color:#00F0FF; }
+[data-bg="7"] .dash-export-btn { background:rgba(0,240,255,0.1); border-color:#00F0FF; color:#00F0FF; }
+
+/* ===== THEME 8 — Brushed Steel & Monotone (Light) ===== */
+[data-bg="8"] {
+  --bg-body: #E0E4E8; --bg-card: #FFFFFF; --bg-sidebar: #E0E4E8;
+  --text-body: #2D2D2D; --text-muted: #6C757D;
+  --border-card: rgba(0,0,0,0.06); --border-input: #B8C0C8;
+  --bg-input: #FFFFFF;
+  --bg-overlay: linear-gradient(90deg, #E0E4E8 0%, #B8C0C8 50%, #E0E4E8 100%);
+}
+[data-bg="8"] .dash-sidebar { border-right:1px solid rgba(0,0,0,0.08); box-shadow:4px 0 12px rgba(0,0,0,0.08); }
+[data-bg="8"] .dash-nav-btn.active { border-left:3px solid #2D2D2D; font-weight:800; }
+[data-bg="8"] .dash-stat-card,
+[data-bg="8"] .dash-category-card,
+[data-bg="8"] .dash-widget { box-shadow:0 8px 20px rgba(0,0,0,0.12); border-radius:8px; }
+
+/* ===== THEME 9 — Abstract Topography ===== */
+[data-bg="9"] {
+  --bg-body: #111827; --bg-card: #1E293B; --bg-sidebar: #111827;
+  --text-body: #FFFFFF; --text-muted: #94A3B8;
+  --border-card: rgba(100,180,255,0.06); --border-input: rgba(100,180,255,0.08);
+  --bg-input: rgba(30,41,59,0.8);
+  --bg-overlay: repeating-radial-gradient(circle at 20% 50%, rgba(100,180,255,0.03) 0px, transparent 1px), repeating-radial-gradient(circle at 80% 30%, rgba(100,180,255,0.02) 0px, transparent 2px), #111827;
+}
+[data-bg="9"] .dash-sidebar { backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); background:rgba(17,24,39,0.85); }
+[data-bg="9"] .dash-nav-btn.active { border-left:3px solid rgba(100,180,255,0.6); color:rgba(100,180,255,0.9); }
+
+/* ===== THEME 10 — Floating Depth Layers ===== */
+[data-bg="10"] {
+  --bg-body: #2A2A2A; --bg-card: rgba(255,255,255,0.05); --bg-sidebar: rgba(20,20,20,0.7);
+  --text-body: #FFFFFF; --text-muted: #94A3B8;
+  --border-card: rgba(255,255,255,0.1); --border-input: rgba(255,255,255,0.08);
+  --bg-input: rgba(255,255,255,0.06);
+  --bg-overlay: radial-gradient(ellipse 120% 80% at 10% 20%, rgba(100,100,255,0.04) 0%, transparent 50%), radial-gradient(ellipse 100% 60% at 90% 80%, rgba(255,100,200,0.03) 0%, transparent 50%), #2A2A2A;
+}
+[data-bg="10"] .dash-sidebar { backdrop-filter:blur(15px); -webkit-backdrop-filter:blur(15px); border-right:1px solid rgba(255,255,255,0.1); }
+[data-bg="10"] .dash-stat-card,
+[data-bg="10"] .dash-category-card,
+[data-bg="10"] .dash-widget { backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.1); }
 body::before {
   content:'';
   position:fixed; inset:0;

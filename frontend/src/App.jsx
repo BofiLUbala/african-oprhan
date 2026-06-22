@@ -912,11 +912,11 @@ function EclatSocialApp({ user, onReturn }) {
         </div>
 
         <nav className="es-nav">
-          <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => setEsNavActive('home')}>{"<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style={{marginRight: 8}}><path d=\"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"></path><polyline points=\"9 22 9 12 15 12 15 22\"></polyline></svg>"} Accueil</button>
-          <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => setEsNavActive('profil')}>{"<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style={{marginRight: 8}}><path d=\"M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\"></path><circle cx=\"12\" cy=\"7\" r=\"4\"></circle></svg>"} Profil</button>
-          <button className={esNavActive === 'messages' ? 'active' : ''} onClick={() => setEsNavActive('messages')}>{"<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style={{marginRight: 8}}><path d=\"M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\"></path></svg>"} Messages <span className="es-badge">3</span></button>
-          <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => setEsNavActive('notifs')}>{"<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style={{marginRight: 8}}><path d=\"M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9\"></path><path d=\"M13.73 21a2 2 0 0 1-3.46 0\"></path></svg>"} Notifications</button>
-          <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => setEsNavActive('settings')}>{"<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style={{marginRight: 8}}><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>"} Paramètres</button>
+          <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => setEsNavActive('home')}><span className="es-nav-icon">🏠</span> Accueil</button>
+          <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => setEsNavActive('profil')}><span className="es-nav-icon">👤</span> Profil</button>
+          <button className={esNavActive === 'messages' ? 'active' : ''} onClick={() => setEsNavActive('messages')}><span className="es-nav-icon">💬</span> Messages <span className="es-badge">3</span></button>
+          <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => setEsNavActive('notifs')}><span className="es-nav-icon">🔔</span> Notifications</button>
+          <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => setEsNavActive('settings')}><span className="es-nav-icon">⚙️</span> Paramètres</button>
         </nav>
 
         <div className="es-sidebar-bottom">
@@ -1023,11 +1023,11 @@ function EclatSocialApp({ user, onReturn }) {
       {/* MOBILE BOTTOM NAV */}
       <nav className="es-bottom-nav">
         <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => setEsNavActive('home')}>
-          <span className="es-nav-icon">{<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: 8}}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>}</span>
+          <span className="es-nav-icon">🏠</span>
           <span className="es-nav-label">Accueil</span>
         </button>
         <button className={esNavActive === 'search' ? 'active' : ''} onClick={() => setEsNavActive('search')}>
-          <span className="es-nav-icon">{<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: 8}}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>}</span>
+          <span className="es-nav-icon">🔍</span>
           <span className="es-nav-label">Explorer</span>
         </button>
         <button className="es-nav-publish" onClick={() => setEsModal('create')}>
@@ -1035,11 +1035,11 @@ function EclatSocialApp({ user, onReturn }) {
           <span className="es-nav-label">Publier</span>
         </button>
         <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => setEsNavActive('notifs')}>
-          <span className="es-nav-icon">{<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: 8}}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>}</span>
+          <span className="es-nav-icon">🔔</span>
           <span className="es-nav-label">Notifs</span>
         </button>
         <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => setEsNavActive('profil')}>
-          <span className="es-nav-icon">{<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: 8}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>}</span>
+          <span className="es-nav-icon">👤</span>
           <span className="es-nav-label">Profil</span>
         </button>
       </nav>
@@ -1452,13 +1452,16 @@ function DashboardShell({ user, role, onLogout }) {
                         <label className="dash-form-label">Fond d'écran</label>
                         <select className="dash-form-input" value={bgTheme} onChange={e => setBgTheme(e.target.value)}>
                           <option value="">Par défaut</option>
-                          <option value="1">Usine Sidérurgique</option>
-                          <option value="2">Chantier Naval</option>
-                          <option value="3">Centre de Distribution</option>
-                          <option value="4">Atelier de Précision</option>
-                          <option value="5">Centrale Énergétique</option>
-                          <option value="6">Hub Pétrochimique</option>
-                          <option value="7">ScrapYard Éco-Industriel</option>
+                          <option value="1">Cyber Blueprint</option>
+                          <option value="2">Frosted Carbon</option>
+                          <option value="3">Industrial Gold & Slate</option>
+                          <option value="4">Tactical HUD</option>
+                          <option value="5">Pure Distraction-Free</option>
+                          <option value="6">Architectural Blueprint</option>
+                          <option value="7">Neon Pulse</option>
+                          <option value="8">Brushed Steel & Monotone</option>
+                          <option value="9">Abstract Topography</option>
+                          <option value="10">Floating Depth Layers</option>
                         </select>
                       </div>
                     </div>
