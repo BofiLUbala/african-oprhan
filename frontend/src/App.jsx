@@ -755,7 +755,14 @@ function DashboardHeader({ user, roleLabel }) {
   const [time, setTime] = useState(new Date())
   const [profileImg, setProfileImg] = useState(null)
   const [localOrpName, setLocalOrpName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
+  const [countryDropOpen, setCountryDropOpen] = useState(false)
+  const [selectedCountry, setSelectedCountry] = useState(user.country || 'CD')
+  const [notifCount] = useState(3)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'dark')
   const fileInputRef = useRef(null)
+  const countryDropRef = useRef(null)
+  const notifDropRef = useRef(null)
 
   useEffect(() => {
     const check = setInterval(() => {
@@ -770,6 +777,22 @@ function DashboardHeader({ user, roleLabel }) {
     return () => clearInterval(timer)
   }, [])
 
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (countryDropRef.current && !countryDropRef.current.contains(e.target)) setCountryDropOpen(false)
+      if (notifDropRef.current && !notifDropRef.current.contains(e.target)) setNotifOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    document.documentElement.setAttribute('data-theme', next === 'light' ? 'light' : '')
+  }
+
   const initials = (user.first_name?.[0] || '') + (user.last_name?.[0] || '')
   const hue = user.first_name ? user.first_name.charCodeAt(0) * 37 % 360 : 200
   const avatarSvg = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="hsl(${hue},50%,35%)"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700" font-family="system-ui">${initials}</text></svg>`)}`
@@ -782,37 +805,116 @@ function DashboardHeader({ user, roleLabel }) {
     }
   }
 
+  const NOTIFS = [
+    { icon: '📋', text: 'Nouveau rapport soumis', time: 'il y a 5 min' },
+    { icon: '👤', text: 'Profil enfant mis à jour', time: 'il y a 20 min' },
+    { icon: '✅', text: 'Validation approuvée', time: 'il y a 1h' },
+  ]
+
   return (
     <header className="dash-header">
       <div className="dash-header-inner">
+
+        {/* LEFT — Avatar + Profile Info */}
         <div className="dash-header-left">
-          <div className="dash-avatar-wrapper" onClick={() => fileInputRef.current?.click()} title="Modifier la photo" style={{ borderRadius: '50%', cursor: 'pointer' }}>
-            <img src={profileImg || avatarSvg} alt="" className="dash-avatar" style={{ borderRadius: '50%', width: '40px', height: '40px' }} />
-            <div className="dash-avatar-overlay" style={{ borderRadius: '50%' }}>+</div>
+          <div className="dash-avatar-wrapper" onClick={() => fileInputRef.current?.click()} title="Modifier la photo">
+            <img src={profileImg || avatarSvg} alt="" className="dash-avatar" />
+            <div className="dash-avatar-overlay">+</div>
             <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: 'none' }} />
           </div>
           <div className="dash-profile-text">
-            <div className="dash-profile-name">{user.first_name || user.last_name}</div>
+            <div className="dash-profile-name">{user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username}</div>
             <div className="dash-profile-details">
-              <span className="dash-profile-detail-item">{countryFlag(user.country || 'CD')} {countryName(user.country || 'CD')}</span>
-              <span className="dash-profile-detail-item">ID: {user.id}</span>
+              <span className="dash-profile-detail-item dj-prefix">DJ {countryName(selectedCountry)}</span>
+              <span className="dash-profile-sep">•</span>
               <span className="dash-profile-detail-item">{roleLabel}</span>
-              {localOrpName && <span className="dash-profile-detail-item dash-profile-orp">{'\u{1F3E1}'} {localOrpName}</span>}
+              {localOrpName && <>
+                <span className="dash-profile-sep">🏠</span>
+                <span className="dash-profile-detail-item dash-profile-orp">{localOrpName}</span>
+              </>}
             </div>
           </div>
         </div>
 
+        {/* CENTER — System Status */}
         <div className="dash-header-center">
           <span className="dash-status-dot"></span>
           <span className="dash-status-text">SYSTÈME OPÉRATIONNEL</span>
           <span className="dash-status-star">★</span>
         </div>
 
+        {/* RIGHT — Country · Notifications · Time · Theme */}
         <div className="dash-header-right">
+
+          {/* Country Selector */}
+          <div className="dh-country-wrap" ref={countryDropRef}>
+            <button
+              id="dh-country-btn"
+              className="dh-country-btn"
+              onClick={() => { setCountryDropOpen(v => !v); setNotifOpen(false) }}
+              title="Changer de pays"
+            >
+              <span className="dh-country-flag">{countryFlag(selectedCountry)}</span>
+              <span className="dh-country-name">{countryName(selectedCountry)}</span>
+              <svg className={`dh-chevron${countryDropOpen ? ' open' : ''}`} viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            {countryDropOpen && (
+              <div className="dh-dropdown dh-country-drop">
+                {AFRICAN_COUNTRIES.map(c => (
+                  <button key={c.code} className={`dh-drop-item${c.code === selectedCountry ? ' active' : ''}`} onClick={() => { setSelectedCountry(c.code); setCountryDropOpen(false) }}>
+                    <span>{countryFlag(c.code)}</span>
+                    <span>{c.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Notification Bell */}
+          <div className="dh-notif-wrap" ref={notifDropRef}>
+            <button
+              id="dh-notif-btn"
+              className="dh-notif-btn"
+              onClick={() => { setNotifOpen(v => !v); setCountryDropOpen(false) }}
+              title="Notifications"
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              {notifCount > 0 && <span className="dh-notif-badge">{notifCount}</span>}
+            </button>
+            {notifOpen && (
+              <div className="dh-dropdown dh-notif-drop">
+                <div className="dh-notif-header">Notifications</div>
+                {NOTIFS.map((n, i) => (
+                  <div key={i} className="dh-notif-item">
+                    <span className="dh-notif-icon">{n.icon}</span>
+                    <div className="dh-notif-body">
+                      <div className="dh-notif-text">{n.text}</div>
+                      <div className="dh-notif-time">{n.time}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Clock */}
           <div className="dash-header-time">
             <span className="dash-time-label">TEMPS RÉEL</span>
             <span className="dash-time-value">{time.toLocaleTimeString('fr-FR')}</span>
           </div>
+
+          {/* Theme Toggle */}
+          <button
+            id="dh-theme-btn"
+            className="dh-theme-btn"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
+          >
+            {theme === 'dark'
+              ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              : <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            }
+          </button>
         </div>
       </div>
     </header>
