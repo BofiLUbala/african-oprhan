@@ -1557,6 +1557,39 @@ section::before {
   letter-spacing:0.5px;
 }
 .dash-form-save:hover { opacity:0.85; }
+.dash-form-delete {
+  align-self:flex-start;
+  padding:10px 24px; border-radius: var(--ag-radius);
+  border:none; background:#ef4444; color:#fff;
+  font-size:13px; font-weight:800; font-family:inherit;
+  cursor:pointer; transition:opacity .2s;
+  letter-spacing:0.5px;
+}
+.dash-form-delete:hover { opacity:0.85; }
+
+/* Delete confirmation modal */
+.modal-confirm {
+  background:#1e293b; border:1px solid rgba(255,255,255,0.08);
+  border-radius:16px; padding:24px; max-width:400px; width:100%;
+  text-align:center;
+}
+.modal-confirm-icon { font-size:48px; margin-bottom:12px; }
+.modal-confirm-title {
+  font-size:18px; font-weight:800; color:#e2e8f0; margin-bottom:8px;
+}
+.modal-confirm-text {
+  font-size:13px; color:#94a3b8; line-height:1.5; margin-bottom:20px;
+}
+.modal-confirm-actions { display:flex; gap:10px; justify-content:center; }
+.modal-btn {
+  padding:10px 24px; border-radius:12px; border:none;
+  font-size:13px; font-weight:700; font-family:inherit;
+  cursor:pointer; transition:all .2s;
+}
+.modal-btn-cancel { background:rgba(255,255,255,0.06); color:#94a3b8; }
+.modal-btn-cancel:hover { background:rgba(255,255,255,0.1); }
+.modal-btn-delete { background:#ef4444; color:#fff; }
+.modal-btn-delete:hover { background:#dc2626; }
 
 /* Registered children list */
 .dash-reg-child-list {

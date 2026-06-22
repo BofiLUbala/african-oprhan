@@ -190,8 +190,24 @@ function Hero() {
                       <span className="hero-slide-name">{y.name}</span>
                       <span className="hero-slide-age">{y.age} ans &middot; {countryFlag(y.code)} {y.country}</span>
                     </div>
-                  </div>
-                </div>
+      </div>
+      {deleteConfirm && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div className="modal-confirm" onClick={e => e.stopPropagation()}>
+            <div className="modal-confirm-icon">⚠️</div>
+            <h3 className="modal-confirm-title">Supprimer cet enfant ?</h3>
+            <p className="modal-confirm-text">
+              Êtes-vous sûr de vouloir supprimer <strong>{deleteConfirm.prenom || ''} {deleteConfirm.nom || ''}</strong> ({deleteConfirm.uid}) ?
+              Cette action est irréversible.
+            </p>
+            <div className="modal-confirm-actions">
+              <button className="modal-btn modal-btn-cancel" onClick={() => setDeleteConfirm(null)}>Annuler</button>
+              <button className="modal-btn modal-btn-delete" onClick={() => deleteChild(deleteConfirm)}>Supprimer</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
               ))}
             </div>
             <div className="hero-dots">
@@ -494,7 +510,7 @@ const ROLE_PAGES = {
       { id: 'E4', title: 'Santé & médical', subtitle: 'Groupe sanguin, vaccins, allergies, traitements', count: 24 },
       { id: 'E5', title: 'Scolarité', subtitle: 'Établissement, classe, résultats, bulletins', count: 24 },
     ]},
-    'enfants-enregistres': { title: 'Enfants Enregistrés', subtitle: 'Tous les enfants enregistrés via la gestion des enfants.' },
+    'enfants-enregistres': { title: 'Enfants Enregistrés', subtitle: '' },
     projets: { title: 'Gestion des projets', subtitle: 'Planifier et exécuter les projets.', categories: [
       { id: 'P1', title: 'Projets en cours', subtitle: '6 Projets', count: 6 },
       { id: 'P2', title: 'Budget et financement', subtitle: '4 Sources', count: 4 },
@@ -1272,6 +1288,7 @@ function DashboardShell({ user, role, onLogout }) {
   const [registeredChildren, setRegisteredChildren] = useState([])
   const [selectedRegChild, setSelectedRegChild] = useState(null)
   const [editingChild, setEditingChild] = useState(null)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
   const uidRef = useRef(genChildUid())
   const sidebarRef = useRef(null)
   const [sidebarWidth, setSidebarWidth] = useState(() => parseInt(localStorage.getItem('cdo_sidebar_width')) || 220)
@@ -1337,6 +1354,24 @@ function DashboardShell({ user, role, onLogout }) {
     }
     fetchChildren()
   }, [activeKey])
+
+  const deleteChild = async (child) => {
+    let token = localStorage.getItem('access_token')
+    if (!token) return
+    try {
+      const res = await fetch(`${API}/enfants/${child.id}/`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        setRegisteredChildren(prev => prev.filter(c => c.id !== child.id))
+        setSelectedRegChild(null)
+      }
+    } catch (err) {
+      console.error('Failed to delete child:', err)
+    }
+    setDeleteConfirm(null)
+  }
 
   useEffect(() => {
     if (editingChild) {
@@ -1498,9 +1533,6 @@ function DashboardShell({ user, role, onLogout }) {
               <div className="dash-content-left">
                 <div className="dash-section-header">
                   <span className="dash-section-title">{page?.title || activeKey}</span>
-                </div>
-                <div className="dash-subtitle-box">
-                  <p>{page?.subtitle}</p>
                 </div>
 
                 {activeKey === 'parametres' && !subKey && (
@@ -1692,12 +1724,6 @@ function DashboardShell({ user, role, onLogout }) {
                 ) : activeKey === 'enfants-enregistres' ? (
                   <div className="dash-content-grid">
                     <div className="dash-content-left">
-                      <div className="dash-section-header">
-                        <span className="dash-section-title">Enfants Enregistrés</span>
-                      </div>
-                      <div className="dash-subtitle-box">
-                        <p>Tous les enfants enregistrés via la gestion des enfants.</p>
-                      </div>
                       {selectedRegChild ? (
                         <div className="dash-sub-form">
                           <div className="dash-sub-form-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
@@ -1705,12 +1731,10 @@ function DashboardShell({ user, role, onLogout }) {
                               <button className="dash-back-btn" onClick={() => setSelectedRegChild(null)}>{'\u2190'} Retour</button>
                               <h3 className="dash-sub-form-title" style={{ margin: 0 }}>{selectedRegChild.prenom || ''} {selectedRegChild.nom || ''}</h3>
                             </div>
-                            <button className="dash-form-save" style={{ margin: 0, padding: '6px 16px', fontSize: '14px' }} onClick={() => {
-                              setEditingChild(selectedRegChild)
-                              setActiveKey('enfants')
-                              setSubKey('Profil & identité')
-                              setSelectedRegChild(null)
-                            }}>Modifier</button>
+                            <span style={{ fontSize: '13px', color: '#94a3b8' }}>
+                              {selectedRegChild.created_at ? new Date(selectedRegChild.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + ' à ' + new Date(selectedRegChild.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                            </span>
+                            <button className="dash-form-delete" style={{ margin: 0, padding: '6px 16px', fontSize: '14px' }} onClick={() => setDeleteConfirm(selectedRegChild)}>Effacer</button>
                           </div>
                           <div className="dash-reg-child-detail">
                             <div className="dash-reg-child-detail-header">
