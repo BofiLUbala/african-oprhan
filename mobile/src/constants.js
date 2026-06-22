@@ -1,4 +1,11 @@
-export const API = 'http://localhost:8000/api'
+import { Platform } from 'react-native'
+
+const HOST = Platform.select({
+  android: '10.0.2.2',
+  default: 'localhost',
+})
+
+export const API = `http://${HOST}:8000/api`
 
 export const AFRICAN_COUNTRIES = [
   { code: "AO", name: "Angola" }, { code: "BJ", name: "Bénin" }, { code: "BW", name: "Botswana" },

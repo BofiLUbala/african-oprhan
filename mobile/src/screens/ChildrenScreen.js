@@ -208,7 +208,6 @@ export default function ChildrenScreen({ user }) {
 
       {children.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Enfants enregistrés</Text>
           {children.map(child => {
             const initials = getInitials(`${child.prenom || ''} ${child.nom || ''}`.trim())
             const hue = hueFromName(child.prenom)
@@ -221,7 +220,6 @@ export default function ChildrenScreen({ user }) {
                   <Text style={styles.childName}>{child.prenom || ''} {child.nom || ''}</Text>
                   <Text style={styles.childId}>{child.uid}</Text>
                 </View>
-                <Text style={styles.childArrow}>›</Text>
               </TouchableOpacity>
             )
           })}
@@ -261,7 +259,6 @@ const styles = StyleSheet.create({
   childInfo: { flex: 1 },
   childName: { fontSize: 14, fontWeight: '700', color: COLORS.text },
   childId: { fontSize: 11, color: COLORS.textMuted },
-  childArrow: { fontSize: 20, color: '#475569' },
 
   formHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
   backBtn: { fontSize: 14, fontWeight: '600', color: COLORS.accent },
