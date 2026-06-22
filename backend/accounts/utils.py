@@ -36,7 +36,7 @@ def send_activation_email(user, request):
         "expiry_hours": 2,
     }
 
-    subject = "Activez votre compte – Confédération des Orphelinats"
+    subject = "Activez votre compte – Fédération des Orphelinats"
     html_body = render_to_string("accounts/activation_email.html", context)
     text_body = (
         f"Bonjour {user.first_name},\n\n"
@@ -45,7 +45,7 @@ def send_activation_email(user, request):
         f"Veuillez activer votre compte en cliquant sur le lien ci-dessous :\n"
         f"{activation_url}\n\n"
         f"Ce lien est valable 2 heures et ne peut être utilisé qu'une seule fois.\n\n"
-        f"L'équipe Confédération des Orphelinats"
+        f"L'équipe Fédération des Orphelinats"
     )
 
     msg = EmailMultiAlternatives(

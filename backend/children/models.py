@@ -9,11 +9,11 @@ class Child(models.Model):
     ]
 
     uid = models.CharField(max_length=12, unique=True, editable=False, verbose_name="UID")
-    nom = models.CharField(max_length=100, verbose_name="Nom")
-    prenom = models.CharField(max_length=100, verbose_name="Prénom")
-    sexe = models.CharField(max_length=1, choices=SEXE_CHOICES, verbose_name="Sexe")
-    date_naissance = models.DateField(verbose_name="Date de naissance")
-    nationalite = models.CharField(max_length=100, verbose_name="Nationalité")
+    nom = models.CharField(max_length=100, blank=True, default="", verbose_name="Nom")
+    prenom = models.CharField(max_length=100, blank=True, default="", verbose_name="Prénom")
+    sexe = models.CharField(max_length=1, choices=SEXE_CHOICES, blank=True, default="", verbose_name="Sexe")
+    date_naissance = models.DateField(null=True, blank=True, verbose_name="Date de naissance")
+    nationalite = models.CharField(max_length=100, blank=True, default="", verbose_name="Nationalité")
     photo = models.ImageField(upload_to="enfants/", blank=True, null=True, verbose_name="Photo")
     adresse = models.TextField(blank=True, verbose_name="Adresse d'origine")
     extra_data = models.JSONField(default=dict, blank=True, verbose_name="Données supplémentaires")

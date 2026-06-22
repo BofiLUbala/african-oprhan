@@ -7,7 +7,7 @@ export default function App() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Confédération des Orphelinats</Text>
+        <Text style={styles.title}>Fédération des Orphelinats</Text>
         <Text style={styles.subtitle}>Application Mobile</Text>
       </View>
 

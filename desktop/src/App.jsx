@@ -7,7 +7,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>Confédération des Orphelinats</h1>
+        <h1>Fédération des Orphelinats</h1>
         <p className="subtitle">Application Desktop</p>
       </header>
 

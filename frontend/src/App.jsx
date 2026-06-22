@@ -128,7 +128,7 @@ function Header({ onLoginClick, onSignupClick, onVirtualAssist }) {
       <div className="header-inner container">
         <a href="#" className="logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
           <span className="logo-icon">&#x2726;</span>
-          <span className="logo-text">Confédération<span className="accent"> des Orphelinats</span></span>
+          <span className="logo-text">Fédération<span className="accent"> des Orphelinats</span></span>
         </a>
         <nav className={`nav${menuOpen ? ' open' : ''}`}>
           <a href="#hero" onClick={(e) => { e.preventDefault(); scrollTo('hero') }}>Accueil</a>
@@ -754,7 +754,16 @@ const INTEGRITY_BARS = [
 function DashboardHeader({ user, roleLabel }) {
   const [time, setTime] = useState(new Date())
   const [profileImg, setProfileImg] = useState(null)
+  const [localOrpName, setLocalOrpName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
   const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    const check = setInterval(() => {
+      const v = localStorage.getItem('cdo_orphanage_name') || ''
+      if (v !== localOrpName) setLocalOrpName(v)
+    }, 1000)
+    return () => clearInterval(check)
+  }, [localOrpName])
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000)
@@ -784,11 +793,13 @@ function DashboardHeader({ user, roleLabel }) {
           </div>
           <div className="dash-profile-text">
             <div className="dash-profile-name">{user.first_name || user.last_name}</div>
-            <div className="dash-profile-country">
-              <span>{countryFlag(user.country || 'CD')}</span> {countryName(user.country || 'CD')}
+            <div className="dash-profile-details">
+              <span className="dash-profile-detail-item">{countryFlag(user.country || 'CD')} {countryName(user.country || 'CD')}</span>
+              <span className="dash-profile-detail-item">ID: {user.id}</span>
+              <span className="dash-profile-detail-item">{roleLabel}</span>
+              {localOrpName && <span className="dash-profile-detail-item dash-profile-orp">{'\u{1F3E1}'} {localOrpName}</span>}
             </div>
           </div>
-          <span className="dash-header-role">{roleLabel}</span>
         </div>
 
         <div className="dash-header-center">
@@ -1160,6 +1171,24 @@ function DashboardShell({ user, role, onLogout }) {
   const [selectedRegChild, setSelectedRegChild] = useState(null)
   const [editingChild, setEditingChild] = useState(null)
   const uidRef = useRef(genChildUid())
+  const [theme, setTheme] = useState(localStorage.getItem('cdo_theme') || 'dark')
+  const [lang, setLang] = useState(localStorage.getItem('cdo_lang') || 'fr')
+  const [orphanageName, setOrphanageName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
+  const [bgTheme, setBgTheme] = useState(localStorage.getItem('cdo_bg') || '')
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('cdo_theme', theme)
+  }, [theme])
+
+  useEffect(() => {
+    if (bgTheme) {
+      document.documentElement.setAttribute('data-bg', bgTheme)
+    } else {
+      document.documentElement.removeAttribute('data-bg')
+    }
+    localStorage.setItem('cdo_bg', bgTheme)
+  }, [bgTheme])
 
   useEffect(() => {
     const fetchChildren = async () => {
@@ -1339,7 +1368,7 @@ function DashboardShell({ user, role, onLogout }) {
                   <p>{page?.subtitle}</p>
                 </div>
 
-                {activeKey === 'parametres' && (
+                {activeKey === 'parametres' && !subKey && (
                   <div className="dash-role-card">
                     <div className="dash-role-avatar-wrap">
                       <img src={avatarSvg} alt="" className="dash-role-avatar" />
@@ -1351,10 +1380,60 @@ function DashboardShell({ user, role, onLogout }) {
                   </div>
                 )}
 
-                {subKey && activeKey === 'enfants' ? (
+                {subKey && activeKey === 'parametres' && subKey === 'Configuration' ? (
                   <div className="dash-sub-form">
                     <div className="dash-sub-form-top">
-                      <button className="dash-back-btn" onClick={() => { setSubKey(null); setEditingChild(null); }}>{'\u2190'} Retour</button>
+                      <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'\u2190'} Retour</button>
+                      <h3 className="dash-sub-form-title">Configuration</h3>
+                    </div>
+                    <div className="dash-sub-form-fields">
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">Nom de l'orphelinat</label>
+                        <div className="dash-orp-name-row">
+                          <input type="text" className="dash-form-input" value={orphanageName} onChange={e => setOrphanageName(e.target.value)} placeholder="Entrez le nom de l'orphelinat" />
+                          <button className="dash-orp-save-btn" onClick={() => {
+                            localStorage.setItem('cdo_orphanage_name', orphanageName)
+                            alert('Nom de l\'orphelinat enregistré !')
+                          }}>Sauvegarder</button>
+                        </div>
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">Thème</label>
+                        <div className="dash-theme-btns">
+                          <button className={`dash-theme-btn${theme === 'dark' ? ' active' : ''}`} onClick={() => setTheme('dark')}>{'\u{1F319}'} Sombre</button>
+                          <button className={`dash-theme-btn${theme === 'light' ? ' active' : ''}`} onClick={() => setTheme('light')}>{'\u2600\uFE0F'} Clair</button>
+                        </div>
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">Langue</label>
+                        <select className="dash-form-input" value={lang} onChange={e => { setLang(e.target.value); localStorage.setItem('cdo_lang', e.target.value) }}>
+                          <option value="fr">Français</option>
+                          <option value="en">English</option>
+                          <option value="sw">Kiswahili</option>
+                          <option value="ln">Lingala</option>
+                          <option value="kg">Kikongo</option>
+                          <option value="tl">Tshiluba</option>
+                        </select>
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">Fond d'écran</label>
+                        <select className="dash-form-input" value={bgTheme} onChange={e => setBgTheme(e.target.value)}>
+                          <option value="">Par défaut</option>
+                          <option value="1">Usine Sidérurgique</option>
+                          <option value="2">Chantier Naval</option>
+                          <option value="3">Centre de Distribution</option>
+                          <option value="4">Atelier de Précision</option>
+                          <option value="5">Centrale Énergétique</option>
+                          <option value="6">Hub Pétrochimique</option>
+                          <option value="7">ScrapYard Éco-Industriel</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ) : subKey && activeKey === 'enfants' ? (
+                  <div className="dash-sub-form">
+                    <div className="dash-sub-form-top">
+                      <button className="dash-back-btn" onClick={() => { setSubKey(null); }}>{'\u2190'} Retour</button>
                       <h3 className="dash-sub-form-title">{subKey}</h3>
                     </div>
                     <div className="dash-sub-form-fields">
@@ -1445,7 +1524,8 @@ function DashboardShell({ user, role, onLogout }) {
                             return [...prev, saved]
                           })
                           setSubKey(null)
-                          setEditingChild(null)
+                          setEditingChild(saved)
+                          uidRef.current = saved.uid
                         } catch (e) {
                           if (method === 'POST' && e.message && e.message.includes('dupliquée')) {
                             uidRef.current = genChildUid()
@@ -1460,7 +1540,8 @@ function DashboardShell({ user, role, onLogout }) {
                                 const saved = await retry.json()
                                 setRegisteredChildren(prev => [...prev, saved])
                                 setSubKey(null)
-                                setEditingChild(null)
+                                setEditingChild(saved)
+                                uidRef.current = saved.uid
                                 return
                               }
                             } catch (_) {}
@@ -1495,47 +1576,68 @@ function DashboardShell({ user, role, onLogout }) {
                           </div>
                           <div className="dash-reg-child-detail">
                             <div className="dash-reg-child-detail-header">
-                              {selectedRegChild.photo && (
-                                <div className="dash-reg-child-detail-avatar">
-                                  <img src={selectedRegChild.photo} alt="" />
-                                </div>
-                              )}
+                              <div className="dash-reg-child-detail-avatar">
+                                <img src={(() => {
+                                  const src = selectedRegChild.photo
+                                  if (src && src.startsWith('http')) return src
+                                  const childColors = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316']
+                                  const cc = childColors[(selectedRegChild.prenom?.charCodeAt(0) || 0) % childColors.length]
+                                  const inits = (selectedRegChild.prenom?.[0] || selectedRegChild.nom?.[0] || '?').toUpperCase()
+                                  return svgUrl(inits, cc, 72, 72)
+                                })()} alt="" />
+                              </div>
                               <div className="dash-reg-child-detail-id">
                                 <span className="dash-reg-child-detail-label">UID</span>
                                 <span className="dash-reg-child-detail-value">{selectedRegChild.uid}</span>
                               </div>
                             </div>
-                            <div className="dash-reg-child-detail-fields">
-                              <div className="dash-reg-child-detail-row">
-                                <span className="dash-reg-child-detail-row-label">Nom</span>
-                                <span className="dash-reg-child-detail-row-value">{selectedRegChild.nom || '-'}</span>
-                              </div>
-                              <div className="dash-reg-child-detail-row">
-                                <span className="dash-reg-child-detail-row-label">Prénom</span>
-                                <span className="dash-reg-child-detail-row-value">{selectedRegChild.prenom || '-'}</span>
-                              </div>
-                              <div className="dash-reg-child-detail-row">
-                                <span className="dash-reg-child-detail-row-label">Sexe</span>
-                                <span className="dash-reg-child-detail-row-value">{selectedRegChild.sexe === 'M' ? 'Masculin' : selectedRegChild.sexe === 'F' ? 'Féminin' : '-'}</span>
-                              </div>
-                              <div className="dash-reg-child-detail-row">
-                                <span className="dash-reg-child-detail-row-label">Date de naissance</span>
-                                <span className="dash-reg-child-detail-row-value">{selectedRegChild.date_naissance || '-'}</span>
-                              </div>
-                              <div className="dash-reg-child-detail-row">
-                                <span className="dash-reg-child-detail-row-label">Nationalité</span>
-                                <span className="dash-reg-child-detail-row-value">{selectedRegChild.nationalite || '-'}</span>
-                              </div>
-                              <div className="dash-reg-child-detail-row">
-                                <span className="dash-reg-child-detail-row-label">Adresse d'origine</span>
-                                <span className="dash-reg-child-detail-row-value">{selectedRegChild.adresse || '-'}</span>
-                              </div>
-                              {selectedRegChild.extra_data && Object.entries(selectedRegChild.extra_data).map(([key, val]) => (
-                                <div key={key} className="dash-reg-child-detail-row">
-                                  <span className="dash-reg-child-detail-row-label">{key}</span>
-                                  <span className="dash-reg-child-detail-row-value">{val || '-'}</span>
-                                </div>
-                              ))}
+                            <div className="dash-reg-child-detail-groups">
+                              {Object.values(CHILD_FORMS).map(section => {
+                                const cv = (label) => {
+                                  if (label === 'Nom') return selectedRegChild.nom
+                                  if (label === 'Prénom') return selectedRegChild.prenom
+                                  if (label === 'Sexe') return selectedRegChild.sexe === 'M' ? 'Masculin' : selectedRegChild.sexe === 'F' ? 'Féminin' : null
+                                  if (label === 'Date de naissance') return selectedRegChild.date_naissance
+                                  if (label === 'Nationalité') return selectedRegChild.nationalite
+                                  if (label === "Adresse d'origine") return selectedRegChild.adresse
+                                  return selectedRegChild.extra_data?.[label]
+                                }
+                                const fields = section.fields.filter(f => f.label !== 'Numéro unique' && f.label !== 'Photo' && cv(f.label))
+                                if (!fields.length) return null
+                                return (
+                                  <div key={section.title} className="dash-reg-child-detail-group">
+                                    <div className="dash-reg-child-detail-group-title">
+                                      <span>{section.title}</span>
+                                      <select className="dash-group-select" onChange={(e) => {
+                                        if (e.target.value === 'edit') {
+                                          setEditingChild(selectedRegChild)
+                                          setActiveKey('enfants')
+                                          setSubKey(section.title)
+                                          setSelectedRegChild(null)
+                                        }
+                                        e.target.value = ''
+                                      }}>
+                                        <option value="">Actions...</option>
+                                        <option value="edit">Modifier</option>
+                                      </select>
+                                    </div>
+                                    <div className="dash-reg-child-detail-group-fields">
+                                      {fields.map(f => (
+                                        <div key={f.label} className="dash-reg-child-detail-row">
+                                          <span className="dash-reg-child-detail-row-label">{f.label}</span>
+                                          <span className="dash-reg-child-detail-row-value">{cv(f.label)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <div className="dash-group-actions">
+                                      <label className="dash-group-checkbox-label">
+                                        <input type="checkbox" className="dash-group-checkbox" />
+                                        <span>Sélectionner</span>
+                                      </label>
+                                    </div>
+                                  </div>
+                                )
+                              })}
                             </div>
                           </div>
                         </div>
@@ -1547,16 +1649,14 @@ function DashboardShell({ user, role, onLogout }) {
                         </div>
                       ) : (
                         <div className="dash-reg-child-list">
-                          {registeredChildren.map(child => (
+                          {registeredChildren.map(child => {
+                            const childColors = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316']
+                            const cc = childColors[(child.prenom?.charCodeAt(0) || 0) % childColors.length]
+                            const initial = (child.prenom?.[0] || child.nom?.[0] || '?').toUpperCase()
+                            return (
                             <div key={child.uid} className="dash-reg-child-item" onClick={() => setSelectedRegChild(child)}>
                               <div className="dash-reg-child-item-avatar">
-                                {child.photo ? (
-                                  <img src={child.photo} alt="" />
-                                ) : (
-                                  <div className="dash-reg-child-item-placeholder">
-                                    {(child.prenom?.[0] || child.nom?.[0] || '?').toUpperCase()}
-                                  </div>
-                                )}
+                                <img src={child.photo?.startsWith('http') ? child.photo : svgUrl(initial, cc, 48, 48)} alt="" />
                               </div>
                               <div className="dash-reg-child-item-info">
                                 <span className="dash-reg-child-item-name">{child.prenom || ''} {child.nom || ''}</span>
@@ -1564,31 +1664,47 @@ function DashboardShell({ user, role, onLogout }) {
                               </div>
                               <span className="dash-reg-child-item-arrow">{'\u203A'}</span>
                             </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       )}
                     </div>
-                    <div className="dash-content-right">
-                      <div className="dash-widget">
-                        <span className="dash-widget-title">RÉCAPITULATIF</span>
-                        <div className="dash-storage-row">
-                          <span className="dash-storage-label">ENFANTS</span>
-                          <span className="dash-storage-value">{registeredChildren.length}</span>
-                        </div>
-                        <div className="dash-storage-bar">
-                          <div className="dash-storage-fill" style={{ width: `${Math.min(100, registeredChildren.length * 4)}%` }} />
+                  </div>
+                ) : activeKey === 'ambassadeurs' && orphanageName ? (
+                  <div>
+                    <div className="dash-role-card" style={{ marginBottom: '12px' }}>
+                      <div className="dash-role-avatar-wrap">
+                        <span style={{ fontSize: '32px' }}>{'\u{1F3E1}'}</span>
+                      </div>
+                      <div className="dash-role-info">
+                        <span className="dash-role-name">{orphanageName}</span>
+                        <span className="dash-role-badge" style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>ACTIF</span>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                          <span>{countryFlag(user.country || 'CD')} {countryName(user.country || 'CD')}</span>
+                          <span>Directeur: {user.first_name} {user.last_name}</span>
+                          <span>ID: {user.id}</span>
                         </div>
                       </div>
+                    </div>
+                    <div className="dash-category-cards">
+                      {page?.categories?.map((cat, i) => (
+                        <button key={i} className="dash-category-card" onClick={() => {
+                          setSubKey(cat.title);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}>
+                          <div className="dash-card-icon-wrap">
+                            <span className="dash-card-icon">{CATEGORY_ICONS[i % CATEGORY_ICONS.length]}</span>
+                          </div>
+                          <span className="dash-card-title">{cat.title}</span>
+                          <span className="dash-card-desc">{cat.subtitle}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
                 ) : (
                   <div className="dash-category-cards">
                     {page?.categories?.map((cat, i) => (
                       <button key={i} className="dash-category-card" onClick={() => {
-                        if (!editingChild && cat.title !== 'Profil & identité') {
-                          alert("Veuillez d'abord remplir et enregistrer le 'Profil & identité' de l'enfant.");
-                          return;
-                        }
                         setSubKey(cat.title);
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}>
@@ -1601,41 +1717,6 @@ function DashboardShell({ user, role, onLogout }) {
                     ))}
                   </div>
                 )}
-              </div>
-
-              <div className="dash-content-right">
-                <div className="dash-widget">
-                  <span className="dash-widget-title">INTÉGRITÉ DE SYSTÈME</span>
-                  <div className="dash-integrity-chart">
-                    {INTEGRITY_BARS.map((bar, i) => (
-                      <div key={i} className="dash-integrity-bar-wrap">
-                        <div className="dash-integrity-bar" style={{ height: `${bar.height}%`, background: bar.color }} />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="dash-storage-row">
-                    <span className="dash-storage-label">STOCKAGE</span>
-                    <span className="dash-storage-value">44%</span>
-                  </div>
-                  <div className="dash-storage-bar">
-                    <div className="dash-storage-fill" style={{ width: '44%' }} />
-                  </div>
-                </div>
-
-                <div className="dash-widget">
-                  <span className="dash-widget-title">ACTIVITÉS RÉCENTES</span>
-                  <div className="dash-activity-list">
-                    {RECENT_ACTIVITIES.map((act, i) => (
-                      <div key={i} className="dash-activity-item">
-                        <div className="dash-activity-dot" />
-                        <div className="dash-activity-content">
-                          <span className="dash-activity-text">{act.text}</span>
-                          <span className="dash-activity-time">{act.time}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           )}
@@ -1652,9 +1733,9 @@ function Footer() {
         <div className="footer-brand">
           <a href="#" className="logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
             <span className="logo-icon">&#x2726;</span>
-            <span className="logo-text">Confédération<span className="accent"> des Orphelinats</span></span>
+            <span className="logo-text">Fédération<span className="accent"> des Orphelinats</span></span>
           </a>
-          <p className="footer-desc">Confédération des Orphelinats – Africa</p>
+          <p className="footer-desc">Fédération des Orphelinats – Africa</p>
         </div>
         <div className="footer-links">
           <a href="#" onClick={e => e.preventDefault()}>Politique de confidentialité</a>
@@ -1662,7 +1743,7 @@ function Footer() {
           <a href="#" onClick={e => e.preventDefault()}>FAQ</a>
         </div>
         <div className="footer-copy">
-            <p>&copy; 2026 Confédération des Orphelinats &mdash; v2.4.1</p>
+            <p>&copy; 2026 Fédération des Orphelinats &mdash; v2.4.1</p>
           <p className="footer-tech">Built on <span>Backend</span> &middot; <span>Frontend</span> &middot; <span>Desktop</span> &middot; <span>Mobile</span></p>
         </div>
       </div>
@@ -1924,7 +2005,7 @@ function SignupModal({ onClose, onSwitchToLogin }) {
         <div className="modal-header">
           <span className="modal-logo">{'\u2726'}</span>
           <h2>Créer un compte</h2>
-          <p>Rejoignez la Confédération des Orphelinats</p>
+          <p>Rejoignez la Fédération des Orphelinats</p>
         </div>
         <form onSubmit={submit} className="modal-form" noValidate>
           {error && (
