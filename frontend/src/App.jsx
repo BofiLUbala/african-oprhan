@@ -33,6 +33,10 @@ function countryName(code) {
   const c = AFRICAN_COUNTRIES.find(c => c.code === code)
   return c ? c.name : code
 }
+function countryCodeFromName(name) {
+  const c = AFRICAN_COUNTRIES.find(c => c.name === name)
+  return c ? c.code : null
+}
 
 const ROLES = [
   { value: 'ambassador', label: 'Ambassadeur' },
@@ -752,8 +756,6 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
   const [time, setTime] = useState(new Date())
   const [profileImg, setProfileImg] = useState(localStorage.getItem('cdo_profile_img') || null)
   const [localOrpName, setLocalOrpName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
-  const [countryDropOpen, setCountryDropOpen] = useState(false)
-  const [selectedCountry, setSelectedCountry] = useState(user.country || 'CD')
   const [notifCount] = useState(3)
   const [notifOpen, setNotifOpen] = useState(false)
   const [theme, setTheme] = useState(localStorage.getItem('cdo_theme') || 'dark')
@@ -763,7 +765,6 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
   const [searchLoading, setSearchLoading] = useState(false)
   const allChildren = useRef([])
   const fileInputRef = useRef(null)
-  const countryDropRef = useRef(null)
   const searchRef = useRef(null)
   const searchTimer = useRef(null)
   const notifDropRef = useRef(null)
@@ -792,7 +793,6 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
   // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e) => {
-      if (countryDropRef.current && !countryDropRef.current.contains(e.target)) setCountryDropOpen(false)
       if (notifDropRef.current && !notifDropRef.current.contains(e.target)) setNotifOpen(false)
       if (searchRef.current && !searchRef.current.contains(e.target)) { setSearchOpen(false); setSearchQuery(''); setSearchResults([]) }
     }
@@ -934,7 +934,7 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
             )}
           </div>
           <div className="dash-profile-text">
-            <span className="dash-profile-name">{user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username}</span>
+            <span className="dash-profile-name">{countryFlag(user.country || 'CD')} {user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username}</span>
             <span className="dash-profile-role">{t('role_' + roleLower) || roleLabel}</span>
           </div>
         </div>
@@ -949,28 +949,10 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
         {/* RIGHT — Country · Notifications · Time · Theme */}
         <div className="dash-header-right">
 
-          {/* Country Selector */}
-          <div className="dh-country-wrap" ref={countryDropRef}>
-            <button
-              id="dh-country-btn"
-              className="dh-country-btn"
-              onClick={() => { setCountryDropOpen(v => !v); setNotifOpen(false) }}
-              title={t('dash_change_country')}
-            >
-              <span className="dh-country-flag">{countryFlag(selectedCountry)}</span>
-              <span className="dh-country-name">{countryName(selectedCountry)}</span>
-              <svg className={`dh-chevron${countryDropOpen ? ' open' : ''}`} viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            {countryDropOpen && (
-              <div className="dh-dropdown dh-country-drop">
-                {AFRICAN_COUNTRIES.map(c => (
-                  <button key={c.code} className={`dh-drop-item${c.code === selectedCountry ? ' active' : ''}`} onClick={() => { setSelectedCountry(c.code); setCountryDropOpen(false) }}>
-                    <span>{countryFlag(c.code)}</span>
-                    <span>{c.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+          {/* Country flag */}
+          <div className="dh-country-static">
+            <span className="dh-country-flag">{countryFlag(user.country || 'CD')}</span>
+            <span className="dh-country-name">{countryName(user.country || 'CD')}</span>
           </div>
 
           {/* Logo */}
@@ -2035,7 +2017,12 @@ function DashboardShell({ user, role, onLogout }) {
                                       {fields.map(f => (
                                         <div key={f.label} className="dash-reg-child-detail-row">
                                           <span className="dash-reg-child-detail-row-label">{f.label}</span>
-                                          <span className="dash-reg-child-detail-row-value">{cv(f.label)}</span>
+                                          <span className="dash-reg-child-detail-row-value">
+                                            {f.label === 'Nationalité' && cv(f.label) ? (() => {
+                                              const cc = countryCodeFromName(cv(f.label))
+                                              return cc ? <>{countryFlag(cc)} {cv(f.label)}</> : cv(f.label)
+                                            })() : cv(f.label)}
+                                          </span>
                                         </div>
                                       ))}
                                     </div>

@@ -1086,6 +1086,11 @@ section::before {
 
 /* Country selector */
 .dh-country-wrap { position:relative; }
+.dh-country-static {
+  display:flex; align-items:center; gap:6px;
+  padding:5px 10px; border-radius:var(--ag-pill);
+  color:#e2e8f0; font-size:12px; font-weight:600; white-space:nowrap;
+}
 .dh-country-btn {
   display:flex; align-items:center; gap:6px;
   padding:5px 10px; border-radius:var(--ag-pill);
