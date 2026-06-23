@@ -1863,7 +1863,7 @@ function DashboardShell({ user, role, onLogout }) {
                           </div>
                           <div className="dash-reg-child-detail">
                             <div className="dash-reg-child-detail-header">
-                              <div className="dash-reg-child-detail-avatar">
+                              <div className="dash-reg-child-detail-avatar" style={{ cursor:'pointer', position:'relative' }} onClick={() => document.getElementById('child-photo-upload-' + selectedRegChild.uid)?.click()}>
                                 <img src={(() => {
                                   const localPhoto = localStorage.getItem('cdo_child_photo_' + selectedRegChild.uid)
                                   if (localPhoto) return localPhoto
@@ -1874,10 +1874,21 @@ function DashboardShell({ user, role, onLogout }) {
                                   const inits = (selectedRegChild.prenom?.[0] || selectedRegChild.nom?.[0] || '?').toUpperCase()
                                   return svgUrl(inits, cc, 72, 72)
                                 })()} alt="" />
+                                <div style={{ position:'absolute', bottom:4, right:4, background:'#f59e0b', borderRadius:'50%', width:'22px', height:'22px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', color:'#fff', fontWeight:'700' }}>+</div>
+                                <input id={'child-photo-upload-' + selectedRegChild.uid} type="file" accept="image/*" style={{ display:'none' }} onChange={e => {
+                                  const file = e.target.files?.[0]
+                                  if (file) {
+                                    const reader = new FileReader()
+                                    reader.onload = (ev) => {
+                                      localStorage.setItem('cdo_child_photo_' + selectedRegChild.uid, ev.target.result)
+                                      setSelectedRegChild({ ...selectedRegChild })
+                                    }
+                                    reader.readAsDataURL(file)
+                                  }
+                                }} />
                               </div>
                               <div className="dash-reg-child-detail-id">
-                                <span className="dash-reg-child-detail-label">UID</span>
-                                <span className="dash-reg-child-detail-value">{selectedRegChild.uid}</span>
+                                <span className="dash-reg-child-detail-value" style={{ fontSize:'18px', letterSpacing:'1px' }}>{selectedRegChild.uid?.slice(0,12)}</span>
                               </div>
                             </div>
                             <div className="dash-reg-child-detail-groups">
