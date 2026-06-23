@@ -127,7 +127,7 @@ function Header({ onLoginClick, onSignupClick, onVirtualAssist }) {
     <header className="header" data-scrolled={scrolled}>
       <div className="header-inner container">
         <a href="#" className="logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
-          <span className="logo-icon">&#x2726;</span>
+          <img src="/logo.jpg" alt="Logo" className="logo-img" />
           <span className="logo-text">Fédération<span className="accent"> des Orphelinats</span></span>
         </a>
         <nav className={`nav${menuOpen ? ' open' : ''}`}>
@@ -869,6 +869,9 @@ function DashboardHeader({ user, roleLabel }) {
               </div>
             )}
           </div>
+
+          {/* Logo */}
+          <img src="/logo.jpg" alt="Logo" className="dash-logo" />
 
           {/* Notification Bell */}
           <div className="dh-notif-wrap" ref={notifDropRef}>

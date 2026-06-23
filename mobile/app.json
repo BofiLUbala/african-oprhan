@@ -5,6 +5,7 @@
     "version": "2.4.1",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/logo.jpg",
     "splash": {
       "backgroundColor": "#0b1121"
     },
@@ -14,6 +15,7 @@
       "bundleIdentifier": "org.cdo.mobile"
     },
     "android": {
+      "icon": "./assets/logo.jpg",
       "adaptiveIcon": {
         "backgroundColor": "#0b1121"
       },

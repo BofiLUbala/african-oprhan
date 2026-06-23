@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
 import { API, ROLE_LABELS, COLORS } from '../constants'
 
 export default function LoginScreen({ onLogin }) {
@@ -50,7 +50,7 @@ export default function LoginScreen({ onLogin }) {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Text style={styles.logoIcon}>✦</Text>
+          <Image source={require('../../assets/logo.jpg')} style={styles.loginLogo} />
           <Text style={styles.logoText}>Fédération des Orphelinats</Text>
           <Text style={styles.subtitle}>Application Mobile v2.4.1</Text>
         </View>
@@ -111,6 +111,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   header: { alignItems: 'center', marginBottom: 32 },
+  loginLogo: { width: 60, height: 60, borderRadius: 12, marginBottom: 12 },
   logoIcon: { fontSize: 40, color: COLORS.accent, marginBottom: 8 },
   logoText: { fontSize: 22, fontWeight: '800', color: COLORS.text, marginBottom: 4 },
   subtitle: { fontSize: 13, color: COLORS.textMuted },

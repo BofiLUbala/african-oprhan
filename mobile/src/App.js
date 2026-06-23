@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native'
+import { View, Text, Image, TouchableOpacity, StyleSheet, StatusBar } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import LoginScreen from './screens/LoginScreen'
@@ -79,7 +79,7 @@ function AppContent() {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
-        <Text style={styles.loadingText}>✦</Text>
+        <Image source={require('../assets/logo.jpg')} style={styles.loadingLogo} />
         <Text style={styles.loadingLabel}>Chargement...</Text>
       </SafeAreaView>
     )
@@ -138,6 +138,7 @@ function AppContent() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   loadingContainer: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  loadingLogo: { width: 80, height: 80, borderRadius: 16, marginBottom: 16 },
   loadingText: { fontSize: 48, color: COLORS.accent, marginBottom: 12 },
   loadingLabel: { fontSize: 14, color: COLORS.textMuted },
 

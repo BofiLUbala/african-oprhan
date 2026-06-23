@@ -317,6 +317,7 @@ input:focus, textarea:focus { border-color:#f59e0b; }
 }
 .logo { display:flex; align-items:center; gap:10px; cursor:pointer; }
 .logo-icon { font-size:24px; color:#f59e0b; }
+.logo-img { width:32px; height:32px; object-fit:contain; border-radius:6px; }
 .logo-text { font-size:20px; font-weight:800; letter-spacing:-0.5px; }
 .nav { display:flex; gap:32px; }
 .nav a { font-size:14px; font-weight:500; color:#94a3b8; transition:color .2s; position:relative; cursor:pointer; }
@@ -1056,6 +1057,7 @@ section::before {
 .dash-header-right {
   display:flex; align-items:center; gap:12px; flex:0 0 auto;
 }
+.dash-logo { width:28px; height:28px; object-fit:contain; border-radius:4px; }
 .dash-header-time {
   display:flex; flex-direction:column; align-items:flex-end;
 }
