@@ -1559,6 +1559,50 @@ function DashboardShell({ user, role, onLogout }) {
     },
   }
 
+  const PROJECT_TYPES = [
+    { value: 'enfant', label: t('proj_type_enfant') || "Pour enfant", icon: '\u{1F476}' },
+    { value: 'orphelinat', label: t('proj_type_orphelinat') || "Pour l'orphelinat", icon: '\u{1F3E5}' },
+    { value: 'federation', label: t('proj_type_federation') || 'Pour la fédération', icon: '\u{1F465}' },
+  ]
+
+  const MOCK_PROJECTS = [
+    { id: 1, code: 'XK7M9B2R', type: 'enfant', title: 'Scolarisation 2026', summary: 'Prise en charge scolaire de 50 enfants', description: 'Projet de scolarisation complète incluant fournitures, uniformes et cantine scolaire pour 50 enfants de l\'orphelinat.', pdf_url: '', status: 'open', amount: 15000, raised: 8500, beneficiaries: 50, created_at: '2026-01-15' },
+    { id: 2, code: 'HT4N8P1W', type: 'enfant', title: 'Soins médicaux', summary: 'Campagne de vaccination et soins de base', description: 'Programme de vaccination et consultations médicales pour 120 enfants.', pdf_url: '', status: 'open', amount: 8000, raised: 3000, beneficiaries: 120, created_at: '2026-02-01' },
+    { id: 3, code: 'JF6L2ZK5', type: 'orphelinat', title: 'Rénovation du bâtiment', summary: 'Réfection des dortoirs et salles de classe', description: 'Travaux de rénovation complète des dortoirs, installation électrique et peinture.', pdf_url: '', status: 'open', amount: 45000, raised: 20000, beneficiaries: 0, created_at: '2026-03-10' },
+    { id: 4, code: 'PQ9A3WM8', type: 'orphelinat', title: 'Installation solaire', summary: 'Panneaux solaires pour l\'autonomie énergétique', description: 'Installation de panneaux solaires pour couvrir 80% des besoins énergétiques de l\'orphelinat.', pdf_url: '', status: 'funded', amount: 25000, raised: 25000, beneficiaries: 0, created_at: '2026-04-05' },
+    { id: 5, code: 'VC2R7LG4', type: 'federation', title: 'Formation des éducateurs', summary: 'Programme de formation pour 30 éducateurs', description: 'Formation professionnelle des éducateurs des orphelinats membres de la fédération.', pdf_url: '', status: 'open', amount: 30000, raised: 12000, beneficiaries: 30, created_at: '2026-05-20' },
+    { id: 6, code: 'BD5Y1TF9', type: 'federation', title: 'Plateforme numérique', summary: 'Déploiement de la plateforme CDO dans 10 orphelinats', description: 'Déploiement et formation à la plateforme de gestion dans les orphelinats membres.', pdf_url: '', status: 'open', amount: 60000, raised: 15000, beneficiaries: 0, created_at: '2026-06-01' },
+  ]
+
+  const [projects, setProjects] = useState([])
+  const [ongoingProjects, setOngoingProjects] = useState([])
+  const [projectTypeFilter, setProjectTypeFilter] = useState(null)
+  const [selectedProject, setSelectedProject] = useState(null)
+  const [projectLoading, setProjectLoading] = useState(false)
+  const [showOngoing, setShowOngoing] = useState(false)
+
+  const genProjectCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let code = ''
+    for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)]
+    return code
+  }
+
+  useEffect(() => {
+    if (activeKey !== 'projets') return
+    setProjectLoading(true)
+    const token = localStorage.getItem('access_token')
+    fetch(`${API}/projets/`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        setProjects(Array.isArray(data) ? data : data?.results || MOCK_PROJECTS)
+        setProjectLoading(false)
+      })
+      .catch(() => { setProjects(MOCK_PROJECTS); setProjectLoading(false) })
+  }, [activeKey])
+
   if (activeKey === 'communication') {
     return <EclatSocialApp user={user} onReturn={() => { setActiveKey('dashboard'); setSubKey(null) }} />
   }
@@ -2106,6 +2150,179 @@ function DashboardShell({ user, role, onLogout }) {
                         </button>
                       ))}
                     </div>
+                  </div>
+                ) : activeKey === 'projets' ? (
+                  <div className="dash-projects">
+                    {showOngoing ? (
+                      <div className="dash-projects">
+                        <div className="dash-proj-list-header">
+                          <button className="dash-back-btn" onClick={() => { setShowOngoing(false); setSelectedProject(null) }}>{'\u2190'} {t('form_back')}</button>
+                          <span className="dash-section-title">{t('proj_ongoing') || 'Projets en cours'}</span>
+                          <span className="dash-proj-count">{ongoingProjects.length} {t('proj_projects') || 'projets'}</span>
+                        </div>
+                        {selectedProject ? (
+                          <div className="dash-sub-form">
+                            <div className="dash-sub-form-top">
+                              <button className="dash-back-btn" onClick={() => setSelectedProject(null)}>{'\u2190'} {t('form_back')}</button>
+                              <h3 className="dash-sub-form-title">{selectedProject.code} — {selectedProject.title}</h3>
+                              <span className={`dash-proj-status ${selectedProject.status}`}>{selectedProject.status === 'open' ? (t('proj_open') || 'Ouvert') : selectedProject.status === 'funded' ? (t('proj_funded') || 'Financé') : (t('proj_completed') || 'Terminé')}</span>
+                            </div>
+                            <div className="dash-proj-detail">
+                              <div className="dash-proj-meta">
+                                <span><strong>{t('proj_type') || 'Type'}:</strong> {PROJECT_TYPES.find(pt => pt.value === selectedProject.type)?.icon} {PROJECT_TYPES.find(pt => pt.value === selectedProject.type)?.label}</span>
+                                <span><strong>{t('proj_code') || 'Code'}:</strong> <span className="dash-proj-code-display">{selectedProject.code}</span></span>
+                                <span><strong>{t('proj_start_date') || 'Date de début'}:</strong> {selectedProject.start_date || '—'}</span>
+                                <span><strong>{t('proj_end_date') || 'Date de fin'}:</strong> {selectedProject.end_date || '—'}</span>
+                              </div>
+                              <p className="dash-proj-desc">{selectedProject.description}</p>
+                              {selectedProject.pdf_url && (
+                                <div className="dash-proj-pdf">
+                                  <a href={selectedProject.pdf_url} target="_blank" rel="noopener noreferrer" className="dash-proj-pdf-link">{'\u{1F4C4}'} {t('proj_read_pdf') || 'Lire le PDF'}</a>
+                                  <a href={selectedProject.pdf_url} download className="dash-proj-pdf-link">{'\u{1F4E5}'} {t('proj_download_pdf') || 'Télécharger le PDF'}</a>
+                                </div>
+                              )}
+                              {role === 'partner' && selectedProject.status === 'open' && (
+                                <button className="dash-form-save" onClick={async () => {
+                                  const token = localStorage.getItem('access_token')
+                                  if (!token) { alert(t('proj_login_required') || 'Connectez-vous pour postuler'); return }
+                                  try {
+                                    const res = await fetch(`${API}/projets/${selectedProject.id}/apply/`, {
+                                      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                      body: JSON.stringify({ message: '' }),
+                                    })
+                                    if (res.ok) alert(t('proj_applied') || 'Candidature envoyée avec succès !')
+                                    else throw new Error()
+                                  } catch { alert(t('proj_error') || 'Erreur lors de la candidature') }
+                                }}>{t('proj_apply') || 'Postuler pour financer'}</button>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="dash-proj-list">
+                            {ongoingProjects.map(proj => (
+                              <div key={proj.code} className="dash-proj-card" onClick={() => setSelectedProject(proj)}>
+                                <div className="dash-proj-card-top">
+                                  <span className="dash-proj-code">{proj.code}</span>
+                                  <span className="dash-proj-badge">{PROJECT_TYPES.find(pt => pt.value === proj.type)?.icon} {PROJECT_TYPES.find(pt => pt.value === proj.type)?.label}</span>
+                                </div>
+                                <h4 className="dash-proj-card-title">{proj.title}</h4>
+                                <p className="dash-proj-card-summary">{proj.summary || proj.description?.substring(0, 80) + '...'}</p>
+                                <div className="dash-proj-card-dates">
+                                  <span>{proj.start_date || '—'} → {proj.end_date || '—'}</span>
+                                </div>
+                              </div>
+                            ))}
+                            {ongoingProjects.length === 0 && (
+                              <div className="dash-empty-state"><span className="dash-empty-icon">{'\u{1F4CB}'}</span><p>{t('proj_no_ongoing') || 'Aucun projet en cours'}</p></div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : projectTypeFilter !== null ? (
+                      <div className="dash-sub-form">
+                        <div className="dash-sub-form-top">
+                          <button className="dash-back-btn" onClick={() => setProjectTypeFilter(null)}>{'\u2190'} {t('form_back')}</button>
+                          <h3 className="dash-sub-form-title">{PROJECT_TYPES.find(pt => pt.value === projectTypeFilter)?.icon} {t('proj_new_project') || 'Nouveau projet'}</h3>
+                          <span className="dash-proj-code-preview">{genProjectCode()}</span>
+                        </div>
+                        <div className="dash-sub-form-fields dash-proj-form-fields">
+                          <div className="dash-form-field">
+                            <label className="dash-form-label">{t('proj_title') || 'Titre du projet'}</label>
+                            <input id="proj-title-input" type="text" className="dash-form-input" placeholder={t('proj_title_placeholder') || 'Entrez le titre du projet'} />
+                          </div>
+                          <div className="dash-proj-date-row">
+                            <div className="dash-form-field" style={{ flex:1 }}>
+                              <label className="dash-form-label">{t('proj_start_date') || 'Date de début'}</label>
+                              <input id="proj-start-date" type="date" className="dash-form-input" />
+                            </div>
+                            <div className="dash-form-field" style={{ flex:1 }}>
+                              <label className="dash-form-label">{t('proj_end_date') || 'Date de fin'}</label>
+                              <input id="proj-end-date" type="date" className="dash-form-input" />
+                            </div>
+                          </div>
+                          <div className="dash-form-field">
+                            <label className="dash-form-label">{t('proj_description') || 'Description du projet'}</label>
+                            <textarea id="proj-desc-input" className="dash-form-input dash-form-textarea" rows={6} placeholder={t('proj_desc_placeholder') || 'Décrivez votre projet en détail...'} />
+                          </div>
+                          <div className="dash-form-field">
+                            <label className="dash-form-label">{t('proj_pdf_doc') || 'Document PDF'} <span style={{ fontWeight:400, color:'#64748b', fontSize:'12px' }}>({t('form_optional') || 'optionnel'})</span></label>
+                            <div className="dash-proj-file-wrap">
+                              <input id="proj-pdf-input" type="file" accept="application/pdf" className="dash-form-file" />
+                              <span id="proj-pdf-name" className="dash-proj-file-name" />
+                            </div>
+                          </div>
+                          <div className="dash-proj-form-actions">
+                            <button className="dash-form-save" onClick={() => {
+                              const title = document.getElementById('proj-title-input')?.value?.trim()
+                              const desc = document.getElementById('proj-desc-input')?.value?.trim()
+                              const startDate = document.getElementById('proj-start-date')?.value
+                              const endDate = document.getElementById('proj-end-date')?.value
+                              const pdfInput = document.getElementById('proj-pdf-input')
+                              const pdfFile = pdfInput?.files?.[0]
+                              if (!title) { alert(t('proj_title_required') || 'Veuillez entrer un titre'); return }
+                              if (!desc) { alert(t('proj_desc_required') || 'Veuillez entrer une description'); return }
+                              if (!startDate || !endDate) { alert(t('proj_start_end_required') || 'Veuillez sélectionner les dates de début et de fin'); return }
+                              const code = genProjectCode()
+                              const newProj = {
+                                id: Date.now(),
+                                code,
+                                type: projectTypeFilter,
+                                title,
+                                description: desc,
+                                summary: desc.substring(0, 80),
+                                pdf_url: '',
+                                status: 'open',
+                                amount: 0,
+                                raised: 0,
+                                beneficiaries: 0,
+                                start_date: startDate,
+                                end_date: endDate,
+                                created_at: new Date().toISOString().split('T')[0],
+                              }
+                              if (pdfFile && pdfFile.type === 'application/pdf') {
+                                const reader = new FileReader()
+                                reader.onload = (ev) => {
+                                  newProj.pdf_url = ev.target.result
+                                  finalizeProject(newProj)
+                                }
+                                reader.readAsDataURL(pdfFile)
+                              } else {
+                                finalizeProject(newProj)
+                              }
+                              function finalizeProject(p) {
+                                setOngoingProjects(prev => [p, ...prev])
+                                setProjects(prev => [p, ...prev])
+                                setProjectTypeFilter(null)
+                                setShowOngoing(true)
+                              }
+                            }}>{t('proj_submit') || 'Soumettre le projet'}</button>
+                            <button className="dash-form-cancel" onClick={() => setProjectTypeFilter(null)}>{t('form_cancel') || 'Annuler'}</button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'8px' }}>
+                          <span className="dash-section-title" style={{ fontSize:'15px', fontWeight:'700', color:'#e2e8f0' }}>{t('proj_choose_type') || 'Choisissez un type de projet'}</span>
+                          {ongoingProjects.length > 0 && (
+                            <button className="dash-proj-tab" style={{ marginLeft:'auto', fontSize:'12px', padding:'6px 14px' }} onClick={() => setShowOngoing(true)}>
+                              {'\u{1F4CB}'} {t('proj_ongoing') || 'Projets en cours'} ({ongoingProjects.length})
+                            </button>
+                          )}
+                        </div>
+                        <div className="dash-category-cards" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                          {PROJECT_TYPES.map(pt => (
+                            <button key={pt.value} className="dash-category-card" onClick={() => setProjectTypeFilter(pt.value)}>
+                              <div className="dash-card-icon-wrap">
+                                <span className="dash-card-icon" style={{ fontSize: '32px' }}>{pt.icon}</span>
+                              </div>
+                              <span className="dash-card-title">{pt.label}</span>
+                              <span className="dash-card-desc">{t('proj_create_' + pt.value) || 'Créer un projet'}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="dash-category-cards">
