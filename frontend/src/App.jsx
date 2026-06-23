@@ -2075,7 +2075,7 @@ function DashboardShell({ user, role, onLogout }) {
                               </div>
                               <div className="dash-reg-child-item-info">
                                 <span className="dash-reg-child-item-name">{child.prenom || ''} {child.nom || ''}</span>
-                                <span className="dash-reg-child-item-id">UID: {child.uid}</span>
+                                <span className="dash-reg-child-item-id">{child.uid}</span>
                               </div>
                               <span className="dash-reg-child-item-arrow">{'\u203A'}</span>
                             </div>
