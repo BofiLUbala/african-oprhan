@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { LangProvider, useTranslation } from './i18n'
 import './App.css'
 
 const API = 'http://localhost:8000/api'
@@ -79,35 +80,40 @@ export default function App() {
     const rolesWithDashboard = ['director', 'ambassador', 'supermaster', 'federation', 'partner']
     if (rolesWithDashboard.includes(roleLower)) {
       return (
-        <div className="app">
-          <DashboardHeader user={user} roleLower={roleLower} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} />
-          <main><DashboardShell user={user} role={roleLower} onLogout={logout} /></main>
-        </div>
+        <LangProvider>
+          <div className="app">
+            <DashboardHeader user={user} roleLower={roleLower} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} />
+            <main><DashboardShell user={user} role={roleLower} onLogout={logout} /></main>
+          </div>
+        </LangProvider>
       )
     }
   }
 
   return (
-    <div className="app">
-      <Header onLoginClick={() => setShowLogin(true)} onSignupClick={() => setShowSignup(true)} onVirtualAssist={() => setChatbotCollapsed(false)} />
-      <main>
-        <Hero />
-        <Profiles />
-        <Support />
-        <Stats />
-        <Contact />
-      </main>
-      <Footer />
-      <WhatsAppFloat />
-      <Chatbot collapsed={chatbotCollapsed} onToggle={setChatbotCollapsed} />
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} onSwitchToSignup={() => { setShowLogin(false); setShowSignup(true) }} onLogin={setUser} />}
-      {showSignup && <SignupModal onClose={() => setShowSignup(false)} onSwitchToLogin={() => { setShowSignup(false); setShowLogin(true) }} />}
-      {verifyParams && <VerifyEmail params={verifyParams} onDone={() => setVerifyParams(null)} />}
-    </div>
+    <LangProvider>
+      <div className="app">
+        <Header onLoginClick={() => setShowLogin(true)} onSignupClick={() => setShowSignup(true)} onVirtualAssist={() => setChatbotCollapsed(false)} />
+        <main>
+          <Hero />
+          <Profiles />
+          <Support />
+          <Stats />
+          <Contact />
+        </main>
+        <Footer />
+        <WhatsAppFloat />
+        <Chatbot collapsed={chatbotCollapsed} onToggle={setChatbotCollapsed} />
+        {showLogin && <LoginModal onClose={() => setShowLogin(false)} onSwitchToSignup={() => { setShowLogin(false); setShowSignup(true) }} onLogin={setUser} />}
+        {showSignup && <SignupModal onClose={() => setShowSignup(false)} onSwitchToLogin={() => { setShowSignup(false); setShowLogin(true) }} />}
+        {verifyParams && <VerifyEmail params={verifyParams} onDone={() => setVerifyParams(null)} />}
+      </div>
+    </LangProvider>
   )
 }
 
 function Header({ onLoginClick, onSignupClick, onVirtualAssist }) {
+  const { t } = useTranslation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
@@ -131,19 +137,19 @@ function Header({ onLoginClick, onSignupClick, onVirtualAssist }) {
           <span className="logo-text">Fédération<span className="accent"> des Orphelinats</span></span>
         </a>
         <nav className={`nav${menuOpen ? ' open' : ''}`}>
-          <a href="#hero" onClick={(e) => { e.preventDefault(); scrollTo('hero') }}>Accueil</a>
-          <a href="#profiles" onClick={(e) => { e.preventDefault(); scrollTo('profiles') }}>Profils</a>
-          <a href="#support" onClick={(e) => { e.preventDefault(); scrollTo('support') }}>Soutenir</a>
-          <a href="#stats" onClick={(e) => { e.preventDefault(); scrollTo('stats') }}>Statistiques</a>
-          <a href="#contact" onClick={(e) => { e.preventDefault(); scrollTo('contact') }}>Contact</a>
+          <a href="#hero" onClick={(e) => { e.preventDefault(); scrollTo('hero') }}>{t('header_accueil')}</a>
+          <a href="#profiles" onClick={(e) => { e.preventDefault(); scrollTo('profiles') }}>{t('header_profils')}</a>
+          <a href="#support" onClick={(e) => { e.preventDefault(); scrollTo('support') }}>{t('header_soutenir')}</a>
+          <a href="#stats" onClick={(e) => { e.preventDefault(); scrollTo('stats') }}>{t('header_statistiques')}</a>
+          <a href="#contact" onClick={(e) => { e.preventDefault(); scrollTo('contact') }}>{t('header_contact')}</a>
         </nav>
         <div className="header-actions">
-          <button className="btn btn-ghost-sm" onClick={onVirtualAssist} title="Assistant virtuel">
+          <button className="btn btn-ghost-sm" onClick={onVirtualAssist} title={t('header_assistance')}>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            Assistance
+            {t('header_assistance')}
           </button>
-          <button className="btn btn-outline" onClick={onLoginClick}>Login</button>
-          <button className="btn btn-primary" onClick={onSignupClick}>Sign Up</button>
+          <button className="btn btn-outline" onClick={onLoginClick}>{t('header_login')}</button>
+          <button className="btn btn-primary" onClick={onSignupClick}>{t('header_signup')}</button>
         </div>
         <button className={`hamburger${menuOpen ? ' active' : ''}`} onClick={() => setMenuOpen(v => !v)} aria-label="Menu">
           <span /><span /><span />
@@ -166,6 +172,7 @@ const youthData = [
 ]
 
 function Hero() {
+  const { t } = useTranslation()
   const [slide, setSlide] = useState(0)
   const len = youthData.length
 
@@ -201,20 +208,20 @@ function Hero() {
             </div>
             <div className="mock-badge">
               <span className="badge-dot" />
-              <span>1 240+ enfants aidés dans 12 pays</span>
+              <span>{t('hero_badge')}</span>
             </div>
           </div>
         </div>
         <div className="hero-text">
-          <span className="hero-tagline">ENSEMBLE POUR EUX</span>
-          <h1>Chaque enfant mérite <span className="accent">un avenir</span></h1>
-          <p>Nous œuvrons à travers l'Afrique pour offrir un toit, une éducation et de l'amour aux orphelins. Votre soutien transforme des vies.</p>
+          <span className="hero-tagline">{t('hero_tagline')}</span>
+          <h1>{t('hero_title_1')} <span className="accent">{t('hero_title_2')}</span></h1>
+          <p>{t('hero_desc')}</p>
           <div className="hero-cta">
             <button className="btn btn-primary btn-lg" onClick={() => document.getElementById('support')?.scrollIntoView({ behavior: 'smooth' })}>
-              Soutenir maintenant
+              {t('hero_cta_primary')}
             </button>
             <button className="btn btn-ghost btn-lg" onClick={() => document.getElementById('profiles')?.scrollIntoView({ behavior: 'smooth' })}>
-              Voir les profils &rarr;
+              {t('hero_cta_secondary')}
             </button>
           </div>
         </div>
@@ -242,6 +249,7 @@ const childrenGrid = [
 ]
 
 function Profiles() {
+  const { t } = useTranslation()
   const [gridIdx, setGridIdx] = useState(0)
 
   useEffect(() => {
@@ -254,10 +262,10 @@ function Profiles() {
       <div className="container">
         <div className="profiles-card">
           <div className="profiles-content">
-            <span className="section-tag">DÉCOUVREZ</span>
-            <h2>Chaque visage a une <span className="accent">histoire</span></h2>
-            <p>Parcourez les profils des enfants de nos différents centres. Lisez leur histoire, voyez leurs sourires et devenez le héros de leur vie.</p>
-            <button className="btn btn-primary btn-xl">Voir les profils des orphelins &nbsp;&#x2192;</button>
+            <span className="section-tag">{t('profiles_tag')}</span>
+            <h2>{t('profiles_title_1')} <span className="accent">{t('profiles_title_2')}</span></h2>
+            <p>{t('profiles_desc')}</p>
+            <button className="btn btn-primary btn-xl">{t('profiles_btn')}</button>
           </div>
           <div className="profiles-visual">
             <div className="profile-stack">
@@ -283,6 +291,7 @@ function Profiles() {
 }
 
 function Support() {
+  const { t } = useTranslation()
   const [activePill, setActivePill] = useState(1)
   const pills = ['15 €', '30 €', '50 €', '100 €']
 
@@ -290,8 +299,8 @@ function Support() {
     <section className="support" id="support">
       <div className="container">
         <div className="section-header">
-          <span className="section-tag">AGISSEZ</span>
-          <h2>Comment <span className="accent">nous aider</span></h2>
+          <span className="section-tag">{t('support_tag')}</span>
+          <h2>{t('support_title_1')} <span className="accent">{t('support_title_2')}</span></h2>
         </div>
         <div className="support-grid">
           <div className="support-card join">
@@ -300,14 +309,14 @@ function Support() {
                 <path d="M12 5v14M5 12h14"/>
               </svg>
             </div>
-            <h3>Rejoignez-nous</h3>
-            <p>Devenez bénévole dans nos centres à travers l'Afrique. Donnez de votre temps, partagez vos compétences.</p>
+            <h3>{t('support_join_title')}</h3>
+            <p>{t('support_join_desc')}</p>
             <ul className="support-list">
-              <li><span className="check-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="#f59e0b"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> Missions de 2 semaines à 6 mois</li>
-              <li><span className="check-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="#f59e0b"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> Enseignement & animation</li>
-              <li><span className="check-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="#f59e0b"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> Aide médicale & psychologique</li>
+              <li><span className="check-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="#f59e0b"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> {t('support_join_li1')}</li>
+              <li><span className="check-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="#f59e0b"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> {t('support_join_li2')}</li>
+              <li><span className="check-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="#f59e0b"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> {t('support_join_li3')}</li>
             </ul>
-            <button className="btn btn-outline btn-block">Rejoindre l'équipe</button>
+            <button className="btn btn-outline btn-block">{t('support_join_btn')}</button>
           </div>
           <div className="support-card donate">
             <div className="support-icon">
@@ -315,8 +324,8 @@ function Support() {
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
               </svg>
             </div>
-            <h3>Supportez-nous</h3>
-            <p>Chaque don compte. 100% des fonds vont directement aux enfants : nourriture, éducation, soins.</p>
+            <h3>{t('support_donate_title')}</h3>
+            <p>{t('support_donate_desc')}</p>
             <div className="donate-pills">
               {pills.map((p, i) => (
                 <span key={i} className={`pill${i === activePill ? ' active' : ''}`} onClick={() => setActivePill(i)}>
@@ -324,7 +333,7 @@ function Support() {
                 </span>
               ))}
             </div>
-            <button className="btn btn-primary btn-block">Faire un don</button>
+            <button className="btn btn-primary btn-block">{t('support_donate_btn')}</button>
           </div>
         </div>
       </div>
@@ -333,6 +342,7 @@ function Support() {
 }
 
 function Stats() {
+  const { t } = useTranslation()
   const statsRef = useRef(null)
   const [visible, setVisible] = useState(false)
 
@@ -359,8 +369,8 @@ function Stats() {
     <section className="stats" id="stats" ref={statsRef}>
       <div className="container">
         <div className="section-header">
-          <span className="section-tag">IMPACT</span>
-          <h2>Enfants pris en charge <span className="accent">par pays</span></h2>
+          <span className="section-tag">{t('stats_tag')}</span>
+          <h2>{t('stats_title_1')} <span className="accent">{t('stats_title_2')}</span></h2>
         </div>
         <div className="stats-row">
           {countries.map((c, i) => (
@@ -379,25 +389,26 @@ function Stats() {
 }
 
 function Contact() {
+  const { t } = useTranslation()
   return (
     <section className="contact" id="contact">
       <div className="contact-grid container">
         <div className="contact-form-area">
-          <span className="section-tag">CONTACT</span>
-          <h2>Écrivez-<span className="accent">nous</span></h2>
+          <span className="section-tag">{t('contact_tag')}</span>
+          <h2>{t('contact_title_1')}<span className="accent">{t('contact_title_2')}</span></h2>
           <form className="contact-form" onSubmit={e => e.preventDefault()}>
             <div className="form-row">
-              <input type="text" placeholder="Votre nom" required />
-              <input type="email" placeholder="Votre email" required />
+              <input type="text" placeholder={t('contact_name')} required />
+              <input type="email" placeholder={t('contact_email')} required />
             </div>
-            <input type="text" placeholder="Sujet" />
-            <textarea placeholder="Votre message..." rows={5} />
-            <button type="submit" className="btn btn-primary">Envoyer le message</button>
+            <input type="text" placeholder={t('contact_subject')} />
+            <textarea placeholder={t('contact_message')} rows={5} />
+            <button type="submit" className="btn btn-primary">{t('contact_submit')}</button>
           </form>
         </div>
         <div className="social-area">
-          <span className="section-tag">SUIVEZ-NOUS</span>
-          <h2>Réseaux <span className="accent">sociaux</span></h2>
+          <span className="section-tag">{t('contact_social_tag')}</span>
+          <h2>{t('contact_social_title_1')} <span className="accent">{t('contact_social_title_2')}</span></h2>
           <div className="social-grid">
             {[
               { label: 'Facebook', icon: 'f' },
@@ -752,6 +763,7 @@ const INTEGRITY_BARS = [
 ]
 
 function DashboardHeader({ user, roleLower, roleLabel }) {
+  const { t, lang, setLang } = useTranslation()
   const [time, setTime] = useState(new Date())
   const [profileImg, setProfileImg] = useState(null)
   const [localOrpName, setLocalOrpName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
@@ -760,7 +772,6 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
   const [notifCount] = useState(3)
   const [notifOpen, setNotifOpen] = useState(false)
   const [theme, setTheme] = useState(localStorage.getItem('cdo_theme') || 'dark')
-  const [lang, setLang] = useState(localStorage.getItem('cdo_lang') || 'fr')
   const fileInputRef = useRef(null)
   const countryDropRef = useRef(null)
   const notifDropRef = useRef(null)
@@ -808,9 +819,9 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
   }
 
   const NOTIFS = [
-    { icon: '📋', text: 'Nouveau rapport soumis', time: 'il y a 5 min' },
-    { icon: '👤', text: 'Profil enfant mis à jour', time: 'il y a 20 min' },
-    { icon: '✅', text: 'Validation approuvée', time: 'il y a 1h' },
+    { icon: '📋', text: t('dash_notif_new_report'), time: t('dash_notif_5min') },
+    { icon: '👤', text: t('dash_notif_profile_updated'), time: t('dash_notif_20min') },
+    { icon: '✅', text: t('dash_notif_approved'), time: t('dash_notif_1h') },
   ]
 
   return (
@@ -820,7 +831,7 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
         {/* LEFT — Avatar + Info */}
         <div className="dash-header-left">
           <div className="dash-avatar-row">
-            <div className="dash-avatar-wrapper" onClick={() => fileInputRef.current?.click()} title="Modifier la photo">
+            <div className="dash-avatar-wrapper" onClick={() => fileInputRef.current?.click()} title={t('dash_edit_photo')}>
               <img src={profileImg || avatarSvg} alt="" className="dash-avatar" />
               <div className="dash-avatar-overlay">+</div>
               <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: 'none' }} />
@@ -831,14 +842,14 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
           </div>
           <div className="dash-profile-text">
             <span className="dash-profile-name">{user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username}</span>
-            <span className="dash-profile-role">{roleLabel}</span>
+            <span className="dash-profile-role">{t('role_' + roleLower) || roleLabel}</span>
           </div>
         </div>
 
         {/* CENTER — System Status */}
         <div className="dash-header-center">
           <span className="dash-status-dot"></span>
-          <span className="dash-status-text">SYSTÈME OPÉRATIONNEL</span>
+          <span className="dash-status-text">{t('dash_system_status')}</span>
           <span className="dash-status-star">★</span>
         </div>
 
@@ -851,7 +862,7 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
               id="dh-country-btn"
               className="dh-country-btn"
               onClick={() => { setCountryDropOpen(v => !v); setNotifOpen(false) }}
-              title="Changer de pays"
+              title={t('dash_change_country')}
             >
               <span className="dh-country-flag">{countryFlag(selectedCountry)}</span>
               <span className="dh-country-name">{countryName(selectedCountry)}</span>
@@ -874,7 +885,7 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
 
           {/* Language Select */}
           <div className="dh-lang-wrap">
-            <select className="dh-lang-select" value={lang} onChange={e => { setLang(e.target.value); localStorage.setItem('cdo_lang', e.target.value) }}>
+            <select className="dh-lang-select" value={lang} onChange={e => setLang(e.target.value)}>
               <option value="fr">FR</option>
               <option value="en">EN</option>
               <option value="sw">SW</option>
@@ -890,14 +901,14 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
               id="dh-notif-btn"
               className="dh-notif-btn"
               onClick={() => { setNotifOpen(v => !v); setCountryDropOpen(false) }}
-              title="Notifications"
+              title={t('dash_notifications')}
             >
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
               {notifCount > 0 && <span className="dh-notif-badge">{notifCount}</span>}
             </button>
             {notifOpen && (
               <div className="dh-dropdown dh-notif-drop">
-                <div className="dh-notif-header">Notifications</div>
+                <div className="dh-notif-header">{t('dash_notifications')}</div>
                 {NOTIFS.map((n, i) => (
                   <div key={i} className="dh-notif-item">
                     <span className="dh-notif-icon">{n.icon}</span>
@@ -913,8 +924,8 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
 
           {/* Clock */}
           <div className="dash-header-time">
-            <span className="dash-time-label">TEMPS RÉEL</span>
-            <span className="dash-time-value">{time.toLocaleTimeString('fr-FR')}</span>
+            <span className="dash-time-label">{t('dash_time_label')}</span>
+            <span className="dash-time-value">{time.toLocaleTimeString(lang === 'en' ? 'en-US' : 'fr-FR')}</span>
           </div>
 
           {/* Theme Toggle */}
@@ -922,7 +933,7 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
             id="dh-theme-btn"
             className="dh-theme-btn"
             onClick={toggleTheme}
-            title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
+            title={theme === 'dark' ? t('dash_theme_light') : t('dash_theme_dark')}
           >
             {theme === 'dark'
               ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -1315,8 +1326,8 @@ function DashboardShell({ user, role, onLogout }) {
     }
   }, [])
 
+  const { t, lang, setLang } = useTranslation()
   const [theme, setTheme] = useState(localStorage.getItem('cdo_theme') || 'dark')
-  const [lang, setLang] = useState(localStorage.getItem('cdo_lang') || 'fr')
   const [orphanageName, setOrphanageName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
   const [bgTheme, setBgTheme] = useState(localStorage.getItem('cdo_bg') || '')
 
@@ -1462,7 +1473,7 @@ function DashboardShell({ user, role, onLogout }) {
       <div className="dash-layout" style={{ gridTemplateColumns: `${sidebarWidth}px 4px 1fr` }}>
         <aside className="dash-sidebar" ref={sidebarRef}>
           <div className="dash-sidebar-divider" />
-          <span className="dash-sidebar-section-label">NAVIGATION</span>
+          <span className="dash-sidebar-section-label">{t('sidebar_nav')}</span>
 
           <div className="dash-sidebar-nav">
             {navItems.map((item) => (
@@ -1471,7 +1482,7 @@ function DashboardShell({ user, role, onLogout }) {
                 className={`dash-nav-btn${item.key === activeKey ? ' active' : ''}`}
                 onClick={() => { setActiveKey(item.key); setSubKey(null); setEditingChild(null); }}
               >
-                <span className="dash-nav-label" style={{ paddingLeft: '8px' }}>{item.label}</span>
+                <span className="dash-nav-label" style={{ paddingLeft: '8px' }}>{t('nav_' + item.key.replace(/-/g, '_')) || item.label}</span>
                 {item.key === activeKey && <span className="dash-nav-ind" />}
               </button>
             ))}
@@ -1479,7 +1490,7 @@ function DashboardShell({ user, role, onLogout }) {
 
           <div className="dash-sidebar-bot">
             <button className="dash-nav-btn" onClick={onLogout}>
-              <span className="dash-nav-label" style={{ paddingLeft: '8px' }}>Déconnexion</span>
+              <span className="dash-nav-label" style={{ paddingLeft: '8px' }}>{t('sidebar_logout')}</span>
             </button>
           </div>
         </aside>
@@ -1495,32 +1506,32 @@ function DashboardShell({ user, role, onLogout }) {
             <div className="dash-features-grid">
               <div className="dash-title-bar" style={{ marginBottom: '24px' }}>
                 <div>
-                  <h2 className="dash-page-title">{page?.title || 'Tableau de bord'}</h2>
-                  <p className="dash-page-subtitle">{page?.subtitle}</p>
+                  <h2 className="dash-page-title">{t('page_' + role + '_' + activeKey.replace(/-/g, '_') + '_title') || page?.title || 'Tableau de bord'}</h2>
+                  <p className="dash-page-subtitle">{t('page_' + role + '_' + activeKey.replace(/-/g, '_') + '_sub') || page?.subtitle}</p>
                 </div>
-                <button className="dash-export-btn">{'\u{1F4E4}'} EXPORTER</button>
+                <button className="dash-export-btn">{'\u{1F4E4}'} {t('dash_export')}</button>
               </div>
               <div className="dash-stat-row">
                 {statCards.map((card, i) => (
                   <div key={i} className="dash-stat-card" style={{ '--card-color': card.color }}>
                     <span className="dash-stat-card-value">{card.value}</span>
                     <div className="dash-stat-card-info">
-                      <span className="dash-stat-card-label">{card.label}</span>
-                      <span className="dash-stat-card-sub" style={{ color: card.color }}>{card.sub}</span>
+                      <span className="dash-stat-card-label">{t('stat_' + role + '_' + i + '_label') || card.label}</span>
+                      <span className="dash-stat-card-sub" style={{ color: card.color }}>{t('stat_' + role + '_' + i + '_sub') || card.sub}</span>
                     </div>
                   </div>
                 ))}
               </div>
               <div className="dash-section-header" style={{ marginBottom: '16px' }}>
-                <span className="dash-section-title">Accès rapide aux modules</span>
+                <span className="dash-section-title">{t('dash_quick_access')}</span>
               </div>
               <div className="dash-grid-cards">
                 {navItems.filter(n => n.key !== 'dashboard' && n.key !== 'parametres').map((item, i) => {
                   const color = statCards[i]?.color || '#f59e0b'
                   return (
                     <div key={item.key} className="dash-stat-card" style={{ '--card-color': color, cursor: 'pointer' }} onClick={() => { setActiveKey(item.key); setSubKey(null); setEditingChild(null); }}>
-                      <h3 className="dash-stat-card-label" style={{ fontSize: '14px', marginBottom: '8px' }}>{item.label.toUpperCase()}</h3>
-                      <p className="dash-stat-card-sub">Accéder à {item.label.toLowerCase()}</p>
+                      <h3 className="dash-stat-card-label" style={{ fontSize: '14px', marginBottom: '8px' }}>{(t('nav_' + item.key.replace(/-/g, '_')) || item.label).toUpperCase()}</h3>
+                      <p className="dash-stat-card-sub">{t('dash_access_to')} {(t('nav_' + item.key.replace(/-/g, '_')) || item.label).toLowerCase()}</p>
                     </div>
                   )
                 })}
@@ -1530,7 +1541,7 @@ function DashboardShell({ user, role, onLogout }) {
             <div className="dash-content-grid">
               <div className="dash-content-left">
                 <div className="dash-section-header">
-                  <span className="dash-section-title">{page?.title || activeKey}</span>
+                  <span className="dash-section-title">{t('page_' + role + '_' + activeKey.replace(/-/g, '_') + '_title') || page?.title || activeKey}</span>
                 </div>
 
                 {activeKey === 'parametres' && !subKey && (
@@ -1540,7 +1551,7 @@ function DashboardShell({ user, role, onLogout }) {
                     </div>
                     <div className="dash-role-info">
                       <span className="dash-role-name">{user.first_name} {user.last_name}</span>
-                      <span className="dash-role-badge">{roleLabel}</span>
+                      <span className="dash-role-badge">{t('role_' + role) || roleLabel}</span>
                     </div>
                   </div>
                 )}
@@ -1548,30 +1559,30 @@ function DashboardShell({ user, role, onLogout }) {
                 {subKey && activeKey === 'parametres' && subKey === 'Configuration' ? (
                   <div className="dash-sub-form">
                     <div className="dash-sub-form-top">
-                      <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'\u2190'} Retour</button>
-                      <h3 className="dash-sub-form-title">Configuration</h3>
+                      <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'\u2190'} {t('settings_back')}</button>
+                      <h3 className="dash-sub-form-title">{t('settings_config')}</h3>
                     </div>
                     <div className="dash-sub-form-fields">
                       <div className="dash-form-field">
-                        <label className="dash-form-label">Nom de l'orphelinat</label>
+                        <label className="dash-form-label">{t('settings_orphanage_name')}</label>
                         <div className="dash-orp-name-row">
-                          <input type="text" className="dash-form-input" value={orphanageName} onChange={e => setOrphanageName(e.target.value)} placeholder="Entrez le nom de l'orphelinat" />
+                          <input type="text" className="dash-form-input" value={orphanageName} onChange={e => setOrphanageName(e.target.value)} placeholder={t('settings_orphanage_placeholder')} />
                           <button className="dash-orp-save-btn" onClick={() => {
                             localStorage.setItem('cdo_orphanage_name', orphanageName)
-                            alert('Nom de l\'orphelinat enregistré !')
-                          }}>Sauvegarder</button>
+                            alert(t('settings_saved'))
+                          }}>{t('settings_save')}</button>
                         </div>
                       </div>
                       <div className="dash-form-field">
-                        <label className="dash-form-label">Thème</label>
+                        <label className="dash-form-label">{t('settings_theme')}</label>
                         <div className="dash-theme-btns">
-                          <button className={`dash-theme-btn${theme === 'dark' ? ' active' : ''}`} onClick={() => setTheme('dark')}>{'\u{1F319}'} Sombre</button>
-                          <button className={`dash-theme-btn${theme === 'light' ? ' active' : ''}`} onClick={() => setTheme('light')}>{'\u2600\uFE0F'} Clair</button>
+                          <button className={`dash-theme-btn${theme === 'dark' ? ' active' : ''}`} onClick={() => setTheme('dark')}>{'\u{1F319}'} {t('settings_dark')}</button>
+                          <button className={`dash-theme-btn${theme === 'light' ? ' active' : ''}`} onClick={() => setTheme('light')}>{'\u2600\uFE0F'} {t('settings_light')}</button>
                         </div>
                       </div>
                       <div className="dash-form-field">
-                        <label className="dash-form-label">Langue</label>
-                        <select className="dash-form-input" value={lang} onChange={e => { setLang(e.target.value); localStorage.setItem('cdo_lang', e.target.value) }}>
+                        <label className="dash-form-label">{t('settings_lang')}</label>
+                        <select className="dash-form-input" value={lang} onChange={e => setLang(e.target.value)}>
                           <option value="fr">Français</option>
                           <option value="en">English</option>
                           <option value="sw">Kiswahili</option>
@@ -1581,9 +1592,9 @@ function DashboardShell({ user, role, onLogout }) {
                         </select>
                       </div>
                       <div className="dash-form-field">
-                        <label className="dash-form-label">Fond d'écran</label>
+                        <label className="dash-form-label">{t('settings_bg')}</label>
                         <select className="dash-form-input" value={bgTheme} onChange={e => setBgTheme(e.target.value)}>
-                          <option value="">Par défaut</option>
+                          <option value="">{t('settings_bg_default')}</option>
                           <option value="1">Cyber Blueprint</option>
                           <option value="2">Frosted Carbon</option>
                           <option value="3">Industrial Gold & Slate</option>
@@ -1601,7 +1612,7 @@ function DashboardShell({ user, role, onLogout }) {
                 ) : subKey && activeKey === 'enfants' ? (
                   <div className="dash-sub-form">
                     <div className="dash-sub-form-top">
-                      <button className="dash-back-btn" onClick={() => { setSubKey(null); }}>{'\u2190'} Retour</button>
+                      <button className="dash-back-btn" onClick={() => { setSubKey(null); }}>{'\u2190'} {t('form_back')}</button>
                       <h3 className="dash-sub-form-title">{subKey}</h3>
                     </div>
                     <div className="dash-sub-form-fields">
@@ -1612,7 +1623,7 @@ function DashboardShell({ user, role, onLogout }) {
                             <input type="text" className="dash-form-input dash-form-uid" value={editingChild ? editingChild.uid : uidRef.current} readOnly />
                           ) : f.type === 'select' ? (
                             <select className="dash-form-input" defaultValue={getFieldValue(f.label)}>
-                              <option value="">Sélectionner...</option>
+                              <option value="">{t('form_select_placeholder')}</option>
                               {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
                             </select>
                           ) : f.type === 'textarea' ? (
@@ -1620,7 +1631,7 @@ function DashboardShell({ user, role, onLogout }) {
                           ) : f.type === 'file' ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                               <input type="file" className="dash-form-file" />
-                              {getFieldValue(f.label) && <span style={{ fontSize: '12px', color: '#64748B' }}>Fichier actuel : {getFieldValue(f.label)}</span>}
+                              {getFieldValue(f.label) && <span style={{ fontSize: '12px', color: '#64748B' }}>{t('form_current_file')} {getFieldValue(f.label)}</span>}
                             </div>
                           ) : (
                             <input type={f.type} className="dash-form-input" defaultValue={getFieldValue(f.label)} />
@@ -1726,11 +1737,11 @@ function DashboardShell({ user, role, onLogout }) {
                         <div className="dash-sub-form">
                           <div className="dash-sub-form-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                              <button className="dash-back-btn" onClick={() => setSelectedRegChild(null)}>{'\u2190'} Retour</button>
+                              <button className="dash-back-btn" onClick={() => setSelectedRegChild(null)}>{'\u2190'} {t('form_back')}</button>
                               <h3 className="dash-sub-form-title" style={{ margin: 0 }}>{selectedRegChild.prenom || ''} {selectedRegChild.nom || ''}</h3>
                             </div>
                             <span style={{ fontSize: '13px', color: '#94a3b8' }}>
-                              {selectedRegChild.created_at ? new Date(selectedRegChild.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + ' à ' + new Date(selectedRegChild.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                              {selectedRegChild.created_at ? new Date(selectedRegChild.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + t('form_at') + ' ' + new Date(selectedRegChild.created_at).toLocaleTimeString(lang === 'en' ? 'en-US' : 'fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
                             </span>
                             <button className="dash-form-delete" style={{ margin: 0, padding: '6px 16px', fontSize: '14px' }} onClick={() => setDeleteConfirm(selectedRegChild)}>Effacer</button>
                           </div>
@@ -1855,8 +1866,8 @@ function DashboardShell({ user, role, onLogout }) {
                           <div className="dash-card-icon-wrap">
                             <span className="dash-card-icon">{CATEGORY_ICONS[i % CATEGORY_ICONS.length]}</span>
                           </div>
-                          <span className="dash-card-title">{cat.title}</span>
-                          <span className="dash-card-desc">{cat.subtitle}</span>
+                          <span className="dash-card-title">{t('cat_' + role + '_' + activeKey.replace(/-/g, '_') + '_' + cat.id + '_title') || cat.title}</span>
+                          <span className="dash-card-desc">{t('cat_' + role + '_' + activeKey.replace(/-/g, '_') + '_' + cat.id + '_sub') || cat.subtitle}</span>
                         </button>
                       ))}
                     </div>
@@ -1871,8 +1882,8 @@ function DashboardShell({ user, role, onLogout }) {
                         <div className="dash-card-icon-wrap">
                           <span className="dash-card-icon">{CATEGORY_ICONS[i % CATEGORY_ICONS.length]}</span>
                         </div>
-                        <span className="dash-card-title">{cat.title}</span>
-                        <span className="dash-card-desc">{cat.subtitle}</span>
+                        <span className="dash-card-title">{t('cat_' + role + '_' + activeKey.replace(/-/g, '_') + '_' + cat.id + '_title') || cat.title}</span>
+                        <span className="dash-card-desc">{t('cat_' + role + '_' + activeKey.replace(/-/g, '_') + '_' + cat.id + '_sub') || cat.subtitle}</span>
                       </button>
                     ))}
                   </div>
@@ -1887,6 +1898,7 @@ function DashboardShell({ user, role, onLogout }) {
 }
 
 function Footer() {
+  const { t } = useTranslation()
   return (
     <footer className="footer">
       <div className="footer-inner container">
@@ -1895,16 +1907,16 @@ function Footer() {
             <span className="logo-icon">&#x2726;</span>
             <span className="logo-text">Fédération<span className="accent"> des Orphelinats</span></span>
           </a>
-          <p className="footer-desc">Fédération des Orphelinats – Africa</p>
+          <p className="footer-desc">{t('footer_tagline')}</p>
         </div>
         <div className="footer-links">
-          <a href="#" onClick={e => e.preventDefault()}>Politique de confidentialité</a>
-          <a href="#" onClick={e => e.preventDefault()}>Conditions d'utilisation</a>
-          <a href="#" onClick={e => e.preventDefault()}>FAQ</a>
+          <a href="#" onClick={e => e.preventDefault()}>{t('footer_privacy')}</a>
+          <a href="#" onClick={e => e.preventDefault()}>{t('footer_terms')}</a>
+          <a href="#" onClick={e => e.preventDefault()}>{t('footer_faq')}</a>
         </div>
         <div className="footer-copy">
-            <p>&copy; 2026 Fédération des Orphelinats &mdash; v2.4.1</p>
-          <p className="footer-tech">Built on <span>Backend</span> &middot; <span>Frontend</span> &middot; <span>Desktop</span> &middot; <span>Mobile</span></p>
+            <p>{t('footer_copyright')}</p>
+          <p className="footer-tech">{t('footer_tech')}</p>
         </div>
       </div>
     </footer>
