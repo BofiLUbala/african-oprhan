@@ -1537,13 +1537,13 @@ function DashboardShell({ user, role, onLogout }) {
               </div>
             </div>
           ) : (
-            <div className="dash-content-grid">
+            <div className="dash-content-grid" style={{ paddingTop: '24px' }}>
               <div className="dash-content-left">
                 <div className="dash-section-header">
                   <span className="dash-section-title">{t('page_' + role + '_' + activeKey.replace(/-/g, '_') + '_title') || page?.title || activeKey}</span>
                 </div>
 
-                {activeKey === 'parametres' && !subKey && (
+                {subKey && (
                   <div style={{ paddingTop: '32px' }} />
                 )}
 
