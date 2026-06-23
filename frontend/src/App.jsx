@@ -759,7 +759,8 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
   const [selectedCountry, setSelectedCountry] = useState(user.country || 'CD')
   const [notifCount] = useState(3)
   const [notifOpen, setNotifOpen] = useState(false)
-  const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'dark')
+  const [theme, setTheme] = useState(localStorage.getItem('cdo_theme') || 'dark')
+  const [lang, setLang] = useState(localStorage.getItem('cdo_lang') || 'fr')
   const fileInputRef = useRef(null)
   const countryDropRef = useRef(null)
   const notifDropRef = useRef(null)
@@ -791,6 +792,7 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
     const next = theme === 'dark' ? 'light' : 'dark'
     setTheme(next)
     document.documentElement.setAttribute('data-theme', next === 'light' ? 'light' : '')
+    localStorage.setItem('cdo_theme', next)
   }
 
   const initials = (user.first_name?.[0] || '') + (user.last_name?.[0] || '')
@@ -869,6 +871,18 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
 
           {/* Logo */}
           <img src="/logo.jpg" alt="Logo" className="dash-logo" />
+
+          {/* Language Select */}
+          <div className="dh-lang-wrap">
+            <select className="dh-lang-select" value={lang} onChange={e => { setLang(e.target.value); localStorage.setItem('cdo_lang', e.target.value) }}>
+              <option value="fr">FR</option>
+              <option value="en">EN</option>
+              <option value="sw">SW</option>
+              <option value="ln">LN</option>
+              <option value="kg">KG</option>
+              <option value="tl">TL</option>
+            </select>
+          </div>
 
           {/* Notification Bell */}
           <div className="dh-notif-wrap" ref={notifDropRef}>

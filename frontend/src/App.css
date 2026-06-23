@@ -1168,6 +1168,18 @@ section::before {
 }
 .dh-theme-btn:hover { background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.3); color:#f59e0b; }
 
+/* Language select */
+.dh-lang-wrap { position:relative; }
+.dh-lang-select {
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);
+  color:#94a3b8; font-size:11px; font-weight:700; letter-spacing:0.5px;
+  padding:4px 6px; border-radius:6px; cursor:pointer; outline:none;
+  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  width:44px; text-align:center; transition:all .2s;
+}
+.dh-lang-select:hover { background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.3); color:#f59e0b; }
+.dh-lang-select option { background:#1e293b; color:#e2e8f0; }
+
 
 /* ===== DASHBOARD — LAYOUT ===== */
 .dash {
