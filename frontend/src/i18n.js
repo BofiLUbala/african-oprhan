@@ -118,6 +118,9 @@ const translations = {
 
     /* Dashboard page */
     dash_export: 'EXPORTER',
+    dash_search: 'Rechercher',
+    dash_search_placeholder: 'Rechercher un enfant...',
+    dash_search_empty: 'Aucun résultat trouvé',
     dash_quick_access: 'Accès rapide aux modules',
     dash_access_to: 'Accéder à',
 
@@ -497,6 +500,9 @@ const translations = {
     nav_parrainages: 'Sponsorships',
 
     dash_export: 'EXPORT',
+    dash_search: 'Search',
+    dash_search_placeholder: 'Search a child...',
+    dash_search_empty: 'No results found',
     dash_quick_access: 'Quick access',
     dash_access_to: 'Access',
 

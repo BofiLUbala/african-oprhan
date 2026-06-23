@@ -1180,6 +1180,55 @@ section::before {
 .dh-lang-select:hover { background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.3); color:#f59e0b; }
 .dh-lang-select option { background:#1e293b; color:#e2e8f0; }
 
+/* Header search icon & panel */
+.dash-header-search-icon {
+  display:flex; align-items:center; justify-content:center;
+  width:32px; height:32px; border-radius:8px;
+  cursor:pointer; color:#94a3b8;
+  transition:all .2s; flex-shrink:0;
+}
+.dash-header-search-icon:hover { background:rgba(245,158,11,0.1); color:#f59e0b; }
+.dash-header-search-expanded {
+  display:flex; align-items:center; gap:8px;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+  border-radius:10px; padding:6px 10px; color:#94a3b8;
+  position:relative; flex:1; max-width:380px;
+}
+.dash-header-search-expanded .dash-search-input {
+  flex:1; border:none; outline:none; background:transparent;
+  color:#e2e8f0; font-size:13px; min-width:120px;
+}
+.dash-header-search-expanded .dash-search-input::placeholder { color:#64748b; }
+.dash-search-close {
+  background:none; border:none; color:#64748b; cursor:pointer;
+  font-size:14px; line-height:1; padding:2px 4px; border-radius:4px;
+}
+.dash-search-close:hover { color:#e2e8f0; background:rgba(255,255,255,0.08); }
+.dash-search-spinner {
+  width:14px; height:14px; border:2px solid rgba(245,158,11,0.3);
+  border-top-color:#f59e0b; border-radius:50%; animation:spin .6s linear infinite; flex-shrink:0;
+}
+@keyframes spin { to { transform:rotate(360deg) } }
+.dash-search-expanded-results {
+  position:absolute; top:100%; left:0; right:0; margin-top:4px;
+  background:var(--bg-card); border:1px solid var(--border-card);
+  border-radius:10px; overflow:hidden; z-index:200;
+  box-shadow:0 8px 24px rgba(0,0,0,0.25);
+}
+.dash-search-result-item {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 14px; cursor:pointer; transition:background .15s;
+}
+.dash-search-result-item:hover { background:rgba(245,158,11,0.08); }
+.dash-search-result-name { font-size:13px; font-weight:600; color:#e2e8f0; }
+.dash-search-result-uid { font-size:11px; color:#64748b; font-family:monospace; }
+.dash-search-empty {
+  position:absolute; top:100%; left:0; right:0; margin-top:4px;
+  font-size:13px; color:#64748b; padding:12px 14px;
+  background:var(--bg-card); border:1px solid var(--border-card);
+  border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.25);
+}
+
 
 /* ===== DASHBOARD — LAYOUT ===== */
 .dash {

@@ -757,8 +757,15 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
   const [notifCount] = useState(3)
   const [notifOpen, setNotifOpen] = useState(false)
   const [theme, setTheme] = useState(localStorage.getItem('cdo_theme') || 'dark')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const allChildren = useRef([])
   const fileInputRef = useRef(null)
   const countryDropRef = useRef(null)
+  const searchRef = useRef(null)
+  const searchTimer = useRef(null)
   const notifDropRef = useRef(null)
 
   useEffect(() => {
@@ -787,10 +794,63 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
     const handler = (e) => {
       if (countryDropRef.current && !countryDropRef.current.contains(e.target)) setCountryDropOpen(false)
       if (notifDropRef.current && !notifDropRef.current.contains(e.target)) setNotifOpen(false)
+      if (searchRef.current && !searchRef.current.contains(e.target)) { setSearchOpen(false); setSearchQuery(''); setSearchResults([]) }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  const doSearch = (q) => {
+    const trimmed = q.trim()
+    if (!trimmed) { setSearchResults([]); return }
+    const lower = trimmed.toLowerCase()
+
+    if (!allChildren.current.length) {
+      setSearchLoading(true)
+      const token = localStorage.getItem('access_token')
+      fetch(`${API}/enfants/`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      })
+        .then(r => r.ok ? r.json() : [])
+        .then(data => {
+          const list = Array.isArray(data) ? data : data.results || []
+          allChildren.current = list
+          setSearchLoading(false)
+          setSearchResults(scoreAndSort(list, lower))
+        })
+        .catch(() => { setSearchLoading(false) })
+    } else {
+      setSearchResults(scoreAndSort(allChildren.current, lower))
+    }
+  }
+
+  const scoreAndSort = (list, lower) => {
+    const scored = list.map(child => {
+      const prenom = (child.prenom || '').toLowerCase()
+      const nom = (child.nom || '').toLowerCase()
+      const full = prenom + ' ' + nom
+      const uid = (child.uid || '').toLowerCase()
+      let score = 0
+      if (full === lower) score += 10
+      else if (full.startsWith(lower)) score += 7
+      else if (full.includes(lower)) score += 4
+      if (prenom === lower || nom === lower) score += 8
+      else if (prenom.startsWith(lower) || nom.startsWith(lower)) score += 5
+      else if (prenom.includes(lower) || nom.includes(lower)) score += 2
+      if (uid === lower) score += 12
+      else if (uid.startsWith(lower)) score += 6
+      else if (uid.includes(lower)) score += 1
+      return { child, score }
+    })
+    return scored.filter(s => s.score > 0).sort((a, b) => b.score - a.score).slice(0, 8).map(s => s.child)
+  }
+
+  const handleSearchInput = (e) => {
+    const v = e.target.value
+    setSearchQuery(v)
+    clearTimeout(searchTimer.current)
+    searchTimer.current = setTimeout(() => doSearch(v), 300)
+  }
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -836,6 +896,41 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
             </div>
             {roleLower === 'director' && localOrpName && (
               <span className="dash-header-orp-name">{localOrpName}</span>
+            )}
+            {!searchOpen ? (
+              <div className="dash-header-search-icon" onClick={() => { setSearchOpen(true); setSearchQuery(''); setSearchResults([]) }} title={t('dash_search')}>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </div>
+            ) : (
+              <div className="dash-header-search-expanded" ref={searchRef}>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input
+                  type="text"
+                  className="dash-search-input"
+                  placeholder={t('dash_search_placeholder')}
+                  value={searchQuery}
+                  onChange={handleSearchInput}
+                  autoFocus
+                />
+                {searchLoading && <span className="dash-search-spinner" />}
+                <button className="dash-search-close" onClick={() => { setSearchOpen(false); setSearchQuery(''); setSearchResults([]) }}>✕</button>
+                {searchResults.length > 0 && (
+                  <div className="dash-search-expanded-results">
+                    {searchResults.slice(0, 8).map(child => (
+                      <div key={child.id || child.uid} className="dash-search-result-item" onClick={() => {
+                        window.dispatchEvent(new CustomEvent('cdo-navigate-child', { detail: { uid: child.uid } }))
+                        setSearchOpen(false); setSearchQuery(''); setSearchResults([])
+                      }}>
+                        <span className="dash-search-result-name">{child.prenom || ''} {child.nom || ''}</span>
+                        <span className="dash-search-result-uid">{child.uid}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {searchQuery.trim() && !searchLoading && searchResults.length === 0 && (
+                  <div className="dash-search-empty">{t('dash_search_empty')}</div>
+                )}
+              </div>
             )}
           </div>
           <div className="dash-profile-text">
@@ -1298,6 +1393,21 @@ function DashboardShell({ user, role, onLogout }) {
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [profileImg, setProfileImg] = useState(localStorage.getItem('cdo_profile_img') || null)
   const uidRef = useRef(genChildUid())
+
+  useEffect(() => {
+    const handler = (e) => {
+      const uid = e.detail.uid
+      const child = registeredChildren.find(c => c.uid === uid)
+      if (child) {
+        setSelectedRegChild(child)
+        setActiveKey('enfants-enregistres')
+        setSubKey(null)
+        setEditingChild(null)
+      }
+    }
+    window.addEventListener('cdo-navigate-child', handler)
+    return () => window.removeEventListener('cdo-navigate-child', handler)
+  }, [registeredChildren])
   const sidebarRef = useRef(null)
   const [sidebarWidth, setSidebarWidth] = useState(() => parseInt(localStorage.getItem('cdo_sidebar_width')) || 220)
   const isResizing = useRef(false)
