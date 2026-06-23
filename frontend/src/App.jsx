@@ -27,7 +27,11 @@ const AFRICAN_COUNTRIES = [
 ]
 
 function countryFlag(code) {
-  return String.fromCodePoint(0x1F1E6 + code.charCodeAt(0) - 65, 0x1F1E6 + code.charCodeAt(1) - 65)
+  return `https://flagcdn.com/24x18/${code.toLowerCase()}.png`
+}
+function flagImg(code, alt, size) {
+  const s = size || '16px'
+  return <img src={`https://flagcdn.com/24x18/${code.toLowerCase()}.png`} alt={alt || code} style={{ width:'auto', height:s, verticalAlign:'middle', borderRadius:'2px', marginRight:'4px' }} />
 }
 function countryName(code) {
   const c = AFRICAN_COUNTRIES.find(c => c.code === code)
@@ -199,7 +203,7 @@ function Hero() {
                   <div className="hero-slide-overlay" style={{ background: `linear-gradient(transparent 50%, ${y.color}dd 100%)` }}>
                     <div className="hero-slide-info">
                       <span className="hero-slide-name">{y.name}</span>
-                      <span className="hero-slide-age">{y.age} ans &middot; {countryFlag(y.code)} {y.country}</span>
+                      <span className="hero-slide-age">{y.age} ans &middot; {flagImg(y.code, y.country)} {y.country}</span>
                     </div>
                   </div>
                 </div>
@@ -380,7 +384,7 @@ function Stats() {
           {countries.map((c, i) => (
             <div key={i} className="stat-item">
               <span className="stat-number">{c.count}</span>
-              <span className="stat-label">{countryFlag(c.code)} {c.name}</span>
+              <span className="stat-label">{flagImg(c.code, c.name)} {c.name}</span>
               <div className="stat-bar">
                 <div className="stat-fill" style={{ width: visible ? `${c.pct}%` : '0%' }} />
               </div>
@@ -934,7 +938,7 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
             )}
           </div>
           <div className="dash-profile-text">
-            <span className="dash-profile-name">{countryFlag(user.country || 'CD')} {user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username}</span>
+            <span className="dash-profile-name">{flagImg(user.country || 'CD')} {user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username}</span>
             <span className="dash-profile-role">{t('role_' + roleLower) || roleLabel}</span>
           </div>
         </div>
@@ -951,7 +955,7 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
 
           {/* Country flag */}
           <div className="dh-country-static">
-            <span className="dh-country-flag">{countryFlag(user.country || 'CD')}</span>
+            <span className="dh-country-flag">{flagImg(user.country || 'CD', '', '18px')}</span>
             <span className="dh-country-name">{countryName(user.country || 'CD')}</span>
           </div>
 
@@ -2020,7 +2024,7 @@ function DashboardShell({ user, role, onLogout }) {
                                           <span className="dash-reg-child-detail-row-value">
                                             {f.label === 'Nationalité' && cv(f.label) ? (() => {
                                               const cc = countryCodeFromName(cv(f.label))
-                                              return cc ? <>{countryFlag(cc)} {cv(f.label)}</> : cv(f.label)
+                                              return cc ? <>{flagImg(cc, cv(f.label))} {cv(f.label)}</> : cv(f.label)
                                             })() : cv(f.label)}
                                           </span>
                                         </div>
@@ -2082,7 +2086,7 @@ function DashboardShell({ user, role, onLogout }) {
                         <span className="dash-role-name">{orphanageName}</span>
                         <span className="dash-role-badge" style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>ACTIF</span>
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                          <span>{countryFlag(user.country || 'CD')} {countryName(user.country || 'CD')}</span>
+                          <span>{flagImg(user.country || 'CD')} {countryName(user.country || 'CD')}</span>
                           <span>Directeur: {user.first_name} {user.last_name}</span>
                           <span>ID: {user.id}</span>
                         </div>
@@ -2461,7 +2465,7 @@ function SignupModal({ onClose, onSwitchToLogin }) {
           <label htmlFor="sig-country">Pays <span className="req">*</span></label>
           <select id="sig-country" required value={form.country} onChange={set('country')}>
             <option value="">Sélectionnez votre pays</option>
-            {AFRICAN_COUNTRIES.map(c => <option key={c.code} value={c.code}>{countryFlag(c.code)} {c.name}</option>)}
+            {AFRICAN_COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
           </select>
 
           <label htmlFor="sig-role">Rôle <span className="req">*</span></label>
