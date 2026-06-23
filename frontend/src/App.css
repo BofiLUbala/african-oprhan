@@ -988,7 +988,7 @@ section::before {
   position:fixed; top:0; left:0; right:0; z-index:1000;
   background:rgba(11,17,33,0.95); backdrop-filter:blur(20px);
   border-bottom:1px solid rgba(255,255,255,0.06);
-  height:62px;
+  height:auto; min-height:62px; padding:6px 0;
 }
 .dash-header-inner {
   display:flex; align-items:center; justify-content:space-between;
@@ -996,14 +996,21 @@ section::before {
   position:relative;
 }
 .dash-header-left {
-  display:flex; align-items:center; gap:12px; min-width:0; flex:0 0 auto;
+  display:flex; flex-direction:column; align-items:flex-start; min-width:0; flex:0 0 auto; gap:4px;
+}
+.dash-avatar-row {
+  display:flex; align-items:center; gap:10px;
+}
+.dash-header-orp-name {
+  font-size:13px; font-weight:700; color:#f59e0b;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px;
 }
 .dash-avatar-wrapper {
   position:relative; cursor:pointer; border-radius:50%;
-  overflow:hidden; flex-shrink:0; width:40px; height:40px;
+  overflow:hidden; flex-shrink:0; width:44px; height:44px;
 }
 .dash-avatar {
-  width:40px; height:40px; border-radius:50%; display:block;
+  width:44px; height:44px; border-radius:50%; display:block;
   border:2px solid rgba(245,158,11,0.25);
 }
 .dash-avatar-overlay {
@@ -1014,10 +1021,13 @@ section::before {
   opacity:0; transition:opacity .2s; border-radius:50%;
 }
 .dash-avatar-wrapper:hover .dash-avatar-overlay { opacity:1; }
-.dash-profile-text { display:flex; flex-direction:column; gap:1px; min-width:0; }
+.dash-profile-text { display:flex; flex-direction:column; gap:1px; align-items:flex-start; }
 .dash-profile-name {
-  font-size:14px; font-weight:700; color:#e2e8f0;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-size:12px; font-weight:700; color:#e2e8f0;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px;
+}
+.dash-profile-role {
+  font-size:10px; font-weight:600; color:#64748b; letter-spacing:0.5px;
 }
 .dash-profile-details {
   display:flex; align-items:center; gap:5px; flex-wrap:nowrap;

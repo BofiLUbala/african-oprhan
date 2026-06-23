@@ -80,7 +80,7 @@ export default function App() {
     if (rolesWithDashboard.includes(roleLower)) {
       return (
         <div className="app">
-          <DashboardHeader user={user} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} />
+          <DashboardHeader user={user} roleLower={roleLower} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} />
           <main><DashboardShell user={user} role={roleLower} onLogout={logout} /></main>
         </div>
       )
@@ -751,7 +751,7 @@ const INTEGRITY_BARS = [
   { height: 90, color: '#22c55e' },
 ]
 
-function DashboardHeader({ user, roleLabel }) {
+function DashboardHeader({ user, roleLower, roleLabel }) {
   const [time, setTime] = useState(new Date())
   const [profileImg, setProfileImg] = useState(null)
   const [localOrpName, setLocalOrpName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
@@ -815,24 +815,21 @@ function DashboardHeader({ user, roleLabel }) {
     <header className="dash-header">
       <div className="dash-header-inner">
 
-        {/* LEFT — Avatar + Profile Info */}
+        {/* LEFT — Avatar + Info */}
         <div className="dash-header-left">
-          <div className="dash-avatar-wrapper" onClick={() => fileInputRef.current?.click()} title="Modifier la photo">
-            <img src={profileImg || avatarSvg} alt="" className="dash-avatar" />
-            <div className="dash-avatar-overlay">+</div>
-            <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: 'none' }} />
+          <div className="dash-avatar-row">
+            <div className="dash-avatar-wrapper" onClick={() => fileInputRef.current?.click()} title="Modifier la photo">
+              <img src={profileImg || avatarSvg} alt="" className="dash-avatar" />
+              <div className="dash-avatar-overlay">+</div>
+              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: 'none' }} />
+            </div>
+            {roleLower === 'director' && localOrpName && (
+              <span className="dash-header-orp-name">{localOrpName}</span>
+            )}
           </div>
           <div className="dash-profile-text">
-            <div className="dash-profile-name">{user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username}</div>
-            <div className="dash-profile-details">
-              <span className="dash-profile-detail-item dj-prefix">DJ {countryName(selectedCountry)}</span>
-              <span className="dash-profile-sep">•</span>
-              <span className="dash-profile-detail-item">{roleLabel}</span>
-              {localOrpName && <>
-                <span className="dash-profile-sep">🏠</span>
-                <span className="dash-profile-detail-item dash-profile-orp">{localOrpName}</span>
-              </>}
-            </div>
+            <span className="dash-profile-name">{user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username}</span>
+            <span className="dash-profile-role">{roleLabel}</span>
           </div>
         </div>
 
