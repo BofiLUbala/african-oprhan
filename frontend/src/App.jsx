@@ -190,24 +190,8 @@ function Hero() {
                       <span className="hero-slide-name">{y.name}</span>
                       <span className="hero-slide-age">{y.age} ans &middot; {countryFlag(y.code)} {y.country}</span>
                     </div>
-      </div>
-      {deleteConfirm && (
-        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
-          <div className="modal-confirm" onClick={e => e.stopPropagation()}>
-            <div className="modal-confirm-icon">⚠️</div>
-            <h3 className="modal-confirm-title">Supprimer cet enfant ?</h3>
-            <p className="modal-confirm-text">
-              Êtes-vous sûr de vouloir supprimer <strong>{deleteConfirm.prenom || ''} {deleteConfirm.nom || ''}</strong> ({deleteConfirm.uid}) ?
-              Cette action est irréversible.
-            </p>
-            <div className="modal-confirm-actions">
-              <button className="modal-btn modal-btn-cancel" onClick={() => setDeleteConfirm(null)}>Annuler</button>
-              <button className="modal-btn modal-btn-delete" onClick={() => deleteChild(deleteConfirm)}>Supprimer</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+                  </div>
+                </div>
               ))}
             </div>
             <div className="hero-dots">
