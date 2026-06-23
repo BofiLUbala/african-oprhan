@@ -531,9 +531,6 @@ const ROLE_PAGES = {
       { id: 'R4', title: 'Publications', subtitle: '18 Publications', count: 18 },
     ]},
     parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
-      { id: 'S1', title: 'Profil utilisateur', subtitle: 'Photo, mot de passe', count: 3 },
-      { id: 'S2', title: 'Notifications', subtitle: 'Alertes et rappels', count: 6 },
-      { id: 'S3', title: 'Sécurité', subtitle: 'Authentification', count: 4 },
       { id: 'S4', title: 'Configuration', subtitle: 'Paramètres système', count: 2 },
     ]},
   },
@@ -581,9 +578,6 @@ const ROLE_PAGES = {
       { id: 'R4', title: 'Statistiques', subtitle: '8 Graphiques', count: 8 },
     ]},
     parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
-      { id: 'S1', title: 'Profil', subtitle: 'Photo, mot de passe', count: 3 },
-      { id: 'S2', title: 'Notifications', subtitle: 'Alertes', count: 6 },
-      { id: 'S3', title: 'Sécurité', subtitle: 'Authentification', count: 4 },
       { id: 'S4', title: 'Configuration', subtitle: 'Préférences', count: 2 },
     ]},
   },
@@ -625,9 +619,6 @@ const ROLE_PAGES = {
       { id: 'R4', title: 'Export de données', subtitle: 'Formats PDF/CSV', count: 3 },
     ]},
     parametres: { title: 'Paramètres', subtitle: 'Configuration globale.', categories: [
-      { id: 'S1', title: 'Profil', subtitle: 'Informations', count: 3 },
-      { id: 'S2', title: 'Sécurité', subtitle: 'Accès et logs', count: 4 },
-      { id: 'S3', title: 'Notifications', subtitle: 'Alertes système', count: 6 },
       { id: 'S4', title: 'API', subtitle: 'Jetons et clés', count: 2 },
     ]},
   },
@@ -669,9 +660,6 @@ const ROLE_PAGES = {
       { id: 'R4', title: 'Export', subtitle: 'PDF/CSV', count: 3 },
     ]},
     parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
-      { id: 'S1', title: 'Profil', subtitle: 'Informations', count: 3 },
-      { id: 'S2', title: 'Sécurité', subtitle: 'Accès', count: 4 },
-      { id: 'S3', title: 'Notifications', subtitle: 'Alertes', count: 6 },
       { id: 'S4', title: 'Configuration', subtitle: 'Préférences', count: 2 },
     ]},
   },
@@ -707,9 +695,6 @@ const ROLE_PAGES = {
       { id: 'R4', title: "Suivi des contributions", subtitle: '12 Mois', count: 12 },
     ]},
     parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
-      { id: 'S1', title: 'Profil', subtitle: 'Mes informations', count: 3 },
-      { id: 'S2', title: 'Notifications', subtitle: "Alertes d'activité", count: 6 },
-      { id: 'S3', title: 'Sécurité', subtitle: 'Mot de passe', count: 4 },
       { id: 'S4', title: 'Configuration', subtitle: 'Préférences', count: 2 },
     ]},
   },
@@ -765,7 +750,7 @@ const INTEGRITY_BARS = [
 function DashboardHeader({ user, roleLower, roleLabel }) {
   const { t, lang, setLang } = useTranslation()
   const [time, setTime] = useState(new Date())
-  const [profileImg, setProfileImg] = useState(null)
+  const [profileImg, setProfileImg] = useState(localStorage.getItem('cdo_profile_img') || null)
   const [localOrpName, setLocalOrpName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
   const [countryDropOpen, setCountryDropOpen] = useState(false)
   const [selectedCountry, setSelectedCountry] = useState(user.country || 'CD')
@@ -783,6 +768,14 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
     }, 1000)
     return () => clearInterval(check)
   }, [localOrpName])
+
+  useEffect(() => {
+    const check = setInterval(() => {
+      const v = localStorage.getItem('cdo_profile_img')
+      if (v !== profileImg) setProfileImg(v)
+    }, 1000)
+    return () => clearInterval(check)
+  }, [profileImg])
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000)
@@ -813,8 +806,13 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
   const handleImageUpload = (e) => {
     const file = e.target.files[0]
     if (file) {
-      const url = URL.createObjectURL(file)
-      setProfileImg(url)
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        const dataUrl = ev.target.result
+        setProfileImg(dataUrl)
+        localStorage.setItem('cdo_profile_img', dataUrl)
+      }
+      reader.readAsDataURL(file)
     }
   }
 
@@ -1298,6 +1296,7 @@ function DashboardShell({ user, role, onLogout }) {
   const [selectedRegChild, setSelectedRegChild] = useState(null)
   const [editingChild, setEditingChild] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [profileImg, setProfileImg] = useState(localStorage.getItem('cdo_profile_img') || null)
   const uidRef = useRef(genChildUid())
   const sidebarRef = useRef(null)
   const [sidebarWidth, setSidebarWidth] = useState(() => parseInt(localStorage.getItem('cdo_sidebar_width')) || 220)
@@ -1545,18 +1544,67 @@ function DashboardShell({ user, role, onLogout }) {
                 </div>
 
                 {activeKey === 'parametres' && !subKey && (
-                  <div className="dash-role-card">
-                    <div className="dash-role-avatar-wrap">
-                      <img src={avatarSvg} alt="" className="dash-role-avatar" />
-                    </div>
-                    <div className="dash-role-info">
-                      <span className="dash-role-name">{user.first_name} {user.last_name}</span>
-                      <span className="dash-role-badge">{t('role_' + role) || roleLabel}</span>
-                    </div>
-                  </div>
+                  <div style={{ paddingTop: '32px' }} />
                 )}
 
-                {subKey && activeKey === 'parametres' && subKey === 'Configuration' ? (
+                {subKey === 'Profil' && activeKey === 'parametres' ? (
+                  <div className="dash-sub-form">
+                    <div className="dash-sub-form-top">
+                      <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'\u2190'} {t('form_back')}</button>
+                      <h3 className="dash-sub-form-title">{t('settings_profile') || 'Mon Profil'}</h3>
+                    </div>
+                    <div className="dash-sub-form-fields" style={{ display:'flex', flexDirection:'column', gap:'16px', padding:'20px 0' }}>
+                      <div className="dash-form-field" style={{ alignItems:'center' }}>
+                        <div style={{ position:'relative', display:'inline-block', cursor:'pointer' }} onClick={() => document.getElementById('settings-profile-upload')?.click()}>
+                          <img src={profileImg || avatarSvg} alt="" style={{ width:'80px', height:'80px', borderRadius:'50%', border:'2px solid rgba(245,158,11,0.2)', objectFit:'cover' }} />
+                          <div style={{ position:'absolute', bottom:0, right:0, background:'#f59e0b', borderRadius:'50%', width:'24px', height:'24px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', color:'#fff', fontWeight:'700', lineHeight:'1' }}>+</div>
+                          <input id="settings-profile-upload" type="file" accept="image/*" style={{ display:'none' }} onChange={e => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onload = (ev) => {
+                                localStorage.setItem('cdo_profile_img', ev.target.result)
+                                setProfileImg(ev.target.result)
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }} />
+                        </div>
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">{t('signup_firstname')}</label>
+                        <input type="text" className="dash-form-input" value={user.first_name || ''} onChange={e => { user.first_name = e.target.value }} />
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">{t('signup_lastname')}</label>
+                        <input type="text" className="dash-form-input" value={user.last_name || ''} onChange={e => { user.last_name = e.target.value }} />
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">{t('signup_email')}</label>
+                        <input type="text" className="dash-form-input" value={user.email || ''} readOnly style={{ opacity:0.6 }} />
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">{t('signup_role')}</label>
+                        <input type="text" className="dash-form-input" value={t('role_' + role) || roleLabel} readOnly style={{ opacity:0.6 }} />
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">{t('signup_country')}</label>
+                        <input type="text" className="dash-form-input" value={countryName(user.country || 'CD')} readOnly style={{ opacity:0.6 }} />
+                      </div>
+                      {role === 'director' && orphanageName && (
+                        <div className="dash-form-field">
+                          <label className="dash-form-label">{t('settings_orphanage_name')}</label>
+                          <input type="text" className="dash-form-input" value={orphanageName} readOnly style={{ opacity:0.6 }} />
+                        </div>
+                      )}
+                      <button className="dash-form-save" onClick={() => {
+                        localStorage.setItem('cdo_first_name', user.first_name || '')
+                        localStorage.setItem('cdo_last_name', user.last_name || '')
+                        alert(t('settings_saved'))
+                      }} style={{ marginTop:'8px' }}>{t('settings_save')}</button>
+                    </div>
+                  </div>
+                ) : subKey && activeKey === 'parametres' ? (
                   <div className="dash-sub-form">
                     <div className="dash-sub-form-top">
                       <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'\u2190'} {t('settings_back')}</button>
@@ -1609,6 +1657,48 @@ function DashboardShell({ user, role, onLogout }) {
                       </div>
                     </div>
                   </div>
+                ) : subKey === 'Profil' && activeKey === 'parametres' ? (
+                  <div className="dash-sub-form">
+                    <div className="dash-sub-form-top">
+                      <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'\u2190'} {t('form_back')}</button>
+                      <h3 className="dash-sub-form-title">{user.first_name} {user.last_name}</h3>
+                    </div>
+                    <div className="dash-sub-form-fields" style={{ display:'flex', flexDirection:'column', gap:'16px', padding:'20px 0' }}>
+                      <div className="dash-form-field" style={{ alignItems:'center' }}>
+                        <div style={{ position:'relative', display:'inline-block', cursor:'pointer' }} onClick={() => document.getElementById('settings-profile-upload')?.click()}>
+                          <img src={profileImg || avatarSvg} alt="" style={{ width:'72px', height:'72px', borderRadius:'50%', border:'2px solid rgba(245,158,11,0.2)' }} />
+                          <div style={{ position:'absolute', bottom:0, right:0, background:'#f59e0b', borderRadius:'50%', width:'22px', height:'22px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', color:'#fff', fontWeight:'700', lineHeight:'1' }}>+</div>
+                          <input id="settings-profile-upload-2" type="file" accept="image/*" style={{ display:'none' }} onChange={e => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onload = (ev) => {
+                                localStorage.setItem('cdo_profile_img', ev.target.result)
+                                setProfileImg(ev.target.result)
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }} />
+                        </div>
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">{t('signup_firstname')}</label>
+                        <input type="text" className="dash-form-input" value={user.first_name || ''} readOnly />
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">{t('signup_lastname')}</label>
+                        <input type="text" className="dash-form-input" value={user.last_name || ''} readOnly />
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">{t('signup_email')}</label>
+                        <input type="text" className="dash-form-input" value={user.email || ''} readOnly />
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">{t('signup_role')}</label>
+                        <input type="text" className="dash-form-input" value={t('role_' + role) || roleLabel} readOnly />
+                      </div>
+                    </div>
+                  </div>
                 ) : subKey && activeKey === 'enfants' ? (
                   <div className="dash-sub-form">
                     <div className="dash-sub-form-top">
@@ -1628,6 +1718,29 @@ function DashboardShell({ user, role, onLogout }) {
                             </select>
                           ) : f.type === 'textarea' ? (
                             <textarea className="dash-form-input dash-form-textarea" rows={3} defaultValue={getFieldValue(f.label)} />
+                          ) : f.type === 'file' && f.label === 'Photo' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                                <input type="file" className="dash-form-file" accept="image/*" onChange={e => {
+                                  const file = e.target.files?.[0]
+                                  if (file) {
+                                    const reader = new FileReader()
+                                    reader.onload = (ev) => {
+                                      const uid = editingChild ? editingChild.uid : uidRef.current
+                                      localStorage.setItem('cdo_child_photo_' + uid, ev.target.result)
+                                    }
+                                    reader.readAsDataURL(file)
+                                  }
+                                }} />
+                                {(() => {
+                                  const uid = editingChild ? editingChild.uid : uidRef.current
+                                  const saved = localStorage.getItem('cdo_child_photo_' + uid)
+                                  if (saved) return <img src={saved} alt="" style={{ width:'48px', height:'48px', borderRadius:'8px', objectFit:'cover' }} />
+                                  if (getFieldValue(f.label)) return <span style={{ fontSize:'12px', color:'#64748B' }}>{t('form_current_file')} {getFieldValue(f.label)}</span>
+                                  return null
+                                })()}
+                              </div>
+                            </div>
                           ) : f.type === 'file' ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                               <input type="file" className="dash-form-file" />
@@ -1647,14 +1760,17 @@ function DashboardShell({ user, role, onLogout }) {
                         })
                         if (!Object.keys(data).length) return
 
+                        const uid = editingChild ? editingChild.uid : uidRef.current
+
                         const body = {
-                          uid: editingChild ? editingChild.uid : uidRef.current,
+                          uid: uid,
                           nom: data['Nom'] !== undefined ? data['Nom'] : (editingChild ? editingChild.nom : ''),
                           prenom: data['Prénom'] !== undefined ? data['Prénom'] : (editingChild ? editingChild.prenom : ''),
                           sexe: data['Sexe'] !== undefined ? (data['Sexe'] === 'Masculin' ? 'M' : data['Sexe'] === 'Féminin' ? 'F' : '') : (editingChild ? editingChild.sexe : ''),
                           date_naissance: data['Date de naissance'] !== undefined ? (data['Date de naissance'] || null) : (editingChild ? editingChild.date_naissance : null),
                           nationalite: data['Nationalité'] !== undefined ? data['Nationalité'] : (editingChild ? editingChild.nationalite : ''),
                           adresse: data["Adresse d'origine"] !== undefined ? data["Adresse d'origine"] : (editingChild ? editingChild.adresse : ''),
+                          photo: localStorage.getItem('cdo_child_photo_' + uid) || (editingChild ? editingChild.photo : ''),
                           extra_data: editingChild ? { ...editingChild.extra_data, ...data } : data,
                         }
 
@@ -1749,6 +1865,8 @@ function DashboardShell({ user, role, onLogout }) {
                             <div className="dash-reg-child-detail-header">
                               <div className="dash-reg-child-detail-avatar">
                                 <img src={(() => {
+                                  const localPhoto = localStorage.getItem('cdo_child_photo_' + selectedRegChild.uid)
+                                  if (localPhoto) return localPhoto
                                   const src = selectedRegChild.photo
                                   if (src && src.startsWith('http')) return src
                                   const childColors = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316']
@@ -1827,7 +1945,12 @@ function DashboardShell({ user, role, onLogout }) {
                             return (
                             <div key={child.uid} className="dash-reg-child-item" onClick={() => setSelectedRegChild(child)}>
                               <div className="dash-reg-child-item-avatar">
-                                <img src={child.photo?.startsWith('http') ? child.photo : svgUrl(initial, cc, 48, 48)} alt="" />
+                                <img src={(() => {
+                                  const localPhoto = localStorage.getItem('cdo_child_photo_' + child.uid)
+                                  if (localPhoto) return localPhoto
+                                  if (child.photo?.startsWith('http')) return child.photo
+                                  return svgUrl(initial, cc, 48, 48)
+                                })()} alt="" />
                               </div>
                               <div className="dash-reg-child-item-info">
                                 <span className="dash-reg-child-item-name">{child.prenom || ''} {child.nom || ''}</span>
@@ -1874,6 +1997,15 @@ function DashboardShell({ user, role, onLogout }) {
                   </div>
                 ) : (
                   <div className="dash-category-cards">
+                    {activeKey === 'parametres' && !subKey && (
+                      <div className="dash-category-card" onClick={() => setSubKey('Profil')}>
+                        <div className="dash-card-icon-wrap">
+                          <img src={avatarSvg} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+                        </div>
+                        <span className="dash-card-title">{user.first_name} {user.last_name}</span>
+                        <span className="dash-card-desc">{t('role_' + role) || roleLabel}</span>
+                      </div>
+                    )}
                     {page?.categories?.map((cat, i) => (
                       <button key={i} className="dash-category-card" onClick={() => {
                         setSubKey(cat.title);
@@ -1893,6 +2025,20 @@ function DashboardShell({ user, role, onLogout }) {
           )}
         </main>
       </div>
+
+      {deleteConfirm && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center' }} onClick={() => setDeleteConfirm(null)}>
+          <div style={{ background:'var(--bg-card)', border:'1px solid var(--border-card)', borderRadius:'var(--ag-radius)', padding:'28px 32px', maxWidth:'400px', width:'90%', textAlign:'center', display:'flex', flexDirection:'column', gap:'16px' }} onClick={e => e.stopPropagation()}>
+            <span style={{ fontSize:'40px' }}>{'\u26A0\uFE0F'}</span>
+            <h3 style={{ margin:0, fontSize:'17px', fontWeight:'700', color:'#e2e8f0' }}>{t('delete_confirm_title') || 'Confirmer la suppression'}</h3>
+            <p style={{ fontSize:'13px', color:'#94a3b8', margin:0 }}>{t('delete_confirm_msg') || 'Supprimer'} {deleteConfirm.prenom || ''} {deleteConfirm.nom || ''} ?</p>
+            <div style={{ display:'flex', gap:'12px', justifyContent:'center', marginTop:'8px' }}>
+              <button className="dash-back-btn" onClick={() => setDeleteConfirm(null)} style={{ padding:'8px 24px' }}>{t('delete_cancel') || 'Annuler'}</button>
+              <button className="dash-form-delete" onClick={() => deleteChild(deleteConfirm)} style={{ padding:'8px 24px' }}>{t('delete_confirm') || 'Supprimer'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

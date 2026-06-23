@@ -124,6 +124,7 @@ const translations = {
     /* Settings */
     settings_back: 'Retour',
     settings_config: 'Configuration',
+    settings_profile: 'Mon Profil',
     settings_orphanage_name: "Nom de l'orphelinat",
     settings_orphanage_placeholder: "Entrez le nom de l'orphelinat",
     settings_save: 'Sauvegarder',
@@ -386,6 +387,12 @@ const translations = {
     chat_reply_4: "Chaque geste compte. Merci de soutenir les orphelins d'Afrique.",
     chat_title: 'Assistant',
     chat_placeholder: 'Message...',
+
+    /* Delete confirmation */
+    delete_confirm_title: 'Confirmer la suppression',
+    delete_confirm_msg: 'Supprimer',
+    delete_confirm: 'Supprimer',
+    delete_cancel: 'Annuler',
   },
 
   en: {
@@ -495,6 +502,7 @@ const translations = {
 
     settings_back: 'Back',
     settings_config: 'Configuration',
+    settings_profile: 'My Profile',
     settings_orphanage_name: 'Orphanage name',
     settings_orphanage_placeholder: 'Enter the orphanage name',
     settings_save: 'Save',
@@ -757,6 +765,12 @@ const translations = {
     chat_title: 'Assistant',
     chat_placeholder: 'Message...',
 
+    /* Delete confirmation */
+    delete_confirm_title: 'Confirm deletion',
+    delete_confirm_msg: 'Delete',
+    delete_confirm: 'Delete',
+    delete_cancel: 'Cancel',
+
     /* Category cards - Director */
     cat_director_dashboard_D1_title: 'Operations Summary',
     cat_director_dashboard_D1_sub: '5 Alerts',
@@ -808,12 +822,6 @@ const translations = {
     cat_director_demandes_R3_sub: '45 Donations',
     cat_director_demandes_R4_title: 'Publications',
     cat_director_demandes_R4_sub: '18 Publications',
-    cat_director_parametres_S1_title: 'User Profile',
-    cat_director_parametres_S1_sub: 'Photo, password',
-    cat_director_parametres_S2_title: 'Notifications',
-    cat_director_parametres_S2_sub: 'Alerts & reminders',
-    cat_director_parametres_S3_title: 'Security',
-    cat_director_parametres_S3_sub: 'Authentication',
     cat_director_parametres_S4_title: 'Configuration',
     cat_director_parametres_S4_sub: 'System settings',
 
@@ -874,12 +882,6 @@ const translations = {
     cat_ambassador_rapports_R3_sub: '2025 Generated',
     cat_ambassador_rapports_R4_title: 'Statistics',
     cat_ambassador_rapports_R4_sub: '8 Charts',
-    cat_ambassador_parametres_S1_title: 'Profile',
-    cat_ambassador_parametres_S1_sub: 'Photo, password',
-    cat_ambassador_parametres_S2_title: 'Notifications',
-    cat_ambassador_parametres_S2_sub: 'Alerts',
-    cat_ambassador_parametres_S3_title: 'Security',
-    cat_ambassador_parametres_S3_sub: 'Authentication',
     cat_ambassador_parametres_S4_title: 'Configuration',
     cat_ambassador_parametres_S4_sub: 'Preferences',
 
@@ -932,12 +934,6 @@ const translations = {
     cat_supermaster_rapports_R3_sub: '12 Indicators',
     cat_supermaster_rapports_R4_title: 'Data Export',
     cat_supermaster_rapports_R4_sub: 'PDF/CSV Formats',
-    cat_supermaster_parametres_S1_title: 'Profile',
-    cat_supermaster_parametres_S1_sub: 'Information',
-    cat_supermaster_parametres_S2_title: 'Security',
-    cat_supermaster_parametres_S2_sub: 'Access & logs',
-    cat_supermaster_parametres_S3_title: 'Notifications',
-    cat_supermaster_parametres_S3_sub: 'System alerts',
     cat_supermaster_parametres_S4_title: 'API',
     cat_supermaster_parametres_S4_sub: 'Tokens & keys',
 
@@ -990,12 +986,6 @@ const translations = {
     cat_federation_rapports_R3_sub: '12 Indicators',
     cat_federation_rapports_R4_title: 'Export',
     cat_federation_rapports_R4_sub: 'PDF/CSV',
-    cat_federation_parametres_S1_title: 'Profile',
-    cat_federation_parametres_S1_sub: 'Information',
-    cat_federation_parametres_S2_title: 'Security',
-    cat_federation_parametres_S2_sub: 'Access',
-    cat_federation_parametres_S3_title: 'Notifications',
-    cat_federation_parametres_S3_sub: 'Alerts',
     cat_federation_parametres_S4_title: 'Configuration',
     cat_federation_parametres_S4_sub: 'Preferences',
 
@@ -1040,12 +1030,6 @@ const translations = {
     cat_partner_rapports_R3_sub: '3 Available',
     cat_partner_rapports_R4_title: 'Contribution History',
     cat_partner_rapports_R4_sub: '12 Months',
-    cat_partner_parametres_S1_title: 'Profile',
-    cat_partner_parametres_S1_sub: 'My information',
-    cat_partner_parametres_S2_title: 'Notifications',
-    cat_partner_parametres_S2_sub: 'Activity alerts',
-    cat_partner_parametres_S3_title: 'Security',
-    cat_partner_parametres_S3_sub: 'Password',
     cat_partner_parametres_S4_title: 'Configuration',
     cat_partner_parametres_S4_sub: 'Preferences',
   },
