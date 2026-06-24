@@ -452,6 +452,7 @@ const ROLE_NAV = {
     { label: 'Enfants', key: 'enfants' },
     { label: 'Enfants enregistrés', key: 'enfants-enregistres' },
     { label: 'Mise à jour', key: 'update-center' },
+    { label: 'Historique', key: 'history-center' },
     { label: 'Projets', key: 'projets' },
     { label: 'Documents', key: 'documents' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
@@ -1441,6 +1442,17 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [hcSearch, setHcSearch] = useState('')
   const [hcLoading, setHcLoading] = useState(false)
   const [hcExpanded, setHcExpanded] = useState(null)
+  const [hcDensity, setHcDensity] = useState('comfortable')
+  const [hcFilterPriority, setHcFilterPriority] = useState('')
+  const [hcFilterSource, setHcFilterSource] = useState('')
+  const [hcDateFrom, setHcDateFrom] = useState('')
+  const [hcDateTo, setHcDateTo] = useState('')
+  const [hcStatusOnly, setHcStatusOnly] = useState(false)
+  const [hcSelectedEvent, setHcSelectedEvent] = useState(null)
+  const [hcStats, setHcStats] = useState({ total:0, status_changes:0, health_events:0, education_events:0, family_events:0, document_events:0, alert_events:0 })
+  const [hcHistoryChild, setHcHistoryChild] = useState(null)
+  const [hcCalendarData, setHcCalendarData] = useState([])
+  const [hcViewMode, setHcViewMode] = useState('timeline')
 
   /* Update Center v2 state */
   const [updateChild, setUpdateChild] = useState(null)
@@ -1455,6 +1467,16 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [uc2Saving, setUc2Saving] = useState(false)
   const [uc2Success, setUc2Success] = useState(false)
   const [uc2Search, setUc2Search] = useState('')
+  const [uc2Gender, setUc2Gender] = useState('')
+  const [uc2AgeRange, setUc2AgeRange] = useState('')
+  const [uc2Region, setUc2Region] = useState('')
+  const [uc2SortStatus, setUc2SortStatus] = useState('')
+
+  /* HC selector filters */
+  const [hcGender, setHcGender] = useState('')
+  const [hcAgeRange, setHcAgeRange] = useState('')
+  const [hcRegion, setHcRegion] = useState('')
+  const [hcSortStatus, setHcSortStatus] = useState('')
 
   useEffect(() => {
     if (subKey !== 'Scolarité') return
@@ -2240,10 +2262,28 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               </div>
                               <div className="dash-prof-field">
                                 <label className="dash-prof-field-label" htmlFor="prof-nationalite">{t('form_nationality') || 'Nationalité'}</label>
-                                <select id="prof-nationalite" className="dash-prof-input" defaultValue={getFieldValue('Nationalité')} onChange={() => updateProfCompletion()}>
-                                  <option value="">{t('form_select_placeholder') || 'Sélectionner...'}</option>
-                                  {AFRICAN_COUNTRIES.map((c, ci) => <option key={ci} value={c.name}>{c.name}</option>)}
-                                </select>
+                                <div className="dash-prof-input-wrap" style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                                  <select id="prof-nationalite" className="dash-prof-input" defaultValue={getFieldValue('Nationalité')} onChange={e => {
+                                    updateProfCompletion()
+                                    const flagEl = document.getElementById('prof-nat-flag')
+                                    if (!flagEl) return
+                                    const v = e.target.value
+                                    if (!v) { flagEl.innerHTML = ''; return }
+                                    const c = AFRICAN_COUNTRIES.find(c => c.name === v)
+                                    flagEl.innerHTML = c ? `<img src="https://flagcdn.com/24x18/${c.code.toLowerCase()}.png" alt="${c.name}" style="width:auto;height:18px;border-radius:2px;vertical-align:middle" />` : ''
+                                  }}>
+                                    <option value="">{t('form_select_placeholder') || 'Sélectionner...'}</option>
+                                    {AFRICAN_COUNTRIES.map((c, ci) => <option key={ci} value={c.name}>{c.name}</option>)}
+                                  </select>
+                                  <span id="prof-nat-flag" style={{minWidth:'24px', display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:'18px'}}>
+                                    {(() => {
+                                      const nat = getFieldValue('Nationalité')
+                                      if (!nat) return null
+                                      const c = AFRICAN_COUNTRIES.find(c => c.name === nat)
+                                      return c ? <img src={`https://flagcdn.com/24x18/${c.code.toLowerCase()}.png`} alt={c.name} style={{width:'auto',height:'18px',borderRadius:'2px',verticalAlign:'middle'}} /> : null
+                                    })()}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -2358,27 +2398,30 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               }
 
                               let body, headers
+                              const mappedSexe = sexe === 'Masculin' ? 'M' : sexe === 'Féminin' ? 'F' : ''
                               if (hasPhoto) {
                                 const fd = new FormData()
-                                fd.append('uid', uid)
-                                fd.append('nom', nom)
-                                fd.append('prenom', prenom)
-                                fd.append('sexe', sexe === 'Masculin' ? 'M' : sexe === 'Féminin' ? 'F' : '')
-                                fd.append('date_naissance', dateNaiss || '')
-                                fd.append('nationalite', nationalite)
-                                fd.append('adresse', adresse)
+                                if (uid) fd.append('uid', String(uid))
+                                if (nom) fd.append('nom', String(nom))
+                                if (prenom) fd.append('prenom', String(prenom))
+                                if (mappedSexe) fd.append('sexe', mappedSexe)
+                                if (dateNaiss) fd.append('date_naissance', dateNaiss)
+                                if (nationalite) fd.append('nationalite', String(nationalite))
+                                if (adresse) fd.append('adresse', String(adresse))
                                 fd.append('photo', dataToFile(photoData, 'photo.jpg'))
-                                if (editingChild) fd.append('extra_data', JSON.stringify(editingChild.extra_data || {}))
+                                fd.append('extra_data', JSON.stringify(editingChild ? editingChild.extra_data || {} : {}))
                                 body = fd
                                 headers = { Authorization: `Bearer ${token}` }
                               } else {
                                 body = JSON.stringify({
-                                  uid, nom, prenom,
-                                  sexe: sexe === 'Masculin' ? 'M' : sexe === 'Féminin' ? 'F' : '',
-                                  date_naissance: dateNaiss || null,
-                                  nationalite, adresse,
-                                  photo: editingChild ? editingChild.photo : null,
-                                  extra_data: editingChild ? { ...editingChild.extra_data } : {},
+                                  ...(uid ? { uid } : {}),
+                                  ...(nom ? { nom } : {}),
+                                  ...(prenom ? { prenom } : {}),
+                                  ...(mappedSexe ? { sexe: mappedSexe } : {}),
+                                  ...(dateNaiss ? { date_naissance: dateNaiss } : {}),
+                                  ...(nationalite ? { nationalite } : {}),
+                                  ...(adresse ? { adresse } : {}),
+                                  extra_data: editingChild ? editingChild.extra_data || {} : {},
                                 })
                                 headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
                               }
@@ -2437,21 +2480,25 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       </div>
 
                       <div className="dash-prof-side-col">
-                        <div className="dash-prof-identity-card">
-                          <div className="dash-prof-id-avatar">
-                            {(() => {
-                              const uid = editingChild ? editingChild.uid : uidRef.current
-                              const saved = localStorage.getItem('cdo_child_photo_' + uid)
-                              if (saved) return <img src={saved} alt="" className="dash-prof-id-img" />
-                              const inits = ((getFieldValue('Prénom')?.[0] || '') + (getFieldValue('Nom')?.[0] || '')).toUpperCase() || '?'
-                              const colors = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6']
-                              const c = colors[(inits.charCodeAt(0) || 0) % colors.length]
-                              return <div className="dash-prof-id-inits" style={{ background: c }}>{inits}</div>
-                            })()}
-                            <span className="dash-prof-id-badge">{'\u2713'} {t('prof_active') || 'Profil Actif'}</span>
-                          </div>
+                          <div className="dash-prof-identity-card">
+                            <div className="dash-prof-id-avatar" onClick={() => document.getElementById('prof-photo-input')?.click()} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') document.getElementById('prof-photo-input')?.click() }} tabIndex={0} role="button" aria-label={t('prof_upload_photo') || 'Changer la photo'} style={{cursor:'pointer'}} title={t('prof_click_upload') || 'Cliquez pour changer la photo'}>
+                              {(() => {
+                                const uid = editingChild ? editingChild.uid : uidRef.current
+                                const saved = localStorage.getItem('cdo_child_photo_' + uid)
+                                if (saved) return <img src={saved} alt="" className="dash-prof-id-img" />
+                                 const domP = document.getElementById('prof-prenom')?.value
+                                 const domN = document.getElementById('prof-nom')?.value
+                                 const p = domP || getFieldValue('Prénom') || ''
+                                 const n = domN || getFieldValue('Nom') || ''
+                                 const inits = ((p?.[0] || '') + (n?.[0] || '')).toUpperCase() || '?'
+                                const colors = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6']
+                                const c = colors[(inits.charCodeAt(0) || 0) % colors.length]
+                                return <div className="dash-prof-id-inits" style={{ background: c }}>{inits}</div>
+                              })()}
+                              <span className="dash-prof-id-badge">{'\u2713'} {t('prof_active') || 'Profil Actif'}</span>
+                            </div>
                           <div className="dash-prof-id-body">
-                            <h3 className="dash-prof-id-name">{getFieldValue('Prénom') || 'Prénom'} {getFieldValue('Nom') || 'Nom'}</h3>
+                            <h3 className="dash-prof-id-name">{(() => { const dp = document.getElementById('prof-prenom')?.value; const dn = document.getElementById('prof-nom')?.value; return (dp || getFieldValue('Prénom') || 'Prénom') + ' ' + (dn || getFieldValue('Nom') || 'Nom') })()}</h3>
                             <div className="dash-prof-id-field">
                               <span className="dash-prof-id-label">{t('form_unique_id') || 'ID Unique'}</span>
                               <span className="dash-prof-id-value">{editingChild ? editingChild.uid : uidRef.current}</span>
@@ -2459,7 +2506,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div className="dash-prof-id-field">
                               <span className="dash-prof-id-label">{t('form_nationality') || 'Nationalité'}</span>
                               <span className="dash-prof-id-value">{(() => {
-                                const nat = getFieldValue('Nationalité')
+                                const domNat = document.getElementById('prof-nationalite')?.value
+                                const nat = domNat || getFieldValue('Nationalité')
                                 if (!nat) return '—'
                                 const c = AFRICAN_COUNTRIES.find(c => c.name === nat)
                                 return c ? <>{flagImg(c.code, c.name, '18px')} {c.name}</> : nat
@@ -3397,6 +3445,31 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <label className="dash-form-label">{f.label}</label>
                             {f.type === 'uid' ? (
                               <input type="text" className="dash-form-input dash-form-uid" value={editingChild ? editingChild.uid : uidRef.current} readOnly />
+                            ) : f.type === 'select' && f.label === 'Nationalité' ? (
+                              <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                                <select className="dash-form-input" defaultValue={getFieldValue(f.label)} onChange={e => {
+                                  const flagEl = document.getElementById('dash-nat-flag')
+                                  if (!flagEl) return
+                                  const v = e.target.value
+                                  if (!v) { flagEl.innerHTML = ''; return }
+                                  const c = AFRICAN_COUNTRIES.find(c => c.name === v)
+                                  flagEl.innerHTML = c ? `<img src="https://flagcdn.com/24x18/${c.code.toLowerCase()}.png" alt="${c.name}" style="width:auto;height:18px;border-radius:2px;vertical-align:middle" />` : ''
+                                }}>
+                                  <option value="">{t('form_select_placeholder')}</option>
+                                  {f.options?.map(o => {
+                                    const cc = AFRICAN_COUNTRIES.find(c => c.name === o)
+                                    return <option key={o} value={o}>{cc ? `${cc.name}` : o}</option>
+                                  })}
+                                </select>
+                                <span id="dash-nat-flag" style={{minWidth:'24px', display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:'18px'}}>
+                                  {(() => {
+                                    const nat = getFieldValue(f.label)
+                                    if (!nat) return null
+                                    const c = AFRICAN_COUNTRIES.find(c => c.name === nat)
+                                    return c ? <img src={`https://flagcdn.com/24x18/${c.code.toLowerCase()}.png`} alt={c.name} style={{width:'auto',height:'18px',borderRadius:'2px',verticalAlign:'middle'}} /> : null
+                                  })()}
+                                </span>
+                              </div>
                             ) : f.type === 'select' ? (
                               <select className="dash-form-input" defaultValue={getFieldValue(f.label)}>
                                 <option value="">{t('form_select_placeholder')}</option>
@@ -3963,35 +4036,98 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               </div>
                             )}
 
-                            {/* ── HISTORY TAB ── */}
+                            {/* ── HISTORY CENTER ── */}
                             {profileTab === 'history' && (() => {
-                            const hcIcons = { created:'✅', updated:'✏️', update_added:'📝', document_added:'📄', document_verified:'✅', health_update:'💉', education_update:'📚', family_update:'👨‍👩‍👧‍👦', social_update:'🤝', status_change:'🔄', note_added:'💬' }
-                            const hcColors = { general:'#64748b', health:'#22c55e', education:'#3b82f6', family:'#a855f7', documents:'#f59e0b', social:'#ef4444' }
-                            const hcLocalEvents = (() => {
-                              const stored = JSON.parse(localStorage.getItem('cdo_updates_' + selectedRegChild.uid) || '[]')
-                              const med = selectedRegChild.extra_data?.medical
-                              const vax = med?.vaccinations?.filter(v => v.done).map(v => ({ event_type:'health_update', category:'health', title:`Vaccination ${v.name}`, description:'', old_value:'Non administré', new_value:'Administré le '+(v.dateAdmin||'—'), performed_by_name:'', performed_role:'', department:'', attachments:[], event_date:v.dateAdmin||selectedRegChild.created_at })) || []
-                              const edu = selectedRegChild.extra_data?.education
-                              const grades = edu?.subjects?.filter(s => s.grade).map(s => ({ event_type:'education_update', category:'education', title:`Note ${s.name}`, description:'', old_value:'', new_value:`${s.grade}/20`, performed_by_name:'', performed_role:'', department:'', attachments:[], event_date:selectedRegChild.updated_at })) || []
-                              const all = [...stored.map(s => ({ ...s, event_type:'update_added', performed_by_name:s.created_by||s.created_by_name||'', department:'', attachments:s.attachments||[], event_date:s.created_at })), ...vax, ...grades, { event_type:'created', category:'general', title:t('pd_registered')||'Enfant enregistré', description:'', old_value:'', new_value:'', performed_by_name:(user?.first_name||'')+' '+(user?.last_name||''), performed_role:user?.role||'', department:'', attachments:[], event_date:selectedRegChild.created_at }]
+                            const hcIcons = {
+                              created:'✅', updated:'✏️', update_added:'📝',
+                              document_added:'📄', document_verified:'✅', document_replaced:'🔄', document_expired:'⏰',
+                              health_update:'💉', vaccination_added:'💉', illness_added:'🤒',
+                              treatment_started:'💊', treatment_ended:'✅', consultation_added:'🩺',
+                              hospitalization_added:'🏥', allergy_added:'🤧',
+                              education_update:'📚', school_enrolled:'🏫', school_changed:'🔄',
+                              grade_added:'📊', exam_result_added:'📝',
+                              family_update:'👨‍👩‍👧‍👦', guardian_assigned:'👤', parent_identified:'🔍',
+                              family_reunified:'🤗', foster_placement:'🏡', adoption_progress:'📋',
+                              social_update:'🤝', social_note_added:'📝', home_visit:'🏠',
+                              counseling_session:'💬', incident_reported:'⚠️', protection_concern:'🛡️',
+                              status_change:'🔄', alert_triggered:'🚨', note_added:'💬', case_note:'📌',
+                              file_downloaded:'⬇️', record_approved:'✅', record_rejected:'❌',
+                              notification_sent:'🔔', child_archived:'📦', child_restored:'♻️',
+                              follow_up:'📋', observation_added:'👁️', transfer_initiated:'🚚', exit_registered:'🚪',
+                            }
+                            const hcColors = {
+                              general:'#64748b', registration:'#22c55e', identity:'#3b82f6', status:'#f59e0b',
+                              health:'#22c55e', education:'#3b82f6', family:'#a855f7',
+                              documents:'#f59e0b', social:'#ef4444', protection:'#ef4444',
+                              alert:'#ef4444', system:'#64748b', follow_up:'#06b6d4',
+                            }
+                            const criticalEventTypes = ['alert_triggered','protection_concern','incident_reported','hospitalization_added','exit_registered','child_archived','transfer_initiated']
+                            const criticalPriorities = ['critical','high']
+                            const hcLoadEvents = (child) => {
+                              const stored = JSON.parse(localStorage.getItem('cdo_updates_' + child.uid) || '[]')
+                              const med = child.extra_data?.medical
+                              const vax = med?.vaccinations?.filter(v => v.done).map(v => ({ event_type:'vaccination_added', category:'health', title:`Vaccination ${v.name}`, description:'', old_value:'Non administré', new_value:'Administré le '+(v.dateAdmin||'—'), performed_by_name:'', performed_role:'', department:'', attachments:[], priority:'normal', source_module:'health', event_date:v.dateAdmin||child.created_at })) || []
+                              const edu = child.extra_data?.education
+                              const grades = edu?.subjects?.filter(s => s.grade).map(s => ({ event_type:'grade_added', category:'education', title:`Note ${s.name}`, description:'', old_value:'', new_value:`${s.grade}/20`, performed_by_name:'', performed_role:'', department:'', attachments:[], priority:'normal', source_module:'education', event_date:child.updated_at })) || []
+                              const all = [
+                                ...stored.map(s => ({ ...s, event_type:s.event_type||'update_added', performed_by_name:s.created_by||s.created_by_name||'', department:s.department||'', priority:s.priority||'normal', source_module:s.source_module||'update_center', attachments:s.attachments||[], event_date:s.event_date||s.created_at })),
+                                ...vax, ...grades,
+                                { event_type:'created', category:'registration', title:t('pd_registered')||'Enfant enregistré', description:'Nouvel enregistrement dans le système', old_value:'', new_value:`UID: ${child.uid}`, performed_by_name:(user?.first_name||'')+' '+(user?.last_name||''), performed_role:user?.role||'', department:'', attachments:[], priority:'normal', source_module:'registration', event_date:child.created_at },
+                              ]
                               return all.sort((a, b) => new Date(b.event_date||0) - new Date(a.event_date||0))
-                            })()
+                            }
+                            const hcLocalEvents = hcLoadEvents(selectedRegChild)
                             const hcFiltered = hcLocalEvents.filter(e => {
                               if (hcFilterCategory && e.category !== hcFilterCategory) return false
                               if (hcFilterType && e.event_type !== hcFilterType) return false
-                              if (hcSearch && !(e.title||'').toLowerCase().includes(hcSearch.toLowerCase()) && !(e.description||'').toLowerCase().includes(hcSearch.toLowerCase())) return false
+                              if (hcFilterPriority && e.priority !== hcFilterPriority) return false
+                              if (hcFilterSource && e.source_module !== hcFilterSource) return false
+                              if (hcStatusOnly && e.event_type !== 'status_change') return false
+                              if (hcDateFrom && new Date(e.event_date||0) < new Date(hcDateFrom)) return false
+                              if (hcDateTo && new Date(e.event_date||0) > new Date(hcDateTo+'T23:59:59')) return false
+                              if (hcSearch && !(e.title||'').toLowerCase().includes(hcSearch.toLowerCase()) && !(e.description||'').toLowerCase().includes(hcSearch.toLowerCase()) && !(e.performed_by_name||'').toLowerCase().includes(hcSearch.toLowerCase()) && !(e.reason||'').toLowerCase().includes(hcSearch.toLowerCase())) return false
                               return true
                             })
+                            const hcStatsLocal = {
+                              total: hcLocalEvents.length,
+                              status_changes: hcLocalEvents.filter(e => e.event_type === 'status_change').length,
+                              health_events: hcLocalEvents.filter(e => e.category === 'health').length,
+                              education_events: hcLocalEvents.filter(e => e.category === 'education').length,
+                              family_events: hcLocalEvents.filter(e => e.category === 'family').length,
+                              document_events: hcLocalEvents.filter(e => e.category === 'documents').length,
+                              alert_events: hcLocalEvents.filter(e => e.category === 'alert' || e.category === 'protection' || e.priority === 'critical').length,
+                            }
+                            const hcGroupEvents = (events) => {
+                              const today = new Date(); today.setHours(0,0,0,0)
+                              const yesterday = new Date(today); yesterday.setDate(yesterday.getDate()-1)
+                              const weekStart = new Date(today); weekStart.setDate(weekStart.getDate()-weekStart.getDay())
+                              const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+                              const groups = { today:[], yesterday:[], thisWeek:[], thisMonth:[], older:[] }
+                              events.forEach(e => {
+                                const d = new Date(e.event_date||0); d.setHours(0,0,0,0)
+                                if (d.getTime() === today.getTime()) groups.today.push(e)
+                                else if (d.getTime() === yesterday.getTime()) groups.yesterday.push(e)
+                                else if (d >= weekStart) groups.thisWeek.push(e)
+                                else if (d >= monthStart) groups.thisMonth.push(e)
+                                else groups.older.push(e)
+                              })
+                              return groups
+                            }
+                            const hcGrouped = hcGroupEvents(hcFiltered)
+                            const hcGroupLabels = { today:t('hc_group_today')||"Aujourd'hui", yesterday:t('hc_group_yesterday')||'Hier', thisWeek:t('hc_group_this_week')||'Cette semaine', thisMonth:t('hc_group_this_month')||'Ce mois-ci', older:t('hc_group_older')||'Plus ancien' }
+                            const hcDensityClass = hcDensity === 'compact' ? ' hc-density-compact' : hcDensity === 'audit' ? ' hc-density-audit' : ''
                             return (
                               <div className="hc-wrap">
+                                {/* ── Stats Row ── */}
                                 <div className="hc-kpi-row">
                                   {[
-                                    { label:t('hc_total_events')||'Événements', value:hcLocalEvents.length, icon:'📊', color:'#3b82f6' },
-                                    { label:t('hc_total_updates')||'Mises à jour', value:hcLocalEvents.filter(e => e.event_type === 'update_added').length, icon:'📝', color:'#22c55e' },
-                                    { label:t('hc_health_events')||'Santé', value:hcLocalEvents.filter(e => e.category === 'health').length, icon:'💉', color:'#22c55e' },
-                                    { label:t('hc_education_events')||'Éducation', value:hcLocalEvents.filter(e => e.category === 'education').length, icon:'📚', color:'#3b82f6' },
-                                    { label:t('hc_family_events')||'Famille', value:hcLocalEvents.filter(e => e.category === 'family').length, icon:'👨‍👩‍👧‍👦', color:'#a855f7' },
-                                    { label:t('hc_documents_events')||'Documents', value:hcLocalEvents.filter(e => e.category === 'documents').length, icon:'📄', color:'#f59e0b' },
+                                    { label:t('hc_total_events')||'Événements', value:hcStatsLocal.total, icon:'📊', color:'#3b82f6' },
+                                    { label:t('hc_status_changes')||'Statuts', value:hcStatsLocal.status_changes, icon:'🔄', color:'#f59e0b' },
+                                    { label:t('hc_health_events')||'Santé', value:hcStatsLocal.health_events, icon:'💉', color:'#22c55e' },
+                                    { label:t('hc_education_events')||'Éducation', value:hcStatsLocal.education_events, icon:'📚', color:'#3b82f6' },
+                                    { label:t('hc_family_events')||'Famille', value:hcStatsLocal.family_events, icon:'👨‍👩‍👧‍👦', color:'#a855f7' },
+                                    { label:t('hc_documents_events')||'Documents', value:hcStatsLocal.document_events, icon:'📄', color:'#f59e0b' },
+                                    { label:t('hc_alert_events')||'Alertes', value:hcStatsLocal.alert_events, icon:'🚨', color:'#ef4444' },
                                   ].map((kpi, i) => (
                                     <div key={i} className="hc-kpi" style={{borderLeftColor:kpi.color}}>
                                       <span className="hc-kpi-icon">{kpi.icon}</span>
@@ -3999,58 +4135,178 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     </div>
                                   ))}
                                 </div>
+
+                                {/* ── Toolbar ── */}
                                 <div className="hc-toolbar">
                                   <div className="hc-view-tabs">
-                                    {[{ key:'timeline', icon:'📋', label:t('hc_timeline')||'Chronologie' }, { key:'audit', icon:'📋', label:t('hc_audit_log')||'Audit' }, { key:'analytics', icon:'📊', label:t('hc_analytics')||'Analytiques' }].map(v => (
+                                    {[
+                                      { key:'timeline', icon:'📋', label:t('hc_timeline')||'Chronologie' },
+                                      { key:'audit', icon:'📋', label:t('hc_audit_log')||'Audit' },
+                                      { key:'calendar', icon:'📅', label:t('hc_calendar')||'Calendrier' },
+                                      { key:'analytics', icon:'📊', label:t('hc_analytics')||'Analytiques' },
+                                    ].map(v => (
                                       <button key={v.key} className={`hc-view-tab${hcView === v.key ? ' active' : ''}`} onClick={() => setHcView(v.key)}>{v.icon} {v.label}</button>
                                     ))}
                                   </div>
-                                  <div className="hc-filters">
-                                    <select className="hc-filter-select" value={hcFilterCategory} onChange={e => setHcFilterCategory(e.target.value)}>
-                                      <option value="">{t('hc_all_categories')||'Toutes'}</option>
-                                      {['health','education','family','documents','social','general'].map(c => <option key={c} value={c}>{t('uc_category_'+c)||c}</option>)}
-                                    </select>
-                                    <select className="hc-filter-select" value={hcFilterType} onChange={e => setHcFilterType(e.target.value)}>
-                                      <option value="">{t('hc_all_types')||'Tous'}</option>
-                                      {Object.entries(hcIcons).map(([k, icon]) => <option key={k} value={k}>{icon} {t('hc_event_'+k)||k}</option>)}
-                                    </select>
-                                    <div className="hc-search-wrap">
-                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                                      <input className="hc-search-input" value={hcSearch} onChange={e => setHcSearch(e.target.value)} placeholder={t('hc_search')||'Rechercher...'} />
-                                    </div>
-                                    {(hcFilterCategory||hcFilterType||hcSearch) && <button className="hc-clear-btn" onClick={() => { setHcFilterCategory(''); setHcFilterType(''); setHcSearch('') }}>{t('hc_clear_filters')||'Effacer'}</button>}
+                                  <div className="hc-toolbar-actions">
+                                    {hcView === 'timeline' && (
+                                      <div className="hc-density-group">
+                                        {['comfortable','compact','audit'].map(d => (
+                                          <button key={d} className={`hc-density-btn${hcDensity === d ? ' active' : ''}`} onClick={() => setHcDensity(d)}>
+                                            {d === 'comfortable' ? '⋅⋅' : d === 'compact' ? '··' : '━━'} {t('hc_density_'+d)||d}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                    <button className="hc-export-btn" onClick={() => {
+                                      const csv = [['Date','Catégorie','Type','Titre','Ancien','Nouveau','Par','Motif'].join(',')].concat(hcFiltered.map(e => [e.event_date||'',e.category||'',e.event_type||'',`"${(e.title||'').replace(/"/g,'""')}"`,`"${(e.old_value||'').replace(/"/g,'""')}"`,`"${(e.new_value||'').replace(/"/g,'""')}"`,e.performed_by_name||'',`"${(e.reason||'').replace(/"/g,'""')}"`].join(','))).join('\n')
+                                      const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'})
+                                      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `historique_${selectedRegChild.uid}.csv`; a.click()
+                                    }}>{t('hc_export')||'Exporter'} ⬇️</button>
                                   </div>
                                 </div>
-                                {hcView === 'timeline' && (
-                                  <div className="hc-timeline">
-                                    {hcFiltered.length === 0 && <div className="hc-empty"><span className="hc-empty-icon">📭</span><p>{t('hc_no_events')||'Aucun événement'}</p></div>}
-                                    {hcFiltered.map((event, i) => (
-                                      <div key={i} className={`hc-tl-item${hcExpanded === i ? ' expanded' : ''}`} onClick={() => setHcExpanded(hcExpanded === i ? null : i)}>
-                                        <div className="hc-tl-line" />
-                                        <div className="hc-tl-dot" style={{background:hcColors[event.category]||'#64748b'}}>{hcIcons[event.event_type]||'📌'}</div>
-                                        <div className="hc-tl-card">
-                                          <div className="hc-tl-card-top">
-                                            <span className="hc-tl-badge" style={{background:hcColors[event.category]||'#64748b'}}>{event.category ? (t('uc_category_'+event.category)||event.category) : ''}</span>
-                                            <span className="hc-tl-time">{event.event_date ? new Date(event.event_date).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}</span>
-                                          </div>
-                                          <div className="hc-tl-title">{event.title}</div>
-                                          {event.performed_by_name && <div className="hc-tl-meta">{t('hc_performed_by')||'Par'}: {event.performed_by_name}{event.performed_role ? ' ('+event.performed_role+')' : ''}</div>}
-                                          {hcExpanded === i && (
-                                            <div className="hc-tl-details">
-                                              {event.description && <div className="hc-tl-detail-row"><strong>{t('form_description')||'Description'}:</strong><span>{event.description}</span></div>}
-                                              {event.old_value && <div className="hc-tl-detail-row"><strong style={{color:'#ef4444'}}>{t('hc_old_value')||'Ancien'}:</strong><span>{event.old_value}</span></div>}
-                                              {event.new_value && <div className="hc-tl-detail-row"><strong style={{color:'#22c55e'}}>{t('hc_new_value')||'Nouveau'}:</strong><span>{event.new_value}</span></div>}
-                                              {event.reason && <div className="hc-tl-detail-row"><strong>{t('hc_reason')||'Motif'}:</strong><span>{event.reason}</span></div>}
-                                              {event.department && <div className="hc-tl-detail-row"><strong>{t('hc_department')||'Département'}:</strong><span>{event.department}</span></div>}
-                                              {event.attachments?.length > 0 && <div className="hc-tl-detail-row"><strong>{t('hc_attachments')||'Fichiers'}:</strong><span>{event.attachments.join(', ')}</span></div>}
-                                            </div>
-                                          )}
-                                          <div className="hc-tl-expand">{hcExpanded === i ? '▲' : '▼'}</div>
-                                        </div>
-                                      </div>
+
+                                {/* ── Filters ── */}
+                                <div className="hc-filters">
+                                  <select className="hc-filter-select" value={hcFilterCategory} onChange={e => setHcFilterCategory(e.target.value)} title={t('hc_select_category')||'Catégorie'}>
+                                    <option value="">{t('hc_all_categories')||'Toutes catégories'}</option>
+                                    {Object.keys(hcColors).map(c => <option key={c} value={c}>{t('uc_category_'+c)||c}</option>)}
+                                  </select>
+                                  <select className="hc-filter-select" value={hcFilterType} onChange={e => setHcFilterType(e.target.value)} title={t('hc_all_types')||'Type'}>
+                                    <option value="">{t('hc_all_types')||'Tous types'}</option>
+                                    {Object.entries(hcIcons).map(([k, icon]) => <option key={k} value={k}>{icon} {t('hc_event_'+k)||k}</option>)}
+                                  </select>
+                                  <select className="hc-filter-select" value={hcFilterPriority} onChange={e => setHcFilterPriority(e.target.value)} title={t('hc_filter_priority')||'Priorité'}>
+                                    <option value="">{t('hc_select_priority')||'Toutes priorités'}</option>
+                                    {['low','normal','high','critical'].map(p => <option key={p} value={p}>{t('hc_priority_'+p)||p}</option>)}
+                                  </select>
+                                  <select className="hc-filter-select" value={hcFilterSource} onChange={e => setHcFilterSource(e.target.value)} title={t('hc_filter_source')||'Module'}>
+                                    <option value="">{t('hc_filter_source')||'Module'}</option>
+                                    {['registration','child_profile','health','education','family','documents','social','update_center','status','system','alert','follow_up'].map(s => <option key={s} value={s}>{t('hc_source_'+s)||s}</option>)}
+                                  </select>
+                                  <input type="date" className="hc-filter-date" value={hcDateFrom} onChange={e => setHcDateFrom(e.target.value)} title={t('hc_date_from')||'Du'} />
+                                  <input type="date" className="hc-filter-date" value={hcDateTo} onChange={e => setHcDateTo(e.target.value)} title={t('hc_date_to')||'Au'} />
+                                  <div className="hc-date-presets">
+                                    {[
+                                      { key:'7d', label:t('hc_preset_7d')||'7 jours', days:7 },
+                                      { key:'30d', label:t('hc_preset_30d')||'30 jours', days:30 },
+                                      { key:'tm', label:t('hc_preset_this_month')||'Ce mois', fn:()=>{const d=new Date(),y=d.getFullYear(),m=d.getMonth();return{from:new Date(y,m,1).toISOString().split('T')[0],to:d.toISOString().split('T')[0]}} },
+                                      { key:'lm', label:t('hc_preset_last_month')||'Mois dernier', fn:()=>{const d=new Date(),y=d.getFullYear(),m=d.getMonth();return{from:new Date(y,m-1,1).toISOString().split('T')[0],to:new Date(y,m,0).toISOString().split('T')[0]}} },
+                                    ].map(p => (
+                                      <button key={p.key} className={`hc-preset-btn${hcDateFrom && p.fn ? '' : ''}`} onClick={() => {
+                                        if (p.fn) { const r=p.fn(); setHcDateFrom(r.from); setHcDateTo(r.to) }
+                                        else { const d=new Date(),f=new Date(d); f.setDate(d.getDate()-p.days); setHcDateFrom(f.toISOString().split('T')[0]); setHcDateTo(d.toISOString().split('T')[0]) }
+                                      }}>{p.label}</button>
                                     ))}
                                   </div>
+                                  <div className="hc-search-wrap">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                    <input className="hc-search-input" value={hcSearch} onChange={e => setHcSearch(e.target.value)} placeholder={t('hc_search_events')||'Rechercher...'} />
+                                  </div>
+                                  <label className="hc-status-toggle">
+                                    <input type="checkbox" checked={hcStatusOnly} onChange={e => setHcStatusOnly(e.target.checked)} />
+                                    <span>{t('hc_filter_status_only')||'Statuts'}</span>
+                                  </label>
+                                  {(hcFilterCategory||hcFilterType||hcFilterPriority||hcFilterSource||hcSearch||hcDateFrom||hcDateTo||hcStatusOnly) && (
+                                    <button className="hc-clear-btn" onClick={() => { setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcSearch(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false) }}>{t('hc_clear_filters')||'✕ Effacer'}</button>
+                                  )}
+                                  <span className="hc-filter-count">{hcFiltered.length} / {hcLocalEvents.length} {t('hc_events_count')||'événements'}</span>
+                                </div>
+
+                                {/* ── Timeline View ── */}
+                                {hcView === 'timeline' && (
+                                  <div className={`hc-timeline${hcDensityClass}`}>
+                                    {hcFiltered.length === 0 && <div className="hc-empty"><span className="hc-empty-icon">📭</span><p>{t('hc_no_events')||'Aucun événement'}</p></div>}
+                                    {hcDensity === 'comfortable' ? (
+                                      <>
+                                        {Object.entries(hcGrouped).filter(([_, evs]) => evs.length > 0).map(([groupKey, events]) => (
+                                          <div key={groupKey} className="hc-tl-group">
+                                            <div className="hc-tl-group-header">
+                                              <span className="hc-tl-group-label">{hcGroupLabels[groupKey]||groupKey}</span>
+                                              <span className="hc-tl-group-count">{events.length} {t('hc_events_count')||'événements'}</span>
+                                            </div>
+                                            {events.map((event, i) => (
+                                              <div key={i} className={`hc-tl-item${hcExpanded === groupKey+'_'+i ? ' expanded' : ''}${criticalEventTypes.includes(event.event_type)||criticalPriorities.includes(event.priority) ? ' hc-tl-critical' : ''}${event.event_type === 'status_change' ? ' hc-tl-status-change' : ''}`}
+                                                onClick={() => { const k = groupKey+'_'+i; setHcExpanded(hcExpanded === k ? null : k); setHcSelectedEvent(event) }}
+                                              >
+                                                <div className="hc-tl-line" />
+                                                <div className="hc-tl-dot" style={{background:hcColors[event.category]||'#64748b'}}>{hcIcons[event.event_type]||'📌'}</div>
+                                                <div className="hc-tl-card">
+                                                  <div className="hc-tl-card-top">
+                                                    <span className="hc-tl-badge" style={{background:hcColors[event.category]||'#64748b'}}>{event.category ? (t('uc_category_'+event.category)||event.category) : ''}</span>
+                                                    {event.priority && event.priority !== 'normal' && <span className={`hc-tl-priority hc-tl-priority-${event.priority}`}>{t('hc_priority_'+event.priority)||event.priority}</span>}
+                                                    <span className="hc-tl-time">{event.event_date ? new Date(event.event_date).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}</span>
+                                                  </div>
+                                                  <div className="hc-tl-title">{event.title}</div>
+                                                  {event.event_type === 'status_change' && event.old_value && event.new_value && (
+                                                    <div className="hc-tl-status-beforeafter">
+                                                      <span className="hc-tl-status-badge hc-tl-status-old">{event.old_value}</span>
+                                                      <span className="hc-tl-arrow">{t('hc_old_new_separator')||'→'}</span>
+                                                      <span className="hc-tl-status-badge hc-tl-status-new">{event.new_value}</span>
+                                                    </div>
+                                                  )}
+                                                  {event.performed_by_name && <div className="hc-tl-meta">{t('hc_performed_by')||'Par'}: {event.performed_by_name}{event.performed_role ? ' ('+event.performed_role+')' : ''}</div>}
+                                                  {hcExpanded === groupKey+'_'+i && (
+                                                    <div className="hc-tl-details">
+                                                      {event.description && <div className="hc-tl-detail-row"><strong>{t('form_description')||'Description'}:</strong><span>{event.description}</span></div>}
+                                                      {event.old_value && event.event_type !== 'status_change' && <div className="hc-tl-detail-row"><strong style={{color:'#ef4444'}}>{t('hc_old_value')||'Ancien'}:</strong><span>{event.old_value}</span></div>}
+                                                      {event.new_value && event.event_type !== 'status_change' && <div className="hc-tl-detail-row"><strong style={{color:'#22c55e'}}>{t('hc_new_value')||'Nouveau'}:</strong><span>{event.new_value}</span></div>}
+                                                      {event.reason && <div className="hc-tl-detail-row"><strong>{t('hc_reason')||'Motif'}:</strong><span>{event.reason}</span></div>}
+                                                      {event.department && <div className="hc-tl-detail-row"><strong>{t('hc_department')||'Département'}:</strong><span>{event.department}</span></div>}
+                                                      {event.source_module && <div className="hc-tl-detail-row"><strong>{t('hc_source_module')||'Module'}:</strong><span>{t('hc_source_'+event.source_module)||event.source_module}</span></div>}
+                                                      {event.attachments?.length > 0 && (
+                                                        <div className="hc-tl-detail-row"><strong>{t('hc_attachments')||'Fichiers'} ({event.attachments.length})</strong>
+                                                          <div className="hc-tl-attachments">{event.attachments.map((a, ai) => <span key={ai} className="hc-tl-attach-file">📎 {a}</span>)}</div>
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  )}
+                                                  <div className="hc-tl-expand">{hcExpanded === groupKey+'_'+i ? '▲' : '▼'}</div>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        ))}
+                                      </>
+                                    ) : (
+                                      /* Compact / Audit mode */
+                                      hcFiltered.map((event, i) => (
+                                        <div key={i} className={`hc-tl-item${hcExpanded === i ? ' expanded' : ''}${criticalEventTypes.includes(event.event_type)||criticalPriorities.includes(event.priority) ? ' hc-tl-critical' : ''}${event.event_type === 'status_change' ? ' hc-tl-status-change' : ''}`}
+                                          onClick={() => { setHcExpanded(hcExpanded === i ? null : i); setHcSelectedEvent(event) }}
+                                        >
+                                          <div className="hc-tl-line" />
+                                          <div className="hc-tl-dot" style={{background:hcColors[event.category]||'#64748b'}}>{hcIcons[event.event_type]||'📌'}</div>
+                                          <div className={`hc-tl-card${hcDensity === 'audit' ? ' hc-tl-card-audit' : ''}`}>
+                                            <div className="hc-tl-card-top">
+                                              <span className="hc-tl-badge" style={{background:hcColors[event.category]||'#64748b'}}>{event.category || ''}</span>
+                                              {event.priority && event.priority !== 'normal' && <span className={`hc-tl-priority hc-tl-priority-${event.priority}`}>{event.priority}</span>}
+                                              <span className="hc-tl-time">{event.event_date ? new Date(event.event_date).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}</span>
+                                            </div>
+                                            <div className="hc-tl-title">{event.title}</div>
+                                            {event.event_type === 'status_change' && event.old_value && event.new_value && (
+                                              <div className="hc-tl-status-beforeafter">
+                                                <span className="hc-tl-status-badge hc-tl-status-old">{event.old_value}</span>
+                                                <span className="hc-tl-arrow">→</span>
+                                                <span className="hc-tl-status-badge hc-tl-status-new">{event.new_value}</span>
+                                              </div>
+                                            )}
+                                            {event.performed_by_name && <div className="hc-tl-meta">{event.performed_by_name}</div>}
+                                            {hcExpanded === i && hcDensity !== 'audit' && (
+                                              <div className="hc-tl-details">
+                                                {event.description && <div className="hc-tl-detail-row"><strong>Description:</strong><span>{event.description}</span></div>}
+                                                {event.old_value && <div className="hc-tl-detail-row"><strong style={{color:'#ef4444'}}>Ancien:</strong><span>{event.old_value}</span></div>}
+                                                {event.new_value && <div className="hc-tl-detail-row"><strong style={{color:'#22c55e'}}>Nouveau:</strong><span>{event.new_value}</span></div>}
+                                                {event.reason && <div className="hc-tl-detail-row"><strong>Motif:</strong><span>{event.reason}</span></div>}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
                                 )}
+
+                                {/* ── Audit View ── */}
                                 {hcView === 'audit' && (
                                   <div className="hc-audit">
                                     <div className="hc-audit-table">
@@ -4058,45 +4314,160 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                         <span className="hc-audit-col-date">{t('form_date')||'Date'}</span>
                                         <span className="hc-audit-col-event">{t('form_type')||'Événement'}</span>
                                         <span className="hc-audit-col-cat">{t('uc_category')||'Catégorie'}</span>
+                                        <span className="hc-audit-col-priority">{t('hc_priority')||'Priorité'}</span>
                                         <span className="hc-audit-col-user">{t('hc_performed_by')||'Utilisateur'}</span>
+                                        <span className="hc-audit-col-role">{t('form_role')||'Rôle'}</span>
+                                        <span className="hc-audit-col-dept">{t('hc_department')||'Département'}</span>
+                                        <span className="hc-audit-col-source">{t('hc_source_module')||'Module'}</span>
                                         <span className="hc-audit-col-old">{t('hc_old_value')||'Ancien'}</span>
                                         <span className="hc-audit-col-new">{t('hc_new_value')||'Nouveau'}</span>
+                                        <span className="hc-audit-col-reason">{t('hc_reason')||'Motif'}</span>
                                       </div>
-                                      {hcFiltered.length === 0 && <div className="hc-empty"><p>{t('hc_no_events')||'Aucun'}</p></div>}
+                                      {hcFiltered.length === 0 && <div className="hc-empty"><p>{t('hc_no_events')||'Aucun événement'}</p></div>}
                                       {hcFiltered.map((event, i) => (
-                                        <div key={i} className="hc-audit-row">
-                                          <span className="hc-audit-col-date">{event.event_date ? new Date(event.event_date).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}</span>
+                                        <div key={i} className={`hc-audit-row${criticalEventTypes.includes(event.event_type)||criticalPriorities.includes(event.priority) ? ' hc-audit-critical' : ''}`}>
+                                          <span className="hc-audit-col-date" title={event.event_date ? new Date(event.event_date).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}>{event.event_date ? new Date(event.event_date).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'2-digit', month:'short' }) : '—'}</span>
                                           <span className="hc-audit-col-event"><span className="hc-event-badge" style={{background:hcColors[event.category]||'#64748b'}}>{hcIcons[event.event_type]||'📌'} {t('hc_event_'+event.event_type)||event.event_type}</span></span>
                                           <span className="hc-audit-col-cat">{event.category ? (t('uc_category_'+event.category)||event.category) : '—'}</span>
+                                          <span className="hc-audit-col-priority">{event.priority ? <span className={`hc-tl-priority hc-tl-priority-${event.priority}`}>{t('hc_priority_'+event.priority)||event.priority}</span> : '—'}</span>
                                           <span className="hc-audit-col-user">{event.performed_by_name||'—'}</span>
-                                          <span className="hc-audit-col-old" style={{color:'#ef4444'}}>{event.old_value||'—'}</span>
-                                          <span className="hc-audit-col-new" style={{color:'#22c55e'}}>{event.new_value||'—'}</span>
+                                          <span className="hc-audit-col-role">{event.performed_role||'—'}</span>
+                                          <span className="hc-audit-col-dept">{event.department||'—'}</span>
+                                          <span className="hc-audit-col-source">{event.source_module ? (t('hc_source_'+event.source_module)||event.source_module) : '—'}</span>
+                                          <span className="hc-audit-col-old" style={{color:'#ef4444',maxWidth:150,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={event.old_value}>{event.old_value||'—'}</span>
+                                          <span className="hc-audit-col-new" style={{color:'#22c55e',maxWidth:150,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={event.new_value}>{event.new_value||'—'}</span>
+                                          <span className="hc-audit-col-reason" style={{maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={event.reason}>{event.reason||'—'}</span>
                                         </div>
                                       ))}
                                     </div>
                                   </div>
                                 )}
+
+                                {/* ── Calendar View ── */}
+                                {hcView === 'calendar' && (
+                                  <div className="hc-calendar">
+                                    <div className="hc-cal-title">{t('hc_calendar_view')||'Calendrier des activités'}</div>
+                                    <div className="hc-cal-grid">
+                                      {(() => {
+                                        const now = new Date()
+                                        const year = now.getFullYear()
+                                        const month = now.getMonth()
+                                        const firstDay = new Date(year, month, 1)
+                                        const lastDay = new Date(year, month + 1, 0)
+                                        const startPad = firstDay.getDay()
+                                        const days = []
+                                        for (let i = 0; i < startPad; i++) days.push(null)
+                                        for (let d = 1; d <= lastDay.getDate(); d++) days.push(d)
+                                        const dayNames = lang === 'en' ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] : ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam']
+                                        const eventMap = {}
+                                        hcFiltered.forEach(e => {
+                                          if (!e.event_date) return
+                                          const d = new Date(e.event_date)
+                                          const key = d.getDate()
+                                          if (!eventMap[key]) eventMap[key] = []
+                                          eventMap[key].push(e)
+                                        })
+                                        return <>
+                                          {dayNames.map(d => <div key={d} className="hc-cal-day-header">{d}</div>)}
+                                          {days.map((d, i) => (
+                                            <div key={i} className={`hc-cal-day${d ? '' : ' hc-cal-day-empty'}${d && eventMap[d]?.length ? ' hc-cal-day-has' : ''}${d && eventMap[d]?.some(e => criticalEventTypes.includes(e.event_type)) ? ' hc-cal-day-critical' : ''}`}>
+                                              {d && <>
+                                                <span className="hc-cal-day-num">{d}</span>
+                                                {eventMap[d] && <div className="hc-cal-day-events">{eventMap[d].slice(0,3).map((e, ei) => (
+                                                  <div key={ei} className="hc-cal-day-event" style={{background:hcColors[e.category]||'#64748b'}} title={e.title} onClick={() => setHcSelectedEvent(e)}>{hcIcons[e.event_type]||'📌'}</div>
+                                                ))}{eventMap[d].length > 3 && <span className="hc-cal-day-more">+{eventMap[d].length-3}</span>}</div>}
+                                              </>}
+                                            </div>
+                                          ))}
+                                        </>
+                                      })()}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* ── Analytics View ── */}
                                 {hcView === 'analytics' && (
                                   <div className="hc-analytics">
                                     <div className="hc-analytics-grid">
-                                      {UC_CATEGORIES.map(cat => {
-                                        const ct = hcLocalEvents.filter(e => e.category === cat.key).length
+                                      {Object.entries(hcColors).filter(([key]) => key !== 'alert' && key !== 'protection' && key !== 'system' && key !== 'follow_up').map(([catKey, color]) => {
+                                        const ct = hcLocalEvents.filter(e => e.category === catKey).length
+                                        if (!ct) return null
                                         return (
-                                          <div key={cat.key} className="hc-analytics-card" style={{borderLeftColor:cat.color}}>
+                                          <div key={catKey} className="hc-analytics-card" style={{borderLeftColor:color}}>
                                             <div className="hc-analytics-card-top">
-                                              <span className="hc-analytics-icon" style={{background:cat.color+'20'}}>{cat.icon}</span>
+                                              <span className="hc-analytics-icon" style={{background:color+'20'}}>{hcIcons[Object.keys(hcIcons).find(k => k.startsWith(catKey))]||'📊'}</span>
                                               <span className="hc-analytics-count">{ct}</span>
                                             </div>
-                                            <span className="hc-analytics-label">{cat.label}</span>
-                                            <div className="hc-analytics-bar"><div className="hc-analytics-bar-fill" style={{width:hcLocalEvents.length ? (ct/hcLocalEvents.length*100)+'%' : '0%', background:cat.color}} /></div>
+                                            <span className="hc-analytics-label">{t('uc_category_'+catKey)||catKey}</span>
+                                            <div className="hc-analytics-bar" style={{background:color+'20'}}><div className="hc-analytics-bar-fill" style={{width:hcLocalEvents.length ? (ct/hcLocalEvents.length*100)+'%' : '0%', background:color}} /></div>
                                           </div>
                                         )
                                       })}
+                                      {hcLocalEvents.filter(e => e.category === 'alert' || e.category === 'protection').length > 0 && (
+                                        <div className="hc-analytics-card" style={{borderLeftColor:'#ef4444'}}>
+                                          <div className="hc-analytics-card-top">
+                                            <span className="hc-analytics-icon" style={{background:'rgba(239,68,68,0.12)'}}>🚨</span>
+                                            <span className="hc-analytics-count">{hcLocalEvents.filter(e => e.category === 'alert' || e.category === 'protection').length}</span>
+                                          </div>
+                                          <span className="hc-analytics-label">{t('hc_alert_events')||'Alertes'}</span>
+                                          <div className="hc-analytics-bar" style={{background:'rgba(239,68,68,0.12)'}}><div className="hc-analytics-bar-fill" style={{width:hcLocalEvents.length ? (hcLocalEvents.filter(e => e.category === 'alert'||e.category === 'protection').length/hcLocalEvents.length*100)+'%' : '0%', background:'#ef4444'}} /></div>
+                                        </div>
+                                      )}
                                     </div>
                                     <div className="hc-analytics-summary">
                                       <div className="hc-analytics-summary-item"><span>{t('hc_total_events')||'Total'}</span><strong>{hcLocalEvents.length}</strong></div>
                                       <div className="hc-analytics-summary-item"><span>{t('hc_total_updates')||'Updates'}</span><strong>{hcLocalEvents.filter(e => e.event_type === 'update_added').length}</strong></div>
-                                      <div className="hc-analytics-summary-item"><span>{t('hc_recent_activities')||'Récent'}</span><strong>{hcLocalEvents.slice(0,5).length}</strong></div>
+                                      <div className="hc-analytics-summary-item"><span>{t('hc_events_today')||"Aujourd'hui"}</span><strong>{hcGrouped.today.length}</strong></div>
+                                      <div className="hc-analytics-summary-item"><span>{t('hc_events_this_week')||'Cette semaine'}</span><strong>{hcGrouped.thisWeek.length}</strong></div>
+                                      <div className="hc-analytics-summary-item"><span>{t('hc_events_this_month')||'Ce mois'}</span><strong>{hcGrouped.thisMonth.length}</strong></div>
+                                      <div className="hc-analytics-summary-item"><span>{t('hc_status_changes')||'Statuts'}</span><strong>{hcLocalEvents.filter(e => e.event_type === 'status_change').length}</strong></div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* ── Event Detail Drawer ── */}
+                                {hcSelectedEvent && (
+                                  <div className="hc-drawer-overlay" onClick={() => setHcSelectedEvent(null)}>
+                                    <div className="hc-drawer" onClick={e => e.stopPropagation()}>
+                                      <button className="hc-drawer-close" onClick={() => setHcSelectedEvent(null)}>✕</button>
+                                      <div className="hc-drawer-title">{t('hc_event_detail_title')||"Détails de l'événement"}</div>
+                                      <div className="hc-drawer-section">
+                                        <div className="hc-drawer-section-title">{t('hc_event_info')||'Événement'}</div>
+                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_type')||'Type'}</span><span className="hc-drawer-value">{hcIcons[hcSelectedEvent.event_type]||''} {t('hc_event_'+hcSelectedEvent.event_type)||hcSelectedEvent.event_type}</span></div>
+                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('uc_category')||'Catégorie'}</span><span className="hc-drawer-value"><span className="hc-tl-badge" style={{background:hcColors[hcSelectedEvent.category]||'#64748b'}}>{t('uc_category_'+hcSelectedEvent.category)||hcSelectedEvent.category}</span></span></div>
+                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_title')||'Titre'}</span><span className="hc-drawer-value">{hcSelectedEvent.title}</span></div>
+                                        {hcSelectedEvent.description && <div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_description')||'Description'}</span><span className="hc-drawer-value">{hcSelectedEvent.description}</span></div>}
+                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_date')||'Date'}</span><span className="hc-drawer-value">{hcSelectedEvent.event_date ? new Date(hcSelectedEvent.event_date).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}</span></div>
+                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_priority')||'Priorité'}</span><span className="hc-drawer-value">{hcSelectedEvent.priority ? <span className={`hc-tl-priority hc-tl-priority-${hcSelectedEvent.priority}`}>{t('hc_priority_'+hcSelectedEvent.priority)||hcSelectedEvent.priority}</span> : '—'}</span></div>
+                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_source_module')||'Module'}</span><span className="hc-drawer-value">{hcSelectedEvent.source_module ? (t('hc_source_'+hcSelectedEvent.source_module)||hcSelectedEvent.source_module) : '—'}</span></div>
+                                      </div>
+                                      {hcSelectedEvent.old_value || hcSelectedEvent.new_value ? (
+                                        <div className="hc-drawer-section">
+                                          <div className="hc-drawer-section-title">{t('hc_old_value')||'Valeurs'}</div>
+                                          {hcSelectedEvent.old_value && <div className="hc-drawer-row"><span className="hc-drawer-label" style={{color:'#ef4444'}}>{t('hc_old_value')||'Ancien'}</span><span className="hc-drawer-value">{hcSelectedEvent.old_value}</span></div>}
+                                          {hcSelectedEvent.new_value && <div className="hc-drawer-row"><span className="hc-drawer-label" style={{color:'#22c55e'}}>{t('hc_new_value')||'Nouveau'}</span><span className="hc-drawer-value">{hcSelectedEvent.new_value}</span></div>}
+                                          {hcSelectedEvent.reason && <div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_reason')||'Motif'}</span><span className="hc-drawer-value">{hcSelectedEvent.reason}</span></div>}
+                                        </div>
+                                      ) : null}
+                                      {hcSelectedEvent.event_type === 'status_change' && (hcSelectedEvent.old_value||hcSelectedEvent.new_value) ? (
+                                        <div className="hc-drawer-section">
+                                          <div className="hc-drawer-section-title">{t('hc_status_before')||'Changement de statut'}</div>
+                                          {hcSelectedEvent.old_value && <div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_status_before')||'Avant'}</span><span className="hc-drawer-value"><span className="hc-tl-status-badge hc-tl-status-old">{hcSelectedEvent.old_value}</span></span></div>}
+                                          {hcSelectedEvent.new_value && <div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_status_after')||'Après'}</span><span className="hc-drawer-value"><span className="hc-tl-status-badge hc-tl-status-new">{hcSelectedEvent.new_value}</span></span></div>}
+                                        </div>
+                                      ) : null}
+                                      <div className="hc-drawer-section">
+                                        <div className="hc-drawer-section-title">{t('hc_performed_by')||'Effectué par'}</div>
+                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_name')||'Nom'}</span><span className="hc-drawer-value">{hcSelectedEvent.performed_by_name||'—'}</span></div>
+                                        {hcSelectedEvent.performed_role && <div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_role')||'Rôle'}</span><span className="hc-drawer-value">{hcSelectedEvent.performed_role}</span></div>}
+                                        {hcSelectedEvent.department && <div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_department')||'Département'}</span><span className="hc-drawer-value">{hcSelectedEvent.department}</span></div>}
+                                      </div>
+                                      {hcSelectedEvent.attachments?.length > 0 && (
+                                        <div className="hc-drawer-section">
+                                          <div className="hc-drawer-section-title">{t('hc_attachments')||'Pièces jointes'} ({hcSelectedEvent.attachments.length})</div>
+                                          <div className="hc-drawer-attachments">{hcSelectedEvent.attachments.map((a, ai) => <div key={ai} className="hc-drawer-attach">📎 {a}</div>)}</div>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 )}
@@ -4668,296 +5039,871 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   </div>
                 ) : activeKey === 'update-center' ? (
                   <div className="uc2-wrap">
-                    {updateChild ? <>
-                      <div className="uc2-layout">
-                        <div className="uc2-main">
-                          {/* Header */}
-                          <div className="uc2-header">
-                            <button className="dash-back-btn" onClick={() => { setActiveKey('enfants-enregistres'); setUpdateChild(null); setUc2Category(null); setUc2Type(''); setUc2Step(0) }}>{'\u2190'} {t('form_back')}</button>
-                            <div className="uc2-header-title">
-                              <span className="uc2-header-icon">📝</span>
-                              <span>{t('uc_title') || 'Centre de Mise à Jour'}</span>
+                    {!updateChild ? (
+                      <div className="uc2-premium-select">
+                        <div className="uc2-premium-header">
+                          <span className="uc2-premium-header-label">update-center</span>
+                          <div className="uc2-premium-header-icons">
+                            <button className="uc2-premium-icon-btn" title={t('dash_dashboard')||'Dashboard'}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                            </button>
+                            <button className="uc2-premium-icon-btn" title={t('notifications')||'Notifications'}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                            </button>
+                            <button className="uc2-premium-icon-btn" title={t('settings')||'Settings'}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            </button>
+                            <div className="uc2-premium-avatar">
+                              {user.photo ? <img src={user.photo} alt="" /> : <span>{user?.first_name?.[0]||user?.username?.[0]||'U'}</span>}
                             </div>
                           </div>
-
-                          {/* Child identity card */}
-                          <div className="uc2-child-card">
-                            <div className="uc2-child-avatar">
-                              {(() => { const lp = localStorage.getItem('cdo_child_photo_' + updateChild.uid); if (lp) return <img src={lp} alt="" />; if (updateChild.photo) return <img src={updateChild.photo} alt="" />; return <span>{updateChild.prenom?.[0] || updateChild.nom?.[0] || '?'}</span> })()}
+                        </div>
+                        <div className="uc2-premium-hero">
+                          <div className="uc2-premium-hero-left">
+                            <div className="uc2-premium-hero-icon">
+                              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                             </div>
-                            <div className="uc2-child-info">
-                              <div className="uc2-child-name">{updateChild.prenom || ''} {updateChild.nom || ''}</div>
-                              <div className="uc2-child-meta">
-                                <span>#{updateChild.uid}</span>
-                                <span>🎂 {updateChild.date_naissance ? (() => { const d = new Date(updateChild.date_naissance); return d.toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric' }) + ' (' + Math.floor((Date.now() - d.getTime()) / 31557600000) + ' ' + (t('form_years') || 'ans') + ')' })() : '—'}</span>
-                                <span>⚤ {updateChild.sexe === 'M' ? (t('form_male')||'M') : updateChild.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
-                                {updateChild.nationalite && <span>{updateChild.nationalite}</span>}
-                              </div>
+                            <div className="uc2-premium-hero-text">
+                              <h1 className="uc2-premium-hero-title">{t('uc_title')||'Centre de Mise à Jour'}</h1>
+                              <p className="uc2-premium-hero-subtitle">{t('uc_select_child')||'Sélectionnez un enfant pour ajouter une mise à jour'}</p>
                             </div>
-                            <span className="uc2-child-status" style={{background: updateChild.status === 'active' ? 'rgba(34,197,94,0.15)' : 'rgba(100,116,139,0.15)', color: updateChild.status === 'active' ? '#22c55e' : '#94a3b8'}}>{updateChild.status === 'active' ? (t('form_active')||'Actif') : (t('form_inactive')||'Inactif')}</span>
                           </div>
-
-                          {/* Stepper */}
-                          <div className="uc2-steps">
-                            {[
-                              { icon:'📋', label:t('uc_select_category')||'Catégorie' },
-                              { icon:'📝', label:t('uc_fill_form')||'Détails' },
-                              { icon:'📎', label:t('uc_reason')||'Raison & Fichiers' },
-                              { icon:'✅', label:t('uc_review_save')||'Confirmer' },
-                            ].map((s, i) => (
-                              <div key={i} className={`uc2-step${uc2Step === i ? ' active' : ''}${uc2Step > i ? ' done' : ''}`}>
-                                <div className="uc2-step-dot">{uc2Step > i ? '✓' : s.icon}</div>
-                                <span className="uc2-step-label">{s.label}</span>
-                              </div>
+                          <div className="uc2-premium-hero-actions">
+                            <button className="uc2-premium-hero-btn uc2-premium-hero-btn-primary">{t('uc_view_report')||'Voir le rapport complet'} →</button>
+                            <select className="uc2-premium-hero-select" value={uc2SortStatus} onChange={e => setUc2SortStatus(e.target.value)}>
+                              <option value="">{t('uc_sort_by_status')||'Trier par statut'}</option>
+                              <option value="active">{t('uc_card_status_active')||'Actif'}</option>
+                              <option value="sick">{t('child_status_sick')||'Malade'}</option>
+                              <option value="hospitalized">{t('child_status_hospitalized')||'Hospitalisé'}</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="uc2-premium-filters">
+                          <div className="uc2-premium-search">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input className="uc2-premium-search-input" value={uc2Search} onChange={e => setUc2Search(e.target.value)} placeholder={t('uc_search_child')||'Rechercher un enfant...'} />
+                          </div>
+                          <select className="uc2-premium-filter-select" value={uc2Gender} onChange={e => setUc2Gender(e.target.value)}>
+                            <option value="">{t('uc_filter_gender')||'Genre'}</option>
+                            <option value="all">{t('uc_gender_all')||'Tous'}</option>
+                            <option value="M">{t('uc_gender_male')||'Masculin'}</option>
+                            <option value="F">{t('uc_gender_female')||'Féminin'}</option>
+                          </select>
+                          <div className="uc2-premium-age-wrap">
+                            <span className="uc2-premium-filter-label">{t('uc_filter_age')||'Âge'}</span>
+                            <input type="range" className="uc2-premium-age-slider" min="0" max="18" step="1" value={uc2AgeRange || '18'} onChange={e => setUc2AgeRange(e.target.value === '18' ? '' : e.target.value)} />
+                            <span className="uc2-premium-age-value">{uc2AgeRange ? uc2AgeRange + ' ' + (t('form_years')||'ans') : t('uc_age_all')||'Tous âges'}</span>
+                          </div>
+                          <select className="uc2-premium-filter-select" value={uc2Region} onChange={e => setUc2Region(e.target.value)}>
+                            <option value="">{t('uc_filter_region')||'Région'}</option>
+                            <option value="all">{t('uc_region_all')||'Toutes régions'}</option>
+                            {AFRICAN_COUNTRIES.map(c => <option key={c.code} value={c.name}>{c.name}</option>)}
+                          </select>
+                        </div>
+                        <div className="uc2-premium-grid">
+                          {(() => {
+                            let list = registeredChildren.length > 0 ? registeredChildren : []
+                            if (uc2Search) list = list.filter(c => (c.prenom||'').toLowerCase().includes(uc2Search.toLowerCase()) || (c.nom||'').toLowerCase().includes(uc2Search.toLowerCase()) || (c.uid||'').toLowerCase().includes(uc2Search.toLowerCase()))
+                            if (uc2Gender && uc2Gender !== 'all') list = list.filter(c => c.sexe === uc2Gender)
+                            if (uc2AgeRange) { const max = parseInt(uc2AgeRange); list = list.filter(c => c.date_naissance ? Math.floor((Date.now()-new Date(c.date_naissance).getTime())/31557600000) <= max : false) }
+                            if (uc2Region && uc2Region !== 'all') list = list.filter(c => c.nationalite === uc2Region)
+                            if (list.length === 0) return <div className="uc2-premium-empty"><span className="uc2-premium-empty-icon">👶</span><p>{t('uc_no_results')||'Aucun enfant trouvé'}</p></div>
+                            return list.map(child => {
+                              const age = child.date_naissance ? Math.floor((Date.now()-new Date(child.date_naissance).getTime())/31557600000) : null
+                              const photo = localStorage.getItem('cdo_child_photo_'+child.uid)
+                              const lastMed = child.extra_data?.medical?.lastCheckup || null
+                              const crit = ['hospitalized','missing']
+                              const bc = crit.includes(child.status) ? 'rgba(239,68,68,0.3)' : child.status === 'sick' ? 'rgba(245,158,11,0.3)' : 'rgba(20,184,166,0.25)'
+                              const gc = crit.includes(child.status) ? 'rgba(239,68,68,0.06)' : child.status === 'sick' ? 'rgba(245,158,11,0.06)' : 'rgba(20,184,166,0.04)'
+                              return (
+                                <div key={child.id} className="uc2-premium-card" style={{borderColor: bc, boxShadow: `0 0 24px ${gc}`}}>
+                                  <div className="uc2-premium-card-top">
+                                    <div className="uc2-premium-card-avatar">
+                                      {photo ? <img src={photo} alt="" /> : <span className="uc2-premium-card-initial">{child.prenom?.[0]||child.nom?.[0]||'?'}</span>}
+                                    </div>
+                                    <div className="uc2-premium-card-info">
+                                      <div className="uc2-premium-card-name">{child.prenom||''} {child.nom||''}</div>
+                                      <div className="uc2-premium-card-uid">#{child.uid}</div>
+                                      <div className="uc2-premium-card-meta">
+                                        <span>{child.sexe === 'M' ? '♂' : child.sexe === 'F' ? '♀' : ''} {child.sexe === 'M' ? (t('form_male')||'M') : child.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
+                                        <span className="uc2-premium-card-dot">·</span>
+                                        <span>{age !== null ? age + ' ' + (t('form_years')||'ans') : '—'}</span>
+                                      </div>
+                                    </div>
+                                    <span className="uc2-premium-card-status" style={{
+                                      background: crit.includes(child.status) ? 'rgba(239,68,68,0.12)' : child.status === 'sick' ? 'rgba(245,158,11,0.12)' : child.status === 'active' ? 'rgba(20,184,166,0.12)' : 'rgba(100,116,139,0.12)',
+                                      color: crit.includes(child.status) ? '#ef4444' : child.status === 'sick' ? '#f59e0b' : child.status === 'active' ? '#14b8a6' : '#94a3b8'
+                                    }}>{t('child_status_' + child.status) || child.status}</span>
+                                  </div>
+                                  <div className="uc2-premium-card-micro">
+                                    <div className="uc2-premium-micro-item">
+                                      <span className="uc2-premium-micro-label">{t('uc_health_progress')||'Suivi santé'}</span>
+                                      <span className="uc2-premium-micro-bar"><span className="uc2-premium-micro-fill" style={{width: child.extra_data?.medical?.vaccinations?.length > 0 ? '70%' : '25%'}}></span></span>
+                                    </div>
+                                    <div className="uc2-premium-micro-item">
+                                      <span className="uc2-premium-micro-label">{t('uc_last_visit')||'Dernière visite'}</span>
+                                      <span className="uc2-premium-micro-value">{lastMed ? new Date(lastMed).toLocaleDateString() : '—'}</span>
+                                    </div>
+                                  </div>
+                                  <button className="uc2-premium-card-select" onClick={() => { setUpdateChild(child); setUc2Search(''); setUc2Gender(''); setUc2AgeRange(''); setUc2Region(''); setUc2SortStatus('') }}>
+                                    {t('uc_select_btn')||'Sélectionner'} →
+                                  </button>
+                                </div>
+                              )
+                            })
+                          })()}
+                        </div>
+                      </div>
+                    ) : uc2Success ? (
+                      /* ── Success State ── */
+                      <div className="uc2-success">
+                        <div className="uc2-success-icon">✅</div>
+                        <div className="uc2-success-title">{t('uc_success') || 'Mise à jour enregistrée !'}</div>
+                        <p className="uc2-success-desc">{t('uc_success_desc') || 'Un événement a été ajouté à l\'historique de l\'enfant.'}</p>
+                        <div className="uc2-success-actions">
+                          <button className="uc2-btn uc2-btn-primary" onClick={() => { setUc2Step(0); setUc2Category(null); setUc2Type(''); setUc2FormData({}); setUc2Priority('normal'); setUc2Reason(''); setUc2Comment(''); setUc2Files([]); setUc2Success(false) }}>{t('uc_add_another') || 'Ajouter une autre'} +</button>
+                          <button className="uc2-btn uc2-btn-secondary" onClick={() => { setActiveKey('enfants-enregistres'); setUpdateChild(null); setUc2Step(0); setUc2Category(null); setUc2Type(''); setUc2FormData({}); setUc2Priority('normal'); setUc2Reason(''); setUc2Comment(''); setUc2Files([]); setUc2Success(false) }}>{t('form_back') || 'Retour'}</button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* ── 3-Column Enterprise Dashboard Layout ── */
+                      <div className="uc2-dash">
+                        {/* ═══ LEFT SIDEBAR: Child List Panel ═══ */}
+                        <div className="uc2-left">
+                          <div className="uc2-left-header">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input className="uc2-left-search" value={uc2Search} onChange={e => setUc2Search(e.target.value)} placeholder={t('uc_search_child')||'Rechercher...'} />
+                          </div>
+                          <div className="uc2-left-filters">
+                            <span className="uc2-left-filter-label">{t('form_status')||'Statut'}</span>
+                            <div className="uc2-left-filter-chips">
+                              {['active','sick','hospitalized','missing'].map(s => (
+                                <button key={s} className="uc2-left-chip" onClick={() => {}}>{t('child_status_'+s)||s}</button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="uc2-left-list">
+                            {(registeredChildren.length > 0 ? registeredChildren : []).filter(c => !uc2Search || (c.prenom||'').toLowerCase().includes(uc2Search.toLowerCase()) || (c.nom||'').toLowerCase().includes(uc2Search.toLowerCase()) || (c.uid||'').toLowerCase().includes(uc2Search.toLowerCase())).map(child => (
+                              <button key={child.id} className={`uc2-left-item${updateChild?.id === child.id ? ' active' : ''}`} onClick={() => { setUpdateChild(child); setUc2Category(null); setUc2Type(''); setUc2FormData({}); setUc2Priority('normal'); setUc2Reason(''); setUc2Comment(''); setUc2Files([]); setUc2Step(0) }}>
+                                <div className="uc2-left-item-avatar">
+                                  {(() => { const lp = localStorage.getItem('cdo_child_photo_'+child.uid); if (lp) return <img src={lp} alt="" />; return <span>{child.prenom?.[0]||child.nom?.[0]||'?'}</span> })()}
+                                  {['missing','hospitalized','at_risk'].includes(child.status) && <span className="uc2-left-item-alert">!</span>}
+                                </div>
+                                <div className="uc2-left-item-info">
+                                  <div className="uc2-left-item-name">{child.prenom||''} {child.nom||''}</div>
+                                  <div className="uc2-left-item-meta">#{child.uid} · {child.date_naissance ? Math.floor((Date.now()-new Date(child.date_naissance).getTime())/31557600000)+' '+(t('form_years')||'ans') : '—'}</div>
+                                </div>
+                                <span className="uc2-left-item-status" style={{background:child.status==='active'?'rgba(34,197,94,0.12)':child.status==='hospitalized'||child.status==='missing'?'rgba(239,68,68,0.12)':'rgba(100,116,139,0.12)',color:child.status==='active'?'#22c55e':child.status==='hospitalized'||child.status==='missing'?'#ef4444':'#94a3b8'}}>{t('child_status_'+child.status)||child.status}</span>
+                              </button>
                             ))}
                           </div>
+                        </div>
 
-                          {/* Content */}
-                          {uc2Success ? (
-                            <div className="uc2-success">
-                              <div className="uc2-success-icon">✅</div>
-                              <div className="uc2-success-title">{t('uc_success') || 'Mise à jour enregistrée !'}</div>
-                              <p className="uc2-success-desc">{t('uc_success_desc') || 'Un événement a été ajouté à l\'historique de l\'enfant.'}</p>
-                              <div className="uc2-success-actions">
-                                <button className="uc2-btn uc2-btn-primary" onClick={() => { setUc2Step(0); setUc2Category(null); setUc2Type(''); setUc2FormData({}); setUc2Priority('normal'); setUc2Reason(''); setUc2Comment(''); setUc2Files([]); setUc2Success(false) }}>{t('uc_add_another') || 'Ajouter une autre'}</button>
-                                <button className="uc2-btn uc2-btn-secondary" onClick={() => { setActiveKey('enfants-enregistres'); setUpdateChild(null); setUc2Step(0); setUc2Category(null); setUc2Type(''); setUc2FormData({}); setUc2Priority('normal'); setUc2Reason(''); setUc2Comment(''); setUc2Files([]); setUc2Success(false) }}>{t('form_back') || 'Retour'}</button>
+                        {/* ═══ CENTER: Workspace ═══ */}
+                        <div className="uc2-center">
+                          {/* Hero Card */}
+                          <div className="uc2-hero">
+                            <div className="uc2-hero-avatar">
+                              {(() => { const lp = localStorage.getItem('cdo_child_photo_' + updateChild.uid); if (lp) return <img src={lp} alt="" />; if (updateChild.photo) return <img src={updateChild.photo} alt="" />; return <span>{updateChild.prenom?.[0] || updateChild.nom?.[0] || '?'}</span> })()}
+                            </div>
+                            <div className="uc2-hero-info">
+                              <div className="uc2-hero-name">{updateChild.prenom || ''} {updateChild.nom || ''} <span className="uc2-hero-uid">#{updateChild.uid}</span></div>
+                              <div className="uc2-hero-meta">
+                                <span>🎂 {updateChild.date_naissance ? Math.floor((Date.now()-new Date(updateChild.date_naissance).getTime())/31557600000)+' '+(t('form_years')||'ans') : '—'}</span>
+                                <span>⚤ {updateChild.sexe === 'M' ? (t('form_male')||'M') : updateChild.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
+                                {updateChild.nationalite && <span>🌍 {updateChild.nationalite}</span>}
                               </div>
                             </div>
-                          ) : uc2Step === 0 ? (
-                            <div className="uc2-categories">
-                              <div className="uc2-section-title">{t('uc_select_category') || 'Choisissez une catégorie de mise à jour'}</div>
-                              <div className="uc2-cat-grid">
+                            <div className="uc2-hero-actions">
+                              <button className="uc2-hero-btn" onClick={() => { setActiveKey('history-center'); setHcHistoryChild(updateChild) }}>📜 {t('pd_history')||'Historique'}</button>
+                              <button className="uc2-hero-btn" onClick={() => { setActiveKey('enfants-enregistrés'); setSelectedRegChild(updateChild) }}>👤 {t('form_profile')||'Profil'}</button>
+                            </div>
+                          </div>
+
+                          {/* Status Update Card */}
+                          {uc2Step === 0 && !uc2Category && (
+                            <div className="uc2-status-card">
+                              <div className="uc2-status-card-header">
+                                <span className="uc2-status-card-icon">🔄</span>
+                                <span className="uc2-status-card-title">{t('uc_current_status')||'Mettre à jour le statut'}</span>
+                              </div>
+                              <div className="uc2-status-card-body">
+                                <div className="uc2-status-current">
+                                  <span className="uc2-status-label">{t('form_status')||'Statut actuel'}</span>
+                                  <span className="uc2-status-badge" style={{background:updateChild.status==='active'?'rgba(34,197,94,0.12)':updateChild.status==='hospitalized'?'rgba(239,68,68,0.12)':'rgba(100,116,139,0.12)',color:updateChild.status==='active'?'#22c55e':updateChild.status==='hospitalized'?'#ef4444':'#94a3b8'}}>{t('child_status_'+updateChild.status)||updateChild.status}</span>
+                                </div>
+                                <select className="uc2-status-select" value={updateChild.status} onChange={e => {
+                                  const newStatus = e.target.value
+                                  const token = localStorage.getItem('access_token')
+                                  fetch(`${API}/enfants/${updateChild.id}/`, { method:'PUT', headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }, body:JSON.stringify({ status: newStatus }) }).catch(() => {})
+                                  setUpdateChild(prev => ({ ...prev, status: newStatus }))
+                                }}>
+                                  {['active','sick','hospitalized','healthy','enrolled','dropped_out','with_guardian','missing','at_risk','reunified','adopted','transferred','exited','deceased'].map(s => (
+                                    <option key={s} value={s}>{t('child_status_'+s)||s}</option>
+                                  ))}
+                                </select>
+                                <span className="uc2-status-hint">{t('uc_status_change_hint')||'Le changement sera automatiquement enregistré dans l\'historique'}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Category Distribution Bar */}
+                          {uc2Step === 0 && !uc2Category && (
+                            <div className="uc2-cat-bar">
+                              <div className="uc2-cat-bar-header">
+                                <span className="uc2-cat-bar-title">{t('uc_categories')||'Catégories de mise à jour'}</span>
+                                <span className="uc2-cat-bar-count">{UC_CATEGORIES.length} {t('uc_categories_lower')||'catégories'}</span>
+                              </div>
+                              <div className="uc2-cat-bar-grid">
                                 {UC_CATEGORIES.map(cat => (
-                                  <button key={cat.key} className="uc2-cat-card" style={{'--cat-color':cat.color}} onClick={() => { setUc2Category(cat.key); setUc2Step(1) }}>
-                                    <span className="uc2-cat-icon">{cat.icon}</span>
-                                    <span className="uc2-cat-label">{cat.label}</span>
-                                    <span className="uc2-cat-desc">{cat.desc}</span>
-                                    <span className="uc2-cat-types">{cat.types.length} {t('uc_types') || 'types'}</span>
+                                  <button key={cat.key} className="uc2-cat-bar-card" style={{'--cat-color':cat.color}} onClick={() => { setUc2Category(cat.key); setUc2Step(1) }}>
+                                    <span className="uc2-cat-bar-icon">{cat.icon}</span>
+                                    <span className="uc2-cat-bar-label">{cat.label}</span>
+                                    <span className="uc2-cat-bar-desc">{cat.desc}</span>
+                                    <span className="uc2-cat-bar-types">{cat.types.length} types</span>
+                                    <span className="uc2-cat-bar-action" style={{background:cat.color}}>{t('form_start')||'Démarrer'} →</span>
                                   </button>
                                 ))}
                               </div>
                             </div>
-                          ) : uc2Step === 1 ? (
-                            <div className="uc2-form-step">
-                              <div className="uc2-section-title">{t('uc_select_type') || 'Choisissez le type de mise à jour'}</div>
-                              <div className="uc2-type-grid">
+                          )}
+
+                          {/* Update Form Workspace */}
+                          {uc2Step > 0 && uc2Category && (
+                            <div className="uc2-form-ws">
+                              {/* Breadcrumb */}
+                              <div className="uc2-form-breadcrumb">
+                                <button className="uc2-breadcrumb-link" onClick={() => { setUc2Category(null); setUc2Step(0); setUc2Type(''); setUc2FormData({}) }}>{UC_CATEGORIES.find(c=>c.key===uc2Category)?.icon} {UC_CATEGORIES.find(c=>c.key===uc2Category)?.label}</button>
+                                {uc2Type && <><span className="uc2-breadcrumb-sep">/</span><span className="uc2-breadcrumb-current">{UC_CATEGORIES.find(c=>c.key===uc2Category)?.types.find(t=>t.key===uc2Type)?.label||uc2Type}</span></>}
+                              </div>
+
+                              {/* Quick Category Nav */}
+                              <div className="uc2-form-cat-nav">
                                 {UC_CATEGORIES.find(c => c.key === uc2Category)?.types.map(tp => (
-                                  <button key={tp.key} className={`uc2-type-card${uc2Type === tp.key ? ' active' : ''}`} onClick={() => { setUc2Type(tp.key); setUc2FormData({}) }}>
-                                    <span className="uc2-type-icon">{tp.icon}</span>
-                                    <span className="uc2-type-label">{tp.label}</span>
+                                  <button key={tp.key} className={`uc2-form-cat-nav-btn${uc2Type === tp.key ? ' active' : ''}`} onClick={() => { setUc2Type(tp.key); setUc2FormData({}) }}>
+                                    {tp.icon} {tp.label}
                                   </button>
                                 ))}
                               </div>
+
+                              {/* Dynamic Form */}
                               {uc2Type && (() => {
                                 const typeDef = UC_CATEGORIES.find(c => c.key === uc2Category)?.types.find(t => t.key === uc2Type)
                                 if (!typeDef) return null
                                 return (
-                                  <div className="uc2-dynamic-form">
-                                    <div className="uc2-section-subtitle">{t('uc_fill_form') || 'Remplissez les détails'} — {typeDef.label}</div>
-                                    {typeDef.fields.map(f => (
-                                      <div key={f.key} className="uc2-field">
-                                        <label className="uc2-field-label">{f.label}{f.required ? ' *' : ''}</label>
-                                        {f.type === 'text' && <input className="uc2-input" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))} placeholder={f.placeholder || ''} />}
-                                        {f.type === 'textarea' && <textarea className="uc2-input uc2-textarea" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))} placeholder={f.placeholder || ''} rows={3} />}
-                                        {f.type === 'date' && <input className="uc2-input" type="date" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))} />}
-                                        {f.type === 'select' && (
-                                          <select className="uc2-input uc2-select" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))}>
-                                            <option value="">{t('form_select')||'Sélectionnez...'}</option>
-                                            {(f.options || []).map(o => <option key={o} value={o}>{o}</option>)}
-                                          </select>
-                                        )}
-                                        {f.type === 'number' && <input className="uc2-input" type="number" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))} placeholder={f.placeholder || ''} />}
+                                  <>
+                                    <div className="uc2-dynamic-form">
+                                      <div className="uc2-section-subtitle">{t('uc_fill_form') || 'Remplissez les détails'}</div>
+                                      <div className="uc2-dynamic-form-grid">
+                                        {typeDef.fields.map(f => (
+                                          <div key={f.key} className="uc2-field" style={f.type === 'textarea' ? {gridColumn:'1/-1'} : {}}>
+                                            <label className="uc2-field-label">{f.label}{f.required ? ' *' : ''}</label>
+                                            {f.type === 'text' && <input className="uc2-input" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))} placeholder={f.placeholder || ''} />}
+                                            {f.type === 'textarea' && <textarea className="uc2-input uc2-textarea" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))} placeholder={f.placeholder || ''} rows={3} />}
+                                            {f.type === 'date' && <input className="uc2-input" type="date" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))} />}
+                                            {f.type === 'select' && (
+                                              <select className="uc2-input uc2-select" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))}>
+                                                <option value="">{t('form_select')||'Sélectionnez...'}</option>
+                                                {(f.options || []).map(o => <option key={o} value={o}>{o}</option>)}
+                                              </select>
+                                            )}
+                                            {f.type === 'number' && <input className="uc2-input" type="number" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))} placeholder={f.placeholder || ''} />}
+                                          </div>
+                                        ))}
                                       </div>
-                                    ))}
-                                  </div>
+                                    </div>
+                                    {/* Priority + Reason + Attachments */}
+                                    <div className="uc2-form-extras">
+                                      <div className="uc2-field">
+                                        <label className="uc2-field-label">{t('uc_priority') || 'Priorité'} *</label>
+                                        <div className="uc2-priority-group">
+                                          {[
+                                            { value:'low', label:t('uc_priority_low')||'Basse', color:'#22c55e' },
+                                            { value:'normal', label:t('uc_priority_normal')||'Normale', color:'#3b82f6' },
+                                            { value:'high', label:t('uc_priority_high')||'Haute', color:'#f59e0b' },
+                                            { value:'critical', label:t('uc_priority_critical')||'Critique', color:'#ef4444' },
+                                          ].map(p => (
+                                            <button key={p.value} className={`uc2-priority-btn${uc2Priority === p.value ? ' active' : ''}`} style={uc2Priority === p.value ? {borderColor:p.color,background:p.color+'20',color:p.color} : {}} onClick={() => setUc2Priority(p.value)}>{p.label}</button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      <div className="uc2-field">
+                                        <label className="uc2-field-label" htmlFor="uc2-reason">{t('uc_reason') || 'Motif'} *</label>
+                                        <textarea id="uc2-reason" className="uc2-input uc2-textarea" value={uc2Reason} onChange={e => setUc2Reason(e.target.value)} placeholder={t('uc_reason_placeholder')||'Expliquez la raison...'} rows={2} />
+                                      </div>
+                                      <div className="uc2-field">
+                                        <label className="uc2-field-label" htmlFor="uc2-comment">{t('uc_comment') || 'Commentaire'}</label>
+                                        <textarea id="uc2-comment" className="uc2-input uc2-textarea" value={uc2Comment} onChange={e => setUc2Comment(e.target.value)} placeholder={t('uc_comment_placeholder')||'Notes supplémentaires...'} rows={2} />
+                                      </div>
+                                      <div className="uc2-field">
+                                        <label className="uc2-field-label">{t('uc_attachments') || 'Pièces jointes'}</label>
+                                        <div className="uc2-dropzone" onClick={() => document.getElementById('uc2-files')?.click()}>
+                                          <input id="uc2-files" type="file" multiple hidden onChange={e => { setUc2Files(prev => [...prev, ...Array.from(e.target.files||[]).map(f => ({ name: f.name, size: f.size, type: f.type }))]) }} />
+                                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                          <p>{t('uc_drag_drop')||'Glissez-déposez'}</p>
+                                          <span>{t('uc_click_browse')||'ou cliquez'}</span>
+                                        </div>
+                                        {uc2Files.length > 0 && <div className="uc2-file-list">{uc2Files.map((f, i) => (
+                                          <div key={i} className="uc2-file-item"><span>📎 {f.name}</span><span className="uc2-file-size">{(f.size/1024).toFixed(0)} Ko</span><button className="uc2-file-remove" onClick={() => setUc2Files(prev => prev.filter((_, j) => j !== i))}>✕</button></div>
+                                        ))}</div>}
+                                      </div>
+                                    </div>
+                                    {/* Save Button */}
+                                    <button className="uc2-btn uc2-btn-primary uc2-btn-save" onClick={async () => {
+                                      const requiredFields = typeDef.fields.filter(f => f.required)
+                                      for (const rf of requiredFields) { if (!uc2FormData[rf.key]?.trim()) { alert(rf.label + ' ' + (t('form_required')||'est requis')); return } }
+                                      if (!uc2Reason.trim()) { alert(t('uc_required')||'Motif requis'); return }
+                                      setUc2Saving(true)
+                                      const token = localStorage.getItem('access_token')
+                                      const payload = { category: uc2Category, update_type: uc2Type, title: (t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' '))+' - '+updateChild.prenom+' '+updateChild.nom, description: JSON.stringify(uc2FormData), previous_value: '', new_value: JSON.stringify(uc2FormData), reason: uc2Reason+' | Priorité: '+uc2Priority+(uc2Comment ? ' | '+uc2Comment : ''), attachments: uc2Files.map(f => f.name) }
+                                      try {
+                                        const res = await fetch(`${API}/enfants/${updateChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }, body:JSON.stringify(payload) })
+                                        if (res.ok) { setUc2Saving(false); setUc2Success(true) }
+                                        else throw new Error()
+                                      } catch {
+                                        const updates = JSON.parse(localStorage.getItem('cdo_updates_'+updateChild.uid)||'[]')
+                                        updates.unshift({ id:Date.now(), ...payload, created_at: new Date().toISOString(), created_by: (user?.first_name||'')+' '+(user?.last_name||'') })
+                                        localStorage.setItem('cdo_updates_'+updateChild.uid, JSON.stringify(updates))
+                                        setUc2Saving(false); setUc2Success(true)
+                                      }
+                                    }} disabled={uc2Saving}>
+                                      {uc2Saving ? <span className="uc2-btn-spinner"/> : null}
+                                      {uc2Saving ? (t('uc_saving')||'Enregistrement...') : (t('uc_save')||'Enregistrer la mise à jour')}
+                                    </button>
+                                  </>
                                 )
                               })()}
-                              <div className="uc2-form-actions">
-                                <button className="uc2-btn uc2-btn-ghost" onClick={() => setUc2Step(0)}>← {t('form_back')}</button>
-                                <button className="uc2-btn uc2-btn-primary" onClick={() => { if (!uc2Type) { alert(t('uc_required')||'Requis'); return }; setUc2Step(2) }} disabled={!uc2Type}>{t('form_next')||'Suivant'} →</button>
-                              </div>
                             </div>
-                          ) : uc2Step === 2 ? (
-                            <div className="uc2-form-step">
-                              <div className="uc2-section-title">{t('uc_reason') || 'Raison & Pièces jointes'}</div>
-                              <div className="uc2-field">
-                                <label className="uc2-field-label">{t('uc_priority') || 'Priorité'} *</label>
-                                <div className="uc2-priority-group">
-                                  {[
-                                    { value:'low', label:t('uc_priority_low')||'Basse', color:'#22c55e' },
-                                    { value:'normal', label:t('uc_priority_normal')||'Normale', color:'#3b82f6' },
-                                    { value:'high', label:t('uc_priority_high')||'Haute', color:'#f59e0b' },
-                                    { value:'critical', label:t('uc_priority_critical')||'Critique', color:'#ef4444' },
-                                  ].map(p => (
-                                    <button key={p.value} className={`uc2-priority-btn${uc2Priority === p.value ? ' active' : ''}`} style={uc2Priority === p.value ? {borderColor:p.color,background:p.color+'20',color:p.color} : {}} onClick={() => setUc2Priority(p.value)}>
-                                      {p.label}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="uc2-field">
-                                <label className="uc2-field-label" htmlFor="uc2-reason">{t('uc_reason') || 'Motif'} *</label>
-                                <textarea id="uc2-reason" className="uc2-input uc2-textarea" value={uc2Reason} onChange={e => setUc2Reason(e.target.value)} placeholder={t('uc_reason_placeholder')||'Expliquez la raison...'} rows={3} />
-                              </div>
-                              <div className="uc2-field">
-                                <label className="uc2-field-label" htmlFor="uc2-comment">{t('uc_comment') || 'Commentaire'}</label>
-                                <textarea id="uc2-comment" className="uc2-input uc2-textarea" value={uc2Comment} onChange={e => setUc2Comment(e.target.value)} placeholder={t('uc_comment_placeholder')||'Notes supplémentaires...'} rows={2} />
-                              </div>
-                              <div className="uc2-field">
-                                <label className="uc2-field-label">{t('uc_attachments') || 'Pièces jointes'}</label>
-                                <div className="uc2-dropzone" onClick={() => document.getElementById('uc2-files')?.click()}>
-                                  <input id="uc2-files" type="file" multiple hidden onChange={e => { setUc2Files(prev => [...prev, ...Array.from(e.target.files||[]).map(f => ({ name: f.name, size: f.size, type: f.type }))]) }} />
-                                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                  <p>{t('uc_drag_drop')||'Glissez-déposez'}</p>
-                                  <span>{t('uc_click_browse')||'ou cliquez'}</span>
-                                </div>
-                                {uc2Files.length > 0 && <div className="uc2-file-list">{uc2Files.map((f, i) => (
-                                  <div key={i} className="uc2-file-item"><span>📎 {f.name}</span><span className="uc2-file-size">{(f.size/1024).toFixed(0)} Ko</span><button className="uc2-file-remove" onClick={() => setUc2Files(prev => prev.filter((_, j) => j !== i))}>✕</button></div>
-                                ))}</div>}
-                              </div>
-                              <div className="uc2-form-actions">
-                                <button className="uc2-btn uc2-btn-ghost" onClick={() => setUc2Step(1)}>← {t('form_back')}</button>
-                                <button className="uc2-btn uc2-btn-primary" onClick={() => { if (!uc2Reason.trim()) { alert(t('uc_required')||'Requis'); return }; setUc2Step(3) }}>{t('form_next')||'Suivant'} →</button>
-                              </div>
-                            </div>
-                          ) : uc2Step === 3 ? (
-                            <div className="uc2-review-step">
-                              <div className="uc2-section-title">{t('uc_review_save') || 'Vérifiez et enregistrez'}</div>
-                              <div className="uc2-review-card">
-                                <div className="uc2-review-header">
-                                  <span className="uc2-review-badge" style={{background:UC_CATEGORIES.find(c => c.key === uc2Category)?.color}}>{UC_CATEGORIES.find(c => c.key === uc2Category)?.icon} {UC_CATEGORIES.find(c => c.key === uc2Category)?.label}</span>
-                                  <span className="uc2-review-type">{UC_CATEGORIES.find(c => c.key === uc2Category)?.types.find(t => t.key === uc2Type)?.label || uc2Type}</span>
-                                </div>
-                                <div className="uc2-review-body">
-                                  {(() => {
-                                    const cat = UC_CATEGORIES.find(c => c.key === uc2Category)
-                                    const typeDef = cat?.types.find(t => t.key === uc2Type)
-                                    return Object.entries(uc2FormData).filter(([_, v]) => v).map(([k, v]) => {
-                                      const fieldLabel = typeDef?.fields.find(f => f.key === k)?.label || k
-                                      return <div key={k} className="uc2-review-row"><strong>{fieldLabel}:</strong> <span>{v}</span></div>
-                                    })
-                                  })()}
-                                  <div className="uc2-review-row"><strong>{t('uc_priority')||'Priorité'}:</strong> <span className="uc2-priority-tag" style={{color: { low:'#22c55e', normal:'#3b82f6', high:'#f59e0b', critical:'#ef4444' }[uc2Priority]}}>{uc2Priority}</span></div>
-                                  <div className="uc2-review-row"><strong>{t('uc_reason')||'Motif'}:</strong> <span>{uc2Reason}</span></div>
-                                  {uc2Comment && <div className="uc2-review-row"><strong>{t('uc_comment')||'Commentaire'}:</strong> <span>{uc2Comment}</span></div>}
-                                  {uc2Files.length > 0 && <div className="uc2-review-row"><strong>{t('uc_attachments')||'Fichiers'}:</strong> <span>{uc2Files.map(f => f.name).join(', ')}</span></div>}
-                                  <div className="uc2-review-row"><strong>{t('hc_performed_by')||'Par'}:</strong> <span>{user?.first_name||''} {user?.last_name||''}</span></div>
-                                </div>
-                              </div>
-                              <div className="uc2-timeline-preview">
-                                <div className="uc2-tl-title">{t('uc_preview')||'Aperçu dans l\'historique'}</div>
-                                <div className="uc2-tl-item">
-                                  <div className="uc2-tl-dot" style={{background:UC_CATEGORIES.find(c => c.key === uc2Category)?.color}}>{UC_CATEGORIES.find(c => c.key === uc2Category)?.icon}</div>
-                                  <div className="uc2-tl-content">
-                                    <div className="uc2-tl-text">{uc2Type ? (t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' ')) : ''} — {updateChild.prenom} {updateChild.nom}</div>
-                                    <div className="uc2-tl-time">{new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
-                                  </div>
-                                </div>
-                              </div>
-                              <button className="uc2-btn uc2-btn-primary uc2-btn-save" onClick={async () => {
-                                setUc2Saving(true)
-                                const token = localStorage.getItem('access_token')
-                                const payload = { category: uc2Category, update_type: uc2Type, title: (t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' '))+' - '+updateChild.prenom+' '+updateChild.nom, description: JSON.stringify(uc2FormData), previous_value: '', new_value: JSON.stringify(uc2FormData), reason: uc2Reason+' | Priorité: '+uc2Priority+(uc2Comment ? ' | '+uc2Comment : ''), attachments: uc2Files.map(f => f.name) }
-                                try {
-                                  const res = await fetch(`${API}/enfants/${updateChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }, body:JSON.stringify(payload) })
-                                  if (res.ok) { setUc2Saving(false); setUc2Success(true); setUc2Step(4) }
-                                  else throw new Error()
-                                } catch {
-                                  const updates = JSON.parse(localStorage.getItem('cdo_updates_'+updateChild.uid)||'[]')
-                                  updates.unshift({ id:Date.now(), ...payload, created_at: new Date().toISOString(), created_by: (user?.first_name||'')+' '+(user?.last_name||'') })
-                                  localStorage.setItem('cdo_updates_'+updateChild.uid, JSON.stringify(updates))
-                                  setUc2Saving(false); setUc2Success(true); setUc2Step(4)
-                                }
-                              }} disabled={uc2Saving}>
-                                {uc2Saving ? (t('uc_saving')||'Enregistrement...') : (t('uc_save')||'Enregistrer la mise à jour')}
-                              </button>
-                            </div>
-                          ) : null}
+                          )}
                         </div>
 
-                        {/* Right sidebar */}
-                        <div className="uc2-side">
-                          <div className="uc2-side-card">
-                            <div className="uc2-side-title">{t('form_summary')||'Résumé'}</div>
-                            <div className="uc2-side-child">
-                              <div className="uc2-side-avatar">
+                        {/* ═══ RIGHT PANEL: Context & Summary ═══ */}
+                        <div className="uc2-right">
+                          {/* Child Quick Card */}
+                          <div className="uc2-right-card">
+                            <div className="uc2-right-card-header">{t('form_summary')||'Résumé'}</div>
+                            <div className="uc2-right-child">
+                              <div className="uc2-right-avatar">
                                 {(() => { const lp = localStorage.getItem('cdo_child_photo_'+updateChild.uid); if (lp) return <img src={lp} alt="" />; return <span>{updateChild.prenom?.[0]||updateChild.nom?.[0]||'?'}</span> })()}
                               </div>
                               <div>
-                                <div className="uc2-side-name">{updateChild.prenom||''} {updateChild.nom||''}</div>
-                                <div className="uc2-side-uid">#{updateChild.uid}</div>
+                                <div className="uc2-right-name">{updateChild.prenom||''} {updateChild.nom||''}</div>
+                                <div className="uc2-right-uid">#{updateChild.uid}</div>
                               </div>
                             </div>
-                            {uc2Category && <div className="uc2-side-info"><span className="uc2-side-label">{t('uc_category')||'Catégorie'}</span><span>{UC_CATEGORIES.find(c=>c.key===uc2Category)?.icon} {UC_CATEGORIES.find(c=>c.key===uc2Category)?.label}</span></div>}
-                            {uc2Type && <div className="uc2-side-info"><span className="uc2-side-label">{t('form_type')||'Type'}</span><span>{t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' ')}</span></div>}
-                            {uc2Priority && <div className="uc2-side-info"><span className="uc2-side-label">{t('uc_priority')||'Priorité'}</span><span style={{color:{ low:'#22c55e', normal:'#3b82f6', high:'#f59e0b', critical:'#ef4444' }[uc2Priority]}}>{uc2Priority}</span></div>}
+                            {uc2Category && <div className="uc2-right-row"><span className="uc2-right-label">{t('uc_category')||'Catégorie'}</span><span>{UC_CATEGORIES.find(c=>c.key===uc2Category)?.icon} {UC_CATEGORIES.find(c=>c.key===uc2Category)?.label}</span></div>}
+                            {uc2Type && <div className="uc2-right-row"><span className="uc2-right-label">{t('form_type')||'Type'}</span><span>{t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' ')}</span></div>}
+                            {uc2Priority && <div className="uc2-right-row"><span className="uc2-right-label">{t('uc_priority')||'Priorité'}</span><span style={{color:{ low:'#22c55e', normal:'#3b82f6', high:'#f59e0b', critical:'#ef4444' }[uc2Priority]}}>{t('uc_priority_'+uc2Priority)||uc2Priority}</span></div>}
                             {Object.keys(uc2FormData).length > 0 && (
-                              <div className="uc2-side-fields">
-                                <div className="uc2-side-label">{t('uc_fill_form')||'Données'}</div>
+                              <div className="uc2-right-fields">
+                                <div className="uc2-right-label">{t('uc_fill_form')||'Données'}</div>
                                 {(() => {
                                   const cat = UC_CATEGORIES.find(c => c.key === uc2Category)
                                   const typeDef = cat?.types.find(t => t.key === uc2Type)
-                                  return Object.entries(uc2FormData).filter(([_,v]) => v).slice(0,5).map(([k,v]) => {
+                                  return Object.entries(uc2FormData).filter(([_,v]) => v).slice(0,4).map(([k,v]) => {
                                     const fl = typeDef?.fields.find(f => f.key === k)?.label || k
-                                    return <div key={k} className="uc2-side-field"><span>{fl}</span><span>{v}</span></div>
+                                    return <div key={k} className="uc2-right-field"><span>{fl}</span><span>{v}</span></div>
                                   })
                                 })()}
                               </div>
                             )}
-                            <div className="uc2-side-label" style={{marginTop:'auto',fontSize:'10px',color:'#475569'}}>{user?.first_name||''} {user?.last_name||''}</div>
                           </div>
 
-                          <div className="uc2-side-actions">
-                            {uc2Step > 0 && uc2Step < 4 && <button className="uc2-btn uc2-btn-secondary uc2-btn-full" onClick={() => setUc2Step(s => s - 1)}>← {t('form_back')}</button>}
-                            {uc2Step === 0 ? <button className="uc2-btn uc2-btn-primary uc2-btn-full" onClick={() => { if (!uc2Category) { alert(t('uc_required')||'Requis'); return }; setUc2Step(1) }} disabled={!uc2Category}>{t('form_next')||'Démarrer'} →</button> : null}
-                            {uc2Step === 1 ? <button className="uc2-btn uc2-btn-primary uc2-btn-full" onClick={() => { if (!uc2Type) { alert(t('uc_required')||'Requis'); return }; setUc2Step(2) }} disabled={!uc2Type}>{t('form_next')||'Suivant'} →</button> : null}
-                            {uc2Step === 2 ? <button className="uc2-btn uc2-btn-primary uc2-btn-full" onClick={() => { if (!uc2Reason.trim()) { alert(t('uc_required')||'Requis'); return }; setUc2Step(3) }}>{t('form_next')||'Suivant'} →</button> : null}
-                            {uc2Step === 3 ? <button className="uc2-btn uc2-btn-primary uc2-btn-full" onClick={async () => {
-                              setUc2Saving(true)
-                              const token = localStorage.getItem('access_token')
-                              const payload = { category: uc2Category, update_type: uc2Type, title: (t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' '))+' - '+updateChild.prenom+' '+updateChild.nom, description: JSON.stringify(uc2FormData), previous_value: '', new_value: JSON.stringify(uc2FormData), reason: uc2Reason+' | Priorité: '+uc2Priority+(uc2Comment ? ' | '+uc2Comment : ''), attachments: uc2Files.map(f => f.name) }
-                              try {
-                                const res = await fetch(`${API}/enfants/${updateChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }, body:JSON.stringify(payload) })
-                                if (res.ok) { setUc2Saving(false); setUc2Success(true); setUc2Step(4) }
-                                else throw new Error()
-                              } catch {
-                                const updates = JSON.parse(localStorage.getItem('cdo_updates_'+updateChild.uid)||'[]')
-                                updates.unshift({ id:Date.now(), ...payload, created_at: new Date().toISOString(), created_by: (user?.first_name||'')+' '+(user?.last_name||'') })
-                                localStorage.setItem('cdo_updates_'+updateChild.uid, JSON.stringify(updates))
-                                setUc2Saving(false); setUc2Success(true); setUc2Step(4)
-                              }
-                            }} disabled={uc2Saving}>
-                              {uc2Saving ? (t('uc_saving')||'...') : (t('uc_save')||'Enregistrer')}
-                            </button> : null}
+                          {/* Timeline Preview Card */}
+                          {uc2Category && uc2Type && Object.keys(uc2FormData).length > 0 && (
+                            <div className="uc2-right-card">
+                              <div className="uc2-right-card-header">{t('uc_preview')||'Aperçu historique'}</div>
+                              <div className="uc2-right-tl">
+                                <div className="uc2-right-tl-dot" style={{background:UC_CATEGORIES.find(c=>c.key===uc2Category)?.color}}>{UC_CATEGORIES.find(c=>c.key===uc2Category)?.icon}</div>
+                                <div className="uc2-right-tl-content">
+                                  <div className="uc2-right-tl-text">{uc2Type ? (t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' ')) : ''}</div>
+                                  <div className="uc2-right-tl-time">{new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Staff Info */}
+                          <div className="uc2-right-card">
+                            <div className="uc2-right-card-header">{t('form_staff')||'Intervenant'}</div>
+                            <div className="uc2-right-staff">
+                              <div className="uc2-right-staff-avatar" style={{background:`hsl(${user.first_name ? user.first_name.charCodeAt(0)*37%360 : 200},50%,35%)`}}>{(user.first_name?.[0]||'')+(user.last_name?.[0]||'')}</div>
+                              <div>
+                                <div className="uc2-right-staff-name">{user?.first_name||''} {user?.last_name||''}</div>
+                                <div className="uc2-right-staff-role">{roleLabel}</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quick Actions */}
+                          <div className="uc2-right-actions">
+                            {uc2Category && uc2Step > 0 ? (
+                              <button className="uc2-right-action" onClick={() => { setUc2Category(null); setUc2Step(0); setUc2Type(''); setUc2FormData({}) }}>
+                                ← {t('uc_back_categories')||'Changer de catégorie'}
+                              </button>
+                            ) : null}
+                            {uc2Type && (
+                              <button className="uc2-right-action" onClick={() => { setUc2Type(''); setUc2FormData({}) }}>
+                                ← {t('uc_back_types')||'Changer de type'}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
+                    )}
+                  </div>
+                ) : activeKey === 'history-center' ? (
+                  <div className="hc-wrap hc-standalone">
+                    {hcHistoryChild ? <>
+                      {/* ── History Center Standalone ── */}
+                      <div className="hc-standalone-layout">
+                        <div className="hc-standalone-main">
+                          {/* Header */}
+                          <div className="hc-standalone-header">
+                            <button className="dash-back-btn" onClick={() => { setHcHistoryChild(null); setHcEvents([]); setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcSearch(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false); setHcExpanded(null); setHcSelectedEvent(null) }}>{'\u2190'} {t('form_back')}</button>
+                            <div className="hc-standalone-title">
+                              <span className="hc-standalone-icon">📜</span>
+                              <span>{t('hc_title')||'Centre d\'Historique'}</span>
+                            </div>
+                          </div>
+
+                          {/* Child Summary Card */}
+                          <div className="hc-child-summary">
+                            <div className="hc-child-summary-avatar">
+                              {(() => { const lp = localStorage.getItem('cdo_child_photo_' + hcHistoryChild.uid); if (lp) return <img src={lp} alt="" />; if (hcHistoryChild.photo) return <img src={hcHistoryChild.photo} alt="" />; return <span>{hcHistoryChild.prenom?.[0] || hcHistoryChild.nom?.[0] || '?'}</span> })()}
+                            </div>
+                            <div className="hc-child-summary-info">
+                              <div className="hc-child-summary-name">{hcHistoryChild.prenom||''} {hcHistoryChild.nom||''}</div>
+                              <div className="hc-child-summary-meta">
+                                <span>#{hcHistoryChild.uid}</span>
+                                <span>🎂 {hcHistoryChild.date_naissance ? Math.floor((Date.now()-new Date(hcHistoryChild.date_naissance).getTime())/31557600000) + ' ' + (t('form_years')||'ans') : '—'}</span>
+                                <span>⚤ {hcHistoryChild.sexe === 'M' ? (t('form_male')||'M') : hcHistoryChild.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
+                                {hcHistoryChild.nationalite && <span>{hcHistoryChild.nationalite}</span>}
+                              </div>
+                            </div>
+                            <span className="hc-child-summary-status" style={{background:hcHistoryChild.status === 'active' ? 'rgba(34,197,94,0.15)' : hcHistoryChild.status === 'hospitalized'||hcHistoryChild.status === 'missing' ? 'rgba(239,68,68,0.15)' : 'rgba(100,116,139,0.15)', color:hcHistoryChild.status === 'active' ? '#22c55e' : hcHistoryChild.status === 'hospitalized'||hcHistoryChild.status === 'missing' ? '#ef4444' : '#94a3b8'}}>{hcHistoryChild.status ? (t('child_status_'+hcHistoryChild.status)||hcHistoryChild.status) : (t('form_active')||'Actif')}</span>
+                          </div>
+
+                          {/* History content using same logic as profile tab */}
+                          {(() => {
+                            const hcIcons = {
+                              created:'✅', updated:'✏️', update_added:'📝',
+                              document_added:'📄', document_verified:'✅', document_replaced:'🔄', document_expired:'⏰',
+                              health_update:'💉', vaccination_added:'💉', illness_added:'🤒',
+                              treatment_started:'💊', treatment_ended:'✅', consultation_added:'🩺',
+                              hospitalization_added:'🏥', allergy_added:'🤧',
+                              education_update:'📚', school_enrolled:'🏫', school_changed:'🔄',
+                              grade_added:'📊', exam_result_added:'📝',
+                              family_update:'👨‍👩‍👧‍👦', guardian_assigned:'👤', parent_identified:'🔍',
+                              family_reunified:'🤗', foster_placement:'🏡', adoption_progress:'📋',
+                              social_update:'🤝', social_note_added:'📝', home_visit:'🏠',
+                              counseling_session:'💬', incident_reported:'⚠️', protection_concern:'🛡️',
+                              status_change:'🔄', alert_triggered:'🚨', note_added:'💬', case_note:'📌',
+                              file_downloaded:'⬇️', record_approved:'✅', record_rejected:'❌',
+                              notification_sent:'🔔', child_archived:'📦', child_restored:'♻️',
+                              follow_up:'📋', observation_added:'👁️', transfer_initiated:'🚚', exit_registered:'🚪',
+                            }
+                            const hcColors = { general:'#64748b', registration:'#22c55e', identity:'#3b82f6', status:'#f59e0b', health:'#22c55e', education:'#3b82f6', family:'#a855f7', documents:'#f59e0b', social:'#ef4444', protection:'#ef4444', alert:'#ef4444', system:'#64748b', follow_up:'#06b6d4' }
+                            const criticalEventTypes = ['alert_triggered','protection_concern','incident_reported','hospitalization_added','exit_registered','child_archived','transfer_initiated']
+                            const criticalPriorities = ['critical','high']
+                            const hcLoad = (child) => {
+                              const stored = JSON.parse(localStorage.getItem('cdo_updates_' + child.uid) || '[]')
+                              const med = child.extra_data?.medical
+                              const vax = med?.vaccinations?.filter(v => v.done).map(v => ({ event_type:'vaccination_added', category:'health', title:`Vaccination ${v.name}`, description:'', old_value:'Non administré', new_value:'Administré le '+(v.dateAdmin||'—'), performed_by_name:'', performed_role:'', department:'', attachments:[], priority:'normal', source_module:'health', event_date:v.dateAdmin||child.created_at })) || []
+                              const edu = child.extra_data?.education
+                              const grades = edu?.subjects?.filter(s => s.grade).map(s => ({ event_type:'grade_added', category:'education', title:`Note ${s.name}`, description:'', old_value:'', new_value:`${s.grade}/20`, performed_by_name:'', performed_role:'', department:'', attachments:[], priority:'normal', source_module:'education', event_date:child.updated_at })) || []
+                              return [...stored.map(s => ({ ...s, event_type:s.event_type||'update_added', performed_by_name:s.created_by||s.created_by_name||'', department:s.department||'', priority:s.priority||'normal', source_module:s.source_module||'update_center', attachments:s.attachments||[], event_date:s.event_date||s.created_at })), ...vax, ...grades, { event_type:'created', category:'registration', title:t('pd_registered')||'Enfant enregistré', description:'Nouvel enregistrement dans le système', old_value:'', new_value:`UID: ${child.uid}`, performed_by_name:(user?.first_name||'')+' '+(user?.last_name||''), performed_role:user?.role||'', department:'', attachments:[], priority:'normal', source_module:'registration', event_date:child.created_at }].sort((a, b) => new Date(b.event_date||0) - new Date(a.event_date||0))
+                            }
+                            const hcLocal = hcLoad(hcHistoryChild)
+                            const hcFiltered = hcLocal.filter(e => {
+                              if (hcFilterCategory && e.category !== hcFilterCategory) return false
+                              if (hcFilterType && e.event_type !== hcFilterType) return false
+                              if (hcFilterPriority && e.priority !== hcFilterPriority) return false
+                              if (hcFilterSource && e.source_module !== hcFilterSource) return false
+                              if (hcStatusOnly && e.event_type !== 'status_change') return false
+                              if (hcDateFrom && new Date(e.event_date||0) < new Date(hcDateFrom)) return false
+                              if (hcDateTo && new Date(e.event_date||0) > new Date(hcDateTo+'T23:59:59')) return false
+                              if (hcSearch && !(e.title||'').toLowerCase().includes(hcSearch.toLowerCase()) && !(e.description||'').toLowerCase().includes(hcSearch.toLowerCase()) && !(e.performed_by_name||'').toLowerCase().includes(hcSearch.toLowerCase()) && !(e.reason||'').toLowerCase().includes(hcSearch.toLowerCase())) return false
+                              return true
+                            })
+                            const hcStats = { total:hcLocal.length, status_changes:hcLocal.filter(e => e.event_type === 'status_change').length, health_events:hcLocal.filter(e => e.category === 'health').length, education_events:hcLocal.filter(e => e.category === 'education').length, family_events:hcLocal.filter(e => e.category === 'family').length, document_events:hcLocal.filter(e => e.category === 'documents').length, alert_events:hcLocal.filter(e => e.category === 'alert'||e.category === 'protection'||e.priority === 'critical').length }
+                            const hcGrouped = (() => { const today=new Date(); today.setHours(0,0,0,0); const yesterday=new Date(today); yesterday.setDate(yesterday.getDate()-1); const ws=new Date(today); ws.setDate(ws.getDate()-ws.getDay()); const ms=new Date(today.getFullYear(),today.getMonth(),1); const g={today:[],yesterday:[],thisWeek:[],thisMonth:[],older:[]}; hcFiltered.forEach(e=>{const d=new Date(e.event_date||0); d.setHours(0,0,0,0); if(d.getTime()===today.getTime()) g.today.push(e); else if(d.getTime()===yesterday.getTime()) g.yesterday.push(e); else if(d>=ws) g.thisWeek.push(e); else if(d>=ms) g.thisMonth.push(e); else g.older.push(e)}); return g })()
+                            const hcGL = { today:t('hc_group_today')||"Aujourd'hui", yesterday:t('hc_group_yesterday')||'Hier', thisWeek:t('hc_group_this_week')||'Cette semaine', thisMonth:t('hc_group_this_month')||'Ce mois-ci', older:t('hc_group_older')||'Plus ancien' }
+                            const hcDC = hcDensity === 'compact' ? ' hc-density-compact' : hcDensity === 'audit' ? ' hc-density-audit' : ''
+                            return (
+                              <div className="hc-standalone-body">
+                                {/* Stats */}
+                                <div className="hc-kpi-row">
+                                  {[
+                                    { label:t('hc_total_events')||'Événements', value:hcStats.total, icon:'📊', color:'#3b82f6' },
+                                    { label:t('hc_status_changes')||'Statuts', value:hcStats.status_changes, icon:'🔄', color:'#f59e0b' },
+                                    { label:t('hc_health_events')||'Santé', value:hcStats.health_events, icon:'💉', color:'#22c55e' },
+                                    { label:t('hc_education_events')||'Éducation', value:hcStats.education_events, icon:'📚', color:'#3b82f6' },
+                                    { label:t('hc_family_events')||'Famille', value:hcStats.family_events, icon:'👨‍👩‍👧‍👦', color:'#a855f7' },
+                                    { label:t('hc_alert_events')||'Alertes', value:hcStats.alert_events, icon:'🚨', color:'#ef4444' },
+                                  ].map((kpi, i) => (
+                                    <div key={i} className="hc-kpi" style={{borderLeftColor:kpi.color}}>
+                                      <span className="hc-kpi-icon">{kpi.icon}</span>
+                                      <div className="hc-kpi-info"><span className="hc-kpi-value">{kpi.value}</span><span className="hc-kpi-label">{kpi.label}</span></div>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Toolbar */}
+                                <div className="hc-toolbar">
+                                  <div className="hc-view-tabs">
+                                    {[{ key:'timeline', icon:'📋', label:t('hc_timeline')||'Chronologie' }, { key:'audit', icon:'📋', label:t('hc_audit_log')||'Audit' }, { key:'calendar', icon:'📅', label:t('hc_calendar')||'Calendrier' }, { key:'analytics', icon:'📊', label:t('hc_analytics')||'Analytiques' }].map(v => (
+                                      <button key={v.key} className={`hc-view-tab${hcView === v.key ? ' active' : ''}`} onClick={() => setHcView(v.key)}>{v.icon} {v.label}</button>
+                                    ))}
+                                  </div>
+                                  <div className="hc-toolbar-actions">
+                                    {hcView === 'timeline' && ['comfortable','compact','audit'].map(d => (
+                                      <button key={d} className={`hc-density-btn${hcDensity === d ? ' active' : ''}`} onClick={() => setHcDensity(d)}>
+                                        {d === 'comfortable' ? '⋅⋅' : d === 'compact' ? '··' : '━━'} {t('hc_density_'+d)||d}
+                                      </button>
+                                    ))}
+                                    <button className="hc-export-btn" onClick={() => { const csv = [['Date','Catégorie','Type','Titre','Ancien','Nouveau','Par','Motif'].join(',')].concat(hcFiltered.map(e => [e.event_date||'',e.category||'',e.event_type||'',`"${(e.title||'').replace(/"/g,'""')}"`,`"${(e.old_value||'').replace(/"/g,'""')}"`,`"${(e.new_value||'').replace(/"/g,'""')}"`,e.performed_by_name||'',`"${(e.reason||'').replace(/"/g,'""')}"`].join(','))).join('\n'); const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `historique_${hcHistoryChild.uid}.csv`; a.click() }}>{t('hc_export')||'Exporter'} ⬇️</button>
+                                  </div>
+                                </div>
+
+                                {/* Filters */}
+                                <div className="hc-filters">
+                                  <select className="hc-filter-select" value={hcFilterCategory} onChange={e => setHcFilterCategory(e.target.value)}>
+                                    <option value="">{t('hc_all_categories')||'Toutes'}</option>
+                                    {Object.keys(hcColors).map(c => <option key={c} value={c}>{t('uc_category_'+c)||c}</option>)}
+                                  </select>
+                                  <select className="hc-filter-select" value={hcFilterType} onChange={e => setHcFilterType(e.target.value)}>
+                                    <option value="">{t('hc_all_types')||'Tous'}</option>
+                                    {Object.entries(hcIcons).map(([k, icon]) => <option key={k} value={k}>{icon} {t('hc_event_'+k)||k}</option>)}
+                                  </select>
+                                  <select className="hc-filter-select" value={hcFilterPriority} onChange={e => setHcFilterPriority(e.target.value)}>
+                                    <option value="">{t('hc_select_priority')||'Priorité'}</option>
+                                    {['low','normal','high','critical'].map(p => <option key={p} value={p}>{t('hc_priority_'+p)||p}</option>)}
+                                  </select>
+                                  <select className="hc-filter-select" value={hcFilterSource} onChange={e => setHcFilterSource(e.target.value)}>
+                                    <option value="">{t('hc_filter_source')||'Module'}</option>
+                                    {['registration','child_profile','health','education','family','documents','social','update_center','status','system','alert','follow_up'].map(s => <option key={s} value={s}>{t('hc_source_'+s)||s}</option>)}
+                                  </select>
+                                  <input type="date" className="hc-filter-date" value={hcDateFrom} onChange={e => setHcDateFrom(e.target.value)} title={t('hc_date_from')||'Du'} />
+                                  <input type="date" className="hc-filter-date" value={hcDateTo} onChange={e => setHcDateTo(e.target.value)} title={t('hc_date_to')||'Au'} />
+                                  <div className="hc-date-presets">
+                                    {[
+                                      { key:'7d', label:t('hc_preset_7d')||'7 jours', days:7 },
+                                      { key:'30d', label:t('hc_preset_30d')||'30 jours', days:30 },
+                                      { key:'tm', label:t('hc_preset_this_month')||'Ce mois', fn:()=>{const d=new Date(),y=d.getFullYear(),m=d.getMonth();return{from:new Date(y,m,1).toISOString().split('T')[0],to:d.toISOString().split('T')[0]}} },
+                                      { key:'lm', label:t('hc_preset_last_month')||'Mois dernier', fn:()=>{const d=new Date(),y=d.getFullYear(),m=d.getMonth();return{from:new Date(y,m-1,1).toISOString().split('T')[0],to:new Date(y,m,0).toISOString().split('T')[0]}} },
+                                    ].map(p => (
+                                      <button key={p.key} className="hc-preset-btn" onClick={() => {
+                                        if (p.fn) { const r=p.fn(); setHcDateFrom(r.from); setHcDateTo(r.to) }
+                                        else { const d=new Date(),f=new Date(d); f.setDate(d.getDate()-p.days); setHcDateFrom(f.toISOString().split('T')[0]); setHcDateTo(d.toISOString().split('T')[0]) }
+                                      }}>{p.label}</button>
+                                    ))}
+                                  </div>
+                                  <div className="hc-search-wrap">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                    <input className="hc-search-input" value={hcSearch} onChange={e => setHcSearch(e.target.value)} placeholder={t('hc_search_events')||'Rechercher...'} />
+                                  </div>
+                                  <label className="hc-status-toggle"><input type="checkbox" checked={hcStatusOnly} onChange={e => setHcStatusOnly(e.target.checked)} /><span>{t('hc_filter_status_only')||'Statuts'}</span></label>
+                                  {(hcFilterCategory||hcFilterType||hcFilterPriority||hcFilterSource||hcSearch||hcDateFrom||hcDateTo||hcStatusOnly) && <button className="hc-clear-btn" onClick={() => { setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcSearch(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false) }}>{t('hc_clear_filters')||'✕'}</button>}
+                                  <span className="hc-filter-count">{hcFiltered.length} / {hcLocal.length}</span>
+                                </div>
+
+                                {/* Timeline */}
+                                {hcView === 'timeline' && (
+                                  <div className={`hc-timeline${hcDC}`}>
+                                    {hcFiltered.length === 0 && <div className="hc-empty"><span className="hc-empty-icon">📭</span><p>{t('hc_no_events')||'Aucun événement'}</p></div>}
+                                    {hcDensity === 'comfortable' ? Object.entries(hcGrouped).filter(([_,evs])=>evs.length).map(([gk,evs]) => (
+                                      <div key={gk} className="hc-tl-group">
+                                        <div className="hc-tl-group-header"><span className="hc-tl-group-label">{hcGL[gk]||gk}</span><span className="hc-tl-group-count">{evs.length}</span></div>
+                                        {evs.map((e,i) => (
+                                          <div key={i} className={`hc-tl-item${hcExpanded===gk+'_'+i?' expanded':''}${criticalEventTypes.includes(e.event_type)||criticalPriorities.includes(e.priority)?' hc-tl-critical':''}${e.event_type==='status_change'?' hc-tl-status-change':''}`} onClick={()=>{setHcExpanded(hcExpanded===gk+'_'+i?null:gk+'_'+i);setHcSelectedEvent(e)}}>
+                                            <div className="hc-tl-line" />
+                                            <div className="hc-tl-dot" style={{background:hcColors[e.category]||'#64748b'}}>{hcIcons[e.event_type]||'📌'}</div>
+                                            <div className="hc-tl-card">
+                                              <div className="hc-tl-card-top">
+                                                <span className="hc-tl-badge" style={{background:hcColors[e.category]||'#64748b'}}>{e.category?t('uc_category_'+e.category)||e.category:''}</span>
+                                                {e.priority&&e.priority!=='normal'&&<span className={`hc-tl-priority hc-tl-priority-${e.priority}`}>{t('hc_priority_'+e.priority)||e.priority}</span>}
+                                                <span className="hc-tl-time">{e.event_date?new Date(e.event_date).toLocaleDateString(lang==='en'?'en-US':'fr-FR',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}</span>
+                                              </div>
+                                              <div className="hc-tl-title">{e.title}</div>
+                                              {e.event_type==='status_change'&&e.old_value&&e.new_value&&<div className="hc-tl-status-beforeafter"><span className="hc-tl-status-badge hc-tl-status-old">{e.old_value}</span><span className="hc-tl-arrow">→</span><span className="hc-tl-status-badge hc-tl-status-new">{e.new_value}</span></div>}
+                                              {e.performed_by_name&&<div className="hc-tl-meta">{t('hc_performed_by')||'Par'}: {e.performed_by_name}{e.performed_role?' ('+e.performed_role+')':''}</div>}
+                                              {hcExpanded===gk+'_'+i&&<div className="hc-tl-details">
+                                                {e.description&&<div className="hc-tl-detail-row"><strong>{t('form_description')||'Description'}:</strong><span>{e.description}</span></div>}
+                                                {e.old_value&&e.event_type!=='status_change'&&<div className="hc-tl-detail-row"><strong style={{color:'#ef4444'}}>{t('hc_old_value')||'Ancien'}:</strong><span>{e.old_value}</span></div>}
+                                                {e.new_value&&e.event_type!=='status_change'&&<div className="hc-tl-detail-row"><strong style={{color:'#22c55e'}}>{t('hc_new_value')||'Nouveau'}:</strong><span>{e.new_value}</span></div>}
+                                                {e.reason&&<div className="hc-tl-detail-row"><strong>{t('hc_reason')||'Motif'}:</strong><span>{e.reason}</span></div>}
+                                                {e.department&&<div className="hc-tl-detail-row"><strong>{t('hc_department')||'Département'}:</strong><span>{e.department}</span></div>}
+                                                {e.source_module&&<div className="hc-tl-detail-row"><strong>{t('hc_source_module')||'Module'}:</strong><span>{t('hc_source_'+e.source_module)||e.source_module}</span></div>}
+                                                {e.attachments?.length>0&&<div className="hc-tl-detail-row"><strong>{t('hc_attachments')||'Fichiers'}:</strong><span>{e.attachments.map((a,ai)=><span key={ai} className="hc-tl-attach-file">📎 {a}</span>)}</span></div>}
+                                              </div>}
+                                              <div className="hc-tl-expand">{hcExpanded===gk+'_'+i?'▲':'▼'}</div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )) : hcFiltered.map((e,i) => (
+                                      <div key={i} className={`hc-tl-item${hcExpanded===i?' expanded':''}${criticalEventTypes.includes(e.event_type)||criticalPriorities.includes(e.priority)?' hc-tl-critical':''}${e.event_type==='status_change'?' hc-tl-status-change':''}`} onClick={()=>{setHcExpanded(hcExpanded===i?null:i);setHcSelectedEvent(e)}}>
+                                        <div className="hc-tl-line" />
+                                        <div className="hc-tl-dot" style={{background:hcColors[e.category]||'#64748b'}}>{hcIcons[e.event_type]||'📌'}</div>
+                                        <div className="hc-tl-card">
+                                          <div className="hc-tl-card-top">
+                                            <span className="hc-tl-badge" style={{background:hcColors[e.category]||'#64748b'}}>{e.category||''}</span>
+                                            {e.priority&&e.priority!=='normal'&&<span className={`hc-tl-priority hc-tl-priority-${e.priority}`}>{e.priority}</span>}
+                                            <span className="hc-tl-time">{e.event_date?new Date(e.event_date).toLocaleDateString(lang==='en'?'en-US':'fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</span>
+                                          </div>
+                                          <div className="hc-tl-title">{e.title}</div>
+                                          {e.event_type==='status_change'&&e.old_value&&e.new_value&&<div className="hc-tl-status-beforeafter"><span className="hc-tl-status-badge hc-tl-status-old">{e.old_value}</span><span className="hc-tl-arrow">→</span><span className="hc-tl-status-badge hc-tl-status-new">{e.new_value}</span></div>}
+                                          {e.performed_by_name&&<div className="hc-tl-meta">{e.performed_by_name}</div>}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Audit */}
+                                {hcView === 'audit' && (
+                                  <div className="hc-audit">
+                                    <div className="hc-audit-table">
+                                      <div className="hc-audit-header">
+                                        <span className="hc-audit-col-date">{t('form_date')||'Date'}</span>
+                                        <span className="hc-audit-col-event">{t('form_type')||'Événement'}</span>
+                                        <span className="hc-audit-col-cat">{t('uc_category')||'Catégorie'}</span>
+                                        <span className="hc-audit-col-priority">{t('hc_priority')||'Priorité'}</span>
+                                        <span className="hc-audit-col-user">{t('hc_performed_by')||'Utilisateur'}</span>
+                                        <span className="hc-audit-col-role">{t('form_role')||'Rôle'}</span>
+                                        <span className="hc-audit-col-source">{t('hc_source_module')||'Module'}</span>
+                                        <span className="hc-audit-col-old">{t('hc_old_value')||'Ancien'}</span>
+                                        <span className="hc-audit-col-new">{t('hc_new_value')||'Nouveau'}</span>
+                                        <span className="hc-audit-col-reason">{t('hc_reason')||'Motif'}</span>
+                                      </div>
+                                      {hcFiltered.length===0&&<div className="hc-empty"><p>{t('hc_no_events')||'Aucun'}</p></div>}
+                                      {hcFiltered.map((e,i)=>(
+                                        <div key={i} className={`hc-audit-row${criticalEventTypes.includes(e.event_type)||criticalPriorities.includes(e.priority)?' hc-audit-critical':''}`}>
+                                          <span className="hc-audit-col-date">{e.event_date?new Date(e.event_date).toLocaleDateString(lang==='en'?'en-US':'fr-FR',{day:'2-digit',month:'short'}):'—'}</span>
+                                          <span className="hc-audit-col-event"><span className="hc-event-badge" style={{background:hcColors[e.category]||'#64748b'}}>{hcIcons[e.event_type]||'📌'} {t('hc_event_'+e.event_type)||e.event_type}</span></span>
+                                          <span className="hc-audit-col-cat">{e.category?t('uc_category_'+e.category)||e.category:'—'}</span>
+                                          <span className="hc-audit-col-priority">{e.priority?<span className={`hc-tl-priority hc-tl-priority-${e.priority}`}>{t('hc_priority_'+e.priority)||e.priority}</span>:'—'}</span>
+                                          <span className="hc-audit-col-user">{e.performed_by_name||'—'}</span>
+                                          <span className="hc-audit-col-role">{e.performed_role||'—'}</span>
+                                          <span className="hc-audit-col-source">{e.source_module?t('hc_source_'+e.source_module)||e.source_module:'—'}</span>
+                                          <span className="hc-audit-col-old" style={{color:'#ef4444',maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={e.old_value}>{e.old_value||'—'}</span>
+                                          <span className="hc-audit-col-new" style={{color:'#22c55e',maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={e.new_value}>{e.new_value||'—'}</span>
+                                          <span className="hc-audit-col-reason" style={{maxWidth:100,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={e.reason}>{e.reason||'—'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Calendar */}
+                                  {hcView === 'calendar' && (
+                                    <div className="hc-calendar">
+                                      <div className="hc-cal-title">{t('hc_calendar_view')||'Calendrier'}</div>
+                                      <div className="hc-cal-grid">
+                                        {(() => {
+                                          const today = new Date()
+                                          const year = today.getFullYear()
+                                          const month = today.getMonth()
+                                          const firstDay = new Date(year, month, 1).getDay()
+                                          const daysInMonth = new Date(year, month + 1, 0).getDate()
+                                          const dayNames = lang === 'en' ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] : ['Dim','Lun','Mar','Mer','Jeu','Ven','Sat']
+                                          const eventMap = {}
+                                          hcFiltered.forEach(e => { if (!e.event_date) return; const d = new Date(e.event_date); const k = d.getDate(); if (!eventMap[k]) eventMap[k] = []; eventMap[k].push(e) })
+                                          const cells = dayNames.map(d => ({ type: 'header', label: d }))
+                                          for (let i = 0; i < firstDay; i++) cells.push({ type: 'empty' })
+                                          for (let d = 1; d <= daysInMonth; d++) cells.push({ type: 'day', day: d, events: eventMap[d] || [] })
+                                          return cells.map((cell, i) => {
+                                            if (cell.type === 'header') return <div key={'h'+i} className="hc-cal-day-header">{cell.label}</div>
+                                            if (cell.type === 'empty') return <div key={'e'+i} className="hc-cal-day hc-cal-day-empty" />
+                                            const hasCritical = cell.events.some(e => criticalEventTypes.includes(e.event_type))
+                                            return (
+                                              <div key={'d'+i} className={`hc-cal-day${cell.events.length ? ' hc-cal-day-has' : ''}${hasCritical ? ' hc-cal-day-critical' : ''}`}>
+                                                <span className="hc-cal-day-num">{cell.day}</span>
+                                                {cell.events.length > 0 && (
+                                                  <div className="hc-cal-day-events">
+                                                    {cell.events.slice(0, 3).map((e, ei) => (
+                                                      <div key={ei} className="hc-cal-day-event" style={{background:hcColors[e.category]||'#64748b'}} title={e.title} onClick={() => setHcSelectedEvent(e)}>{hcIcons[e.event_type]||'📌'}</div>
+                                                    ))}
+                                                    {cell.events.length > 3 && <span className="hc-cal-day-more">+{cell.events.length - 3}</span>}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )
+                                          })
+                                        })()}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                {/* Analytics */}
+                                {hcView === 'analytics' && (
+                                  <div className="hc-analytics">
+                                    <div className="hc-analytics-grid">
+                                      {Object.entries(hcColors).filter(([k])=>k!=='alert'&&k!=='protection'&&k!=='system'&&k!=='follow_up').map(([ck,color])=>{const ct=hcLocal.filter(e=>e.category===ck).length;if(!ct)return null;return(<div key={ck} className="hc-analytics-card" style={{borderLeftColor:color}}><div className="hc-analytics-card-top"><span className="hc-analytics-icon" style={{background:color+'20'}}>{hcIcons[Object.keys(hcIcons).find(k=>k.startsWith(ck))]||'📊'}</span><span className="hc-analytics-count">{ct}</span></div><span className="hc-analytics-label">{t('uc_category_'+ck)||ck}</span><div className="hc-analytics-bar" style={{background:color+'20'}}><div className="hc-analytics-bar-fill" style={{width:hcLocal.length?(ct/hcLocal.length*100)+'%':'0%',background:color}}/></div></div>)})}
+                                      {hcLocal.filter(e=>e.category==='alert'||e.category==='protection').length>0&&<div className="hc-analytics-card" style={{borderLeftColor:'#ef4444'}}><div className="hc-analytics-card-top"><span className="hc-analytics-icon" style={{background:'rgba(239,68,68,0.12)'}}>🚨</span><span className="hc-analytics-count">{hcLocal.filter(e=>e.category==='alert'||e.category==='protection').length}</span></div><span className="hc-analytics-label">{t('hc_alert_events')||'Alertes'}</span><div className="hc-analytics-bar" style={{background:'rgba(239,68,68,0.12)'}}><div className="hc-analytics-bar-fill" style={{width:hcLocal.length?(hcLocal.filter(e=>e.category==='alert'||e.category==='protection').length/hcLocal.length*100)+'%':'0%',background:'#ef4444'}}/></div></div>}
+                                    </div>
+                                    <div className="hc-analytics-summary">
+                                      <div className="hc-analytics-summary-item"><span>{t('hc_total_events')||'Total'}</span><strong>{hcLocal.length}</strong></div>
+                                      <div className="hc-analytics-summary-item"><span>{t('hc_total_updates')||'Updates'}</span><strong>{hcLocal.filter(e=>e.event_type==='update_added').length}</strong></div>
+                                      <div className="hc-analytics-summary-item"><span>{t('hc_events_today')||"Aujourd'hui"}</span><strong>{hcGrouped.today.length}</strong></div>
+                                      <div className="hc-analytics-summary-item"><span>{t('hc_events_this_week')||'Semaine'}</span><strong>{hcGrouped.thisWeek.length}</strong></div>
+                                      <div className="hc-analytics-summary-item"><span>{t('hc_events_this_month')||'Mois'}</span><strong>{hcGrouped.thisMonth.length}</strong></div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Event Detail Drawer */}
+                                {hcSelectedEvent && (
+                                  <div className="hc-drawer-overlay" onClick={() => setHcSelectedEvent(null)}>
+                                    <div className="hc-drawer" onClick={e => e.stopPropagation()}>
+                                      <button className="hc-drawer-close" onClick={() => setHcSelectedEvent(null)}>✕</button>
+                                      <div className="hc-drawer-title">{t('hc_event_detail_title')||"Détails de l'événement"}</div>
+                                      <div className="hc-drawer-section">
+                                        <div className="hc-drawer-section-title">{t('hc_event_info')||'Événement'}</div>
+                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_type')||'Type'}</span><span className="hc-drawer-value">{hcIcons[hcSelectedEvent.event_type]||''} {t('hc_event_'+hcSelectedEvent.event_type)||hcSelectedEvent.event_type}</span></div>
+                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('uc_category')||'Catégorie'}</span><span className="hc-drawer-value"><span className="hc-tl-badge" style={{background:hcColors[hcSelectedEvent.category]||'#64748b'}}>{t('uc_category_'+hcSelectedEvent.category)||hcSelectedEvent.category}</span></span></div>
+                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_title')||'Titre'}</span><span className="hc-drawer-value">{hcSelectedEvent.title}</span></div>
+                                        {hcSelectedEvent.description&&<div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_description')||'Description'}</span><span className="hc-drawer-value">{hcSelectedEvent.description}</span></div>}
+                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_date')||'Date'}</span><span className="hc-drawer-value">{hcSelectedEvent.event_date?new Date(hcSelectedEvent.event_date).toLocaleDateString(lang==='en'?'en-US':'fr-FR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}</span></div>
+                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_priority')||'Priorité'}</span><span className="hc-drawer-value">{hcSelectedEvent.priority?<span className={`hc-tl-priority hc-tl-priority-${hcSelectedEvent.priority}`}>{t('hc_priority_'+hcSelectedEvent.priority)||hcSelectedEvent.priority}</span>:'—'}</span></div>
+                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_source_module')||'Module'}</span><span className="hc-drawer-value">{hcSelectedEvent.source_module?t('hc_source_'+hcSelectedEvent.source_module)||hcSelectedEvent.source_module:'—'}</span></div>
+                                      </div>
+                                      {(hcSelectedEvent.old_value||hcSelectedEvent.new_value)&&<div className="hc-drawer-section"><div className="hc-drawer-section-title">{t('hc_old_value')||'Valeurs'}</div>
+                                        {hcSelectedEvent.old_value&&<div className="hc-drawer-row"><span className="hc-drawer-label" style={{color:'#ef4444'}}>{t('hc_old_value')||'Ancien'}</span><span className="hc-drawer-value">{hcSelectedEvent.old_value}</span></div>}
+                                        {hcSelectedEvent.new_value&&<div className="hc-drawer-row"><span className="hc-drawer-label" style={{color:'#22c55e'}}>{t('hc_new_value')||'Nouveau'}</span><span className="hc-drawer-value">{hcSelectedEvent.new_value}</span></div>}
+                                        {hcSelectedEvent.reason&&<div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_reason')||'Motif'}</span><span className="hc-drawer-value">{hcSelectedEvent.reason}</span></div>}
+                                      </div>}
+                                      <div className="hc-drawer-section"><div className="hc-drawer-section-title">{t('hc_performed_by')||'Effectué par'}</div>
+                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_name')||'Nom'}</span><span className="hc-drawer-value">{hcSelectedEvent.performed_by_name||'—'}</span></div>
+                                        {hcSelectedEvent.performed_role&&<div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_role')||'Rôle'}</span><span className="hc-drawer-value">{hcSelectedEvent.performed_role}</span></div>}
+                                        {hcSelectedEvent.department&&<div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_department')||'Département'}</span><span className="hc-drawer-value">{hcSelectedEvent.department}</span></div>}
+                                      </div>
+                                      {hcSelectedEvent.attachments?.length>0&&<div className="hc-drawer-section"><div className="hc-drawer-section-title">{t('hc_attachments')||'Pièces jointes'} ({hcSelectedEvent.attachments.length})</div>
+                                        <div className="hc-drawer-attachments">{hcSelectedEvent.attachments.map((a,ai)=><div key={ai} className="hc-drawer-attach">📎 {a}</div>)}</div>
+                                      </div>}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })()}
+                        </div>
+                      </div>
                     </> : (
-                      <div className="uc2-select-child">
-                        <div className="uc2-select-header">
-                          <span className="uc2-select-icon">📝</span>
-                          <span className="uc2-select-title">{t('uc_title') || 'Centre de Mise à Jour'}</span>
-                          <p className="uc2-select-desc">{t('uc_select_child') || 'Sélectionnez un enfant pour ajouter une mise à jour'}</p>
-                        </div>
-                        <div className="uc2-search-bar">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                          <input className="uc2-search-input" value={uc2Search} onChange={e => setUc2Search(e.target.value)} placeholder={t('uc_search_child')||'Rechercher un enfant...'} />
-                        </div>
-                        <div className="uc2-child-grid">
-                          {(registeredChildren.length > 0 ? registeredChildren : []).filter(c => !uc2Search || (c.prenom||'').toLowerCase().includes(uc2Search.toLowerCase()) || (c.nom||'').toLowerCase().includes(uc2Search.toLowerCase()) || (c.uid||'').toLowerCase().includes(uc2Search.toLowerCase())).map(child => (
-                            <button key={child.id} className="uc2-child-card" onClick={() => { setUpdateChild(child); setUc2Search('') }}>
-                              <div className="uc2-child-card-avatar">
-                                {(() => { const lp = localStorage.getItem('cdo_child_photo_'+child.uid); if (lp) return <img src={lp} alt="" />; return <span>{child.prenom?.[0]||child.nom?.[0]||'?'}</span> })()}
-                              </div>
-                              <div className="uc2-child-card-info">
-                                <div className="uc2-child-card-name">{child.prenom||''} {child.nom||''}</div>
-                                <div className="uc2-child-card-uid">#{child.uid}</div>
-                                <div className="uc2-child-card-meta">{child.sexe === 'M' ? (t('form_male')||'M') : child.sexe === 'F' ? (t('form_female')||'F') : ''} · {child.date_naissance ? Math.floor((Date.now()-new Date(child.date_naissance).getTime())/31557600000) + ' ' + (t('form_years')||'ans') : '—'}</div>
-                              </div>
-                              <span className="uc2-child-card-arrow">→</span>
+                      /* ── Child Selector ── */
+                      <div className="hc-premium-select">
+                        <div className="uc2-premium-header">
+                          <span className="uc2-premium-header-label">history-center</span>
+                          <div className="uc2-premium-header-icons">
+                            <button className="uc2-premium-icon-btn" title={t('dash_dashboard')||'Dashboard'}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                             </button>
-                          ))}
-                          {(registeredChildren.length === 0 || registeredChildren.filter(c => !uc2Search || (c.prenom||'').toLowerCase().includes(uc2Search.toLowerCase()) || (c.nom||'').toLowerCase().includes(uc2Search.toLowerCase()) || (c.uid||'').toLowerCase().includes(uc2Search.toLowerCase())).length === 0) && <div className="uc2-empty"><span>👶</span><p>{t('uc_no_children')||'Aucun enfant trouvé'}</p></div>}
+                            <button className="uc2-premium-icon-btn" title={t('notifications')||'Notifications'}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                            </button>
+                            <button className="uc2-premium-icon-btn" title={t('settings')||'Settings'}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            </button>
+                            <div className="uc2-premium-avatar">
+                              {user.photo ? <img src={user.photo} alt="" /> : <span>{user?.first_name?.[0]||user?.username?.[0]||'U'}</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="uc2-premium-hero">
+                          <div className="uc2-premium-hero-left">
+                            <div className="uc2-premium-hero-icon">
+                              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            </div>
+                            <div className="uc2-premium-hero-text">
+                              <h1 className="uc2-premium-hero-title">{t('hc_title')||'Centre d\'Historique'}</h1>
+                              <p className="uc2-premium-hero-subtitle">{t('hc_select_child')||'Sélectionnez un enfant pour voir son historique complet'}</p>
+                            </div>
+                          </div>
+                          <div className="uc2-premium-hero-actions">
+                            <button className="uc2-premium-hero-btn uc2-premium-hero-btn-primary">{t('uc_view_report')||'Voir le rapport complet'} →</button>
+                            <select className="uc2-premium-hero-select" value={hcSortStatus} onChange={e => setHcSortStatus(e.target.value)}>
+                              <option value="">{t('uc_sort_by_status')||'Trier par statut'}</option>
+                              <option value="active">{t('uc_card_status_active')||'Actif'}</option>
+                              <option value="sick">{t('child_status_sick')||'Malade'}</option>
+                              <option value="hospitalized">{t('child_status_hospitalized')||'Hospitalisé'}</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="uc2-premium-filters">
+                          <div className="uc2-premium-search">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input className="uc2-premium-search-input" value={hcSearch} onChange={e => setHcSearch(e.target.value)} placeholder={t('uc_search_child')||'Rechercher un enfant...'} />
+                          </div>
+                          <select className="uc2-premium-filter-select" value={hcGender} onChange={e => setHcGender(e.target.value)}>
+                            <option value="">{t('uc_filter_gender')||'Genre'}</option>
+                            <option value="all">{t('uc_gender_all')||'Tous'}</option>
+                            <option value="M">{t('uc_gender_male')||'Masculin'}</option>
+                            <option value="F">{t('uc_gender_female')||'Féminin'}</option>
+                          </select>
+                          <div className="uc2-premium-age-wrap">
+                            <span className="uc2-premium-filter-label">{t('uc_filter_age')||'Âge'}</span>
+                            <input type="range" className="uc2-premium-age-slider" min="0" max="18" step="1" value={hcAgeRange || '18'} onChange={e => setHcAgeRange(e.target.value === '18' ? '' : e.target.value)} />
+                            <span className="uc2-premium-age-value">{hcAgeRange ? hcAgeRange + ' ' + (t('form_years')||'ans') : t('uc_age_all')||'Tous âges'}</span>
+                          </div>
+                          <select className="uc2-premium-filter-select" value={hcRegion} onChange={e => setHcRegion(e.target.value)}>
+                            <option value="">{t('uc_filter_region')||'Région'}</option>
+                            <option value="all">{t('uc_region_all')||'Toutes régions'}</option>
+                            {AFRICAN_COUNTRIES.map(c => <option key={c.code} value={c.name}>{c.name}</option>)}
+                          </select>
+                        </div>
+                        <div className="uc2-premium-grid">
+                          {(() => {
+                            let list = registeredChildren.length > 0 ? registeredChildren : []
+                            if (hcSearch) list = list.filter(c => (c.prenom||'').toLowerCase().includes(hcSearch.toLowerCase()) || (c.nom||'').toLowerCase().includes(hcSearch.toLowerCase()) || (c.uid||'').toLowerCase().includes(hcSearch.toLowerCase()))
+                            if (hcGender && hcGender !== 'all') list = list.filter(c => c.sexe === hcGender)
+                            if (hcAgeRange) { const max = parseInt(hcAgeRange); list = list.filter(c => c.date_naissance ? Math.floor((Date.now()-new Date(c.date_naissance).getTime())/31557600000) <= max : false) }
+                            if (hcRegion && hcRegion !== 'all') list = list.filter(c => c.nationalite === hcRegion)
+                            if (list.length === 0) return <div className="uc2-premium-empty"><span className="uc2-premium-empty-icon">👶</span><p>{t('uc_no_results')||'Aucun enfant trouvé'}</p></div>
+                            return list.map(child => {
+                              const age = child.date_naissance ? Math.floor((Date.now()-new Date(child.date_naissance).getTime())/31557600000) : null
+                              const photo = localStorage.getItem('cdo_child_photo_'+child.uid)
+                              const lastMed = child.extra_data?.medical?.lastCheckup || null
+                              const crit = ['hospitalized','missing']
+                              const bc = crit.includes(child.status) ? 'rgba(239,68,68,0.3)' : child.status === 'sick' ? 'rgba(245,158,11,0.3)' : 'rgba(99,102,241,0.25)'
+                              const gc = crit.includes(child.status) ? 'rgba(239,68,68,0.06)' : child.status === 'sick' ? 'rgba(245,158,11,0.06)' : 'rgba(99,102,241,0.04)'
+                              return (
+                                <div key={child.id} className="uc2-premium-card" style={{borderColor: bc, boxShadow: `0 0 24px ${gc}`}}>
+                                  <div className="uc2-premium-card-top">
+                                    <div className="uc2-premium-card-avatar">
+                                      {photo ? <img src={photo} alt="" /> : <span className="uc2-premium-card-initial">{child.prenom?.[0]||child.nom?.[0]||'?'}</span>}
+                                    </div>
+                                    <div className="uc2-premium-card-info">
+                                      <div className="uc2-premium-card-name">{child.prenom||''} {child.nom||''}</div>
+                                      <div className="uc2-premium-card-uid">#{child.uid}</div>
+                                      <div className="uc2-premium-card-meta">
+                                        <span>{child.sexe === 'M' ? '♂' : child.sexe === 'F' ? '♀' : ''} {child.sexe === 'M' ? (t('form_male')||'M') : child.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
+                                        <span className="uc2-premium-card-dot">·</span>
+                                        <span>{age !== null ? age + ' ' + (t('form_years')||'ans') : '—'}</span>
+                                      </div>
+                                    </div>
+                                    <span className="uc2-premium-card-status" style={{
+                                      background: crit.includes(child.status) ? 'rgba(239,68,68,0.12)' : child.status === 'sick' ? 'rgba(245,158,11,0.12)' : child.status === 'active' ? 'rgba(99,102,241,0.12)' : 'rgba(100,116,139,0.12)',
+                                      color: crit.includes(child.status) ? '#ef4444' : child.status === 'sick' ? '#f59e0b' : child.status === 'active' ? '#818cf8' : '#94a3b8'
+                                    }}>{t('child_status_' + child.status) || child.status}</span>
+                                  </div>
+                                  <div className="uc2-premium-card-micro">
+                                    <div className="uc2-premium-micro-item">
+                                      <span className="uc2-premium-micro-label">{t('uc_health_progress')||'Suivi santé'}</span>
+                                      <span className="uc2-premium-micro-bar"><span className="uc2-premium-micro-fill" style={{width: child.extra_data?.medical?.vaccinations?.length > 0 ? '70%' : '25%'}}></span></span>
+                                    </div>
+                                    <div className="uc2-premium-micro-item">
+                                      <span className="uc2-premium-micro-label">{t('uc_last_visit')||'Dernière visite'}</span>
+                                      <span className="uc2-premium-micro-value">{lastMed ? new Date(lastMed).toLocaleDateString() : '—'}</span>
+                                    </div>
+                                  </div>
+                                  <button className="uc2-premium-card-select" onClick={() => { setHcHistoryChild(child); setHcSearch(''); setHcGender(''); setHcAgeRange(''); setHcRegion(''); setHcSortStatus(''); setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false); setHcEvents([]); setHcExpanded(null); setHcSelectedEvent(null); setHcView('timeline') }}>
+                                    {t('uc_select_btn')||'Sélectionner'} →
+                                  </button>
+                                </div>
+                              )
+                            })
+                          })()}
                         </div>
                       </div>
                     )}
