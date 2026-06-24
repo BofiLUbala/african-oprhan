@@ -1379,6 +1379,12 @@ function DashboardShell({ user, role, onLogout }) {
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [profileImg, setProfileImg] = useState(localStorage.getItem('cdo_profile_img') || null)
   const uidRef = useRef(genChildUid())
+  const [dashTime, setDashTime] = useState(new Date())
+
+  useEffect(() => {
+    const timer = setInterval(() => setDashTime(new Date()), 10000)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     const handler = (e) => {
@@ -1642,38 +1648,171 @@ function DashboardShell({ user, role, onLogout }) {
 
         <main className="dash-main">
           {activeKey === 'dashboard' ? (
-            <div className="dash-features-grid">
-              <div className="dash-title-bar" style={{ marginBottom: '24px' }}>
-                <div>
-                  <h2 className="dash-page-title">{t('page_' + role + '_' + activeKey.replace(/-/g, '_') + '_title') || page?.title || 'Tableau de bord'}</h2>
-                  <p className="dash-page-subtitle">{t('page_' + role + '_' + activeKey.replace(/-/g, '_') + '_sub') || page?.subtitle}</p>
-                </div>
-                <button className="dash-export-btn">{'\u{1F4E4}'} {t('dash_export')}</button>
-              </div>
-              <div className="dash-stat-row">
-                {statCards.map((card, i) => (
-                  <div key={i} className="dash-stat-card" style={{ '--card-color': card.color }}>
-                    <span className="dash-stat-card-value">{card.value}</span>
-                    <div className="dash-stat-card-info">
-                      <span className="dash-stat-card-label">{t('stat_' + role + '_' + i + '_label') || card.label}</span>
-                      <span className="dash-stat-card-sub" style={{ color: card.color }}>{t('stat_' + role + '_' + i + '_sub') || card.sub}</span>
-                    </div>
+            <div className="dash-dashboard">
+              <div className="dash-dash-welcome">
+                <div className="dash-dash-welcome-left">
+                  <h1 className="dash-dash-greeting">{t('dash_greeting') || 'Bonjour'}, {user.first_name || 'Administrateur'} <span className="dash-dash-wave">{'\u{1F44B}'}</span></h1>
+                  <div className="dash-dash-welcome-meta">
+                    <span className="dash-dash-meta-item">{dashTime.toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}</span>
+                    <span className="dash-dash-meta-divider">·</span>
+                    <span className="dash-dash-meta-item dash-dash-clock">{dashTime.toLocaleTimeString(lang === 'en' ? 'en-US' : 'fr-FR', { hour:'2-digit', minute:'2-digit' })}</span>
+                    <span className="dash-dash-meta-divider">·</span>
+                    <span className="dash-dash-meta-item dash-dash-org-name">{orphanageName || (t('dash_org_name') || 'Fédération des Orphelinats')}</span>
                   </div>
-                ))}
+                </div>
+                <div className="dash-dash-welcome-right">
+                  <div className="dash-dash-role-badge">
+                    <span className="dash-dash-role-dot" style={{ background: role === 'director' ? '#f59e0b' : role === 'federation' ? '#a855f7' : role === 'partner' ? '#22c55e' : role === 'ambassador' ? '#3b82f6' : '#06b6d4' }} />
+                    <span>{t('role_' + role) || roleLabel}</span>
+                  </div>
+                </div>
               </div>
-              <div className="dash-section-header" style={{ marginBottom: '16px' }}>
-                <span className="dash-section-title">{t('dash_quick_access')}</span>
-              </div>
-              <div className="dash-grid-cards">
-                {navItems.filter(n => n.key !== 'dashboard' && n.key !== 'parametres').map((item, i) => {
-                  const color = statCards[i]?.color || '#f59e0b'
+
+              <div className="dash-dash-kpi-row">
+                {statCards.map((card, i) => {
+                  const kpiIcons = ['\u{1F476}', '\u{1F465}', '\u{1F4C1}', '\u{1F4E8}', '\u{1F4CB}']
+                  const kpiTrends = ['+12%', '+8%', '+23%', '-2%', '+15%']
+                  const trendColors = ['#22c55e', '#22c55e', '#22c55e', '#ef4444', '#22c55e']
+                  const barColors = ['#f59e0b', '#a855f7', '#3b82f6', '#ef4444', '#22c55e']
                   return (
-                    <div key={item.key} className="dash-stat-card" style={{ '--card-color': color, cursor: 'pointer' }} onClick={() => { setActiveKey(item.key); setSubKey(null); setEditingChild(null); }}>
-                      <h3 className="dash-stat-card-label" style={{ fontSize: '14px', marginBottom: '8px' }}>{(t('nav_' + item.key.replace(/-/g, '_')) || item.label).toUpperCase()}</h3>
-                      <p className="dash-stat-card-sub">{t('dash_access_to')} {(t('nav_' + item.key.replace(/-/g, '_')) || item.label).toLowerCase()}</p>
+                    <div key={i} className="dash-dash-kpi">
+                      <div className="dash-dash-kpi-icon" style={{ background: `rgba(${i === 3 ? '239,68,68' : i === 1 ? '168,85,247' : i === 2 ? '59,130,246' : i === 4 ? '34,197,94' : '245,158,11'},0.1)` }}>{kpiIcons[i % kpiIcons.length]}</div>
+                      <div className="dash-dash-kpi-body">
+                        <span className="dash-dash-kpi-label">{t('stat_' + role + '_' + i + '_label') || card.label}</span>
+                        <span className="dash-dash-kpi-value">{card.value}</span>
+                      </div>
+                      <div className="dash-dash-kpi-trend">
+                        <span className="dash-dash-kpi-trend-pct" style={{ color: trendColors[i % trendColors.length] }}>{kpiTrends[i % kpiTrends.length]}</span>
+                        <div className="dash-dash-kpi-trend-bar">
+                          {INTEGRITY_BARS.slice(i * 2, i * 2 + 3).map((bar, bi) => (
+                            <div key={bi} className="dash-dash-kpi-bar" style={{ height: bar.height + '%', background: barColors[i % barColors.length], opacity: 0.4 + bi * 0.2 }} />
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )
                 })}
+              </div>
+
+              <div className="dash-dash-actions-row">
+                {[
+                  { icon: '\u{2795}', label: t('dash_add_child') || 'Ajouter un enfant', key: 'enfants', color: '#f59e0b' },
+                  { icon: '\u{2795}', label: t('dash_new_project') || 'Nouveau projet', key: 'projets', color: '#3b82f6' },
+                  { icon: '\u{2795}', label: t('dash_new_doc') || 'Nouveau document', key: 'documents', color: '#a855f7' },
+                  { icon: '\u{2795}', label: t('dash_new_request') || 'Nouvelle demande', key: 'demandes', color: '#22c55e' },
+                ].map((action, i) => (
+                  <button key={i} className="dash-dash-action-btn" style={{ '--action-color': action.color }} onClick={() => { setActiveKey(action.key); setSubKey(null); setEditingChild(null); }}>
+                    <span className="dash-dash-action-icon">{action.icon}</span>
+                    <span className="dash-dash-action-label">{action.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="dash-dash-grid">
+                <div className="dash-dash-grid-left">
+                  <div className="dash-dash-card dash-dash-recent">
+                    <div className="dash-dash-card-header">
+                      <span className="dash-dash-card-title">{t('dash_recent_activities') || 'Activités récentes'}</span>
+                      <span className="dash-dash-card-badge">{RECENT_ACTIVITIES.length}</span>
+                    </div>
+                    <div className="dash-dash-card-body">
+                      {RECENT_ACTIVITIES.map((act, i) => (
+                        <div key={i} className="dash-dash-activity-item">
+                          <div className="dash-dash-activity-dot" style={{ background: i === 0 ? '#22c55e' : i === 1 ? '#3b82f6' : '#f59e0b' }} />
+                          <div className="dash-dash-activity-content">
+                            <span className="dash-dash-activity-text">{act.text}</span>
+                            <span className="dash-dash-activity-time">{act.time}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {RECENT_ACTIVITIES.length === 0 && (
+                        <div className="dash-dash-empty">{t('dash_no_activities') || 'Aucune activité récente'}</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="dash-dash-card dash-dash-upcoming">
+                    <div className="dash-dash-card-header">
+                      <span className="dash-dash-card-title">{t('dash_upcoming_projects') || 'Projets à venir'}</span>
+                      <span className="dash-dash-card-badge">{(ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS).length}</span>
+                    </div>
+                    <div className="dash-dash-card-body">
+                      {(ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS).slice(0, 4).map((proj, i) => (
+                        <div key={i} className="dash-dash-project-item" onClick={() => { setActiveKey('projets'); setProjectTypeFilter(null); setSelectedProject(proj); setShowOngoing(true); }}>
+                          <div className="dash-dash-project-top">
+                            <span className="dash-dash-project-name">{proj.title}</span>
+                            <span className={`dash-dash-project-status ${proj.status}`}>{proj.status === 'open' ? (t('proj_open') || 'Ouvert') : proj.status === 'funded' ? (t('proj_funded') || 'Financé') : (t('proj_completed') || 'Terminé')}</span>
+                          </div>
+                          <div className="dash-dash-project-meta">
+                            <span className="dash-dash-project-deadline">{t('dash_ends') || 'Fin'}: {proj.end_date || proj.created_at || '—'}</span>
+                          </div>
+                          <div className="dash-dash-project-bar">
+                            <div className="dash-dash-project-bar-fill" style={{ width: proj.amount > 0 ? Math.min(100, Math.round(proj.raised / proj.amount * 100)) + '%' : '0%' }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="dash-dash-grid-right">
+                  <div className="dash-dash-card dash-dash-notifs">
+                    <div className="dash-dash-card-header">
+                      <span className="dash-dash-card-title">{t('dash_notifications') || 'Notifications'}</span>
+                      <span className="dash-dash-card-badge dash-dash-card-badge-alert">3</span>
+                    </div>
+                    <div className="dash-dash-card-body">
+                      {[
+                        { text: t('dash_notif_critical') || 'Demandes critiques en attente', type: 'critical' },
+                        { text: t('dash_notif_approvals') || 'Approbations en attente', type: 'warning' },
+                        { text: t('dash_notif_messages') || 'Nouveaux messages reçus', type: 'info' },
+                      ].map((notif, i) => (
+                        <div key={i} className={`dash-dash-notif-item dash-dash-notif-${notif.type}`}>
+                          <div className="dash-dash-notif-icon">
+                            {notif.type === 'critical' ? '\u{26A0}\u{FE0F}' : notif.type === 'warning' ? '\u{23F3}' : '\u{1F4E8}'}
+                          </div>
+                          <span className="dash-dash-notif-text">{notif.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="dash-dash-modules">
+                <div className="dash-dash-modules-header">
+                  <span className="dash-dash-card-title">{t('dash_modules') || 'Modules'}</span>
+                </div>
+                <div className="dash-dash-modules-grid">
+                  {navItems.filter(n => n.key !== 'dashboard' && n.key !== 'parametres').map((item, i) => {
+                    const moduleIcons = ['\u{1F476}', '\u{1F4C1}', '\u{1F4CB}', '\u{1F465}', '\u{1F4E8}', '\u{1F4AC}']
+                    const moduleDescs = [
+                      t('dash_mod_enfants') || 'Gestion complète des enfants',
+                      t('dash_mod_documents') || 'Archivage numérique des documents',
+                      t('dash_mod_projets') || 'Suivi des projets et financements',
+                      t('dash_mod_ambassadeurs') || 'Gestion des ambassadeurs',
+                      t('dash_mod_demandes') || 'Gestion des demandes',
+                      t('dash_mod_comm') || 'Messages et annonces',
+                    ]
+                    const moduleCounts = [registeredChildren.length || statCards[0]?.value || 0, '86', (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS).length + ' actifs', statCards[2]?.value || 12, statCards[3]?.value || 5, '']
+                    const colors = ['#f59e0b', '#3b82f6', '#22c55e', '#a855f7', '#ef4444', '#06b6d4']
+                    return (
+                      <button key={item.key} className="dash-dash-module-card" style={{ '--mod-color': colors[i % colors.length] }} onClick={() => { setActiveKey(item.key); setSubKey(null); setEditingChild(null); }}>
+                        <div className="dash-dash-module-icon" style={{ background: `rgba(${i === 0 ? '245,158,11' : i === 1 ? '59,130,246' : i === 2 ? '34,197,94' : i === 3 ? '168,85,247' : i === 4 ? '239,68,68' : '6,182,212'},0.1)` }}>{moduleIcons[i % moduleIcons.length]}</div>
+                        <div className="dash-dash-module-info">
+                          <span className="dash-dash-module-name">{t('nav_' + item.key.replace(/-/g, '_')) || item.label}</span>
+                          <span className="dash-dash-module-desc">{moduleDescs[i % moduleDescs.length]}</span>
+                        </div>
+                        <div className="dash-dash-module-meta">
+                          {moduleCounts[i % moduleCounts.length] && <span className="dash-dash-module-count">{moduleCounts[i % moduleCounts.length]}</span>}
+                          <span className="dash-dash-module-arrow">{'\u{2192}'}</span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="dash-dash-footer">
+                <span className="dash-dash-footer-text">{t('dash_footer') || 'Fédération des Orphelinats'} v2.4.1</span>
               </div>
             </div>
           ) : (
@@ -2219,49 +2358,119 @@ function DashboardShell({ user, role, onLogout }) {
                         )}
                       </div>
                     ) : projectTypeFilter !== null ? (
-                      <div className="dash-sub-form">
-                        <div className="dash-sub-form-top">
-                          <button className="dash-back-btn" onClick={() => setProjectTypeFilter(null)}>{'\u2190'} {t('form_back')}</button>
-                          <h3 className="dash-sub-form-title">{PROJECT_TYPES.find(pt => pt.value === projectTypeFilter)?.icon} {t('proj_new_project') || 'Nouveau projet'}</h3>
-                          <span className="dash-proj-code-preview">{genProjectCode()}</span>
+                      <div className="dash-proj-create">
+                        <div className="dash-proj-create-header">
+                          <button className="dash-proj-back-btn" onClick={() => setProjectTypeFilter(null)}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                            {t('form_back')}
+                          </button>
+                          <div className="dash-proj-create-title-group">
+                            <span className="dash-proj-create-type-icon">{PROJECT_TYPES.find(pt => pt.value === projectTypeFilter)?.icon}</span>
+                            <h2 className="dash-proj-create-title">{t('proj_new_project') || 'Nouveau projet'}</h2>
+                          </div>
+                          <div className="dash-proj-create-code">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            <span>{genProjectCode()}</span>
+                          </div>
                         </div>
-                        <div className="dash-sub-form-fields dash-proj-form-fields">
-                          <div className="dash-form-field">
-                            <label className="dash-form-label">{t('proj_title') || 'Titre du projet'}</label>
-                            <input id="proj-title-input" type="text" className="dash-form-input" placeholder={t('proj_title_placeholder') || 'Entrez le titre du projet'} />
+
+                        <div className="dash-proj-create-body">
+                          <div className="dash-proj-field">
+                            <label className="dash-proj-field-label" htmlFor="proj-title-input">{t('proj_title') || 'Titre du projet'}</label>
+                            <input id="proj-title-input" type="text" className="dash-proj-input" placeholder={t('proj_title_placeholder') || 'Ex: Construction d\'une bibliothèque'} />
                           </div>
-                          <div className="dash-proj-date-row">
-                            <div className="dash-form-field" style={{ flex:1 }}>
-                              <label className="dash-form-label">{t('proj_start_date') || 'Date de début'}</label>
-                              <input id="proj-start-date" type="date" className="dash-form-input" />
+
+                          <div className="dash-proj-grid-2">
+                            <div className="dash-proj-field">
+                              <label className="dash-proj-field-label" htmlFor="proj-start-date">{t('proj_start_date') || 'Date de début'}</label>
+                              <div className="dash-proj-input-wrap">
+                                <svg className="dash-proj-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                <input id="proj-start-date" type="date" className="dash-proj-input dash-proj-input-has-icon" />
+                              </div>
                             </div>
-                            <div className="dash-form-field" style={{ flex:1 }}>
-                              <label className="dash-form-label">{t('proj_end_date') || 'Date de fin'}</label>
-                              <input id="proj-end-date" type="date" className="dash-form-input" />
-                            </div>
-                          </div>
-                          <div className="dash-form-field">
-                            <label className="dash-form-label">{t('proj_description') || 'Description du projet'}</label>
-                            <textarea id="proj-desc-input" className="dash-form-input dash-form-textarea" rows={6} placeholder={t('proj_desc_placeholder') || 'Décrivez votre projet en détail...'} />
-                          </div>
-                          <div className="dash-form-field">
-                            <label className="dash-form-label">{t('proj_pdf_doc') || 'Document PDF'} <span style={{ fontWeight:400, color:'#64748b', fontSize:'12px' }}>({t('form_optional') || 'optionnel'})</span></label>
-                            <div className="dash-proj-file-wrap">
-                              <input id="proj-pdf-input" type="file" accept="application/pdf" className="dash-form-file" />
-                              <span id="proj-pdf-name" className="dash-proj-file-name" />
+                            <div className="dash-proj-field">
+                              <label className="dash-proj-field-label" htmlFor="proj-end-date">{t('proj_end_date') || 'Date de fin'}</label>
+                              <div className="dash-proj-input-wrap">
+                                <svg className="dash-proj-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                <input id="proj-end-date" type="date" className="dash-proj-input dash-proj-input-has-icon" />
+                              </div>
                             </div>
                           </div>
-                          <div className="dash-proj-form-actions">
-                            <button className="dash-form-save" onClick={() => {
+
+                          <div className="dash-proj-field">
+                            <label className="dash-proj-field-label" htmlFor="proj-desc-input">{t('proj_description') || 'Description du projet'}</label>
+                            <textarea id="proj-desc-input" className="dash-proj-input dash-proj-textarea" maxLength={2000} placeholder={t('proj_desc_placeholder') || 'Décrivez les objectifs, le public cible et les résultats attendus...'} onInput={e => { const c = document.getElementById('proj-charcount'); if (c) c.textContent = e.target.value.length + ' / 2000' }} />
+                            <span id="proj-charcount" className="dash-proj-charcount">0 / 2000</span>
+                          </div>
+
+                          <div className="dash-proj-field">
+                            <label className="dash-proj-field-label">{t('proj_pdf_doc') || 'Document PDF'} <span className="dash-proj-optional-badge">({t('form_optional') || 'optionnel'})</span></label>
+                            <div className="dash-proj-dropzone" id="proj-dropzone" onClick={() => document.getElementById('proj-pdf-input')?.click()} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') document.getElementById('proj-pdf-input')?.click() }} tabIndex={0} role="button" aria-label={t('proj_upload_pdf') || 'Télécharger un PDF'}>
+                              <input id="proj-pdf-input" type="file" accept="application/pdf" hidden onChange={e => {
+                                const file = e.target.files?.[0]
+                                const nameEl = document.getElementById('proj-dropzone-name')
+                                const iconEl = document.getElementById('proj-dropzone-icon')
+                                const textEl = document.getElementById('proj-dropzone-text')
+                                const hintEl = document.getElementById('proj-dropzone-hint')
+                                const removeEl = document.getElementById('proj-dropzone-remove')
+                                const zone = document.getElementById('proj-dropzone')
+                                if (file && file.type === 'application/pdf') {
+                                  if (nameEl) nameEl.textContent = file.name
+                                  if (iconEl) { iconEl.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'
+                                    if (textEl) textEl.textContent = file.name
+                                    if (hintEl) hintEl.textContent = 'PDF — ' + (file.size / 1024).toFixed(0) + ' Ko'
+                                    if (removeEl) removeEl.style.display = 'flex'
+                                    zone?.classList.add('dash-proj-dropzone-has-file')
+                                  }
+                                } else if (file) {
+                                  alert(t('proj_pdf_invalid') || 'Veuillez sélectionner un fichier PDF')
+                                  e.target.value = ''
+                                }
+                              }} />
+                              <div className="dash-proj-dropzone-content" id="proj-dropzone-content">
+                                <div className="dash-proj-dropzone-icon" id="proj-dropzone-icon">
+                                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                </div>
+                                <p className="dash-proj-dropzone-text" id="proj-dropzone-text">{t('proj_drag_drop') || 'Glissez-déposez votre PDF ici'}</p>
+                                <span className="dash-proj-dropzone-hint" id="proj-dropzone-hint">{t('proj_click_browse') || 'ou cliquez pour parcourir'}</span>
+                              </div>
+                              <div className="dash-proj-dropzone-file" id="proj-dropzone-file">
+                                <div className="dash-proj-dropzone-file-info">
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                  <span className="dash-proj-dropzone-file-name" id="proj-dropzone-name" />
+                                </div>
+                                <button className="dash-proj-dropzone-remove" id="proj-dropzone-remove" type="button" onClick={e => {
+                                  e.stopPropagation()
+                                  const input = document.getElementById('proj-pdf-input')
+                                  if (input) input.value = ''
+                                  const zone = document.getElementById('proj-dropzone')
+                                  zone?.classList.remove('dash-proj-dropzone-has-file')
+                                  const iconEl = document.getElementById('proj-dropzone-icon')
+                                  if (iconEl) iconEl.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>'
+                                  const textEl = document.getElementById('proj-dropzone-text')
+                                  if (textEl) textEl.textContent = t('proj_drag_drop') || 'Glissez-déposez votre PDF ici'
+                                  const hintEl = document.getElementById('proj-dropzone-hint')
+                                  if (hintEl) hintEl.textContent = t('proj_click_browse') || 'ou cliquez pour parcourir'
+                                }} aria-label={t('proj_remove_file') || 'Supprimer le fichier'}>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="dash-proj-create-actions">
+                            <button className="dash-proj-btn dash-proj-btn-primary" onClick={() => {
+                              const btn = document.getElementById('proj-submit-btn')
+                              if (btn) btn.classList.add('dash-proj-btn-loading')
                               const title = document.getElementById('proj-title-input')?.value?.trim()
                               const desc = document.getElementById('proj-desc-input')?.value?.trim()
                               const startDate = document.getElementById('proj-start-date')?.value
                               const endDate = document.getElementById('proj-end-date')?.value
                               const pdfInput = document.getElementById('proj-pdf-input')
                               const pdfFile = pdfInput?.files?.[0]
-                              if (!title) { alert(t('proj_title_required') || 'Veuillez entrer un titre'); return }
-                              if (!desc) { alert(t('proj_desc_required') || 'Veuillez entrer une description'); return }
-                              if (!startDate || !endDate) { alert(t('proj_start_end_required') || 'Veuillez sélectionner les dates de début et de fin'); return }
+                              if (!title) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_title_required') || 'Veuillez entrer un titre'); return }
+                              if (!desc) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_desc_required') || 'Veuillez entrer une description'); return }
+                              if (!startDate || !endDate) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_start_end_required') || 'Veuillez sélectionner les dates de début et de fin'); return }
                               const code = genProjectCode()
                               const newProj = {
                                 id: Date.now(),
@@ -2283,10 +2492,12 @@ function DashboardShell({ user, role, onLogout }) {
                                 const reader = new FileReader()
                                 reader.onload = (ev) => {
                                   newProj.pdf_url = ev.target.result
+                                  if (btn) btn.classList.remove('dash-proj-btn-loading')
                                   finalizeProject(newProj)
                                 }
                                 reader.readAsDataURL(pdfFile)
                               } else {
+                                if (btn) btn.classList.remove('dash-proj-btn-loading')
                                 finalizeProject(newProj)
                               }
                               function finalizeProject(p) {
@@ -2295,8 +2506,15 @@ function DashboardShell({ user, role, onLogout }) {
                                 setProjectTypeFilter(null)
                                 setShowOngoing(true)
                               }
-                            }}>{t('proj_submit') || 'Soumettre le projet'}</button>
-                            <button className="dash-form-cancel" onClick={() => setProjectTypeFilter(null)}>{t('form_cancel') || 'Annuler'}</button>
+                            }} id="proj-submit-btn">
+                              <span className="dash-proj-btn-label">{t('proj_submit') || 'Soumettre le projet'}</span>
+                              <span className="dash-proj-btn-spinner">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round"/></svg>
+                              </span>
+                            </button>
+                            <button className="dash-proj-btn dash-proj-btn-secondary" onClick={() => setProjectTypeFilter(null)}>
+                              {t('form_cancel') || 'Annuler'}
+                            </button>
                           </div>
                         </div>
                       </div>
