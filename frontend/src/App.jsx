@@ -58,6 +58,8 @@ export default function App() {
   const [chatbotCollapsed, setChatbotCollapsed] = useState(true)
   const [verifyParams, setVerifyParams] = useState(null)
   const [user, setUser] = useState(null)
+  const [activeKey, setActiveKey] = useState('dashboard')
+  const [subKey, setSubKey] = useState(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -90,8 +92,8 @@ export default function App() {
       return (
         <LangProvider>
           <div className="app">
-            <DashboardHeader user={user} roleLower={roleLower} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} />
-            <main><DashboardShell user={user} role={roleLower} onLogout={logout} /></main>
+            <DashboardHeader user={user} roleLower={roleLower} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} activeKey={activeKey} subKey={subKey} setActiveKey={setActiveKey} setSubKey={setSubKey} />
+            <main><DashboardShell user={user} role={roleLower} onLogout={logout} activeKey={activeKey} setActiveKey={setActiveKey} subKey={subKey} setSubKey={setSubKey} /></main>
           </div>
         </LangProvider>
       )
@@ -755,7 +757,7 @@ const INTEGRITY_BARS = [
   { height: 90, color: '#22c55e' },
 ]
 
-function DashboardHeader({ user, roleLower, roleLabel }) {
+function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setActiveKey, setSubKey }) {
   const { t, lang, setLang } = useTranslation()
   const [time, setTime] = useState(new Date())
   const [profileImg, setProfileImg] = useState(localStorage.getItem('cdo_profile_img') || null)
@@ -887,138 +889,137 @@ function DashboardHeader({ user, roleLower, roleLabel }) {
   ]
 
   return (
-    <header className="dash-header">
-      <div className="dash-header-inner">
+    <header className="hd">
+      <div className="hd-inner">
 
-        {/* LEFT — Avatar + Info */}
-        <div className="dash-header-left">
-          <div className="dash-avatar-row">
-            <div className="dash-avatar-wrapper" onClick={() => fileInputRef.current?.click()} title={t('dash_edit_photo')}>
-              <img src={profileImg || avatarSvg} alt="" className="dash-avatar" />
-              <div className="dash-avatar-overlay">+</div>
-              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: 'none' }} />
-            </div>
-            {roleLower === 'director' && localOrpName && (
-              <span className="dash-header-orp-name">{localOrpName}</span>
-            )}
-            {!searchOpen ? (
-              <div className="dash-header-search-icon" onClick={() => { setSearchOpen(true); setSearchQuery(''); setSearchResults([]) }} title={t('dash_search')}>
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              </div>
-            ) : (
-              <div className="dash-header-search-expanded" ref={searchRef}>
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input
-                  type="text"
-                  className="dash-search-input"
-                  placeholder={t('dash_search_placeholder')}
-                  value={searchQuery}
-                  onChange={handleSearchInput}
-                  autoFocus
-                />
-                {searchLoading && <span className="dash-search-spinner" />}
-                <button className="dash-search-close" onClick={() => { setSearchOpen(false); setSearchQuery(''); setSearchResults([]) }}>✕</button>
-                {searchResults.length > 0 && (
-                  <div className="dash-search-expanded-results">
-                    {searchResults.slice(0, 8).map(child => (
-                      <div key={child.id || child.uid} className="dash-search-result-item" onClick={() => {
-                        window.dispatchEvent(new CustomEvent('cdo-navigate-child', { detail: { uid: child.uid } }))
-                        setSearchOpen(false); setSearchQuery(''); setSearchResults([])
-                      }}>
-                        <span className="dash-search-result-name">{child.prenom || ''} {child.nom || ''}</span>
-                        <span className="dash-search-result-uid">{child.uid}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {searchQuery.trim() && !searchLoading && searchResults.length === 0 && (
-                  <div className="dash-search-empty">{t('dash_search_empty')}</div>
-                )}
-              </div>
-            )}
+        {/* ── LEFT: Logo + Breadcrumb ── */}
+        <div className="hd-left">
+          <div className="hd-brand">
+            <img src="/logo.jpg" alt="CDO" className="hd-logo" />
+            <span className="hd-brand-name">{localOrpName || (t('dash_org_name') || 'Fédération des Orphelinats')}</span>
           </div>
-          <div className="dash-profile-text">
-            <span className="dash-profile-name">{flagImg(user.country || 'CD')} {user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username}</span>
-            <span className="dash-profile-role">{t('role_' + roleLower) || roleLabel}</span>
-          </div>
+          <nav className="hd-breadcrumb" aria-label="Breadcrumb">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span>{t('nav_' + activeKey.replace(/-/g, '_')) || activeKey}</span>
+            {subKey && <><span className="hd-breadcrumb-sep">/</span><span className="hd-breadcrumb-current">{subKey}</span></>}
+          </nav>
         </div>
 
-        {/* CENTER — System Status */}
-        <div className="dash-header-center">
-          <span className="dash-status-dot"></span>
-          <span className="dash-status-text">{t('dash_system_status')}</span>
-          <span className="dash-status-star">★</span>
-        </div>
-
-        {/* RIGHT — Country · Notifications · Time · Theme */}
-        <div className="dash-header-right">
-
-          {/* Country flag */}
-          <div className="dh-country-static">
-            <span className="dh-country-flag">{flagImg(user.country || 'CD', '', '18px')}</span>
-            <span className="dh-country-name">{countryName(user.country || 'CD')}</span>
-          </div>
-
-          {/* Logo */}
-          <img src="/logo.jpg" alt="Logo" className="dash-logo" />
-
-          {/* Language Select */}
-          <div className="dh-lang-wrap">
-            <select className="dh-lang-select" value={lang} onChange={e => setLang(e.target.value)}>
-              <option value="fr">FR</option>
-              <option value="en">EN</option>
-              <option value="sw">SW</option>
-              <option value="ln">LN</option>
-              <option value="kg">KG</option>
-              <option value="tl">TL</option>
-            </select>
-          </div>
-
-          {/* Notification Bell */}
-          <div className="dh-notif-wrap" ref={notifDropRef}>
-            <button
-              id="dh-notif-btn"
-              className="dh-notif-btn"
-              onClick={() => { setNotifOpen(v => !v); setCountryDropOpen(false) }}
-              title={t('dash_notifications')}
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              {notifCount > 0 && <span className="dh-notif-badge">{notifCount}</span>}
-            </button>
-            {notifOpen && (
-              <div className="dh-dropdown dh-notif-drop">
-                <div className="dh-notif-header">{t('dash_notifications')}</div>
-                {NOTIFS.map((n, i) => (
-                  <div key={i} className="dh-notif-item">
-                    <span className="dh-notif-icon">{n.icon}</span>
-                    <div className="dh-notif-body">
-                      <div className="dh-notif-text">{n.text}</div>
-                      <div className="dh-notif-time">{n.time}</div>
+        {/* ── CENTER: Global Search ── */}
+        <div className="hd-center">
+          <div className="hd-search" ref={searchRef}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              type="text"
+              className="hd-search-input"
+              placeholder={t('dash_search_placeholder') || 'Rechercher enfants, projets...'}
+              value={searchQuery}
+              onChange={handleSearchInput}
+              onFocus={() => setSearchOpen(true)}
+            />
+            {searchLoading && <span className="hd-search-spinner" />}
+            {searchOpen && searchQuery.trim() && (
+              <div className="hd-search-drop">
+                {searchResults.length > 0 ? (
+                  searchResults.slice(0, 8).map(child => (
+                    <div key={child.id || child.uid} className="hd-search-item" onClick={() => {
+                      window.dispatchEvent(new CustomEvent('cdo-navigate-child', { detail: { uid: child.uid } }))
+                      setSearchOpen(false); setSearchQuery(''); setSearchResults([])
+                    }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      <span className="hd-search-item-name">{child.prenom || ''} {child.nom || ''}</span>
+                      <span className="hd-search-item-uid">{child.uid}</span>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div className="hd-search-empty">{t('dash_search_empty') || 'Aucun résultat'}</div>
+                )}
               </div>
             )}
           </div>
+        </div>
 
-          {/* Clock */}
-          <div className="dash-header-time">
-            <span className="dash-time-label">{t('dash_time_label')}</span>
-            <span className="dash-time-value">{time.toLocaleTimeString(lang === 'en' ? 'en-US' : 'fr-FR')}</span>
+        {/* ── RIGHT: Tools + User ── */}
+        <div className="hd-right">
+
+          {/* Group: Location + Language */}
+          <div className="hd-group">
+            <div className="hd-country" title={countryName(user.country || 'CD')}>
+              {flagImg(user.country || 'CD', '', '18px')}
+            </div>
+            <div className="hd-lang-wrap">
+              <select className="hd-lang-select" value={lang} onChange={e => setLang(e.target.value)} aria-label="Language">
+                <option value="fr">FR</option>
+                <option value="en">EN</option>
+                <option value="sw">SW</option>
+                <option value="ln">LN</option>
+                <option value="kg">KG</option>
+                <option value="tl">TL</option>
+              </select>
+            </div>
           </div>
 
-          {/* Theme Toggle */}
-          <button
-            id="dh-theme-btn"
-            className="dh-theme-btn"
-            onClick={toggleTheme}
-            title={theme === 'dark' ? t('dash_theme_light') : t('dash_theme_dark')}
-          >
-            {theme === 'dark'
-              ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-              : <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-            }
-          </button>
+          {/* Divider */}
+          <div className="hd-divider" />
+
+          {/* Group: Status + Clock */}
+          <div className="hd-group">
+            <span className="hd-status" title={t('dash_system_status') || 'Système opérationnel'}>
+              <span className="hd-status-dot" />
+              <span className="hd-status-text">{t('dash_system_status') || 'Opérationnel'}</span>
+            </span>
+            <span className="hd-clock">{time.toLocaleTimeString(lang === 'en' ? 'en-US' : 'fr-FR', { hour:'2-digit', minute:'2-digit' })}</span>
+          </div>
+
+          {/* Divider */}
+          <div className="hd-divider" />
+
+          {/* Group: Notifications + Theme */}
+          <div className="hd-group">
+            <div className="hd-notif-wrap" ref={notifDropRef}>
+              <button className="hd-icon-btn" onClick={() => { setNotifOpen(v => !v) }} title={t('dash_notifications')} aria-label="Notifications">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                {notifCount > 0 && <span className="hd-badge">{notifCount}</span>}
+              </button>
+              {notifOpen && (
+                <div className="hd-dropdown">
+                  <div className="hd-dropdown-header">{t('dash_notifications')}</div>
+                  {NOTIFS.map((n, i) => (
+                    <div key={i} className="hd-dropdown-item">
+                      <span className="hd-dropdown-icon">{n.icon}</span>
+                      <div className="hd-dropdown-body">
+                        <div className="hd-dropdown-text">{n.text}</div>
+                        <div className="hd-dropdown-time">{n.time}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button className="hd-icon-btn" onClick={toggleTheme} title={theme === 'dark' ? t('dash_theme_light') : t('dash_theme_dark')} aria-label="Toggle theme">
+              {theme === 'dark'
+                ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              }
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="hd-divider" />
+
+          {/* User (always visible, avatar + name) */}
+          <div className="hd-user" onClick={() => { setActiveKey('parametres'); setSubKey('Profil') }} title={t('settings_profile') || 'Mon Profil'}>
+            <div className="hd-user-avatar">
+              <img src={profileImg || avatarSvg} alt="" />
+            </div>
+            <div className="hd-user-info">
+              <span className="hd-user-name">{user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username}</span>
+              <span className="hd-user-role">{t('role_' + roleLower) || roleLabel}</span>
+            </div>
+            <svg className="hd-user-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+
         </div>
       </div>
     </header>
@@ -1370,12 +1371,13 @@ function EclatSocialApp({ user, onReturn }) {
   )
 }
 
-function DashboardShell({ user, role, onLogout }) {
-  const [activeKey, setActiveKey] = useState('dashboard')
-  const [subKey, setSubKey] = useState(null)
+function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey, setSubKey }) {
   const [registeredChildren, setRegisteredChildren] = useState([])
   const [selectedRegChild, setSelectedRegChild] = useState(null)
   const [editingChild, setEditingChild] = useState(null)
+  const [childSearchQuery, setChildSearchQuery] = useState('')
+  const [childGenderFilter, setChildGenderFilter] = useState('')
+  const [childSortBy, setChildSortBy] = useState('date')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [profileImg, setProfileImg] = useState(localStorage.getItem('cdo_profile_img') || null)
   const uidRef = useRef(genChildUid())
@@ -1503,6 +1505,8 @@ function DashboardShell({ user, role, onLogout }) {
     if (label === "Adresse d'origine") return editingChild.adresse || ''
     return editingChild.extra_data?.[label] || editingChild[label] || ''
   }
+  const [profVersion, setProfVersion] = useState(0)
+  const updateProfCompletion = () => setProfVersion(v => v + 1)
 
   const navItems = ROLE_NAV[role] || ROLE_NAV.director
   const pages = ROLE_PAGES[role] || ROLE_PAGES.director
@@ -1978,6 +1982,523 @@ function DashboardShell({ user, role, onLogout }) {
                       </div>
                     </div>
                   </div>
+                ) : subKey && activeKey === 'enfants' && subKey === 'Profil & identité' ? (
+                  <div className="dash-prof-create">
+                    <div className="dash-prof-header">
+                      <button className="dash-prof-back-btn" onClick={() => setSubKey(null)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                        {t('form_back')}
+                      </button>
+                      <div className="dash-prof-header-info">
+                        <h2 className="dash-prof-title">{t('form_profil_title') || 'Profil & identité'}</h2>
+                        <span className="dash-prof-subtitle">{t('prof_manage_identity') || 'Gérez les informations personnelles et l\'identité du bénéficiaire'}</span>
+                      </div>
+                      <div className="dash-prof-progress">
+                        <div className="dash-prof-progress-text">
+                          <span>{t('prof_completion') || 'Profil complété'}</span>
+                          <span className="dash-prof-progress-pct" id="prof-completion-pct">{
+                            (() => {
+                              const fields = ['Nom', 'Prénom', 'Sexe', 'Date de naissance', 'Nationalité', "Adresse d'origine"]
+                              const filled = fields.filter(f => getFieldValue(f)).length
+                              const uid = editingChild ? editingChild.uid : uidRef.current
+                              const hasPhoto = !!localStorage.getItem('cdo_child_photo_' + uid) || !!getFieldValue('Photo')
+                              return Math.round((filled + (hasPhoto ? 1 : 0)) / (fields.length + 1) * 100)
+                            })()
+                          }%</span>
+                        </div>
+                        <div className="dash-prof-progress-bar">
+                          <div className="dash-prof-progress-fill" style={{ width: (() => {
+                            const fields = ['Nom', 'Prénom', 'Sexe', 'Date de naissance', 'Nationalité', "Adresse d'origine"]
+                            const filled = fields.filter(f => getFieldValue(f)).length
+                            const uid = editingChild ? editingChild.uid : uidRef.current
+                            const hasPhoto = !!localStorage.getItem('cdo_child_photo_' + uid) || !!getFieldValue('Photo')
+                            return Math.round((filled + (hasPhoto ? 1 : 0)) / (fields.length + 1) * 100)
+                          })() + '%' }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="dash-prof-body">
+                      <div className="dash-prof-form-col">
+                        <div className="dash-prof-card">
+                          <div className="dash-prof-card-section">
+                            <h4 className="dash-prof-section-title">{t('prof_personal_info') || 'Informations personnelles'}</h4>
+                            <div className="dash-prof-grid-2">
+                              <div className="dash-prof-field">
+                                <label className="dash-prof-field-label" htmlFor="prof-nom">{t('signup_lastname') || 'Nom'}</label>
+                                <input id="prof-nom" type="text" className="dash-prof-input" defaultValue={getFieldValue('Nom')} placeholder="Ex: Kiesse" onInput={() => updateProfCompletion()} />
+                              </div>
+                              <div className="dash-prof-field">
+                                <label className="dash-prof-field-label" htmlFor="prof-prenom">{t('signup_firstname') || 'Prénom'}</label>
+                                <input id="prof-prenom" type="text" className="dash-prof-input" defaultValue={getFieldValue('Prénom')} placeholder="Ex: Samuel" onInput={() => updateProfCompletion()} />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="dash-prof-card-section">
+                            <h4 className="dash-prof-section-title">{t('prof_demographic_info') || 'Informations démographiques'}</h4>
+                            <div className="dash-prof-grid-3">
+                              <div className="dash-prof-field">
+                                <label className="dash-prof-field-label" htmlFor="prof-sexe">{t('form_sex') || 'Sexe'}</label>
+                                <select id="prof-sexe" className="dash-prof-input" defaultValue={getFieldValue('Sexe')} onChange={() => updateProfCompletion()}>
+                                  <option value="">{t('form_select_placeholder') || 'Sélectionner...'}</option>
+                                  <option value="Masculin">{t('form_male') || 'Masculin'}</option>
+                                  <option value="Féminin">{t('form_female') || 'Féminin'}</option>
+                                </select>
+                              </div>
+                              <div className="dash-prof-field">
+                                <label className="dash-prof-field-label" htmlFor="prof-dob">{t('form_dob') || 'Date de naissance'}</label>
+                                <div className="dash-prof-input-wrap">
+                                  <svg className="dash-prof-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                  <input id="prof-dob" type="date" className="dash-prof-input dash-prof-input-has-icon" defaultValue={getFieldValue('Date de naissance')} onChange={e => {
+                                    const ageEl = document.getElementById('prof-age-display')
+                                    if (ageEl && e.target.value) {
+                                      const bd = new Date(e.target.value)
+                                      const today = new Date()
+                                      let age = today.getFullYear() - bd.getFullYear()
+                                      const m = today.getMonth() - bd.getMonth()
+                                      if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--
+                                      ageEl.textContent = age + ' ' + (t('prof_years') || 'ans')
+                                    } else if (ageEl) { ageEl.textContent = '—' }
+                                    updateProfCompletion()
+                                  }} />
+                                </div>
+                              </div>
+                              <div className="dash-prof-field">
+                                <label className="dash-prof-field-label" htmlFor="prof-nationalite">{t('form_nationality') || 'Nationalité'}</label>
+                                <select id="prof-nationalite" className="dash-prof-input" defaultValue={getFieldValue('Nationalité')} onChange={() => updateProfCompletion()}>
+                                  <option value="">{t('form_select_placeholder') || 'Sélectionner...'}</option>
+                                  {AFRICAN_COUNTRIES.map((c, ci) => <option key={ci} value={c.name}>{c.name}</option>)}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="dash-prof-card-section">
+                            <h4 className="dash-prof-section-title">{t('prof_address') || 'Adresse'}</h4>
+                            <div className="dash-prof-field">
+                              <label className="dash-prof-field-label" htmlFor="prof-address">{t('form_origin_address') || 'Adresse d\'origine'}</label>
+                              <input id="prof-address" type="text" className="dash-prof-input" defaultValue={getFieldValue("Adresse d'origine")} placeholder={t('prof_address_placeholder') || 'Ville, province, pays d\'origine'} onInput={() => updateProfCompletion()} />
+                            </div>
+                          </div>
+
+                          <div className="dash-prof-card-section">
+                            <h4 className="dash-prof-section-title">{t('prof_photo') || 'Photo'}</h4>
+                            <div className="dash-prof-photo-zone" id="prof-photo-zone" onClick={() => document.getElementById('prof-photo-input')?.click()} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') document.getElementById('prof-photo-input')?.click() }} tabIndex={0} role="button" aria-label={t('prof_upload_photo') || 'Télécharger une photo'}>
+                              <input id="prof-photo-input" type="file" accept="image/*" hidden onChange={e => {
+                                const file = e.target.files?.[0]
+                                if (file) {
+                                  const reader = new FileReader()
+                                  reader.onload = (ev) => {
+                                    const uid = editingChild ? editingChild.uid : uidRef.current
+                                    localStorage.setItem('cdo_child_photo_' + uid, ev.target.result)
+                                    const preview = document.getElementById('prof-photo-preview')
+                                    const zone = document.getElementById('prof-photo-zone')
+                                    if (preview) { preview.src = ev.target.result; preview.style.display = 'block' }
+                                    if (zone) zone.classList.add('dash-prof-photo-has')
+                                    const icon = document.getElementById('prof-photo-icon')
+                                    if (icon) icon.style.display = 'none'
+                                    const text = document.getElementById('prof-photo-text')
+                                    if (text) text.style.display = 'none'
+                                    const remove = document.getElementById('prof-photo-remove')
+                                    if (remove) remove.style.display = 'flex'
+                                    updateProfCompletion()
+                                  }
+                                  reader.readAsDataURL(file)
+                                }
+                              }} />
+                              <div id="prof-photo-icon" className="dash-prof-photo-icon">
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                              </div>
+                              <p id="prof-photo-text" className="dash-prof-photo-text">{t('prof_drag_photo') || 'Glissez-déposez ou cliquez pour ajouter une photo'}</p>
+                              {(() => {
+                                const uid = editingChild ? editingChild.uid : uidRef.current
+                                const saved = localStorage.getItem('cdo_child_photo_' + uid)
+                                return saved ? <img id="prof-photo-preview" className="dash-prof-photo-preview" src={saved} alt="" /> : null
+                              })()}
+                              <button id="prof-photo-remove" className="dash-prof-photo-remove" type="button" style={{ display: (() => { const uid = editingChild ? editingChild.uid : uidRef.current; return localStorage.getItem('cdo_child_photo_' + uid) ? 'flex' : 'none' })() }} onClick={e => {
+                                e.stopPropagation()
+                                const uid = editingChild ? editingChild.uid : uidRef.current
+                                localStorage.removeItem('cdo_child_photo_' + uid)
+                                document.getElementById('prof-photo-input').value = ''
+                                const preview = document.getElementById('prof-photo-preview')
+                                if (preview) { preview.style.display = 'none'; preview.src = '' }
+                                const zone = document.getElementById('prof-photo-zone')
+                                if (zone) zone.classList.remove('dash-prof-photo-has')
+                                const icon = document.getElementById('prof-photo-icon')
+                                if (icon) icon.style.display = 'flex'
+                                const text = document.getElementById('prof-photo-text')
+                                if (text) text.style.display = 'block'
+                                const remove = document.getElementById('prof-photo-remove')
+                                if (remove) remove.style.display = 'none'
+                                updateProfCompletion()
+                              }} aria-label={t('prof_remove_photo') || 'Supprimer la photo'}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="dash-prof-card-section">
+                            <div className="dash-prof-uid-box">
+                              <div className="dash-prof-uid-label">{t('form_unique_id') || 'ID UNIQUE'}</div>
+                              <div className="dash-prof-uid-value">
+                                <span className="dash-prof-uid-text">{editingChild ? editingChild.uid : uidRef.current}</span>
+                                <button className="dash-prof-uid-copy" onClick={() => {
+                                  navigator.clipboard.writeText(editingChild ? editingChild.uid : uidRef.current)
+                                  const btn = document.getElementById('prof-uid-copy-btn')
+                                  if (btn) { btn.textContent = '\u2713'; setTimeout(() => { btn.textContent = t('prof_copy') || 'Copier' }, 2000) }
+                                }} id="prof-uid-copy-btn">{t('prof_copy') || 'Copier'}</button>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="dash-prof-actions">
+                            <button className="dash-prof-btn dash-prof-btn-secondary" onClick={() => setSubKey(null)}>{t('form_cancel') || 'Annuler'}</button>
+                            <button className="dash-prof-btn dash-prof-btn-primary" id="prof-save-btn" onClick={async () => {
+                              const btn = document.getElementById('prof-save-btn')
+                              if (btn) btn.classList.add('dash-prof-btn-loading')
+                              const nom = document.getElementById('prof-nom')?.value?.trim() || getFieldValue('Nom')
+                              const prenom = document.getElementById('prof-prenom')?.value?.trim() || getFieldValue('Prénom')
+                              const sexe = document.getElementById('prof-sexe')?.value || getFieldValue('Sexe')
+                              const dateNaiss = document.getElementById('prof-dob')?.value || getFieldValue('Date de naissance')
+                              const nationalite = document.getElementById('prof-nationalite')?.value || getFieldValue('Nationalité')
+                              const adresse = document.getElementById('prof-address')?.value?.trim() || getFieldValue("Adresse d'origine")
+                              const uid = editingChild ? editingChild.uid : uidRef.current
+                              const photoData = localStorage.getItem('cdo_child_photo_' + uid)
+                              const hasPhoto = !!photoData
+
+                              let url = `${API}/enfants/`
+                              let method = 'POST'
+                              if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
+                              let token = localStorage.getItem('access_token')
+                              if (!token) { if (btn) btn.classList.remove('dash-prof-btn-loading'); alert('Session expirée'); return }
+
+                              const dataToFile = (dataurl, name) => {
+                                const arr = dataurl.split(',')
+                                const mime = arr[0].match(/:(.*?);/)[1]
+                                const bstr = atob(arr[1])
+                                let n = bstr.length
+                                const u8arr = new Uint8Array(n)
+                                while (n--) u8arr[n] = bstr.charCodeAt(n)
+                                return new File([u8arr], name, { type: mime })
+                              }
+
+                              let body, headers
+                              if (hasPhoto) {
+                                const fd = new FormData()
+                                fd.append('uid', uid)
+                                fd.append('nom', nom)
+                                fd.append('prenom', prenom)
+                                fd.append('sexe', sexe === 'Masculin' ? 'M' : sexe === 'Féminin' ? 'F' : '')
+                                fd.append('date_naissance', dateNaiss || '')
+                                fd.append('nationalite', nationalite)
+                                fd.append('adresse', adresse)
+                                fd.append('photo', dataToFile(photoData, 'photo.jpg'))
+                                if (editingChild) fd.append('extra_data', JSON.stringify(editingChild.extra_data || {}))
+                                body = fd
+                                headers = { Authorization: `Bearer ${token}` }
+                              } else {
+                                body = JSON.stringify({
+                                  uid, nom, prenom,
+                                  sexe: sexe === 'Masculin' ? 'M' : sexe === 'Féminin' ? 'F' : '',
+                                  date_naissance: dateNaiss || null,
+                                  nationalite, adresse,
+                                  photo: editingChild ? editingChild.photo : null,
+                                  extra_data: editingChild ? { ...editingChild.extra_data } : {},
+                                })
+                                headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+                              }
+
+                              try {
+                                let res = await fetch(url, { method, headers, body })
+                                if (res.status === 401) {
+                                  const refresh = localStorage.getItem('refresh_token')
+                                  if (!refresh) throw new Error('Session expirée')
+                                  const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+                                  if (!refRes.ok) throw new Error('Session expirée')
+                                  const tokens = await refRes.json()
+                                  localStorage.setItem('access_token', tokens.access)
+                                  headers.Authorization = `Bearer ${tokens.access}`
+                                  res = await fetch(url, { method, headers, body })
+                                }
+                                if (!res.ok) {
+                                  const errData = await res.json().catch(() => ({}))
+                                  const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'
+                                  throw new Error(errMsg)
+                                }
+                                const saved = await res.json()
+                                setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
+                                if (btn) btn.classList.remove('dash-prof-btn-loading')
+                                setSubKey(null)
+                                setEditingChild(saved)
+                                uidRef.current = saved.uid
+                              } catch (e) {
+                                if (method === 'POST' && e.message?.includes('dupliquée')) {
+                                  uidRef.current = genChildUid()
+                                  const newBody = hasPhoto
+                                    ? (() => { const f = new FormData(); f.append('uid', uidRef.current); for (const [k,v] of body.entries()) if (k !== 'uid') f.append(k,v); return f })()
+                                    : { ...JSON.parse(body), uid: uidRef.current }
+                                  try {
+                                    let retry = await fetch(`${API}/enfants/`, { method: 'POST', headers: hasPhoto ? { Authorization: `Bearer ${localStorage.getItem('access_token')}` } : { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` }, body: newBody })
+                                    if (retry.ok) {
+                                      const saved = await retry.json()
+                                      setRegisteredChildren(prev => [...prev, saved])
+                                      if (btn) btn.classList.remove('dash-prof-btn-loading')
+                                      setSubKey(null); setEditingChild(saved); uidRef.current = saved.uid
+                                      return
+                                    }
+                                  } catch (_) {}
+                                }
+                                if (btn) btn.classList.remove('dash-prof-btn-loading')
+                                alert(e.message || 'Erreur lors de l\'enregistrement')
+                              }
+                            }}>
+                              <span className="dash-prof-btn-label">{t('form_save') || 'Enregistrer'}</span>
+                              <span className="dash-prof-btn-spinner">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round"/></svg>
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="dash-prof-side-col">
+                        <div className="dash-prof-identity-card">
+                          <div className="dash-prof-id-avatar">
+                            {(() => {
+                              const uid = editingChild ? editingChild.uid : uidRef.current
+                              const saved = localStorage.getItem('cdo_child_photo_' + uid)
+                              if (saved) return <img src={saved} alt="" className="dash-prof-id-img" />
+                              const inits = ((getFieldValue('Prénom')?.[0] || '') + (getFieldValue('Nom')?.[0] || '')).toUpperCase() || '?'
+                              const colors = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6']
+                              const c = colors[(inits.charCodeAt(0) || 0) % colors.length]
+                              return <div className="dash-prof-id-inits" style={{ background: c }}>{inits}</div>
+                            })()}
+                            <span className="dash-prof-id-badge">{'\u2713'} {t('prof_active') || 'Profil Actif'}</span>
+                          </div>
+                          <div className="dash-prof-id-body">
+                            <h3 className="dash-prof-id-name">{getFieldValue('Prénom') || 'Prénom'} {getFieldValue('Nom') || 'Nom'}</h3>
+                            <div className="dash-prof-id-field">
+                              <span className="dash-prof-id-label">{t('form_unique_id') || 'ID Unique'}</span>
+                              <span className="dash-prof-id-value">{editingChild ? editingChild.uid : uidRef.current}</span>
+                            </div>
+                            <div className="dash-prof-id-field">
+                              <span className="dash-prof-id-label">{t('form_nationality') || 'Nationalité'}</span>
+                              <span className="dash-prof-id-value">{getFieldValue('Nationalité') || '—'}</span>
+                            </div>
+                            <div className="dash-prof-id-field">
+                              <span className="dash-prof-id-label">{t('form_age') || 'Âge'}</span>
+                              <span className="dash-prof-id-value" id="prof-age-display">{(() => {
+                                const dob = getFieldValue('Date de naissance')
+                                if (!dob) return '—'
+                                const bd = new Date(dob)
+                                const today = new Date()
+                                let age = today.getFullYear() - bd.getFullYear()
+                                const m = today.getMonth() - bd.getMonth()
+                                if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--
+                                return age + ' ' + (t('prof_years') || 'ans')
+                              })()}</span>
+                            </div>
+                          </div>
+                          <div className="dash-prof-id-footer">
+                            <div className="dash-prof-id-uid-box">
+                              <span className="dash-prof-id-uid-label">{t('form_unique_id') || 'ID UNIQUE'}</span>
+                              <span className="dash-prof-id-uid-code">{editingChild ? editingChild.uid : uidRef.current}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : subKey && activeKey === 'enfants' && subKey === 'Situation familiale' ? (
+                  <div className="dash-fam-wrap">
+                    <div className="dash-fam-header">
+                      <button className="dash-fam-back" onClick={() => setSubKey(null)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                        {t('form_back') || 'Retour'}
+                      </button>
+                      <h2 className="dash-fam-title">{t('form_famille_title') || 'Situation familiale'}</h2>
+                    </div>
+                    <div className="dash-fam-card">
+                      <div className="dash-fam-field">
+                        <label className="dash-fam-label" htmlFor="fam-parents">{t('form_famille_parents') || 'Parents connus'}</label>
+                        <select id="fam-parents" className="dash-fam-select" defaultValue={getFieldValue('Parents connus')}>
+                          <option value="">{t('form_select_placeholder') || 'Sélectionner...'}</option>
+                          <option value="Oui">{t('form_famille_oui') || 'Oui'}</option>
+                          <option value="Non">{t('form_famille_non') || 'Non'}</option>
+                          <option value="Non renseigné">{t('form_famille_nr') || 'Non renseigné'}</option>
+                        </select>
+                        <svg className="dash-fam-select-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                      </div>
+                      <div className="dash-fam-field">
+                        <label className="dash-fam-label" htmlFor="fam-tuteurs">{t('form_famille_tuteurs') || 'Tuteurs'}</label>
+                        <input id="fam-tuteurs" type="text" className="dash-fam-input" defaultValue={getFieldValue('Tuteurs')} placeholder={t('form_famille_tuteurs_placeholder') || 'Nom et prénom des tuteurs légaux'} />
+                      </div>
+                      <div className="dash-fam-field">
+                        <label className="dash-fam-label" htmlFor="fam-fratrie">{t('form_famille_fratrie') || 'Fratrie'}</label>
+                        <textarea id="fam-fratrie" className="dash-fam-textarea" rows={4} defaultValue={getFieldValue('Fratrie')} placeholder={t('form_famille_fratrie_placeholder') || 'Noms, âges et informations des frères et sœurs'} />
+                      </div>
+                      <div className="dash-fam-field">
+                        <label className="dash-fam-label" htmlFor="fam-historique">{t('form_famille_historique') || 'Historique familial'}</label>
+                        <textarea id="fam-historique" className="dash-fam-textarea" rows={4} defaultValue={getFieldValue('Historique familial')} placeholder={t('form_famille_historique_placeholder') || 'Antécédents familiaux, événements marquants...'} />
+                      </div>
+                      <div className="dash-fam-actions">
+                        <button className="dash-fam-btn dash-fam-btn-primary" id="fam-save-btn" onClick={async () => {
+                          const btn = document.getElementById('fam-save-btn')
+                          if (btn) btn.classList.add('dash-fam-btn-loading')
+                          const parents = document.getElementById('fam-parents')?.value || getFieldValue('Parents connus')
+                          const tuteurs = document.getElementById('fam-tuteurs')?.value?.trim() || getFieldValue('Tuteurs')
+                          const fratrie = document.getElementById('fam-fratrie')?.value?.trim() || getFieldValue('Fratrie')
+                          const historique = document.getElementById('fam-historique')?.value?.trim() || getFieldValue('Historique familial')
+                          const uid = editingChild ? editingChild.uid : uidRef.current
+                          const body = {
+                            uid,
+                            nom: editingChild?.nom || '',
+                            prenom: editingChild?.prenom || '',
+                            extra_data: editingChild ? { ...editingChild.extra_data, 'Parents connus': parents, 'Tuteurs': tuteurs, 'Fratrie': fratrie, 'Historique familial': historique } : { 'Parents connus': parents, 'Tuteurs': tuteurs, 'Fratrie': fratrie, 'Historique familial': historique },
+                          }
+                          let url = `${API}/enfants/`
+                          let method = 'POST'
+                          if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
+                          let token = localStorage.getItem('access_token')
+                          if (!token) { if (btn) btn.classList.remove('dash-fam-btn-loading'); alert('Session expirée'); return }
+                          try {
+                            let res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) })
+                            if (res.status === 401) {
+                              const refresh = localStorage.getItem('refresh_token')
+                              if (!refresh) throw new Error('Session expirée')
+                              const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+                              if (!refRes.ok) throw new Error('Session expirée')
+                              const tokens = await refRes.json()
+                              localStorage.setItem('access_token', tokens.access)
+                              res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokens.access}` }, body: JSON.stringify(body) })
+                            }
+                            if (!res.ok) { const errData = await res.json().catch(() => ({})); const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'; throw new Error(errMsg) }
+                            const saved = await res.json()
+                            setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
+                            if (btn) btn.classList.remove('dash-fam-btn-loading')
+                            setSubKey(null); setEditingChild(saved); uidRef.current = saved.uid
+                          } catch (e) {
+                            if (method === 'POST' && e.message?.includes('dupliquée')) {
+                              uidRef.current = genChildUid(); body.uid = uidRef.current
+                              try {
+                                let retry = await fetch(`${API}/enfants/`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` }, body: JSON.stringify(body) })
+                                if (retry.ok) { const saved = await retry.json(); setRegisteredChildren(prev => [...prev, saved]); if (btn) btn.classList.remove('dash-fam-btn-loading'); setSubKey(null); setEditingChild(saved); uidRef.current = saved.uid; return }
+                              } catch (_) {}
+                            }
+                            if (btn) btn.classList.remove('dash-fam-btn-loading')
+                            alert(e.message || 'Erreur lors de l\'enregistrement')
+                          }
+                        }}>
+                          <span className="dash-fam-btn-label">{t('form_save') || 'Enregistrer'}</span>
+                          <span className="dash-fam-btn-spinner">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round"/></svg>
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : subKey && activeKey === 'enfants' && subKey === 'Documents administratifs' ? (
+                  <div className="dash-docs-wrap">
+                    <div className="dash-docs-header">
+                      <button className="dash-docs-back" onClick={() => setSubKey(null)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                        {t('form_back') || 'Retour'}
+                      </button>
+                      <span className="dash-docs-breadcrumb">{t('form_profil_title') || 'Profil complet'}</span>
+                    </div>
+                    <h2 className="dash-docs-title">{t('form_docs_title') || 'Documents administratifs'}</h2>
+                    <div className="dash-docs-cards">
+                      {['form_docs_naissance', 'form_docs_identite', 'form_docs_judiciaires'].map((key, i) => {
+                        const label = t(key) || CHILD_FORMS['Documents administratifs']?.fields[i]?.label || ''
+                        const fieldKey = label
+                        const uid = editingChild ? editingChild.uid : uidRef.current
+                        const savedDoc = localStorage.getItem('cdo_doc_' + uid + '_' + fieldKey)
+                        return (
+                          <div key={i} className="dash-docs-card">
+                            <div className="dash-docs-card-header">
+                              <span className="dash-docs-card-num">0{i + 1}</span>
+                              <span className="dash-docs-card-label">{label}</span>
+                            </div>
+                            <div className="dash-docs-dropzone" id={'dash-docs-zone-' + i} onClick={() => document.getElementById('dash-docs-input-' + i)?.click()} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') document.getElementById('dash-docs-input-' + i)?.click() }} tabIndex={0} role="button" aria-label={t('form_docs_upload') || 'Télécharger un document'}>
+                              <input id={'dash-docs-input-' + i} type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onChange={e => {
+                                const file = e.target.files?.[0]
+                                if (!file) return
+                                const zone = document.getElementById('dash-docs-zone-' + i)
+                                const reader = new FileReader()
+                                reader.onload = (ev) => {
+                                  localStorage.setItem('cdo_doc_' + uid + '_' + fieldKey, ev.target.result)
+                                  if (zone) zone.classList.add('dash-docs-dropzone-has-file')
+                                }
+                                reader.readAsDataURL(file)
+                              }} />
+                              {savedDoc ? (
+                                <div className="dash-docs-file-preview">
+                                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                  <span className="dash-docs-file-name">{t('form_docs_file_added') || 'Document ajouté'}</span>
+                                  <button className="dash-docs-file-remove" onClick={e => { e.stopPropagation(); localStorage.removeItem('cdo_doc_' + uid + '_' + fieldKey); const zone = document.getElementById('dash-docs-zone-' + i); if (zone) zone.classList.remove('dash-docs-dropzone-has-file'); }}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="dash-docs-dropzone-content">
+                                  <div className="dash-docs-dropzone-icon">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                  </div>
+                                  <p className="dash-docs-dropzone-text">{t('form_docs_drag_drop') || 'Glissez-déposez ou cliquez'}</p>
+                                  <span className="dash-docs-dropzone-hint">{t('form_docs_formats') || 'PDF, JPG, PNG — 10 Mo max'}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="dash-docs-actions">
+                      <button className="dash-docs-btn dash-docs-btn-primary" onClick={async () => {
+                        const btn = document.getElementById('dash-docs-submit')
+                        if (btn) btn.classList.add('dash-docs-btn-loading')
+                        const uid = editingChild ? editingChild.uid : uidRef.current
+                        const docs = {}
+                        CHILD_FORMS['Documents administratifs']?.fields.forEach(f => {
+                          const val = localStorage.getItem('cdo_doc_' + uid + '_' + f.label)
+                          if (val) docs[f.label] = val
+                        })
+                        const extra_data = editingChild ? { ...editingChild.extra_data, documents: docs } : { documents: docs }
+                        const token = localStorage.getItem('access_token')
+                        if (!token) { if (btn) btn.classList.remove('dash-docs-btn-loading'); alert('Session expirée'); return }
+                        try {
+                          let url = `${API}/enfants/`
+                          let method = 'POST'
+                          if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
+                          const body = JSON.stringify({ uid, extra_data })
+                          let res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body })
+                          if (res.status === 401) {
+                            const refresh = localStorage.getItem('refresh_token')
+                            if (!refresh) throw new Error('Session expirée')
+                            const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+                            if (!refRes.ok) throw new Error('Session expirée')
+                            const tokens = await refRes.json()
+                            localStorage.setItem('access_token', tokens.access)
+                            res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokens.access}` }, body })
+                          }
+                          if (!res.ok) throw new Error('Erreur')
+                          const saved = await res.json()
+                          setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
+                          if (btn) btn.classList.remove('dash-docs-btn-loading')
+                          setEditingChild(saved); uidRef.current = saved.uid
+                        } catch (e) {
+                          if (btn) btn.classList.remove('dash-docs-btn-loading')
+                          alert(e.message || 'Erreur lors de l\'enregistrement')
+                        }
+                      }} id="dash-docs-submit">
+                        <span className="dash-docs-btn-label">{t('form_save') || 'Enregistrer'}</span>
+                        <span className="dash-docs-btn-spinner">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round"/></svg>
+                        </span>
+                      </button>
+                    </div>
+                  </div>
                 ) : subKey && activeKey === 'enfants' ? (
                   <div className="dash-sub-form">
                     <div className="dash-sub-form-top">
@@ -2040,17 +2561,39 @@ function DashboardShell({ user, role, onLogout }) {
                         if (!Object.keys(data).length) return
 
                         const uid = editingChild ? editingChild.uid : uidRef.current
+                        const photoDataUrl = localStorage.getItem('cdo_child_photo_' + uid)
 
-                        const body = {
-                          uid: uid,
-                          nom: data['Nom'] !== undefined ? data['Nom'] : (editingChild ? editingChild.nom : ''),
-                          prenom: data['Prénom'] !== undefined ? data['Prénom'] : (editingChild ? editingChild.prenom : ''),
-                          sexe: data['Sexe'] !== undefined ? (data['Sexe'] === 'Masculin' ? 'M' : data['Sexe'] === 'Féminin' ? 'F' : '') : (editingChild ? editingChild.sexe : ''),
-                          date_naissance: data['Date de naissance'] !== undefined ? (data['Date de naissance'] || null) : (editingChild ? editingChild.date_naissance : null),
-                          nationalite: data['Nationalité'] !== undefined ? data['Nationalité'] : (editingChild ? editingChild.nationalite : ''),
-                          adresse: data["Adresse d'origine"] !== undefined ? data["Adresse d'origine"] : (editingChild ? editingChild.adresse : ''),
-                          photo: localStorage.getItem('cdo_child_photo_' + uid) || (editingChild ? editingChild.photo : ''),
-                          extra_data: editingChild ? { ...editingChild.extra_data, ...data } : data,
+                        const buildBody = () => {
+                          const nom = data['Nom'] !== undefined ? data['Nom'] : (editingChild ? editingChild.nom : '')
+                          const prenom = data['Prénom'] !== undefined ? data['Prénom'] : (editingChild ? editingChild.prenom : '')
+                          const sexe = data['Sexe'] !== undefined ? (data['Sexe'] === 'Masculin' ? 'M' : data['Sexe'] === 'Féminin' ? 'F' : '') : (editingChild ? editingChild.sexe : '')
+                          const date_naissance = data['Date de naissance'] !== undefined ? (data['Date de naissance'] || null) : (editingChild ? editingChild.date_naissance : null)
+                          const nationalite = data['Nationalité'] !== undefined ? data['Nationalité'] : (editingChild ? editingChild.nationalite : '')
+                          const adresse = data["Adresse d'origine"] !== undefined ? data["Adresse d'origine"] : (editingChild ? editingChild.adresse : '')
+                          const extra_data = editingChild ? { ...editingChild.extra_data, ...data } : data
+
+                          if (photoDataUrl) {
+                            const fd = new FormData()
+                            fd.append('uid', uid)
+                            fd.append('nom', nom)
+                            fd.append('prenom', prenom)
+                            fd.append('sexe', sexe)
+                            fd.append('date_naissance', date_naissance || '')
+                            fd.append('nationalite', nationalite)
+                            fd.append('adresse', adresse)
+                            fd.append('extra_data', JSON.stringify(extra_data))
+                            const arr = photoDataUrl.split(',')
+                            const mime = arr[0].match(/:(.*?);/)[1]
+                            const bstr = atob(arr[1])
+                            let n = bstr.length
+                            const u8arr = new Uint8Array(n)
+                            while (n--) u8arr[n] = bstr.charCodeAt(n)
+                            fd.append('photo', new File([u8arr], 'photo.jpg', { type: mime }))
+                            return { body: fd, headers: {} }
+                          }
+                          const jsonBody = { uid, nom, prenom, sexe, date_naissance, nationalite, adresse, extra_data }
+                          if (editingChild?.photo && !photoDataUrl) jsonBody.photo = editingChild.photo
+                          return { body: JSON.stringify(jsonBody), headers: { 'Content-Type': 'application/json' } }
                         }
 
                         let url = `${API}/enfants/`
@@ -2062,56 +2605,43 @@ function DashboardShell({ user, role, onLogout }) {
 
                         let token = localStorage.getItem('access_token')
                         if (!token) { alert('Session expirée'); return }
-                        try {
-                          let res = await fetch(url, {
-                            method: method,
-                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                            body: JSON.stringify(body),
-                          })
+                        const send = async () => {
+                          const { body, headers: extraHeaders } = buildBody()
+                          const allHeaders = { Authorization: `Bearer ${token}`, ...extraHeaders }
+                          let res = await fetch(url, { method, headers: allHeaders, body })
                           if (res.status === 401) {
                             const refresh = localStorage.getItem('refresh_token')
                             if (!refresh) throw new Error('Session expirée')
-                            const refRes = await fetch(`${API}/token/refresh/`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ refresh }),
-                            })
+                            const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
                             if (!refRes.ok) throw new Error('Session expirée')
                             const tokens = await refRes.json()
                             localStorage.setItem('access_token', tokens.access)
-                            res = await fetch(url, {
-                              method: method,
-                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokens.access}` },
-                              body: JSON.stringify(body),
-                            })
+                            allHeaders.Authorization = `Bearer ${tokens.access}`
+                            res = await fetch(url, { method, headers: allHeaders, body })
                           }
                           if (!res.ok) {
                             const errData = await res.json().catch(() => ({}))
                             const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'
                             throw new Error(errMsg)
                           }
-                          const saved = await res.json()
-                          setRegisteredChildren(prev => {
-                            if (prev.some(c => c.id === saved.id)) {
-                              return prev.map(c => c.id === saved.id ? saved : c)
-                            }
-                            return [...prev, saved]
-                          })
+                          return res.json()
+                        }
+                        try {
+                          const saved = await send()
+                          setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
                           setSubKey(null)
                           setEditingChild(saved)
                           uidRef.current = saved.uid
                         } catch (e) {
-                          if (method === 'POST' && e.message && e.message.includes('dupliquée')) {
+                          if (method === 'POST' && e.message?.includes('dupliquée')) {
                             uidRef.current = genChildUid()
-                            body.uid = uidRef.current
                             try {
-                              let retry = await fetch(`${API}/enfants/`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` },
-                                body: JSON.stringify(body),
-                              })
-                              if (retry.ok) {
-                                const saved = await retry.json()
+                              const { body, headers: extraHeaders } = buildBody()
+                              const allHeaders2 = { Authorization: `Bearer ${localStorage.getItem('access_token')}`, ...extraHeaders }
+                              const retryBody = typeof body === 'string' ? JSON.stringify({ ...JSON.parse(body), uid: uidRef.current }) : (() => { const f = new FormData(); f.append('uid', uidRef.current); for (const [k,v] of body.entries()) if (k !== 'uid') f.append(k,v); return f })()
+                              const retryRes = await fetch(`${API}/enfants/`, { method: 'POST', headers: allHeaders2, body: retryBody })
+                              if (retryRes.ok) {
+                                const saved = await retryRes.json()
                                 setRegisteredChildren(prev => [...prev, saved])
                                 setSubKey(null)
                                 setEditingChild(saved)
@@ -2126,138 +2656,261 @@ function DashboardShell({ user, role, onLogout }) {
                     </div>
                   </div>
                 ) : activeKey === 'enfants-enregistres' ? (
-                  <div className="dash-content-grid">
-                    <div className="dash-content-left">
-                      {selectedRegChild ? (
-                        <div className="dash-sub-form">
-                          <div className="dash-sub-form-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                              <button className="dash-back-btn" onClick={() => setSelectedRegChild(null)}>{'\u2190'} {t('form_back')}</button>
-                              <h3 className="dash-sub-form-title" style={{ margin: 0 }}>{selectedRegChild.prenom || ''} {selectedRegChild.nom || ''}</h3>
-                            </div>
-                            <span style={{ fontSize: '13px', color: '#94a3b8' }}>
-                              {selectedRegChild.created_at ? new Date(selectedRegChild.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + t('form_at') + ' ' + new Date(selectedRegChild.created_at).toLocaleTimeString(lang === 'en' ? 'en-US' : 'fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
-                            </span>
-                            <button className="dash-form-delete" style={{ margin: 0, padding: '6px 16px', fontSize: '14px' }} onClick={() => setDeleteConfirm(selectedRegChild)}>Effacer</button>
+                  <div className="ecr-wrap">
+                    {selectedRegChild ? (
+                      <div className="ecr-detail">
+                        <div className="ecr-detail-top">
+                          <button className="ecr-back-btn" onClick={() => setSelectedRegChild(null)}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                            {t('form_back')}
+                          </button>
+                          <span className="ecr-detail-title">{selectedRegChild.prenom || ''} {selectedRegChild.nom || ''}</span>
+                          <div className="ecr-detail-actions">
+                            <span className="ecr-detail-date">{selectedRegChild.created_at ? new Date(selectedRegChild.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric' }) : ''}</span>
+                            <button className="ecr-btn ecr-btn-del" onClick={() => setDeleteConfirm(selectedRegChild)}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                              {t('form_delete') || 'Supprimer'}
+                            </button>
                           </div>
-                          <div className="dash-reg-child-detail">
-                            <div className="dash-reg-child-detail-header">
-                              <div className="dash-reg-child-detail-avatar" style={{ cursor:'pointer', position:'relative' }} onClick={() => document.getElementById('child-photo-upload-' + selectedRegChild.uid)?.click()}>
-                                <img src={(() => {
-                                  const localPhoto = localStorage.getItem('cdo_child_photo_' + selectedRegChild.uid)
-                                  if (localPhoto) return localPhoto
-                                  const src = selectedRegChild.photo
-                                  if (src && src.startsWith('http')) return src
-                                  const childColors = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316']
-                                  const cc = childColors[(selectedRegChild.prenom?.charCodeAt(0) || 0) % childColors.length]
-                                  const inits = (selectedRegChild.prenom?.[0] || selectedRegChild.nom?.[0] || '?').toUpperCase()
-                                  return svgUrl(inits, cc, 72, 72)
-                                })()} alt="" />
-                                <div style={{ position:'absolute', bottom:4, right:4, background:'#f59e0b', borderRadius:'50%', width:'22px', height:'22px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', color:'#fff', fontWeight:'700' }}>+</div>
-                                <input id={'child-photo-upload-' + selectedRegChild.uid} type="file" accept="image/*" style={{ display:'none' }} onChange={e => {
-                                  const file = e.target.files?.[0]
-                                  if (file) {
-                                    const reader = new FileReader()
-                                    reader.onload = (ev) => {
-                                      localStorage.setItem('cdo_child_photo_' + selectedRegChild.uid, ev.target.result)
-                                      setSelectedRegChild({ ...selectedRegChild })
-                                    }
-                                    reader.readAsDataURL(file)
-                                  }
-                                }} />
-                              </div>
-                              <div className="dash-reg-child-detail-id">
-                                <span className="dash-reg-child-detail-value" style={{ fontSize:'18px', letterSpacing:'1px' }}>{selectedRegChild.uid?.slice(0,12)}</span>
-                              </div>
+                        </div>
+                        <div className="ecr-detail-hero">
+                          <div className="ecr-detail-avatar" onClick={() => document.getElementById('cdu-' + selectedRegChild.uid)?.click()}>
+                            <img src={(() => {
+                              const lp = localStorage.getItem('cdo_child_photo_' + selectedRegChild.uid)
+                              if (lp) return lp
+                              const src = selectedRegChild.photo
+                              if (src && src.startsWith('http')) return src
+                              const hues = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316']
+                              return svgUrl((selectedRegChild.prenom?.[0] || selectedRegChild.nom?.[0] || '?').toUpperCase(), hues[(selectedRegChild.prenom?.charCodeAt(0)||0)%hues.length], 80, 80)
+                            })()} alt="" />
+                            <div className="ecr-detail-avatar-badge">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             </div>
-                            <div className="dash-reg-child-detail-groups">
-                              {Object.values(CHILD_FORMS).map(section => {
-                                const cv = (label) => {
-                                  if (label === 'Nom') return selectedRegChild.nom
-                                  if (label === 'Prénom') return selectedRegChild.prenom
-                                  if (label === 'Sexe') return selectedRegChild.sexe === 'M' ? 'Masculin' : selectedRegChild.sexe === 'F' ? 'Féminin' : null
-                                  if (label === 'Date de naissance') return selectedRegChild.date_naissance
-                                  if (label === 'Nationalité') return selectedRegChild.nationalite
-                                  if (label === "Adresse d'origine") return selectedRegChild.adresse
-                                  return selectedRegChild.extra_data?.[label]
-                                }
-                                const fields = section.fields.filter(f => f.label !== 'Numéro unique' && f.label !== 'Photo' && cv(f.label))
-                                if (!fields.length) return null
+                            <input id={'cdu-' + selectedRegChild.uid} type="file" accept="image/*" hidden onChange={e => {
+                              const f = e.target.files?.[0]; if (!f) return
+                              const r = new FileReader(); r.onload = ev => { localStorage.setItem('cdo_child_photo_' + selectedRegChild.uid, ev.target.result); setSelectedRegChild({...selectedRegChild}) }; r.readAsDataURL(f)
+                            }} />
+                          </div>
+                          <div className="ecr-detail-hero-info">
+                            <div className="ecr-detail-name-row">
+                              <h2 className="ecr-detail-name">{selectedRegChild.prenom || ''} {selectedRegChild.nom || ''}</h2>
+                              <span className="ecr-badge ecr-badge-active">{t('child_status_active') || 'Actif'}</span>
+                            </div>
+                            <div className="ecr-detail-meta">
+                              <span className="ecr-detail-meta-item">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                {selectedRegChild.date_naissance ? (() => { const d = new Date(selectedRegChild.date_naissance); const age = Math.floor((Date.now() - d.getTime()) / 31557600000); return d.toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric' }) + ' (' + age + ' ' + (t('form_years') || 'ans') + ')' })() : '—'}
+                              </span>
+                              <span className="ecr-detail-meta-item">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                {selectedRegChild.sexe === 'M' ? (t('form_male') || 'Masculin') : selectedRegChild.sexe === 'F' ? (t('form_female') || 'Féminin') : '—'}
+                              </span>
+                              {selectedRegChild.nationalite && (() => {
+                                const cc = countryCodeFromName(selectedRegChild.nationalite)
+                                return <span className="ecr-detail-meta-item">{cc ? flagImg(cc, selectedRegChild.nationalite, 16) : null}{selectedRegChild.nationalite}</span>
+                              })()}
+                            </div>
+                            <div className="ecr-detail-code">
+                              <span className="ecr-detail-code-label">{t('form_unique_id') || 'ID'}</span>
+                              <span className="ecr-detail-code-value">{selectedRegChild.uid}</span>
+                              <button className="ecr-copy-btn" onClick={() => { navigator.clipboard?.writeText(selectedRegChild.uid) }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="ecr-detail-grid">
+                          {Object.values(CHILD_FORMS).map(section => {
+                            const cv = (label) => {
+                              if (label === 'Nom') return selectedRegChild.nom
+                              if (label === 'Prénom') return selectedRegChild.prenom
+                              if (label === 'Sexe') return selectedRegChild.sexe === 'M' ? (t('form_male') || 'Masculin') : selectedRegChild.sexe === 'F' ? (t('form_female') || 'Féminin') : null
+                              if (label === 'Date de naissance') return selectedRegChild.date_naissance
+                              if (label === 'Nationalité') return selectedRegChild.nationalite
+                              if (label === "Adresse d'origine") return selectedRegChild.adresse
+                              if (label === 'Photo') return null
+                              if (label === 'Numéro unique') return null
+                              return selectedRegChild.extra_data?.[label]
+                            }
+                            const fields = section.fields.filter(f => f.label !== 'Numéro unique' && f.label !== 'Photo' && cv(f.label))
+                            if (!fields.length) return null
+                            return (
+                              <div key={section.title} className="ecr-detail-card">
+                                <div className="ecr-detail-card-head">
+                                  <span>{section.title}</span>
+                                  <button className="ecr-card-edit-btn" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey(section.title); setSelectedRegChild(null) }}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                                    {t('form_edit') || 'Modifier'}
+                                  </button>
+                                </div>
+                                <div className="ecr-detail-card-body">
+                                  {fields.map(f => (
+                                    <div key={f.label} className="ecr-detail-card-row">
+                                      <span className="ecr-detail-card-label">{f.label}</span>
+                                      <span className="ecr-detail-card-value">
+                                        {f.label === 'Nationalité' && cv(f.label) ? (() => { const cc = countryCodeFromName(cv(f.label)); return cc ? <>{flagImg(cc, cv(f.label))} {cv(f.label)}</> : cv(f.label) })() : cv(f.label)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="ecr-stats">
+                          <div className="ecr-stat-card">
+                            <div className="ecr-stat-icon ecr-stat-icon-blue">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            </div>
+                            <div className="ecr-stat-info">
+                              <span className="ecr-stat-value">{registeredChildren.length}</span>
+                              <span className="ecr-stat-label">{t('child_stat_total') || 'Total Enfants'}</span>
+                            </div>
+                            <span className="ecr-stat-trend ecr-stat-trend-up">+{Math.max(0, registeredChildren.filter(c => c.created_at && new Date(c.created_at) > new Date(Date.now() - 86400000 * 7)).length)}</span>
+                          </div>
+                          <div className="ecr-stat-card">
+                            <div className="ecr-stat-icon ecr-stat-icon-green">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            </div>
+                            <div className="ecr-stat-info">
+                              <span className="ecr-stat-value">{registeredChildren.length}</span>
+                              <span className="ecr-stat-label">{t('child_stat_active') || 'Actifs aujourd\'hui'}</span>
+                            </div>
+                            <span className="ecr-stat-trend ecr-stat-trend-up">100%</span>
+                          </div>
+                          <div className="ecr-stat-card">
+                            <div className="ecr-stat-icon ecr-stat-icon-amber">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                            </div>
+                            <div className="ecr-stat-info">
+                              <span className="ecr-stat-value">{registeredChildren.filter(c => c.created_at && new Date(c.created_at) > new Date(Date.now() - 86400000 * 30)).length}</span>
+                              <span className="ecr-stat-label">{t('child_stat_new') || 'Nouveaux (30j)'}</span>
+                            </div>
+                            <span className="ecr-stat-trend ecr-stat-trend-up">{t('child_new') || 'Nouv.'}</span>
+                          </div>
+                          <div className="ecr-stat-card">
+                            <div className="ecr-stat-icon ecr-stat-icon-red">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            </div>
+                            <div className="ecr-stat-info">
+                              <span className="ecr-stat-value">0</span>
+                              <span className="ecr-stat-label">{t('child_stat_alerts') || 'Alertes'}</span>
+                            </div>
+                            <span className="ecr-stat-trend ecr-stat-trend-neutral">—</span>
+                          </div>
+                        </div>
+
+                        <div className="ecr-toolbar">
+                          <div className="ecr-search">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" className="ecr-search-input" placeholder={t('child_search_placeholder') || 'Rechercher par nom, prénom ou ID...'} value={childSearchQuery} onChange={e => setChildSearchQuery(e.target.value)} />
+                          </div>
+                          <div className="ecr-toolbar-filters">
+                            <select className="ecr-filter-select" value={childGenderFilter} onChange={e => setChildGenderFilter(e.target.value)}>
+                              <option value="">{t('child_filter_all') || 'Tous'}</option>
+                              <option value="M">{t('form_male') || 'Masculin'}</option>
+                              <option value="F">{t('form_female') || 'Féminin'}</option>
+                            </select>
+                            <select className="ecr-filter-select" value={childSortBy} onChange={e => setChildSortBy(e.target.value)}>
+                              <option value="date">{t('child_sort_date') || 'Plus récents'}</option>
+                              <option value="name">{t('child_sort_name') || 'Nom A-Z'}</option>
+                              <option value="age">{t('child_sort_age') || 'Âge'}</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {(() => {
+                          let filtered = [...registeredChildren]
+                          if (childSearchQuery) {
+                            const q = childSearchQuery.toLowerCase()
+                            filtered = filtered.filter(c => (c.prenom + ' ' + c.nom + ' ' + c.uid).toLowerCase().includes(q))
+                          }
+                          if (childGenderFilter) {
+                            filtered = filtered.filter(c => c.sexe === childGenderFilter)
+                          }
+                          if (childSortBy === 'name') {
+                            filtered.sort((a, b) => ((a.prenom || '') + ' ' + (a.nom || '')).localeCompare(((b.prenom || '') + ' ' + (b.nom || ''))))
+                          } else if (childSortBy === 'age') {
+                            filtered.sort((a, b) => {
+                              const da = a.date_naissance ? new Date(a.date_naissance).getTime() : 0
+                              const db = b.date_naissance ? new Date(b.date_naissance).getTime() : 0
+                              return da - db
+                            })
+                          } else {
+                            filtered.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+                          }
+
+                          if (filtered.length === 0) {
+                            return (
+                              <div className="ecr-empty">
+                                <div className="ecr-empty-icon">
+                                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                </div>
+                                <p className="ecr-empty-text">{registeredChildren.length === 0 ? (t('child_empty_title') || 'Aucun enfant enregistré') : (t('child_no_results') || 'Aucun résultat')}</p>
+                                <p className="ecr-empty-hint">{registeredChildren.length === 0 ? (t('child_empty_hint') || 'Remplissez le formulaire dans Gestion des enfants') : (t('child_try_different') || 'Essayez une recherche différente')}</p>
+                              </div>
+                            )
+                          }
+
+                          return (
+                            <div className="ecr-grid">
+                              {filtered.map(child => {
+                                const hues = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316']
+                                const cc = hues[(child.prenom?.charCodeAt(0) || 0) % hues.length]
+                                const initial = (child.prenom?.[0] || child.nom?.[0] || '?').toUpperCase()
+                                const localPhoto = localStorage.getItem('cdo_child_photo_' + child.uid)
+                                const age = child.date_naissance ? Math.floor((Date.now() - new Date(child.date_naissance).getTime()) / 31557600000) : null
                                 return (
-                                  <div key={section.title} className="dash-reg-child-detail-group">
-                                    <div className="dash-reg-child-detail-group-title">
-                                      <span>{section.title}</span>
-                                      <select className="dash-group-select" onChange={(e) => {
-                                        if (e.target.value === 'edit') {
-                                          setEditingChild(selectedRegChild)
-                                          setActiveKey('enfants')
-                                          setSubKey(section.title)
-                                          setSelectedRegChild(null)
-                                        }
-                                        e.target.value = ''
-                                      }}>
-                                        <option value="">Actions...</option>
-                                        <option value="edit">Modifier</option>
-                                      </select>
+                                  <div key={child.uid} className="ecr-card" onClick={() => setSelectedRegChild(child)}>
+                                    <div className="ecr-card-top">
+                                      <div className="ecr-card-avatar">
+                                        <img src={localPhoto || (child.photo?.startsWith('http') ? child.photo : svgUrl(initial, cc, 44, 44))} alt="" />
+                                      </div>
+                                      <div className="ecr-card-info">
+                                        <span className="ecr-card-name">{child.prenom || ''} {child.nom || ''}</span>
+                                        <span className="ecr-card-id">{child.uid}</span>
+                                      </div>
+                                      <span className="ecr-badge ecr-badge-active">{t('child_status_active') || 'Actif'}</span>
                                     </div>
-                                    <div className="dash-reg-child-detail-group-fields">
-                                      {fields.map(f => (
-                                        <div key={f.label} className="dash-reg-child-detail-row">
-                                          <span className="dash-reg-child-detail-row-label">{f.label}</span>
-                                          <span className="dash-reg-child-detail-row-value">
-                                            {f.label === 'Nationalité' && cv(f.label) ? (() => {
-                                              const cc = countryCodeFromName(cv(f.label))
-                                              return cc ? <>{flagImg(cc, cv(f.label))} {cv(f.label)}</> : cv(f.label)
-                                            })() : cv(f.label)}
-                                          </span>
-                                        </div>
-                                      ))}
+                                    <div className="ecr-card-stats">
+                                      <div className="ecr-card-stat">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                        {age !== null ? age + ' ' + (t('form_years') || 'ans') : '—'}
+                                      </div>
+                                      <div className="ecr-card-stat">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        {child.sexe === 'M' ? (t('form_male') || 'M') : child.sexe === 'F' ? (t('form_female') || 'F') : '—'}
+                                      </div>
+                                      <div className="ecr-card-stat">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                        {child.created_at ? new Date(child.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short' }) : '—'}
+                                      </div>
                                     </div>
-                                    <div className="dash-group-actions">
-                                      <label className="dash-group-checkbox-label">
-                                        <input type="checkbox" className="dash-group-checkbox" />
-                                        <span>Sélectionner</span>
-                                      </label>
+                                    <div className="ecr-card-actions">
+                                      <button className="ecr-card-action" onClick={e => { e.stopPropagation(); setSelectedRegChild(child) }}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        {t('child_view') || 'Voir'}
+                                      </button>
+                                      <button className="ecr-card-action" onClick={e => { e.stopPropagation(); setEditingChild(child); setActiveKey('enfants'); setSubKey('Profil & identité'); setSelectedRegChild(null) }}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                                        {t('form_edit') || 'Modifier'}
+                                      </button>
+                                      <button className="ecr-card-action" onClick={e => { e.stopPropagation(); }}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                        {t('child_history') || 'Historique'}
+                                      </button>
                                     </div>
                                   </div>
                                 )
                               })}
                             </div>
-                          </div>
-                        </div>
-                      ) : registeredChildren.length === 0 ? (
-                        <div className="dash-empty-state">
-                          <span className="dash-empty-icon">{'\u{1F466}'}</span>
-                          <p className="dash-empty-text">Aucun enfant enregistré pour le moment.</p>
-                          <p className="dash-empty-hint">Remplissez le formulaire dans "Gestion des enfants" pour ajouter un enfant.</p>
-                        </div>
-                      ) : (
-                        <div className="dash-reg-child-list">
-                          {registeredChildren.map(child => {
-                            const childColors = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316']
-                            const cc = childColors[(child.prenom?.charCodeAt(0) || 0) % childColors.length]
-                            const initial = (child.prenom?.[0] || child.nom?.[0] || '?').toUpperCase()
-                            return (
-                            <div key={child.uid} className="dash-reg-child-item" onClick={() => setSelectedRegChild(child)}>
-                              <div className="dash-reg-child-item-avatar">
-                                <img src={(() => {
-                                  const localPhoto = localStorage.getItem('cdo_child_photo_' + child.uid)
-                                  if (localPhoto) return localPhoto
-                                  if (child.photo?.startsWith('http')) return child.photo
-                                  return svgUrl(initial, cc, 48, 48)
-                                })()} alt="" />
-                              </div>
-                              <div className="dash-reg-child-item-info">
-                                <span className="dash-reg-child-item-name">{child.prenom || ''} {child.nom || ''}</span>
-                                <span className="dash-reg-child-item-id">{child.uid}</span>
-                              </div>
-                              <span className="dash-reg-child-item-arrow">{'\u203A'}</span>
-                            </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
+                          )
+                        })()}
+                      </>
+                    )}
                   </div>
                 ) : activeKey === 'ambassadeurs' && orphanageName ? (
                   <div>
@@ -2459,7 +3112,7 @@ function DashboardShell({ user, role, onLogout }) {
                           </div>
 
                           <div className="dash-proj-create-actions">
-                            <button className="dash-proj-btn dash-proj-btn-primary" onClick={() => {
+                            <button className="dash-proj-btn dash-proj-btn-primary" id="proj-submit-btn" onClick={async () => {
                               const btn = document.getElementById('proj-submit-btn')
                               if (btn) btn.classList.add('dash-proj-btn-loading')
                               const title = document.getElementById('proj-title-input')?.value?.trim()
@@ -2471,42 +3124,44 @@ function DashboardShell({ user, role, onLogout }) {
                               if (!title) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_title_required') || 'Veuillez entrer un titre'); return }
                               if (!desc) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_desc_required') || 'Veuillez entrer une description'); return }
                               if (!startDate || !endDate) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_start_end_required') || 'Veuillez sélectionner les dates de début et de fin'); return }
-                              const code = genProjectCode()
-                              const newProj = {
-                                id: Date.now(),
-                                code,
-                                type: projectTypeFilter,
-                                title,
-                                description: desc,
-                                summary: desc.substring(0, 80),
-                                pdf_url: '',
-                                status: 'open',
-                                amount: 0,
-                                raised: 0,
-                                beneficiaries: 0,
-                                start_date: startDate,
-                                end_date: endDate,
-                                created_at: new Date().toISOString().split('T')[0],
-                              }
-                              if (pdfFile && pdfFile.type === 'application/pdf') {
-                                const reader = new FileReader()
-                                reader.onload = (ev) => {
-                                  newProj.pdf_url = ev.target.result
-                                  if (btn) btn.classList.remove('dash-proj-btn-loading')
-                                  finalizeProject(newProj)
+                              const token = localStorage.getItem('access_token')
+                              const body = new FormData()
+                              body.append('type', projectTypeFilter)
+                              body.append('title', title)
+                              body.append('description', desc)
+                              body.append('summary', desc.substring(0, 80))
+                              body.append('start_date', startDate)
+                              body.append('end_date', endDate)
+                              if (pdfFile && pdfFile.type === 'application/pdf') body.append('pdf_file', pdfFile)
+                              try {
+                                const res = await fetch(`${API}/projets/`, {
+                                  method: 'POST',
+                                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                                  body,
+                                })
+                                if (!res.ok) { const e = await res.json().catch(() => ({ error: 'Erreur' })); throw new Error(e.error || 'Erreur') }
+                                const saved = await res.json()
+                                setOngoingProjects(prev => [saved, ...prev])
+                                setProjects(prev => [saved, ...prev])
+                                setProjectTypeFilter(null)
+                                setShowOngoing(true)
+                              } catch (e) {
+                                // fallback: save locally
+                                const code = genProjectCode()
+                                const newProj = {
+                                  id: Date.now(), code, type: projectTypeFilter,
+                                  title, description: desc, summary: desc.substring(0, 80),
+                                  pdf_url: '', status: 'open', amount: 0, raised: 0,
+                                  beneficiaries: 0, start_date: startDate, end_date: endDate,
+                                  created_at: new Date().toISOString().split('T')[0],
                                 }
-                                reader.readAsDataURL(pdfFile)
-                              } else {
-                                if (btn) btn.classList.remove('dash-proj-btn-loading')
-                                finalizeProject(newProj)
-                              }
-                              function finalizeProject(p) {
-                                setOngoingProjects(prev => [p, ...prev])
-                                setProjects(prev => [p, ...prev])
+                                setOngoingProjects(prev => [newProj, ...prev])
+                                setProjects(prev => [newProj, ...prev])
                                 setProjectTypeFilter(null)
                                 setShowOngoing(true)
                               }
-                            }} id="proj-submit-btn">
+                              if (btn) btn.classList.remove('dash-proj-btn-loading')
+                            }}>
                               <span className="dash-proj-btn-label">{t('proj_submit') || 'Soumettre le projet'}</span>
                               <span className="dash-proj-btn-spinner">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round"/></svg>
