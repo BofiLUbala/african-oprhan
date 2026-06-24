@@ -1383,6 +1383,70 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const uidRef = useRef(genChildUid())
   const [dashTime, setDashTime] = useState(new Date())
 
+  /* ── Medical form state ── */
+  const DEFAULT_VAX = [
+    { name:'BCG', done:false, dateAdmin:'', nextDose:'' },
+    { name:'Hépatite B', done:false, dateAdmin:'', nextDose:'' },
+    { name:'DTCoq', done:false, dateAdmin:'', nextDose:'' },
+    { name:'Polio (IPV)', done:false, dateAdmin:'', nextDose:'' },
+    { name:'Rougeole-ROR', done:false, dateAdmin:'', nextDose:'' },
+    { name:'Fièvre Jaune', done:false, dateAdmin:'', nextDose:'' },
+    { name:'Pneumocoque', done:false, dateAdmin:'', nextDose:'' },
+    { name:'Rotavirus', done:false, dateAdmin:'', nextDose:'' },
+  ]
+  const [vaccinations, setVaccinations] = useState(DEFAULT_VAX.map(v => ({...v})))
+  const [allergies, setAllergies] = useState([])
+  const [treatments, setTreatments] = useState([])
+  const [showVaxForm, setShowVaxForm] = useState(false)
+  const [showAllergyForm, setShowAllergyForm] = useState(false)
+  const [showTxForm, setShowTxForm] = useState(false)
+  const [savingHealth, setSavingHealth] = useState(false)
+
+  /* ── Education form state ── */
+  const DEFAULT_SUBJECTS = [
+    { name:'Mathématiques', grade:'', coefficient:1 },
+    { name:'Français', grade:'', coefficient:1 },
+    { name:'Anglais', grade:'', coefficient:1 },
+    { name:'Sciences', grade:'', coefficient:1 },
+    { name:'Histoire/Géo', grade:'', coefficient:1 },
+    { name:'Éducation Physique', grade:'', coefficient:1 },
+  ]
+  const [subjects, setSubjects] = useState(DEFAULT_SUBJECTS.map(s => ({...s})))
+  const [behaviorEntries, setBehaviorEntries] = useState([])
+  const [activityEntries, setActivityEntries] = useState([])
+  const [showBehaviorForm, setShowBehaviorForm] = useState(false)
+  const [showActivityForm, setShowActivityForm] = useState(false)
+  const [savingEdu, setSavingEdu] = useState(false)
+  const [profileTab, setProfileTab] = useState('overview')
+
+  useEffect(() => {
+    if (subKey !== 'Scolarité') return
+    const e = editingChild?.extra_data?.education
+    if (e) {
+      if (e.subjects) setSubjects(e.subjects)
+      if (e.behaviorEntries) setBehaviorEntries(e.behaviorEntries)
+      if (e.activityEntries) setActivityEntries(e.activityEntries)
+    } else {
+      setSubjects(DEFAULT_SUBJECTS.map(s => ({...s})))
+      setBehaviorEntries([])
+      setActivityEntries([])
+    }
+  }, [subKey, editingChild])
+
+  useEffect(() => {
+    if (subKey !== 'Santé & médical') return
+    const m = editingChild?.extra_data?.medical
+    if (m) {
+      if (m.vaccinations) setVaccinations(m.vaccinations)
+      if (m.allergies) setAllergies(m.allergies)
+      if (m.treatments) setTreatments(m.treatments)
+    } else {
+      setVaccinations(DEFAULT_VAX.map(v => ({...v})))
+      setAllergies([])
+      setTreatments([])
+    }
+  }, [subKey, editingChild])
+
   useEffect(() => {
     const timer = setInterval(() => setDashTime(new Date()), 10000)
     return () => clearInterval(timer)
@@ -1553,18 +1617,51 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       title: 'Santé & médical',
       fields: [
         { label: 'Groupe sanguin', type: 'select', options: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] },
-        { label: 'Vaccinations', type: 'textarea' },
-        { label: 'Allergies', type: 'textarea' },
-        { label: 'Traitements', type: 'textarea' },
+        { label: 'Taille (cm)', type: 'text' },
+        { label: 'Poids (kg)', type: 'text' },
+        { label: 'Tension artérielle', type: 'text' },
+        { label: 'Fréquence cardiaque', type: 'text' },
+        { label: 'Température (°C)', type: 'text' },
+        { label: 'SpO2 (%)', type: 'text' },
+        { label: 'Maladies chroniques', type: 'textarea' },
+        { label: 'Chirurgies antérieures', type: 'textarea' },
+        { label: 'Antécédents hospitalisation', type: 'textarea' },
+        { label: 'Antécédents familiaux', type: 'textarea' },
+        { label: 'Handicaps', type: 'textarea' },
+        { label: 'Contact urgence', type: 'text' },
+        { label: 'Médecin traitant', type: 'text' },
+        { label: 'Hôpital', type: 'text' },
+        { label: 'Assurance', type: 'text' },
       ]
     },
     'Scolarité': {
       title: 'Scolarité',
       fields: [
         { label: 'Établissement', type: 'text' },
-        { label: 'Classe', type: 'text' },
-        { label: 'Résultats', type: 'textarea' },
+        { label: "Type d'établissement", type: 'select', options: ['Public', 'Privé', 'Confessionnel'] },
+        { label: 'Adresse école', type: 'text' },
+        { label: 'Téléphone école', type: 'text' },
+        { label: 'Email école', type: 'text' },
+        { label: 'Directeur', type: 'text' },
+        { label: 'Professeur principal', type: 'text' },
+        { label: 'Classe actuelle', type: 'text' },
+        { label: 'Année scolaire', type: 'text' },
+        { label: 'Trimestre', type: 'select', options: ['1er Trimestre', '2ème Trimestre', '3ème Trimestre'] },
+        { label: "Niveau d'études", type: 'select', options: ['Préscolaire', 'Primaire', 'Secondaire', 'Lycée', 'Université', 'Formation Pro.'] },
+        { label: "Date d'inscription", type: 'date' },
+        { label: 'Matières inscrites', type: 'textarea' },
+        { label: 'Moyenne générale', type: 'text' },
+        { label: 'Rang', type: 'text' },
+        { label: 'Points forts', type: 'textarea' },
+        { label: 'Points à améliorer', type: 'textarea' },
+        { label: 'Présences', type: 'text' },
+        { label: 'Absences', type: 'text' },
+        { label: "Difficultés d'apprentissage", type: 'textarea' },
+        { label: 'Besoins spéciaux', type: 'textarea' },
+        { label: 'Soutien scolaire', type: 'textarea' },
+        { label: "Bourse d'études", type: 'text' },
         { label: 'Bulletins', type: 'file' },
+        { label: 'Certificats', type: 'file' },
       ]
     },
   }
@@ -1590,6 +1687,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [selectedProject, setSelectedProject] = useState(null)
   const [projectLoading, setProjectLoading] = useState(false)
   const [showOngoing, setShowOngoing] = useState(false)
+  const [showExpired, setShowExpired] = useState(false)
 
   const genProjectCode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -1741,7 +1839,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     </div>
                     <div className="dash-dash-card-body">
                       {(ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS).slice(0, 4).map((proj, i) => (
-                        <div key={i} className="dash-dash-project-item" onClick={() => { setActiveKey('projets'); setProjectTypeFilter(null); setSelectedProject(proj); setShowOngoing(true); }}>
+                        <div key={i} className="dash-dash-project-item" onClick={() => { const _exp = proj.end_date && proj.end_date < new Date().toISOString().split('T')[0]; setActiveKey('projets'); setProjectTypeFilter(null); setSelectedProject(proj); _exp ? (setShowOngoing(false), setShowExpired(true)) : (setShowOngoing(true), setShowExpired(false)); }}>
                           <div className="dash-dash-project-top">
                             <span className="dash-dash-project-name">{proj.title}</span>
                             <span className={`dash-dash-project-status ${proj.status}`}>{proj.status === 'open' ? (t('proj_open') || 'Ouvert') : proj.status === 'funded' ? (t('proj_funded') || 'Financé') : (t('proj_completed') || 'Terminé')}</span>
@@ -2284,7 +2382,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             </div>
                             <div className="dash-prof-id-field">
                               <span className="dash-prof-id-label">{t('form_nationality') || 'Nationalité'}</span>
-                              <span className="dash-prof-id-value">{getFieldValue('Nationalité') || '—'}</span>
+                              <span className="dash-prof-id-value">{(() => {
+                                const nat = getFieldValue('Nationalité')
+                                if (!nat) return '—'
+                                const c = AFRICAN_COUNTRIES.find(c => c.name === nat)
+                                return c ? <>{flagImg(c.code, c.name, '18px')} {c.name}</> : nat
+                              })()}</span>
                             </div>
                             <div className="dash-prof-id-field">
                               <span className="dash-prof-id-label">{t('form_age') || 'Âge'}</span>
@@ -2506,259 +2609,1234 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       <h3 className="dash-sub-form-title">{subKey}</h3>
                     </div>
                     <div className="dash-sub-form-fields">
-                      {CHILD_FORMS[subKey]?.fields.map((f, i) => (
-                        <div key={i} className="dash-form-field">
-                          <label className="dash-form-label">{f.label}</label>
-                          {f.type === 'uid' ? (
-                            <input type="text" className="dash-form-input dash-form-uid" value={editingChild ? editingChild.uid : uidRef.current} readOnly />
-                          ) : f.type === 'select' ? (
-                            <select className="dash-form-input" defaultValue={getFieldValue(f.label)}>
-                              <option value="">{t('form_select_placeholder')}</option>
-                              {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
-                            </select>
-                          ) : f.type === 'textarea' ? (
-                            <textarea className="dash-form-input dash-form-textarea" rows={3} defaultValue={getFieldValue(f.label)} />
-                          ) : f.type === 'file' && f.label === 'Photo' ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
-                                <input type="file" className="dash-form-file" accept="image/*" onChange={e => {
-                                  const file = e.target.files?.[0]
-                                  if (file) {
-                                    const reader = new FileReader()
-                                    reader.onload = (ev) => {
-                                      const uid = editingChild ? editingChild.uid : uidRef.current
-                                      localStorage.setItem('cdo_child_photo_' + uid, ev.target.result)
-                                    }
-                                    reader.readAsDataURL(file)
-                                  }
-                                }} />
-                                {(() => {
-                                  const uid = editingChild ? editingChild.uid : uidRef.current
-                                  const saved = localStorage.getItem('cdo_child_photo_' + uid)
-                                  if (saved) return <img src={saved} alt="" style={{ width:'48px', height:'48px', borderRadius:'8px', objectFit:'cover' }} />
-                                  if (getFieldValue(f.label)) return <span style={{ fontSize:'12px', color:'#64748B' }}>{t('form_current_file')} {getFieldValue(f.label)}</span>
-                                  return null
-                                })()}
+                      {subKey === 'Santé & médical' ? (
+                        <div className="hm-form">
+                          {/* ═══ MEDICAL ALERTS BAR ═══ */}
+                          <div className="hm-alerts">
+                            <div className="hm-alert critical"><span className="hm-alert-icon">🔴</span><span className="hm-alert-text">{t('hm_alerts_critical') || 'Conditions Critiques'}</span><span className="hm-alert-count">0</span></div>
+                            <div className="hm-alert warning"><span className="hm-alert-icon">🟡</span><span className="hm-alert-text">{t('hm_alerts_allergies') || 'Allergies Sévères'}</span><span className="hm-alert-count">{allergies.filter(a => a.severity === 'severe').length}</span></div>
+                            <div className="hm-alert info"><span className="hm-alert-icon">🔵</span><span className="hm-alert-text">{t('hm_alerts_medications') || 'Médicaments Actifs'}</span><span className="hm-alert-count">{treatments.filter(t => t.name).length}</span></div>
+                          </div>
+
+                          {/* ═══ 1. HEALTH SUMMARY ═══ */}
+                          <div className="hm-summary">
+                            <div className="hm-summary-avatar">{(() => { const uid = editingChild ? editingChild.uid : uidRef.current; const s = localStorage.getItem('cdo_child_photo_' + uid); if (s) return <img src={s} alt="" style={{width:'56px',height:'56px',borderRadius:'14px',objectFit:'cover'}} />; const inits = ((getFieldValue('Prénom')?.[0]||'')+(getFieldValue('Nom')?.[0]||'')).toUpperCase()||'?'; return inits })()}</div>
+                            <div className="hm-summary-info">
+                              <div className="hm-summary-name">{getFieldValue('Prénom') || 'Prénom'} {getFieldValue('Nom') || 'Nom'}</div>
+                              <div className="hm-summary-meta">
+                                <span>🆔 {editingChild ? editingChild.uid : uidRef.current}</span>
+                                <span>🎂 {(() => { const d = getFieldValue('Date de naissance'); if (!d) return '—'; const a = Math.floor((new Date()-new Date(d))/(365.25*86400000)); return a+' '+(t('prof_years')||'ans') })()}</span>
+                                <span>⚤ {getFieldValue('Sexe') === 'Masculin' ? 'M' : getFieldValue('Sexe') === 'Féminin' ? 'F' : '—'}</span>
                               </div>
                             </div>
-                          ) : f.type === 'file' ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              <input type="file" className="dash-form-file" />
-                              {getFieldValue(f.label) && <span style={{ fontSize: '12px', color: '#64748B' }}>{t('form_current_file')} {getFieldValue(f.label)}</span>}
+                            <div className="hm-summary-right">
+                              <select className="hm-summary-blood" defaultValue={getFieldValue('Groupe sanguin') || ''} onChange={e => e.target.dataset.val = e.target.value}>
+                                <option value="">—</option>
+                                {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(g => <option key={g} value={g}>{g}</option>)}
+                              </select>
+                              <span className="hm-summary-badge good">✅ {t('hm_health_good') || 'Bon'}</span>
                             </div>
-                          ) : (
-                            <input type={f.type} className="dash-form-input" defaultValue={getFieldValue(f.label)} />
-                          )}
-                        </div>
-                      ))}
-                      <button className="dash-form-save" onClick={async () => {
-                        const data = {}
-                        document.querySelectorAll('.dash-sub-form .dash-form-field').forEach(field => {
-                          const label = field.querySelector('.dash-form-label')?.textContent || ''
-                          const input = field.querySelector('input, select, textarea')
-                          if (input) data[label] = input.value || input.files?.[0]?.name || ''
-                        })
-                        if (!Object.keys(data).length) return
+                          </div>
 
-                        const uid = editingChild ? editingChild.uid : uidRef.current
-                        const photoDataUrl = localStorage.getItem('cdo_child_photo_' + uid)
+                          {/* ═══ 2. VITAL SIGNS ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(59,130,246,0.15)'}}>❤️</div>
+                              <span className="hm-card-title">{t('hm_vitals') || 'Signes Vitaux'}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              <div className="hm-vitals">
+                                <div className="hm-vital">
+                                  <div className="hm-vital-icon">📏</div>
+                                  <input className="hm-vital-input" type="number" step="0.1" placeholder="Taille" defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.height || '' })()} id="hm-height" />
+                                  <div className="hm-vital-label">{t('hm_height') || 'Taille (cm)'}</div>
+                                </div>
+                                <div className="hm-vital">
+                                  <div className="hm-vital-icon">⚖️</div>
+                                  <input className="hm-vital-input" type="number" step="0.1" placeholder="Poids" defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.weight || '' })()} id="hm-weight" onInput={e => { const h = document.getElementById('hm-height')?.value; const w = e.target.value; if (h && w) { const bmi = (parseFloat(w) / ((parseFloat(h)/100)**2)).toFixed(1); const el = document.getElementById('hm-bmi-display'); if (el) el.textContent = bmi } }} />
+                                  <div className="hm-vital-label">{t('hm_weight') || 'Poids (kg)'}</div>
+                                </div>
+                                <div className="hm-vital">
+                                  <div className="hm-vital-icon">📊</div>
+                                  <div className="hm-vital-value" id="hm-bmi-display">{(() => { const m = editingChild?.extra_data?.medical; return m?.bmi || '—' })()}</div>
+                                  <div className="hm-vital-label">{t('hm_bmi') || 'IMC'} <span style={{fontSize:'10px',color:'#64748B'}}>({t('hm_bmi_calc') || 'auto'})</span></div>
+                                </div>
+                                <div className="hm-vital">
+                                  <div className="hm-vital-icon">🩸</div>
+                                  <input className="hm-vital-input" type="text" placeholder="120/80" defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.bloodPressure || '' })()} id="hm-bp" />
+                                  <div className="hm-vital-label">{t('hm_blood_pressure') || 'Tension'}</div>
+                                </div>
+                                <div className="hm-vital">
+                                  <div className="hm-vital-icon">💓</div>
+                                  <input className="hm-vital-input" type="number" placeholder="72" defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.heartRate || '' })()} id="hm-hr" />
+                                  <div className="hm-vital-label">{t('hm_heart_rate') || 'FC (bpm)'}</div>
+                                </div>
+                                <div className="hm-vital">
+                                  <div className="hm-vital-icon">🌡️</div>
+                                  <input className="hm-vital-input" type="number" step="0.1" placeholder="36.6" defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.temperature || '' })()} id="hm-temp" />
+                                  <div className="hm-vital-label">{t('hm_temperature') || 'Temp. (°C)'}</div>
+                                </div>
+                                <div className="hm-vital">
+                                  <div className="hm-vital-icon">🫁</div>
+                                  <input className="hm-vital-input" type="number" placeholder="98" defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.spo2 || '' })()} id="hm-spo2" />
+                                  <div className="hm-vital-label">{t('hm_spo2') || 'SpO₂ (%)'}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
 
-                        const buildBody = () => {
-                          const nom = data['Nom'] !== undefined ? data['Nom'] : (editingChild ? editingChild.nom : '')
-                          const prenom = data['Prénom'] !== undefined ? data['Prénom'] : (editingChild ? editingChild.prenom : '')
-                          const sexe = data['Sexe'] !== undefined ? (data['Sexe'] === 'Masculin' ? 'M' : data['Sexe'] === 'Féminin' ? 'F' : '') : (editingChild ? editingChild.sexe : '')
-                          const date_naissance = data['Date de naissance'] !== undefined ? (data['Date de naissance'] || null) : (editingChild ? editingChild.date_naissance : null)
-                          const nationalite = data['Nationalité'] !== undefined ? data['Nationalité'] : (editingChild ? editingChild.nationalite : '')
-                          const adresse = data["Adresse d'origine"] !== undefined ? data["Adresse d'origine"] : (editingChild ? editingChild.adresse : '')
-                          const extra_data = editingChild ? { ...editingChild.extra_data, ...data } : data
+                          {/* ═══ 3. MEDICAL HISTORY ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(168,85,247,0.15)'}}>📋</div>
+                              <span className="hm-card-title">{t('hm_medical_history') || 'Antécédents Médicaux'}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              <div className="hm-grid-2">
+                                <div className="hm-field">
+                                  <label className="hm-field-label">{t('hm_chronic') || 'Maladies Chroniques'}</label>
+                                  <textarea rows={2} defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.chronic || '' })()} id="hm-chronic" placeholder="Ex: Asthme, diabète..." />
+                                </div>
+                                <div className="hm-field">
+                                  <label className="hm-field-label">{t('hm_surgeries') || 'Chirurgies Antérieures'}</label>
+                                  <textarea rows={2} defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.surgeries || '' })()} id="hm-surgeries" placeholder="Ex: Appendicectomie 2020..." />
+                                </div>
+                                <div className="hm-field">
+                                  <label className="hm-field-label">{t('hm_hospitalization') || 'Hospitalisations'}</label>
+                                  <textarea rows={2} defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.hospitalization || '' })()} id="hm-hospitalization" placeholder="Ex: Paludisme sévère 2021..." />
+                                </div>
+                                <div className="hm-field">
+                                  <label className="hm-field-label">{t('hm_family_history') || 'Antécédents Familiaux'}</label>
+                                  <textarea rows={2} defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.familyHistory || '' })()} id="hm-family" placeholder="Ex: Hypertension, diabète..." />
+                                </div>
+                                <div className="hm-field">
+                                  <label className="hm-field-label">{t('hm_disabilities') || 'Handicaps'}</label>
+                                  <textarea rows={2} defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.disabilities || '' })()} id="hm-disabilities" placeholder="Ex: Aucun" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
 
-                          if (photoDataUrl) {
-                            const fd = new FormData()
-                            fd.append('uid', uid)
-                            fd.append('nom', nom)
-                            fd.append('prenom', prenom)
-                            fd.append('sexe', sexe)
-                            fd.append('date_naissance', date_naissance || '')
-                            fd.append('nationalite', nationalite)
-                            fd.append('adresse', adresse)
-                            fd.append('extra_data', JSON.stringify(extra_data))
-                            const arr = photoDataUrl.split(',')
-                            const mime = arr[0].match(/:(.*?);/)[1]
-                            const bstr = atob(arr[1])
-                            let n = bstr.length
-                            const u8arr = new Uint8Array(n)
-                            while (n--) u8arr[n] = bstr.charCodeAt(n)
-                            fd.append('photo', new File([u8arr], 'photo.jpg', { type: mime }))
-                            return { body: fd, headers: {} }
-                          }
-                          const jsonBody = { uid, nom, prenom, sexe, date_naissance, nationalite, adresse, extra_data }
-                          if (editingChild?.photo && !photoDataUrl) jsonBody.photo = editingChild.photo
-                          return { body: JSON.stringify(jsonBody), headers: { 'Content-Type': 'application/json' } }
-                        }
+                          {/* ═══ 4. VACCINATION MANAGEMENT ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(34,197,94,0.15)'}}>💉</div>
+                              <span className="hm-card-title">{t('hm_vaccinations') || 'Vaccinations'}</span>
+                              <span className="hm-card-badge">{vaccinations.filter(v => v.done).length}/{vaccinations.length}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              <div className="hm-vax-progress">
+                                <div className="hm-vax-progress-bar"><div className="hm-vax-progress-fill" style={{width:`${vaccinations.length ? Math.round(vaccinations.filter(v=>v.done).length/vaccinations.length*100) : 0}%`}} /></div>
+                                <div className="hm-vax-progress-label"><span>{t('hm_vax_progress') || 'Progrès Vaccinal'}</span><span>{vaccinations.filter(v=>v.done).length}/{vaccinations.length}</span></div>
+                              </div>
+                              <div className="hm-vax-list">
+                                {vaccinations.map((v, i) => (
+                                  <div key={i} className="hm-vax-item">
+                                    <button className={`hm-vax-check${v.done ? ' done' : ''}`} onClick={() => { const nxt = [...vaccinations]; nxt[i] = {...nxt[i], done: !nxt[i].done }; setVaccinations(nxt) }}>{v.done ? '✓' : ''}</button>
+                                    <span className="hm-vax-name">{v.name}</span>
+                                    <input type="date" className="hm-vax-date" style={{background:'transparent',border:'none',color:'#F1F5F9',fontSize:'11px',outline:'none',width:'120px'}} value={v.dateAdmin} onChange={e => { const nxt = [...vaccinations]; nxt[i] = {...nxt[i], dateAdmin: e.target.value }; setVaccinations(nxt) }} />
+                                    <input type="date" className="hm-vax-next" style={{background:'transparent',border:'none',color:'#f59e0b',fontSize:'11px',outline:'none',width:'120px'}} value={v.nextDose} onChange={e => { const nxt = [...vaccinations]; nxt[i] = {...nxt[i], nextDose: e.target.value }; setVaccinations(nxt) }} />
+                                    <span className="hm-vax-upload" onClick={() => document.getElementById('hm-vax-upload-' + i)?.click()} title={t('hm_upload_card') || 'Importer Carte'}>📎</span>
+                                    <input id={'hm-vax-upload-' + i} type="file" accept="image/*,.pdf" hidden onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = ev => { const uid = editingChild ? editingChild.uid : uidRef.current; localStorage.setItem('cdo_vax_' + uid + '_' + i, ev.target.result) }; r.readAsDataURL(f) } }} />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
 
-                        let url = `${API}/enfants/`
-                        let method = 'POST'
-                        if (editingChild) {
-                          url = `${API}/enfants/${editingChild.id}/`
-                          method = 'PUT'
-                        }
+                          {/* ═══ 5. ALLERGIES ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(239,68,68,0.15)'}}>⚠️</div>
+                              <span className="hm-card-title">{t('hm_allergies') || 'Allergies'}</span>
+                              <span className="hm-card-badge">{allergies.length}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              {allergies.map((a, i) => (
+                                <div key={i} className="hm-allergy">
+                                  <span className="hm-allergy-icon">{a.type === 'food' ? '🍽️' : a.type === 'drug' ? '💊' : '🌿'}</span>
+                                  <div className="hm-allergy-info">
+                                    <span className="hm-allergy-name">{a.name || 'Allergie'}</span>
+                                    {a.reaction && <span className="hm-allergy-notes">{a.reaction}</span>}
+                                  </div>
+                                  <span className={`hm-allergy-sev ${a.severity || 'mild'}`}>{a.severity === 'severe' ? (t('hm_severity_severe')||'Sévère') : a.severity === 'moderate' ? (t('hm_severity_moderate')||'Modéré') : (t('hm_severity_mild')||'Léger')}</span>
+                                  <span className="hm-allergy-del" onClick={() => setAllergies(allergies.filter((_,j) => j !== i))}>✕</span>
+                                </div>
+                              ))}
+                              {showAllergyForm ? (
+                                <div className="hm-inline-form">
+                                  <select id="hm- allergy-type" defaultValue="food">
+                                    <option value="food">{t('hm_food_allergy') || 'Alimentaire'}</option>
+                                    <option value="drug">{t('hm_drug_allergy') || 'Médicamenteuse'}</option>
+                                    <option value="env">{t('hm_env_allergy') || 'Environnementale'}</option>
+                                  </select>
+                                  <input id="hm-allergy-name" placeholder="Nom" style={{flex:1}} />
+                                  <select id="hm-allergy-sev" defaultValue="mild">
+                                    <option value="mild">{t('hm_severity_mild') || 'Léger'}</option>
+                                    <option value="moderate">{t('hm_severity_moderate') || 'Modéré'}</option>
+                                    <option value="severe">{t('hm_severity_severe') || 'Sévère'}</option>
+                                  </select>
+                                  <input id="hm-allergy-reaction" placeholder={t('hm_reaction') || 'Réaction'} style={{flex:1}} />
+                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('hm-allergy-name')?.value?.trim(); if (!name) return; setAllergies([...allergies, { type: document.getElementById('hm- allergy-type')?.value || 'food', name, severity: document.getElementById('hm-allergy-sev')?.value || 'mild', reaction: document.getElementById('hm-allergy-reaction')?.value || '' }]); setShowAllergyForm(false) }}>✓</button>
+                                  <button className="hm-inline-cancel" onClick={() => setShowAllergyForm(false)}>✕</button>
+                                </div>
+                              ) : (
+                                <button className="hm-add-btn" onClick={() => setShowAllergyForm(true)}>+ {t('hm_add') || 'Ajouter'}</button>
+                              )}
+                            </div>
+                          </div>
 
-                        let token = localStorage.getItem('access_token')
-                        if (!token) { alert('Session expirée'); return }
-                        const send = async () => {
-                          const { body, headers: extraHeaders } = buildBody()
-                          const allHeaders = { Authorization: `Bearer ${token}`, ...extraHeaders }
-                          let res = await fetch(url, { method, headers: allHeaders, body })
-                          if (res.status === 401) {
-                            const refresh = localStorage.getItem('refresh_token')
-                            if (!refresh) throw new Error('Session expirée')
-                            const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                            if (!refRes.ok) throw new Error('Session expirée')
-                            const tokens = await refRes.json()
-                            localStorage.setItem('access_token', tokens.access)
-                            allHeaders.Authorization = `Bearer ${tokens.access}`
-                            res = await fetch(url, { method, headers: allHeaders, body })
-                          }
-                          if (!res.ok) {
-                            const errData = await res.json().catch(() => ({}))
-                            const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'
-                            throw new Error(errMsg)
-                          }
-                          return res.json()
-                        }
-                        try {
-                          const saved = await send()
-                          setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
-                          setSubKey(null)
-                          setEditingChild(saved)
-                          uidRef.current = saved.uid
-                        } catch (e) {
-                          if (method === 'POST' && e.message?.includes('dupliquée')) {
-                            uidRef.current = genChildUid()
-                            try {
-                              const { body, headers: extraHeaders } = buildBody()
-                              const allHeaders2 = { Authorization: `Bearer ${localStorage.getItem('access_token')}`, ...extraHeaders }
-                              const retryBody = typeof body === 'string' ? JSON.stringify({ ...JSON.parse(body), uid: uidRef.current }) : (() => { const f = new FormData(); f.append('uid', uidRef.current); for (const [k,v] of body.entries()) if (k !== 'uid') f.append(k,v); return f })()
-                              const retryRes = await fetch(`${API}/enfants/`, { method: 'POST', headers: allHeaders2, body: retryBody })
-                              if (retryRes.ok) {
-                                const saved = await retryRes.json()
-                                setRegisteredChildren(prev => [...prev, saved])
-                                setSubKey(null)
-                                setEditingChild(saved)
-                                uidRef.current = saved.uid
-                                return
+                          {/* ═══ 6. TREATMENTS & MEDICATIONS ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(59,130,246,0.15)'}}>💊</div>
+                              <span className="hm-card-title">{t('hm_treatments') || 'Traitements'}</span>
+                              <span className="hm-card-badge">{treatments.filter(t => t.name).length}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              {treatments.filter(t => t.name).map((tx, i) => (
+                                <div key={i} className="hm-tx-item">
+                                  <div className="hm-tx-info">
+                                    <span className="hm-tx-name">{tx.name}</span>
+                                    <span className="hm-tx-detail">{tx.dosage} — {tx.frequency}</span>
+                                  </div>
+                                  <span className="hm-tx-badge">{tx.startDate || '—'}</span>
+                                  <span className="hm-tx-badge" style={{background:'rgba(239,68,68,0.12)',color:'#ef4444'}}>{tx.endDate || '—'}</span>
+                                  <span style={{fontSize:'11px',color:'#64748B'}}>{tx.doctor || ''}</span>
+                                  <span className="hm-allergy-del" onClick={() => setTreatments(treatments.filter((_,j) => j !== i))}>✕</span>
+                                </div>
+                              ))}
+                              {showTxForm ? (
+                                <div className="hm-inline-form" style={{flexWrap:'wrap'}}>
+                                  <input id="hm-tx-name" placeholder={t('hm_medication') || 'Médicament'} style={{flex:1,minWidth:'100px'}} />
+                                  <input id="hm-tx-dosage" placeholder={t('hm_dosage') || 'Posologie'} style={{width:'80px'}} />
+                                  <input id="hm-tx-freq" placeholder={t('hm_frequency') || 'Fréquence'} style={{width:'100px'}} />
+                                  <input id="hm-tx-start" type="date" style={{width:'110px'}} />
+                                  <input id="hm-tx-end" type="date" style={{width:'110px'}} />
+                                  <input id="hm-tx-doc" placeholder={t('hm_prescribing_doc') || 'Médecin'} style={{flex:1,minWidth:'100px'}} />
+                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('hm-tx-name')?.value?.trim(); if (!name) return; setTreatments([...treatments, { name, dosage: document.getElementById('hm-tx-dosage')?.value || '', frequency: document.getElementById('hm-tx-freq')?.value || '', startDate: document.getElementById('hm-tx-start')?.value || '', endDate: document.getElementById('hm-tx-end')?.value || '', doctor: document.getElementById('hm-tx-doc')?.value || '' }]); setShowTxForm(false) }}>✓</button>
+                                  <button className="hm-inline-cancel" onClick={() => setShowTxForm(false)}>✕</button>
+                                </div>
+                              ) : (
+                                <button className="hm-add-btn" onClick={() => setShowTxForm(true)}>+ {t('hm_add') || 'Ajouter'}</button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* ═══ 7. EMERGENCY INFORMATION ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(245,158,11,0.15)'}}>🆘</div>
+                              <span className="hm-card-title">{t('hm_emergency') || 'Urgence'}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              <div className="hm-emerg">
+                                <div className="hm-emerg-item">
+                                  <span className="hm-emerg-label">{t('hm_emergency_contact') || 'Contact Urgence'}</span>
+                                  <span className="hm-emerg-value"><input style={{background:'transparent',border:'none',color:'#F1F5F9',fontSize:'13px',width:'100%',outline:'none',padding:0}} defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.emergencyContact || '' })()} id="hm-ec" placeholder="Nom et téléphone" /></span>
+                                </div>
+                                <div className="hm-emerg-item">
+                                  <span className="hm-emerg-label">{t('hm_primary_doc') || 'Médecin Traitant'}</span>
+                                  <span className="hm-emerg-value"><input style={{background:'transparent',border:'none',color:'#F1F5F9',fontSize:'13px',width:'100%',outline:'none',padding:0}} defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.primaryDoctor || '' })()} id="hm-pd" placeholder="Dr. Nom" /></span>
+                                </div>
+                                <div className="hm-emerg-item">
+                                  <span className="hm-emerg-label">{t('hm_hospital') || 'Hôpital'}</span>
+                                  <span className="hm-emerg-value"><input style={{background:'transparent',border:'none',color:'#F1F5F9',fontSize:'13px',width:'100%',outline:'none',padding:0}} defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.hospital || '' })()} id="hm-hosp" placeholder="Hôpital de référence" /></span>
+                                </div>
+                                <div className="hm-emerg-item">
+                                  <span className="hm-emerg-label">{t('hm_insurance') || 'Assurance'}</span>
+                                  <span className="hm-emerg-value"><input style={{background:'transparent',border:'none',color:'#F1F5F9',fontSize:'13px',width:'100%',outline:'none',padding:0}} defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.insurance || '' })()} id="hm-ins" placeholder="N° police" /></span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ═══ 8. MEDICAL DOCUMENTS ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(99,102,241,0.15)'}}>📄</div>
+                              <span className="hm-card-title">{t('hm_documents') || 'Documents Médicaux'}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              <div className="hm-docs">
+                                {[
+                                  { id:'presc', icon:'📝', label: t('hm_upload_prescription') || 'Prescriptions' },
+                                  { id:'reports', icon:'📊', label: t('hm_upload_report') || 'Rapports' },
+                                  { id:'lab', icon:'🔬', label: t('hm_upload_lab') || 'Labo' },
+                                ].map(doc => {
+                                  const uid = editingChild ? editingChild.uid : uidRef.current
+                                  const saved = localStorage.getItem('cdo_meddoc_' + uid + '_' + doc.id)
+                                  return (
+                                    <div key={doc.id} className={`hm-doc-zone${saved ? ' has' : ''}`} onClick={() => document.getElementById('hm-md-' + doc.id)?.click()}>
+                                      <div className="hm-doc-icon">{doc.icon}</div>
+                                      <span className="hm-doc-label">{doc.label}</span>
+                                      {saved ? <span className="hm-doc-name">✓ Fichier importé</span> : <span style={{fontSize:'10px',color:'#475569'}}>Cliquez pour uploader</span>}
+                                      {saved && <span className="hm-doc-remove" onClick={e => { e.stopPropagation(); localStorage.removeItem('cdo_meddoc_' + uid + '_' + doc.id); setSavingHealth(v => !v) }}>Supprimer</span>}
+                                      <input id={'hm-md-' + doc.id} type="file" accept="image/*,.pdf" hidden onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = ev => { localStorage.setItem('cdo_meddoc_' + uid + '_' + doc.id, ev.target.result); setSavingHealth(v => !v) }; r.readAsDataURL(f) } }} />
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ═══ SAVE BUTTON ═══ */}
+                          <div className="hm-save-row">
+                            <button className={`hm-save-btn${savingHealth ? ' loading' : ''}`} onClick={async () => {
+                              setSavingHealth(true)
+                              const m = editingChild?.extra_data?.medical || {}
+                              const medical = {
+                                bloodGroup: document.querySelector('.hm-summary-blood')?.value || m.bloodGroup || '',
+                                height: document.getElementById('hm-height')?.value || m.height || '',
+                                weight: document.getElementById('hm-weight')?.value || m.weight || '',
+                                bmi: document.getElementById('hm-bmi-display')?.textContent || m.bmi || '',
+                                bloodPressure: document.getElementById('hm-bp')?.value || m.bloodPressure || '',
+                                heartRate: document.getElementById('hm-hr')?.value || m.heartRate || '',
+                                temperature: document.getElementById('hm-temp')?.value || m.temperature || '',
+                                spo2: document.getElementById('hm-spo2')?.value || m.spo2 || '',
+                                chronic: document.getElementById('hm-chronic')?.value || m.chronic || '',
+                                surgeries: document.getElementById('hm-surgeries')?.value || m.surgeries || '',
+                                hospitalization: document.getElementById('hm-hospitalization')?.value || m.hospitalization || '',
+                                familyHistory: document.getElementById('hm-family')?.value || m.familyHistory || '',
+                                disabilities: document.getElementById('hm-disabilities')?.value || m.disabilities || '',
+                                vaccinations,
+                                allergies,
+                                treatments: treatments.filter(t => t.name),
+                                emergencyContact: document.getElementById('hm-ec')?.value || m.emergencyContact || '',
+                                primaryDoctor: document.getElementById('hm-pd')?.value || m.primaryDoctor || '',
+                                hospital: document.getElementById('hm-hosp')?.value || m.hospital || '',
+                                insurance: document.getElementById('hm-ins')?.value || m.insurance || '',
                               }
-                            } catch (_) {}
+                              const uid = editingChild ? editingChild.uid : uidRef.current
+                              const extra_data = { ...(editingChild?.extra_data || {}), medical }
+                              const photoDataUrl = localStorage.getItem('cdo_child_photo_' + uid)
+                              try {
+                                let token = localStorage.getItem('access_token')
+                                if (!token) { alert('Session expirée'); setSavingHealth(false); return }
+
+                                const buildBody = () => {
+                                  const nom = editingChild?.nom || ''
+                                  const prenom = editingChild?.prenom || ''
+                                  const sexe = editingChild?.sexe || ''
+                                  const date_naissance = editingChild?.date_naissance || null
+                                  const nationalite = editingChild?.nationalite || ''
+                                  const adresse = editingChild?.adresse || ''
+                                  if (photoDataUrl) {
+                                    const fd = new FormData()
+                                    fd.append('uid', uid); fd.append('nom', nom); fd.append('prenom', prenom); fd.append('sexe', sexe); fd.append('date_naissance', date_naissance || ''); fd.append('nationalite', nationalite); fd.append('adresse', adresse)
+                                    fd.append('extra_data', JSON.stringify(extra_data))
+                                    const arr = photoDataUrl.split(','); const bytes = atob(arr[1]); const u8 = new Uint8Array(bytes.length); for (let i = 0; i < bytes.length; i++) u8[i] = bytes.charCodeAt(i)
+                                    fd.append('photo', new File([u8], 'photo.jpg', { type: arr[0].match(/:(.*?);/)[1] }))
+                                    return { body: fd, headers: {} }
+                                  }
+                                  return { body: JSON.stringify({ uid, nom, prenom, sexe, date_naissance, nationalite, adresse, extra_data }), headers: { 'Content-Type': 'application/json' } }
+                                }
+
+                                let url = `${API}/enfants/`
+                                let method = 'POST'
+                                if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
+
+                                const send = async () => {
+                                  const { body, headers: eh } = buildBody()
+                                  const hdrs = { Authorization: `Bearer ${token}`, ...eh }
+                                  let res = await fetch(url, { method, headers: hdrs, body })
+                                  if (res.status === 401) {
+                                    const refresh = localStorage.getItem('refresh_token')
+                                    if (!refresh) throw new Error('Session expirée')
+                                    const rr = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+                                    if (!rr.ok) throw new Error('Session expirée')
+                                    const t2 = await rr.json(); localStorage.setItem('access_token', t2.access); hdrs.Authorization = `Bearer ${t2.access}`
+                                    res = await fetch(url, { method, headers: hdrs, body })
+                                  }
+                                  if (!res.ok) { const ed = await res.json().catch(()=>({})); throw new Error(ed.error || Object.values(ed).flat().join(' ') || 'Erreur') }
+                                  return res.json()
+                                }
+                                const saved = await send()
+                                setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
+                                setEditingChild(saved)
+                                setSavingHealth(false)
+                                alert('Dossier médical enregistré!')
+                              } catch (e) {
+                                setSavingHealth(false)
+                                alert(e.message || 'Erreur lors de l\'enregistrement')
+                              }
+                            }}>
+                              {savingHealth && <div className="hm-save-spinner" />}
+                              {t('hm_save') || 'Enregistrer le Dossier Médical'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : subKey === 'Scolarité' ? (
+                        <div className="ed-form">
+                          {/* ═══ ACADEMIC ALERTS BAR ═══ */}
+                          <div className="ed-alerts">
+                            <div className="ed-alert danger"><span className="ed-alert-icon">🔴</span><span className="ed-alert-text">{t('ed_alert_attendance') || 'Présence Insuffisante'}</span></div>
+                            <div className="ed-alert warning"><span className="ed-alert-icon">🟡</span><span className="ed-alert-text">{t('ed_alert_grades') || 'Matières en Difficulté'}</span><span className="hm-card-badge">{subjects.filter(s => s.grade && parseFloat(s.grade) < 10).length}</span></div>
+                            <div className="ed-alert info"><span className="ed-alert-icon">🔵</span><span className="ed-alert-text">{t('ed_alert_exams') || 'Examens à Venir'}</span></div>
+                            <div className="ed-alert success"><span className="ed-alert-icon">🟢</span><span className="ed-alert-text">{t('ed_alert_reports') || 'Bulletins'}</span></div>
+                          </div>
+
+                          {/* ═══ DASHBOARD STAT CARDS ═══ */}
+                          <div className="ed-stats">
+                            <div className="ed-stat"><div className="ed-stat-icon">📊</div><div className="ed-stat-value">{(() => { const g = subjects.filter(s => s.grade).map(s => parseFloat(s.grade) * (s.coefficient || 1)); const c = subjects.filter(s => s.grade).reduce((a, s) => a + (s.coefficient || 1), 0); return g.length && c ? (g.reduce((a, b) => a + b, 0) / c).toFixed(1) : '—' })()}</div><div className="ed-stat-label">{t('ed_gpa_current') || 'Moyenne'}</div></div>
+                            <div className="ed-stat"><div className="ed-stat-icon">📈</div><div className="ed-stat-value">{(() => { const p = document.getElementById('ed-present')?.value; const a = document.getElementById('ed-absent')?.value; const total = (parseInt(p)||0) + (parseInt(a)||0); return total ? Math.round(parseInt(p||0)/total*100) + '%' : '—' })() || '—'}</div><div className="ed-stat-label">{t('ed_att_rate') || 'Présence'}</div></div>
+                            <div className="ed-stat"><div className="ed-stat-icon">🏆</div><div className="ed-stat-value">{document.getElementById('ed-rank')?.value || '—'}</div><div className="ed-stat-label">{t('ed_rank_current') || 'Rang'}</div></div>
+                            <div className="ed-stat"><div className="ed-stat-icon">✅</div><div className="ed-stat-value">{subjects.filter(s => s.grade && parseFloat(s.grade) >= 10).length}</div><div className="ed-stat-label">{t('ed_subjects_passed') || 'Réussies'}</div></div>
+                            <div className="ed-stat"><div className="ed-stat-icon">⚠️</div><div className="ed-stat-value" style={{color: subjects.filter(s => s.grade && parseFloat(s.grade) < 10).length > 0 ? '#ef4444' : '#22c55e'}}>{subjects.filter(s => s.grade && parseFloat(s.grade) < 10).length}</div><div className="ed-stat-label">{t('ed_subjects_at_risk') || 'À Risque'}</div></div>
+                            <div className="ed-stat"><div className="ed-stat-icon">🎖️</div><div className="ed-stat-value">{activityEntries.filter(a => a.type === 'award').length}</div><div className="ed-stat-label">{t('ed_awards_count') || 'Distinctions'}</div></div>
+                          </div>
+
+                          {/* ═══ 1. STUDENT ACADEMIC PROFILE ═══ */}
+                          <div className="ed-hero">
+                            <div className="ed-hero-avatar">{(() => { const uid = editingChild ? editingChild.uid : uidRef.current; const s = localStorage.getItem('cdo_child_photo_' + uid); if (s) return <img src={s} alt="" style={{width:'56px',height:'56px',borderRadius:'14px',objectFit:'cover'}} />; const inits = ((getFieldValue('Prénom')?.[0]||'')+(getFieldValue('Nom')?.[0]||'')).toUpperCase()||'?'; return inits })()}</div>
+                            <div className="ed-hero-info">
+                              <div className="ed-hero-name">{getFieldValue('Prénom') || 'Prénom'} {getFieldValue('Nom') || 'Nom'}</div>
+                              <div className="ed-hero-meta">
+                                <span>🆔 {editingChild ? editingChild.uid : uidRef.current}</span>
+                                <span>🎂 {(() => { const d = getFieldValue('Date de naissance'); if (!d) return '—'; const a = Math.floor((new Date()-new Date(d))/(365.25*86400000)); return a+' '+(t('prof_years')||'ans') })()}</span>
+                                <span>🏫 {document.getElementById('ed-class')?.value || (() => { const e = editingChild?.extra_data?.education; return e?.currentClass || '' })() || '—'}</span>
+                              </div>
+                            </div>
+                            <div className="ed-hero-right">
+                              <span className="ed-hero-badge active">✅ {t('ed_status_active') || 'Actif'}</span>
+                              <span className="ed-hero-status">{t('ed_enrollment_date') || "Inscription"} : {document.getElementById('ed-enroll-date')?.value || '—'}</span>
+                            </div>
+                          </div>
+
+                          {/* ═══ 2. SCHOOL INFORMATION ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(59,130,246,0.15)'}}>🏫</div>
+                              <span className="hm-card-title">{t('ed_school_info') || 'Informations Scolaires'}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              <div className="ed-grid-2">
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_school_name') || 'Établissement'}</label><input defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.schoolName||''})()} id="ed-school" placeholder="Ex: École Saint Joseph" /></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_school_type') || "Type"}</label><select defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.schoolType||''})()} id="ed-school-type"><option value="">—</option><option value="Public">{t('ed_school_type_public')||'Public'}</option><option value="Privé">{t('ed_school_type_private')||'Privé'}</option><option value="Confessionnel">{t('ed_school_type_religious')||'Confessionnel'}</option></select></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_school_address') || 'Adresse'}</label><input defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.schoolAddress||''})()} id="ed-school-addr" /></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_school_phone') || 'Téléphone'}</label><input defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.schoolPhone||''})()} id="ed-school-phone" /></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_school_email') || 'Email'}</label><input defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.schoolEmail||''})()} id="ed-school-email" /></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_principal') || 'Directeur'}</label><input defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.principal||''})()} id="ed-principal" /></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_class_teacher') || 'Professeur Principal'}</label><input defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.classTeacher||''})()} id="ed-teacher" /></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ═══ 3. ACADEMIC INFORMATION ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(16,185,129,0.15)'}}>📚</div>
+                              <span className="hm-card-title">{t('ed_academic') || 'Informations Académiques'}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              <div className="ed-grid-2">
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_current_class') || 'Classe'}</label><input defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.currentClass||''})()} id="ed-class" placeholder="Ex: 5ème" /></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_academic_year') || 'Année Scolaire'}</label><input defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.academicYear||''})()} id="ed-year" placeholder="2025-2026" /></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_term') || 'Trimestre'}</label><select defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.term||''})()} id="ed-term"><option value="">—</option><option value="1">{t('ed_term_1')||'1er'}</option><option value="2">{t('ed_term_2')||'2ème'}</option><option value="3">{t('ed_term_3')||'3ème'}</option></select></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_student_number') || 'N° Étudiant'}</label><input defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.studentNumber||''})()} id="ed-student-nb" /></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_education_level') || "Niveau"}</label><select defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.educationLevel||''})()} id="ed-level"><option value="">—</option><option value="preschool">{t('ed_level_preschool')||'Préscolaire'}</option><option value="primary">{t('ed_level_primary')||'Primaire'}</option><option value="secondary">{t('ed_level_secondary')||'Secondaire'}</option><option value="highschool">{t('ed_level_highschool')||'Lycée'}</option><option value="university">{t('ed_level_university')||'Université'}</option><option value="vocational">{t('ed_level_vocational')||'Formation Pro.'}</option></select></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_enrollment_date') || "Date d'Inscription"}</label><input type="date" defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.enrollmentDate||''})()} id="ed-enroll-date" /></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ═══ 4. ACADEMIC PERFORMANCE (GRADES) ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(245,158,11,0.15)'}}>📊</div>
+                              <span className="hm-card-title">{t('ed_performance') || 'Performance'}</span>
+                              <span className="hm-card-badge">{(() => { const g = subjects.filter(s => s.grade).map(s => parseFloat(s.grade) * (s.coefficient || 1)); const c = subjects.filter(s => s.grade).reduce((a, s) => a + (s.coefficient || 1), 0); return g.length && c ? (g.reduce((a, b) => a + b, 0) / c).toFixed(1) : '—' })()}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              <table className="ed-grades">
+                                <thead><tr><th>{t('ed_subject')||'Matière'}</th><th>{t('ed_grade')||'Note'}</th><th>{t('ed_coefficient')||'Coef.'}</th><th>Appréciation</th></tr></thead>
+                                <tbody>
+                                  {subjects.map((s, i) => (
+                                    <tr key={i}>
+                                      <td><input value={s.name} onChange={e => { const nxt = [...subjects]; nxt[i] = {...nxt[i], name: e.target.value}; setSubjects(nxt) }} /></td>
+                                      <td><input type="number" step="0.5" min="0" max="20" value={s.grade} onChange={e => { const nxt = [...subjects]; nxt[i] = {...nxt[i], grade: e.target.value}; setSubjects(nxt) }} placeholder="0-20" /></td>
+                                      <td><input type="number" min="1" max="10" value={s.coefficient} onChange={e => { const nxt = [...subjects]; nxt[i] = {...nxt[i], coefficient: parseInt(e.target.value) || 1}; setSubjects(nxt) }} /></td>
+                                      <td style={{fontSize:'12px',color: !s.grade ? '#64748B' : parseFloat(s.grade) >= 14 ? '#22c55e' : parseFloat(s.grade) >= 10 ? '#f59e0b' : '#ef4444'}}>{!s.grade ? '—' : parseFloat(s.grade) >= 14 ? 'TB' : parseFloat(s.grade) >= 10 ? 'Satisf.' : 'Insuff.'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                              <div className="hm-grid-2" style={{marginTop:'12px'}}>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_strengths') || 'Points Forts'}</label><textarea rows={2} defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.strengths||''})()} id="ed-strengths" placeholder="Ex: Mathématiques, Français..." /></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_improvements') || 'À Améliorer'}</label><textarea rows={2} defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.improvements||''})()} id="ed-improvements" placeholder="Ex: Sciences, Anglais..." /></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ═══ 5. ATTENDANCE TRACKING ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(99,102,241,0.15)'}}>📅</div>
+                              <span className="hm-card-title">{t('ed_attendance') || 'Présences'}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              <div className="ed-att-row">
+                                <span className="ed-att-label">{t('ed_present') || 'Présences'}</span>
+                                <input type="number" className="hm-vital-input" style={{width:'80px'}} min="0" defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.presentDays||''})()} id="ed-present" onInput={() => { const p = parseInt(document.getElementById('ed-present')?.value)||0; const a = parseInt(document.getElementById('ed-absent')?.value)||0; const total = p + a; const el = document.getElementById('ed-att-pct'); if (el) el.textContent = total ? Math.round(p/total*100) + '%' : '—' }} />
+                                <span className="ed-att-label">{t('ed_absent') || 'Absences'}</span>
+                                <input type="number" className="hm-vital-input" style={{width:'80px'}} min="0" defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.absentDays||''})()} id="ed-absent" onInput={() => { const p = parseInt(document.getElementById('ed-present')?.value)||0; const a = parseInt(document.getElementById('ed-absent')?.value)||0; const total = p + a; const el = document.getElementById('ed-att-pct'); if (el) el.textContent = total ? Math.round(p/total*100) + '%' : '—' }} />
+                                <span className="ed-att-pct" id="ed-att-pct">{(()=>{const e=editingChild?.extra_data?.education; if (!e) return '—'; const total = (parseInt(e.presentDays)||0) + (parseInt(e.absentDays)||0); return total ? Math.round(parseInt(e.presentDays||0)/total*100) + '%' : '—' })()}</span>
+                              </div>
+                              <div className="hm-field"><label className="hm-field-label">{t('ed_attendance_history') || 'Historique'}</label><textarea rows={2} defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.attendanceHistory||''})()} id="ed-att-history" placeholder="Ex: Janvier: 20P/2A, Février: 18P/4A..." /></div>
+                            </div>
+                          </div>
+
+                          {/* ═══ 6. BEHAVIOR & DISCIPLINE ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(168,85,247,0.15)'}}>👥</div>
+                              <span className="hm-card-title">{t('ed_behavior') || 'Comportement'}</span>
+                              <span className="hm-card-badge">{behaviorEntries.length}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              {behaviorEntries.map((b, i) => (
+                                <div key={i} className="ed-beh-item">
+                                  <span className="ed-beh-icon">{b.type === 'positive' ? '⭐' : b.type === 'concern' ? '⚠️' : '🔴'}</span>
+                                  <div className="ed-beh-info">
+                                    <span className="ed-beh-name">{b.name || 'Comportement'}</span>
+                                    {b.notes && <span className="ed-beh-notes">{b.notes}</span>}
+                                  </div>
+                                  <span className={`ed-beh-type ${b.type || 'concern'}`}>{b.type === 'positive' ? (t('ed_achievements')||'Positif') : b.type === 'incident' ? (t('ed_discipline')||'Incident') : (t('ed_observations')||'Observation')}</span>
+                                  <span className="ed-beh-del" onClick={() => setBehaviorEntries(behaviorEntries.filter((_,j) => j !== i))}>✕</span>
+                                </div>
+                              ))}
+                              {showBehaviorForm ? (
+                                <div className="hm-inline-form">
+                                  <select id="ed-beh-type" defaultValue="observation">
+                                    <option value="positive">{t('ed_achievements')||'Réussite'}</option>
+                                    <option value="concern">{t('ed_observations')||'Observation'}</option>
+                                    <option value="incident">{t('ed_discipline')||'Incident'}</option>
+                                  </select>
+                                  <input id="ed-beh-name" placeholder="Titre" style={{flex:1}} />
+                                  <input id="ed-beh-notes" placeholder="Notes" style={{flex:1}} />
+                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('ed-beh-name')?.value?.trim(); if (!name) return; setBehaviorEntries([...behaviorEntries, { type: document.getElementById('ed-beh-type')?.value || 'observation', name, notes: document.getElementById('ed-beh-notes')?.value || '' }]); setShowBehaviorForm(false) }}>✓</button>
+                                  <button className="hm-inline-cancel" onClick={() => setShowBehaviorForm(false)}>✕</button>
+                                </div>
+                              ) : (
+                                <button className="hm-add-btn" onClick={() => setShowBehaviorForm(true)}>+ {t('ed_add') || 'Ajouter'}</button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* ═══ 7. EDUCATIONAL SUPPORT ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(16,185,129,0.15)'}}>🤝</div>
+                              <span className="hm-card-title">{t('ed_support') || 'Soutien'}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              <div className="ed-grid-2">
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_learning_difficulties') || 'Difficultés'}</label><textarea rows={2} defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.learningDifficulties||''})()} id="ed-learn-diff" placeholder="Ex: Dyslexie, TDAH..." /></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_special_needs') || 'Besoins Spéciaux'}</label><textarea rows={2} defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.specialNeeds||''})()} id="ed-special" placeholder="Ex: Soutien orthophoniste..." /></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_tutoring') || 'Soutien Scolaire'}</label><textarea rows={2} defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.tutoring||''})()} id="ed-tutoring" placeholder="Ex: Cours de rattrapage en maths..." /></div>
+                                <div className="hm-field"><label className="hm-field-label">{t('ed_scholarship') || "Bourse"}</label><input defaultValue={(()=>{const e=editingChild?.extra_data?.education; return e?.scholarship||''})()} id="ed-scholarship" placeholder="Ex: Bourse d'excellence 2025" /></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ═══ 8. SCHOOL DOCUMENTS ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(245,158,11,0.15)'}}>📄</div>
+                              <span className="hm-card-title">{t('ed_documents') || 'Documents'}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              <div className="ed-docs">
+                                {[
+                                  { id:'report', icon:'📋', label: t('ed_report_card') || 'Bulletins' },
+                                  { id:'cert', icon:'🏅', label: t('ed_certificate') || 'Certificats' },
+                                  { id:'enroll', icon:'📝', label: t('ed_enrollment_letter') || 'Inscription' },
+                                  { id:'schoolid', icon:'🆔', label: t('ed_school_id') || "Carte d'Étudiant" },
+                                  { id:'exams', icon:'📊', label: t('ed_exam_results') || 'Examens' },
+                                  { id:'assess', icon:'📈', label: t('ed_assessments') || 'Évaluations' },
+                                ].map(doc => {
+                                  const uid = editingChild ? editingChild.uid : uidRef.current
+                                  const saved = localStorage.getItem('cdo_schooldoc_' + uid + '_' + doc.id)
+                                  return (
+                                    <div key={doc.id} className={`ed-doc-zone${saved ? ' has' : ''}`} onClick={() => document.getElementById('ed-doc-' + doc.id)?.click()}>
+                                      <div className="ed-doc-icon">{doc.icon}</div>
+                                      <span className="ed-doc-label">{doc.label}</span>
+                                      {saved ? <span className="ed-doc-name">✓ Fichier</span> : <span style={{fontSize:'10px',color:'#475569'}}>Upload</span>}
+                                      {saved && <span className="ed-doc-remove" onClick={e => { e.stopPropagation(); localStorage.removeItem('cdo_schooldoc_' + uid + '_' + doc.id); setSavingEdu(v => !v) }}>Suppr.</span>}
+                                      <input id={'ed-doc-' + doc.id} type="file" accept="image/*,.pdf" hidden onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = ev => { localStorage.setItem('cdo_schooldoc_' + uid + '_' + doc.id, ev.target.result); setSavingEdu(v => !v) }; r.readAsDataURL(f) } }} />
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ═══ 9. ACTIVITIES & EXTRACURRICULAR ═══ */}
+                          <div className="hm-card open">
+                            <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
+                              <div className="hm-card-icon" style={{background:'rgba(236,72,153,0.15)'}}>🎯</div>
+                              <span className="hm-card-title">{t('ed_activities') || 'Activités'}</span>
+                              <span className="hm-card-badge">{activityEntries.length}</span>
+                              <span className="hm-card-chevron">▼</span>
+                            </div>
+                            <div className="hm-card-body">
+                              {activityEntries.map((a, i) => (
+                                <div key={i} className="ed-act-item">
+                                  <span className="ed-act-icon">{a.category === 'sports' ? '⚽' : a.category === 'music' ? '🎵' : a.category === 'art' ? '🎨' : a.category === 'club' ? '👥' : a.category === 'competition' ? '🏆' : '🎖️'}</span>
+                                  <div className="ed-act-info">
+                                    <span className="ed-act-name">{a.name || 'Activité'}</span>
+                                    {a.detail && <span className="ed-act-detail">{a.detail}</span>}
+                                  </div>
+                                  <span className="ed-act-badge">{a.category === 'award' ? (t('ed_awards')||'Prix') : a.category === 'competition' ? (t('ed_competitions')||'Compétition') : a.category}</span>
+                                  <span className="ed-act-del" onClick={() => setActivityEntries(activityEntries.filter((_,j) => j !== i))}>✕</span>
+                                </div>
+                              ))}
+                              {showActivityForm ? (
+                                <div className="hm-inline-form" style={{flexWrap:'wrap'}}>
+                                  <select id="ed-act-cat" defaultValue="sports">
+                                    <option value="sports">{t('ed_sports')||'Sports'}</option>
+                                    <option value="music">{t('ed_music')||'Musique'}</option>
+                                    <option value="art">{t('ed_art')||'Art'}</option>
+                                    <option value="club">{t('ed_clubs')||'Clubs'}</option>
+                                    <option value="competition">{t('ed_competitions')||'Compétitions'}</option>
+                                    <option value="award">{t('ed_awards')||'Prix'}</option>
+                                  </select>
+                                  <input id="ed-act-name" placeholder="Nom" style={{flex:1,minWidth:'120px'}} />
+                                  <input id="ed-act-detail" placeholder="Détail" style={{flex:1,minWidth:'120px'}} />
+                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('ed-act-name')?.value?.trim(); if (!name) return; setActivityEntries([...activityEntries, { category: document.getElementById('ed-act-cat')?.value || 'sports', name, detail: document.getElementById('ed-act-detail')?.value || '' }]); setShowActivityForm(false) }}>✓</button>
+                                  <button className="hm-inline-cancel" onClick={() => setShowActivityForm(false)}>✕</button>
+                                </div>
+                              ) : (
+                                <button className="hm-add-btn" onClick={() => setShowActivityForm(true)}>+ {t('ed_add') || 'Ajouter'}</button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* ═══ SAVE BUTTON ═══ */}
+                          <div className="hm-save-row">
+                            <button className={`hm-save-btn${savingEdu ? ' loading' : ''}`} style={{background:'linear-gradient(135deg,#3b82f6,#2563eb)'}} onClick={async () => {
+                              setSavingEdu(true)
+                              const e = editingChild?.extra_data?.education || {}
+                              const education = {
+                                schoolName: document.getElementById('ed-school')?.value || e.schoolName || '',
+                                schoolType: document.getElementById('ed-school-type')?.value || e.schoolType || '',
+                                schoolAddress: document.getElementById('ed-school-addr')?.value || e.schoolAddress || '',
+                                schoolPhone: document.getElementById('ed-school-phone')?.value || e.schoolPhone || '',
+                                schoolEmail: document.getElementById('ed-school-email')?.value || e.schoolEmail || '',
+                                principal: document.getElementById('ed-principal')?.value || e.principal || '',
+                                classTeacher: document.getElementById('ed-teacher')?.value || e.classTeacher || '',
+                                currentClass: document.getElementById('ed-class')?.value || e.currentClass || '',
+                                academicYear: document.getElementById('ed-year')?.value || e.academicYear || '',
+                                term: document.getElementById('ed-term')?.value || e.term || '',
+                                studentNumber: document.getElementById('ed-student-nb')?.value || e.studentNumber || '',
+                                educationLevel: document.getElementById('ed-level')?.value || e.educationLevel || '',
+                                enrollmentDate: document.getElementById('ed-enroll-date')?.value || e.enrollmentDate || '',
+                                subjects,
+                                strengths: document.getElementById('ed-strengths')?.value || e.strengths || '',
+                                improvements: document.getElementById('ed-improvements')?.value || e.improvements || '',
+                                presentDays: document.getElementById('ed-present')?.value || e.presentDays || '',
+                                absentDays: document.getElementById('ed-absent')?.value || e.absentDays || '',
+                                attendanceHistory: document.getElementById('ed-att-history')?.value || e.attendanceHistory || '',
+                                behaviorEntries,
+                                activityEntries,
+                                learningDifficulties: document.getElementById('ed-learn-diff')?.value || e.learningDifficulties || '',
+                                specialNeeds: document.getElementById('ed-special')?.value || e.specialNeeds || '',
+                                tutoring: document.getElementById('ed-tutoring')?.value || e.tutoring || '',
+                                scholarship: document.getElementById('ed-scholarship')?.value || e.scholarship || '',
+                              }
+                              const uid = editingChild ? editingChild.uid : uidRef.current
+                              const extra_data = { ...(editingChild?.extra_data || {}), education }
+                              const photoDataUrl = localStorage.getItem('cdo_child_photo_' + uid)
+                              try {
+                                let token = localStorage.getItem('access_token')
+                                if (!token) { alert('Session expirée'); setSavingEdu(false); return }
+                                const buildBody = () => {
+                                  const nom = editingChild?.nom || ''
+                                  const prenom = editingChild?.prenom || ''
+                                  const sexe = editingChild?.sexe || ''
+                                  const date_naissance = editingChild?.date_naissance || null
+                                  const nationalite = editingChild?.nationalite || ''
+                                  const adresse = editingChild?.adresse || ''
+                                  if (photoDataUrl) {
+                                    const fd = new FormData()
+                                    fd.append('uid', uid); fd.append('nom', nom); fd.append('prenom', prenom); fd.append('sexe', sexe); fd.append('date_naissance', date_naissance || ''); fd.append('nationalite', nationalite); fd.append('adresse', adresse)
+                                    fd.append('extra_data', JSON.stringify(extra_data))
+                                    const arr = photoDataUrl.split(','); const bytes = atob(arr[1]); const u8 = new Uint8Array(bytes.length); for (let i = 0; i < bytes.length; i++) u8[i] = bytes.charCodeAt(i)
+                                    fd.append('photo', new File([u8], 'photo.jpg', { type: arr[0].match(/:(.*?);/)[1] }))
+                                    return { body: fd, headers: {} }
+                                  }
+                                  return { body: JSON.stringify({ uid, nom, prenom, sexe, date_naissance, nationalite, adresse, extra_data }), headers: { 'Content-Type': 'application/json' } }
+                                }
+                                let url = `${API}/enfants/`
+                                let method = 'POST'
+                                if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
+                                const send = async () => {
+                                  const { body, headers: eh } = buildBody()
+                                  const hdrs = { Authorization: `Bearer ${token}`, ...eh }
+                                  let res = await fetch(url, { method, headers: hdrs, body })
+                                  if (res.status === 401) {
+                                    const refresh = localStorage.getItem('refresh_token')
+                                    if (!refresh) throw new Error('Session expirée')
+                                    const rr = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+                                    if (!rr.ok) throw new Error('Session expirée')
+                                    const t2 = await rr.json(); localStorage.setItem('access_token', t2.access); hdrs.Authorization = `Bearer ${t2.access}`
+                                    res = await fetch(url, { method, headers: hdrs, body })
+                                  }
+                                  if (!res.ok) { const ed = await res.json().catch(()=>({})); throw new Error(ed.error || Object.values(ed).flat().join(' ') || 'Erreur') }
+                                  return res.json()
+                                }
+                                const saved = await send()
+                                setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
+                                setEditingChild(saved)
+                                setSavingEdu(false)
+                                alert('Dossier scolaire enregistré!')
+                              } catch (e) {
+                                setSavingEdu(false)
+                                alert(e.message || 'Erreur lors de l\'enregistrement')
+                              }
+                            }}>
+                              {savingEdu && <div className="hm-save-spinner" />}
+                              {t('ed_save') || 'Enregistrer le Dossier Scolaire'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* ── GENERIC FORM RENDERER ── */
+                        CHILD_FORMS[subKey]?.fields.map((f, i) => (
+                          <div key={i} className="dash-form-field">
+                            <label className="dash-form-label">{f.label}</label>
+                            {f.type === 'uid' ? (
+                              <input type="text" className="dash-form-input dash-form-uid" value={editingChild ? editingChild.uid : uidRef.current} readOnly />
+                            ) : f.type === 'select' ? (
+                              <select className="dash-form-input" defaultValue={getFieldValue(f.label)}>
+                                <option value="">{t('form_select_placeholder')}</option>
+                                {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                              </select>
+                            ) : f.type === 'textarea' ? (
+                              <textarea className="dash-form-input dash-form-textarea" rows={3} defaultValue={getFieldValue(f.label)} />
+                            ) : f.type === 'file' && f.label === 'Photo' ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                                  <input type="file" className="dash-form-file" accept="image/*" onChange={e => {
+                                    const file = e.target.files?.[0]
+                                    if (file) {
+                                      const reader = new FileReader()
+                                      reader.onload = (ev) => {
+                                        const uid2 = editingChild ? editingChild.uid : uidRef.current
+                                        localStorage.setItem('cdo_child_photo_' + uid2, ev.target.result)
+                                      }
+                                      reader.readAsDataURL(file)
+                                    }
+                                  }} />
+                                  {(() => {
+                                    const uid2 = editingChild ? editingChild.uid : uidRef.current
+                                    const saved = localStorage.getItem('cdo_child_photo_' + uid2)
+                                    if (saved) return <img src={saved} alt="" style={{ width:'48px', height:'48px', borderRadius:'8px', objectFit:'cover' }} />
+                                    if (getFieldValue(f.label)) return <span style={{ fontSize:'12px', color:'#64748B' }}>{t('form_current_file')} {getFieldValue(f.label)}</span>
+                                    return null
+                                  })()}
+                                </div>
+                              </div>
+                            ) : f.type === 'file' ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <input type="file" className="dash-form-file" />
+                                {getFieldValue(f.label) && <span style={{ fontSize: '12px', color: '#64748B' }}>{t('form_current_file')} {getFieldValue(f.label)}</span>}
+                              </div>
+                            ) : (
+                              <input type={f.type} className="dash-form-input" defaultValue={getFieldValue(f.label)} />
+                            )}
+                          </div>
+                        ))
+                      )}
+                      {/* ── GENERIC SAVE BUTTON (only for non-medical/education forms) ── */}
+                      {subKey !== 'Santé & médical' && subKey !== 'Scolarité' && (
+                        <button className="dash-form-save" onClick={async () => {
+                          const data = {}
+                          document.querySelectorAll('.dash-sub-form .dash-form-field').forEach(field => {
+                            const label = field.querySelector('.dash-form-label')?.textContent || ''
+                            const input = field.querySelector('input, select, textarea')
+                            if (input) data[label] = input.value || input.files?.[0]?.name || ''
+                          })
+                          if (!Object.keys(data).length) return
+
+                          const uid = editingChild ? editingChild.uid : uidRef.current
+                          const photoDataUrl = localStorage.getItem('cdo_child_photo_' + uid)
+
+                          const buildBody = () => {
+                            const nom = data['Nom'] !== undefined ? data['Nom'] : (editingChild ? editingChild.nom : '')
+                            const prenom = data['Prénom'] !== undefined ? data['Prénom'] : (editingChild ? editingChild.prenom : '')
+                            const sexe = data['Sexe'] !== undefined ? (data['Sexe'] === 'Masculin' ? 'M' : data['Sexe'] === 'Féminin' ? 'F' : '') : (editingChild ? editingChild.sexe : '')
+                            const date_naissance = data['Date de naissance'] !== undefined ? (data['Date de naissance'] || null) : (editingChild ? editingChild.date_naissance : null)
+                            const nationalite = data['Nationalité'] !== undefined ? data['Nationalité'] : (editingChild ? editingChild.nationalite : '')
+                            const adresse = data["Adresse d'origine"] !== undefined ? data["Adresse d'origine"] : (editingChild ? editingChild.adresse : '')
+                            const extra_data = editingChild ? { ...editingChild.extra_data, ...data } : data
+
+                            if (photoDataUrl) {
+                              const fd = new FormData()
+                              fd.append('uid', uid)
+                              fd.append('nom', nom)
+                              fd.append('prenom', prenom)
+                              fd.append('sexe', sexe)
+                              fd.append('date_naissance', date_naissance || '')
+                              fd.append('nationalite', nationalite)
+                              fd.append('adresse', adresse)
+                              fd.append('extra_data', JSON.stringify(extra_data))
+                              const arr = photoDataUrl.split(',')
+                              const mime = arr[0].match(/:(.*?);/)[1]
+                              const bstr = atob(arr[1])
+                              let n = bstr.length
+                              const u8arr = new Uint8Array(n)
+                              while (n--) u8arr[n] = bstr.charCodeAt(n)
+                              fd.append('photo', new File([u8arr], 'photo.jpg', { type: mime }))
+                              return { body: fd, headers: {} }
+                            }
+                            const jsonBody = { uid, nom, prenom, sexe, date_naissance, nationalite, adresse, extra_data }
+                            if (editingChild?.photo && !photoDataUrl) jsonBody.photo = editingChild.photo
+                            return { body: JSON.stringify(jsonBody), headers: { 'Content-Type': 'application/json' } }
                           }
-                          alert(e.message || 'Erreur lors de l\'enregistrement')
-                        }
-                      }}>Enregistrer</button>
+
+                          let url = `${API}/enfants/`
+                          let method = 'POST'
+                          if (editingChild) {
+                            url = `${API}/enfants/${editingChild.id}/`
+                            method = 'PUT'
+                          }
+
+                          let token = localStorage.getItem('access_token')
+                          if (!token) { alert('Session expirée'); return }
+                          const send = async () => {
+                            const { body, headers: extraHeaders } = buildBody()
+                            const allHeaders = { Authorization: `Bearer ${token}`, ...extraHeaders }
+                            let res = await fetch(url, { method, headers: allHeaders, body })
+                            if (res.status === 401) {
+                              const refresh = localStorage.getItem('refresh_token')
+                              if (!refresh) throw new Error('Session expirée')
+                              const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+                              if (!refRes.ok) throw new Error('Session expirée')
+                              const tokens = await refRes.json()
+                              localStorage.setItem('access_token', tokens.access)
+                              allHeaders.Authorization = `Bearer ${tokens.access}`
+                              res = await fetch(url, { method, headers: allHeaders, body })
+                            }
+                            if (!res.ok) {
+                              const errData = await res.json().catch(() => ({}))
+                              const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'
+                              throw new Error(errMsg)
+                            }
+                            return res.json()
+                          }
+                          try {
+                            const saved = await send()
+                            setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
+                            setSubKey(null)
+                            setEditingChild(saved)
+                            uidRef.current = saved.uid
+                          } catch (e) {
+                            if (method === 'POST' && e.message?.includes('dupliquée')) {
+                              uidRef.current = genChildUid()
+                              try {
+                                const { body, headers: extraHeaders } = buildBody()
+                                const allHeaders2 = { Authorization: `Bearer ${localStorage.getItem('access_token')}`, ...extraHeaders }
+                                const retryBody = typeof body === 'string' ? JSON.stringify({ ...JSON.parse(body), uid: uidRef.current }) : (() => { const f = new FormData(); f.append('uid', uidRef.current); for (const [k,v] of body.entries()) if (k !== 'uid') f.append(k,v); return f })()
+                                const retryRes = await fetch(`${API}/enfants/`, { method: 'POST', headers: allHeaders2, body: retryBody })
+                                if (retryRes.ok) {
+                                  const saved = await retryRes.json()
+                                  setRegisteredChildren(prev => [...prev, saved])
+                                  setSubKey(null)
+                                  setEditingChild(saved)
+                                  uidRef.current = saved.uid
+                                  return
+                                }
+                              } catch (_) {}
+                            }
+                            alert(e.message || 'Erreur lors de l\'enregistrement')
+                          }
+                        }}>Enregistrer</button>
+                      )}
                     </div>
                   </div>
                 ) : activeKey === 'enfants-enregistres' ? (
                   <div className="ecr-wrap">
                     {selectedRegChild ? (
-                      <div className="ecr-detail">
-                        <div className="ecr-detail-top">
-                          <button className="ecr-back-btn" onClick={() => setSelectedRegChild(null)}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-                            {t('form_back')}
-                          </button>
-                          <span className="ecr-detail-title">{selectedRegChild.prenom || ''} {selectedRegChild.nom || ''}</span>
-                          <div className="ecr-detail-actions">
-                            <span className="ecr-detail-date">{selectedRegChild.created_at ? new Date(selectedRegChild.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric' }) : ''}</span>
-                            <button className="ecr-btn ecr-btn-del" onClick={() => setDeleteConfirm(selectedRegChild)}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                              {t('form_delete') || 'Supprimer'}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="ecr-detail-hero">
-                          <div className="ecr-detail-avatar" onClick={() => document.getElementById('cdu-' + selectedRegChild.uid)?.click()}>
-                            <img src={(() => {
+                      <div className="pd-container">
+                        {/* ═══ PROFILE HERO ═══ */}
+                        <div className="pd-hero">
+                          <div className="pd-hero-avatar" onClick={() => document.getElementById('cdu-' + selectedRegChild.uid)?.click()}>
+                            {(() => {
                               const lp = localStorage.getItem('cdo_child_photo_' + selectedRegChild.uid)
-                              if (lp) return lp
+                              if (lp) return <img src={lp} alt="" style={{width:'72px',height:'72px',borderRadius:'16px',objectFit:'cover'}} />
                               const src = selectedRegChild.photo
-                              if (src && src.startsWith('http')) return src
+                              if (src && src.startsWith('http')) return <img src={src} alt="" style={{width:'72px',height:'72px',borderRadius:'16px',objectFit:'cover'}} />
                               const hues = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316']
-                              return svgUrl((selectedRegChild.prenom?.[0] || selectedRegChild.nom?.[0] || '?').toUpperCase(), hues[(selectedRegChild.prenom?.charCodeAt(0)||0)%hues.length], 80, 80)
-                            })()} alt="" />
-                            <div className="ecr-detail-avatar-badge">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            </div>
-                            <input id={'cdu-' + selectedRegChild.uid} type="file" accept="image/*" hidden onChange={e => {
-                              const f = e.target.files?.[0]; if (!f) return
-                              const r = new FileReader(); r.onload = ev => { localStorage.setItem('cdo_child_photo_' + selectedRegChild.uid, ev.target.result); setSelectedRegChild({...selectedRegChild}) }; r.readAsDataURL(f)
-                            }} />
+                              return <img src={svgUrl((selectedRegChild.prenom?.[0] || selectedRegChild.nom?.[0] || '?').toUpperCase(), hues[(selectedRegChild.prenom?.charCodeAt(0)||0)%hues.length], 72, 72)} alt="" style={{width:'72px',height:'72px',borderRadius:'16px',objectFit:'cover'}} />
+                            })()}
+                            <div className="pd-hero-avatar-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                            <input id={'cdu-' + selectedRegChild.uid} type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = ev => { localStorage.setItem('cdo_child_photo_' + selectedRegChild.uid, ev.target.result); setSelectedRegChild({...selectedRegChild}) }; r.readAsDataURL(f) }} />
                           </div>
-                          <div className="ecr-detail-hero-info">
-                            <div className="ecr-detail-name-row">
-                              <h2 className="ecr-detail-name">{selectedRegChild.prenom || ''} {selectedRegChild.nom || ''}</h2>
-                              <span className="ecr-badge ecr-badge-active">{t('child_status_active') || 'Actif'}</span>
+                          <div className="pd-hero-info">
+                            <div className="pd-hero-name">{selectedRegChild.prenom || ''} {selectedRegChild.nom || ''}</div>
+                            <div className="pd-hero-meta">
+                              <span>🎂 {selectedRegChild.date_naissance ? (() => { const d = new Date(selectedRegChild.date_naissance); const age = Math.floor((Date.now() - d.getTime()) / 31557600000); return d.toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric' }) + ' (' + age + ' ' + (t('form_years') || 'ans') + ')' })() : '—'}</span>
+                              <span>⚤ {selectedRegChild.sexe === 'M' ? (t('form_male') || 'Masculin') : selectedRegChild.sexe === 'F' ? (t('form_female') || 'Féminin') : '—'}</span>
+                              {selectedRegChild.nationalite && (() => { const cc = countryCodeFromName(selectedRegChild.nationalite); return <span>{cc ? flagImg(cc, selectedRegChild.nationalite, 16) : null} {selectedRegChild.nationalite}</span> })()}
+                              <span>📅 {selectedRegChild.created_at ? new Date(selectedRegChild.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric' }) : '—'}</span>
                             </div>
-                            <div className="ecr-detail-meta">
-                              <span className="ecr-detail-meta-item">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                {selectedRegChild.date_naissance ? (() => { const d = new Date(selectedRegChild.date_naissance); const age = Math.floor((Date.now() - d.getTime()) / 31557600000); return d.toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric' }) + ' (' + age + ' ' + (t('form_years') || 'ans') + ')' })() : '—'}
-                              </span>
-                              <span className="ecr-detail-meta-item">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                {selectedRegChild.sexe === 'M' ? (t('form_male') || 'Masculin') : selectedRegChild.sexe === 'F' ? (t('form_female') || 'Féminin') : '—'}
-                              </span>
-                              {selectedRegChild.nationalite && (() => {
-                                const cc = countryCodeFromName(selectedRegChild.nationalite)
-                                return <span className="ecr-detail-meta-item">{cc ? flagImg(cc, selectedRegChild.nationalite, 16) : null}{selectedRegChild.nationalite}</span>
-                              })()}
+                            <div className="pd-hero-actions">
+                              <button className="pd-hero-btn primary" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey('Profil & identité'); setSelectedRegChild(null) }}>✏️ {t('form_edit') || 'Modifier'}</button>
+                              <button className="pd-hero-btn ghost" onClick={() => setSelectedRegChild(null)}>← {t('form_back')}</button>
+                              <button className="pd-hero-btn danger" onClick={() => setDeleteConfirm(selectedRegChild)}>🗑️ {t('form_delete') || 'Supprimer'}</button>
                             </div>
-                            <div className="ecr-detail-code">
-                              <span className="ecr-detail-code-label">{t('form_unique_id') || 'ID'}</span>
-                              <span className="ecr-detail-code-value">{selectedRegChild.uid}</span>
-                              <button className="ecr-copy-btn" onClick={() => { navigator.clipboard?.writeText(selectedRegChild.uid) }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                              </button>
+                          </div>
+                          <div className="pd-hero-right">
+                            <span className="pd-hero-status active">✅ {t('child_status_active') || 'Actif'}</span>
+                            <div className="pd-hero-id">
+                              <span>🆔</span>
+                              <span className="pd-hero-id-code">{selectedRegChild.uid}</span>
+                              <span className="pd-hero-id-copy" onClick={() => { navigator.clipboard?.writeText(selectedRegChild.uid) }} title="Copier">📋</span>
                             </div>
                           </div>
                         </div>
-                        <div className="ecr-detail-grid">
-                          {Object.values(CHILD_FORMS).map(section => {
-                            const cv = (label) => {
-                              if (label === 'Nom') return selectedRegChild.nom
-                              if (label === 'Prénom') return selectedRegChild.prenom
-                              if (label === 'Sexe') return selectedRegChild.sexe === 'M' ? (t('form_male') || 'Masculin') : selectedRegChild.sexe === 'F' ? (t('form_female') || 'Féminin') : null
-                              if (label === 'Date de naissance') return selectedRegChild.date_naissance
-                              if (label === 'Nationalité') return selectedRegChild.nationalite
-                              if (label === "Adresse d'origine") return selectedRegChild.adresse
-                              if (label === 'Photo') return null
-                              if (label === 'Numéro unique') return null
-                              return selectedRegChild.extra_data?.[label]
-                            }
-                            const fields = section.fields.filter(f => f.label !== 'Numéro unique' && f.label !== 'Photo' && cv(f.label))
-                            if (!fields.length) return null
-                            return (
-                              <div key={section.title} className="ecr-detail-card">
-                                <div className="ecr-detail-card-head">
-                                  <span>{section.title}</span>
-                                  <button className="ecr-card-edit-btn" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey(section.title); setSelectedRegChild(null) }}>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                                    {t('form_edit') || 'Modifier'}
-                                  </button>
+
+                        {/* ═══ STATS ROW ═══ */}
+                        <div className="pd-stats">
+                          <div className="pd-stat"><span className="pd-stat-label">🎂 {t('form_age') || 'Âge'}</span><span className="pd-stat-value">{selectedRegChild.date_naissance ? Math.floor((Date.now() - new Date(selectedRegChild.date_naissance).getTime()) / 31557600000) + ' ' + (t('form_years') || 'ans') : '—'}</span></div>
+                          <div className="pd-stat"><span className="pd-stat-label">❤️ {t('hm_health_status') || 'Santé'}</span><span className="pd-stat-value">{(() => { const m = selectedRegChild.extra_data?.medical; return m ? <> <span className="dot green" /> {m.bloodGroup || 'OK'} </> : <> <span className="dot amber" /> — </> })()}</span></div>
+                          <div className="pd-stat"><span className="pd-stat-label">🏫 {t('ed_title') || 'Scolarité'}</span><span className="pd-stat-value">{(() => { const e = selectedRegChild.extra_data?.education; return e?.currentClass || e?.schoolName || '—' })()}</span></div>
+                          <div className="pd-stat"><span className="pd-stat-label">📄 {t('child_documents') || 'Documents'}</span><span className="pd-stat-value">{(() => { let n = 0; ['cdo_doc_','cdo_meddoc_','cdo_schooldoc_'].forEach(p => { const uid = selectedRegChild.uid; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k?.startsWith(p + uid)) n++ } }); return n })()}</span></div>
+                          <div className="pd-stat"><span className="pd-stat-label">👪 {t('form_family_status') || 'Famille'}</span><span className="pd-stat-value">{(() => { const fam = selectedRegChild.extra_data?.['Parents connus']; return fam || '—' })()}</span></div>
+                          <div className="pd-stat"><span className="pd-stat-label">🔄 Dernière MAJ</span><span className="pd-stat-value">{selectedRegChild.updated_at ? new Date(selectedRegChild.updated_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short' }) : '—'}</span></div>
+                        </div>
+
+                        {/* ═══ TABBED INTERFACE ═══ */}
+                        <div className="pd-tabs">
+                          {[
+                            { key:'overview', icon:'📊', label: t('pd_overview') || 'Aperçu' },
+                            { key:'identity', icon:'🆔', label: t('pd_identity') || 'Identité' },
+                            { key:'family', icon:'👪', label: t('pd_family') || 'Famille' },
+                            { key:'health', icon:'❤️', label: t('pd_health') || 'Santé' },
+                            { key:'education', icon:'🏫', label: t('pd_education') || 'Scolarité' },
+                            { key:'documents', icon:'📄', label: t('pd_documents') || 'Documents' },
+                            { key:'history', icon:'📜', label: t('pd_history') || 'Historique' },
+                          ].map(tab => (
+                            <button key={tab.key} className={`pd-tab${profileTab === tab.key ? ' active' : ''}`} onClick={() => setProfileTab(tab.key)}>
+                              <span className="pd-tab-icon">{tab.icon}</span>
+                              {tab.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* ═══ TAB CONTENT ═══ */}
+                        <div className="pd-grid">
+                          <div className="pd-main">
+                            {/* ── OVERVIEW TAB ── */}
+                            {profileTab === 'overview' && (
+                              <>
+                                <div className="pd-card">
+                                  <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(59,130,246,0.15)'}}>📋</div><span className="pd-card-title">{t('pd_quick_info') || 'Informations Générales'}</span></div>
+                                  <div className="pd-card-body">
+                                    {(() => {
+                                      const items = [
+                                        { label: t('form_lastname') || 'Nom', value: selectedRegChild.nom },
+                                        { label: t('form_firstname') || 'Prénom', value: selectedRegChild.prenom },
+                                        { label: t('form_sex') || 'Sexe', value: selectedRegChild.sexe === 'M' ? (t('form_male')||'M') : selectedRegChild.sexe === 'F' ? (t('form_female')||'F') : '—' },
+                                        { label: t('form_dob') || 'Date naissance', value: selectedRegChild.date_naissance || '—' },
+                                        { label: t('form_nationality') || 'Nationalité', value: selectedRegChild.nationalite || '—' },
+                                        { label: t('form_origin_address') || 'Adresse', value: selectedRegChild.adresse || '—' },
+                                        { label: t('form_unique_id') || 'ID Unique', value: selectedRegChild.uid },
+                                      ]
+                                      return items.map((item, i) => (
+                                        <div key={i} className="pd-row">
+                                          <span className="pd-row-label">{item.label}</span>
+                                          <span className="pd-row-value">{item.label === 'Nationalité' && item.value !== '—' ? (() => { const cc = countryCodeFromName(item.value); return cc ? <>{flagImg(cc, item.value)} {item.value}</> : item.value })() : item.value}</span>
+                                        </div>
+                                      ))
+                                    })()}
+                                  </div>
                                 </div>
-                                <div className="ecr-detail-card-body">
-                                  {fields.map(f => (
-                                    <div key={f.label} className="ecr-detail-card-row">
-                                      <span className="ecr-detail-card-label">{f.label}</span>
-                                      <span className="ecr-detail-card-value">
-                                        {f.label === 'Nationalité' && cv(f.label) ? (() => { const cc = countryCodeFromName(cv(f.label)); return cc ? <>{flagImg(cc, cv(f.label))} {cv(f.label)}</> : cv(f.label) })() : cv(f.label)}
-                                      </span>
+                                <div className="pd-card">
+                                  <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(16,185,129,0.15)'}}>❤️</div><span className="pd-card-title">{t('hm_health_title') || 'Santé & Médical'}</span><span className="pd-card-badge">{t('pd_quick_view') || 'Résumé'}</span></div>
+                                  <div className="pd-card-body">
+                                    <div className="pd-health-row">
+                                      {(() => { const m = selectedRegChild.extra_data?.medical || {}; return [
+                                        { label: t('hm_blood_group') || 'Groupe', value: m.bloodGroup || '—' },
+                                        { label: t('hm_height') || 'Taille', value: m.height ? m.height + ' cm' : '—' },
+                                        { label: t('hm_weight') || 'Poids', value: m.weight ? m.weight + ' kg' : '—' },
+                                        { label: t('hm_bmi') || 'IMC', value: m.bmi || '—' },
+                                      ]})().map((item, i) => (
+                                        <div key={i} className="pd-health-item">
+                                          <div className="pd-health-label">{item.label}</div>
+                                          <div className="pd-health-value">{item.value}</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {(() => { const m = selectedRegChild.extra_data?.medical || {}; const hasAllergies = m.allergies?.length; const hasTreatments = m.treatments?.filter(t => t.name).length; const hasChronic = m.chronic; const item = [hasAllergies ? `⚠️ ${m.allergies.length} allergie(s)` : null, hasTreatments ? `💊 ${hasTreatments} traitement(s)` : null, hasChronic ? `📋 ${m.chronic.substring(0, 30)}...` : null].filter(Boolean); return item.length ? <div style={{fontSize:'12px',color:'#94A3B8',padding:'8px 0 0',display:'flex',gap:'12px',flexWrap:'wrap'}}>{item.map((s,i) => <span key={i} style={{display:'flex',alignItems:'center',gap:'4px',padding:'2px 8px',borderRadius:'6px',background:'rgba(255,255,255,0.03)'}}>{s}</span>)}</div> : <div style={{fontSize:'12px',color:'#64748B',padding:'8px 0 0'}}>{t('pd_no_health_data') || 'Aucune donnée médicale'}</div> })()}
+                                  </div>
+                                </div>
+                                <div className="pd-card">
+                                  <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(245,158,11,0.15)'}}>🏫</div><span className="pd-card-title">{t('ed_title') || 'Scolarité'}</span><span className="pd-card-badge">{t('pd_quick_view') || 'Résumé'}</span></div>
+                                  <div className="pd-card-body">
+                                    <div className="pd-school-row">
+                                      {(() => { const e = selectedRegChild.extra_data?.education || {}; return [
+                                        { label: t('ed_school_name') || 'École', value: e.schoolName || '—' },
+                                        { label: t('ed_current_class') || 'Classe', value: e.currentClass || '—' },
+                                        { label: t('ed_academic_year') || 'Année', value: e.academicYear || '—' },
+                                        { label: t('ed_gpa') || 'Moyenne', value: (() => { if (!e.subjects?.length) return '—'; const g = e.subjects.filter(s => s.grade).map(s => parseFloat(s.grade) * (s.coefficient || 1)); const c = e.subjects.filter(s => s.grade).reduce((a, s) => a + (s.coefficient || 1), 0); return g.length && c ? (g.reduce((a, b) => a + b, 0) / c).toFixed(1) : '—' })() },
+                                      ]})().map((item, i) => (
+                                        <div key={i} className="pd-health-item">
+                                          <div className="pd-health-label">{item.label}</div>
+                                          <div className="pd-health-value">{item.value}</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+
+                            {/* ── IDENTITY TAB ── */}
+                            {profileTab === 'identity' && (
+                              <div className="pd-card">
+                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(59,130,246,0.15)'}}>🆔</div><span className="pd-card-title">{t('pd_identity') || 'Identité'}</span></div>
+                                <div className="pd-card-body">
+                                  {[
+                                    { label: t('form_lastname') || 'Nom', value: selectedRegChild.nom },
+                                    { label: t('form_firstname') || 'Prénom', value: selectedRegChild.prenom },
+                                    { label: t('form_sex') || 'Sexe', value: selectedRegChild.sexe === 'M' ? (t('form_male')||'Masculin') : selectedRegChild.sexe === 'F' ? (t('form_female')||'Féminin') : '—' },
+                                    { label: t('form_dob') || 'Date de naissance', value: selectedRegChild.date_naissance || '—' },
+                                    { label: t('form_nationality') || 'Nationalité', value: selectedRegChild.nationalite || '—' },
+                                    { label: "Adresse d'origine", value: selectedRegChild.adresse || '—' },
+                                  ].map((item, i) => (
+                                    <div key={i} className="pd-row">
+                                      <span className="pd-row-label">{item.label}</span>
+                                      <span className="pd-row-value">{item.label === 'Nationalité' && item.value !== '—' ? (() => { const cc = countryCodeFromName(item.value); return cc ? <>{flagImg(cc, item.value)} {item.value}</> : item.value })() : item.value}</span>
                                     </div>
                                   ))}
                                 </div>
                               </div>
-                            )
-                          })}
+                            )}
+
+                            {/* ── FAMILY TAB ── */}
+                            {profileTab === 'family' && (
+                              <div className="pd-card">
+                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(168,85,247,0.15)'}}>👪</div><span className="pd-card-title">{t('form_family') || 'Situation Familiale'}</span></div>
+                                <div className="pd-card-body">
+                                  {[['Parents connus','Parents connus'],['Tuteurs','Tuteurs'],['Fratrie','Fratrie'],['Historique familial','Historique familial']].map(([label, key]) => {
+                                    const val = selectedRegChild.extra_data?.[key]
+                                    return val ? <div key={key} className="pd-row"><span className="pd-row-label">{label}</span><span className="pd-row-value">{val}</span></div> : null
+                                  })}
+                                  {!selectedRegChild.extra_data?.['Parents connus'] && !selectedRegChild.extra_data?.['Tuteurs'] && !selectedRegChild.extra_data?.['Fratrie'] && !selectedRegChild.extra_data?.['Historique familial'] && <div style={{fontSize:'12px',color:'#64748B',padding:'8px 0',textAlign:'center'}}>{t('pd_no_family_data') || 'Aucune information familiale'}</div>}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* ── HEALTH TAB ── */}
+                            {profileTab === 'health' && (
+                              <div className="pd-card">
+                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(239,68,68,0.15)'}}>❤️</div><span className="pd-card-title">{t('hm_health_title') || 'Santé & Médical'}</span></div>
+                                <div className="pd-card-body">
+                                  {(() => {
+                                    const m = selectedRegChild.extra_data?.medical || {}
+                                    const items = [
+                                      { label: t('hm_blood_group') || 'Groupe', value: m.bloodGroup },
+                                      { label: t('hm_height') || 'Taille (cm)', value: m.height },
+                                      { label: t('hm_weight') || 'Poids (kg)', value: m.weight },
+                                      { label: t('hm_bmi') || 'IMC', value: m.bmi },
+                                      { label: t('hm_blood_pressure') || 'Tension', value: m.bloodPressure },
+                                      { label: t('hm_heart_rate') || 'FC', value: m.heartRate },
+                                      { label: t('hm_temperature') || 'Temp.', value: m.temperature },
+                                      { label: t('hm_spo2') || 'SpO₂', value: m.spo2 },
+                                      { label: t('hm_chronic') || 'Maladies', value: m.chronic },
+                                      { label: t('hm_surgeries') || 'Chirurgies', value: m.surgeries },
+                                      { label: t('hm_hospitalization') || 'Hospitalisations', value: m.hospitalization },
+                                      { label: t('hm_family_history') || 'Ant. familiaux', value: m.familyHistory },
+                                      { label: t('hm_disabilities') || 'Handicaps', value: m.disabilities },
+                                      { label: t('hm_emergency_contact') || 'Contact urgence', value: m.emergencyContact },
+                                      { label: t('hm_primary_doc') || 'Médecin', value: m.primaryDoctor },
+                                      { label: t('hm_hospital') || 'Hôpital', value: m.hospital },
+                                    ]
+                                    const filled = items.filter(i => i.value)
+                                    return filled.length ? filled.map((item, i) => <div key={i} className="pd-row"><span className="pd-row-label">{item.label}</span><span className="pd-row-value">{item.value}</span></div>) : <div style={{fontSize:'12px',color:'#64748B',padding:'8px 0',textAlign:'center'}}>{t('pd_no_health_data') || 'Aucune donnée médicale'}</div>
+                                  })()}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* ── EDUCATION TAB ── */}
+                            {profileTab === 'education' && (
+                              <div className="pd-card">
+                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(16,185,129,0.15)'}}>🏫</div><span className="pd-card-title">{t('ed_title') || 'Scolarité'}</span></div>
+                                <div className="pd-card-body">
+                                  {(() => {
+                                    const e = selectedRegChild.extra_data?.education || {}
+                                    const items = [
+                                      { label: t('ed_school_name') || 'École', value: e.schoolName },
+                                      { label: t('ed_school_type') || "Type d'école", value: e.schoolType },
+                                      { label: t('ed_current_class') || 'Classe', value: e.currentClass },
+                                      { label: t('ed_academic_year') || 'Année scolaire', value: e.academicYear },
+                                      { label: t('ed_term') || 'Trimestre', value: e.term },
+                                      { label: t('ed_student_number') || 'N° étudiant', value: e.studentNumber },
+                                      { label: t('ed_education_level') || "Niveau d'études", value: e.educationLevel },
+                                      { label: t('ed_enrollment_date') || "Date d'inscription", value: e.enrollmentDate },
+                                      { label: t('ed_gpa') || 'Moyenne', value: (() => { if (!e.subjects?.length) return ''; const g = e.subjects.filter(s => s.grade).map(s => parseFloat(s.grade) * (s.coefficient || 1)); const c = e.subjects.filter(s => s.grade).reduce((a, s) => a + (s.coefficient || 1), 0); return g.length && c ? (g.reduce((a, b) => a + b, 0) / c).toFixed(1) : '' })() },
+                                      { label: t('ed_rank') || 'Rang', value: e.rank },
+                                      { label: t('ed_present') || 'Présences', value: e.presentDays ? e.presentDays + 'j' : '' },
+                                      { label: t('ed_absent') || 'Absences', value: e.absentDays ? e.absentDays + 'j' : '' },
+                                      { label: t('ed_scholarship') || "Bourse", value: e.scholarship },
+                                      { label: t('ed_learning_difficulties') || 'Difficultés', value: e.learningDifficulties },
+                                      { label: t('ed_special_needs') || 'Besoins spéciaux', value: e.specialNeeds },
+                                    ]
+                                    const filled = items.filter(i => i.value)
+                                    return filled.length ? filled.map((item, i) => <div key={i} className="pd-row"><span className="pd-row-label">{item.label}</span><span className="pd-row-value">{item.value}</span></div>) : <div style={{fontSize:'12px',color:'#64748B',padding:'8px 0',textAlign:'center'}}>{t('pd_no_education_data') || 'Aucune donnée scolaire'}</div>
+                                  })()}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* ── DOCUMENTS TAB ── */}
+                            {profileTab === 'documents' && (
+                              <div className="pd-card">
+                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(245,158,11,0.15)'}}>📄</div><span className="pd-card-title">{t('child_documents') || 'Documents'}</span></div>
+                                <div className="pd-card-body">
+                                  <div className="pd-docs">
+                                    {[
+                                      { id:'acte', icon:'📜', label: t('doc_acte') || 'Acte de naissance', key:'cdo_doc_' + selectedRegChild.uid + '_Acte de naissance' },
+                                      { id:'identite', icon:'🆔', label: t('doc_identite') || "Documents d'identité", key:'cdo_doc_' + selectedRegChild.uid + "_Documents d'identité" },
+                                      { id:'judiciaire', icon:'⚖️', label: t('doc_judiciaire') || 'Décisions judiciaires', key:'cdo_doc_' + selectedRegChild.uid + '_Décisions judiciaires' },
+                                      { id:'presc', icon:'📝', label: t('hm_upload_prescription') || 'Prescriptions', key:'cdo_meddoc_' + selectedRegChild.uid + '_presc' },
+                                      { id:'report', icon:'📊', label: t('hm_upload_report') || 'Rapports médicaux', key:'cdo_meddoc_' + selectedRegChild.uid + '_reports' },
+                                      { id:'lab', icon:'🔬', label: t('hm_upload_lab') || 'Résultats labo', key:'cdo_meddoc_' + selectedRegChild.uid + '_lab' },
+                                      { id:'bulletin', icon:'📋', label: t('ed_report_card') || 'Bulletins', key:'cdo_schooldoc_' + selectedRegChild.uid + '_report' },
+                                      { id:'certificat', icon:'🏅', label: t('ed_certificate') || 'Certificats', key:'cdo_schooldoc_' + selectedRegChild.uid + '_cert' },
+                                      { id:'inscription', icon:'📝', label: t('ed_enrollment_letter') || "Lettres d'inscription", key:'cdo_schooldoc_' + selectedRegChild.uid + '_enroll' },
+                                    ].map(doc => {
+                                      const saved = localStorage.getItem(doc.key)
+                                      return (
+                                        <div key={doc.id} className="pd-doc">
+                                          <div className="pd-doc-icon">{doc.icon}</div>
+                                          <span className="pd-doc-name">{doc.label}</span>
+                                          <div className="pd-doc-meta"><span className={`pd-doc-status ${saved ? 'uploaded' : 'missing'}`}>{saved ? (t('doc_uploaded') || 'Importé') : (t('doc_missing') || 'Manquant')}</span></div>
+                                          <div className="pd-doc-actions">
+                                            {saved && <button className="pd-doc-act preview" onClick={() => window.open(saved)}>👁️ {t('doc_preview') || 'Voir'}</button>}
+                                            {saved && <button className="pd-doc-act download" onClick={() => { const a = document.createElement('a'); a.href = saved; a.download = doc.label + '.jpg'; a.click() }}>⬇️ {t('doc_download') || 'Tél.'}</button>}
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* ── HISTORY TAB ── */}
+                            {profileTab === 'history' && (
+                              <div className="pd-card">
+                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(139,92,246,0.15)'}}>📜</div><span className="pd-card-title">{t('pd_history') || 'Historique'}</span></div>
+                                <div className="pd-card-body">
+                                  <div className="pd-timeline">
+                                    {[
+                                      { icon:'✅', text: t('pd_registered') || 'Enfant enregistré dans le système', time: selectedRegChild.created_at ? new Date(selectedRegChild.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—', color:'blue' },
+                                      { icon:'📄', text: t('pd_docs_added') || 'Documents administratifs ajoutés', time: selectedRegChild.updated_at ? new Date(selectedRegChild.updated_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric' }) : '—', color:'amber' },
+                                    ].concat(
+                                      selectedRegChild.extra_data?.medical?.vaccinations?.filter(v => v.done).map(v => ({ icon:'💉', text: `Vaccin ${v.name} administré`, time: v.dateAdmin || '—', color:'green' })) || [],
+                                      selectedRegChild.extra_data?.education?.subjects?.filter(s => s.grade).map(s => ({ icon:'📊', text: `Note en ${s.name} : ${s.grade}/20`, time: '—', color:'purple' })) || [],
+                                    ).filter(Boolean).map((event, i) => (
+                                      <div key={i} className="pd-tl-item">
+                                        <div className={`pd-tl-dot ${event.color}`}>{event.icon}</div>
+                                        <div className="pd-tl-content">
+                                          <div className="pd-tl-text">{event.text}</div>
+                                          <div className="pd-tl-time">{event.time}</div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {(!selectedRegChild.created_at && !selectedRegChild.extra_data?.medical?.vaccinations?.length) && <div style={{fontSize:'12px',color:'#64748B',textAlign:'center',padding:'16px 0'}}>{t('pd_no_history') || 'Aucun historique disponible'}</div>}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* ═══ SIDEBAR ═══ */}
+                          <div className="pd-side">
+                            {/* Quick Actions */}
+                            <div className="pd-card">
+                              <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(245,158,11,0.15)'}}>⚡</div><span className="pd-card-title">{t('pd_quick_actions') || 'Actions Rapides'}</span></div>
+                              <div className="pd-card-body">
+                                <div className="pd-actions">
+                                  <button className="pd-action-btn" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey('Profil & identité'); setSelectedRegChild(null) }}>
+                                    <span className="pd-action-icon">✏️</span> {t('form_edit') || 'Modifier'} le profil
+                                  </button>
+                                  <button className="pd-action-btn" onClick={() => { setActiveKey('enfants'); setSubKey('Documents administratifs'); setEditingChild(selectedRegChild); setSelectedRegChild(null) }}>
+                                    <span className="pd-action-icon">📄</span> {t('pd_add_doc') || 'Ajouter document'}
+                                  </button>
+                                  <button className="pd-action-btn" onClick={() => window.print()}>
+                                    <span className="pd-action-icon">🖨️</span> {t('pd_print') || 'Imprimer'}
+                                  </button>
+                                  <button className="pd-action-btn" onClick={() => { window.dispatchEvent(new CustomEvent('cdo-navigate-child', { detail: { uid: selectedRegChild.uid } })) }}>
+                                    <span className="pd-action-icon">📜</span> {t('pd_history') || 'Voir historique'}
+                                  </button>
+                                  <button className="pd-action-btn" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey('Santé & médical'); setSelectedRegChild(null) }}>
+                                    <span className="pd-action-icon">❤️</span> {t('pd_health') || 'Santé'}
+                                  </button>
+                                  <button className="pd-action-btn" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey('Scolarité'); setSelectedRegChild(null) }}>
+                                    <span className="pd-action-icon">🏫</span> {t('pd_education') || 'Scolarité'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Notes */}
+                            <div className="pd-card">
+                              <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(59,130,246,0.15)'}}>💬</div><span className="pd-card-title">{t('pd_notes') || 'Notes'}</span></div>
+                              <div className="pd-card-body">
+                                <div className="pd-notes">
+                                  {(() => {
+                                    const notes = selectedRegChild.extra_data?.notes || []
+                                    if (!notes.length) return <div style={{fontSize:'12px',color:'#64748B',padding:'8px 0',textAlign:'center'}}>{t('pd_no_notes') || 'Aucune note'}</div>
+                                    return notes.slice(-3).reverse().map((note, i) => (
+                                      <div key={i} className="pd-note">
+                                        <div className="pd-note-header">
+                                          <span className="pd-note-author">{note.author || 'Staff'}</span>
+                                          <span className="pd-note-time">{note.time || ''}</span>
+                                        </div>
+                                        <div className="pd-note-text">{note.text}</div>
+                                      </div>
+                                    ))
+                                  })()}
+                                  <textarea className="pd-note-input" placeholder={t('pd_add_note') || 'Ajouter une note...'} id="pd-note-input" />
+                                  <button className="pd-note-btn" onClick={() => {
+                                    const text = document.getElementById('pd-note-input')?.value?.trim()
+                                    if (!text) return
+                                    const notes = [...(selectedRegChild.extra_data?.notes || []), { text, author: user.first_name + ' ' + user.last_name, time: new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) }]
+                                    const extra_data = { ...(selectedRegChild.extra_data || {}), notes }
+                                    const uid = selectedRegChild.uid
+                                    const token = localStorage.getItem('access_token')
+                                    if (!token) return
+                                    fetch(`${API}/enfants/${selectedRegChild.id}/`, { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ extra_data }) })
+                                      .then(r => r.ok ? r.json() : null)
+                                      .then(saved => { if (saved) { setSelectedRegChild(saved); setRegisteredChildren(prev => prev.map(c => c.id === saved.id ? saved : c)); document.getElementById('pd-note-input').value = '' } })
+                                      .catch(() => {})
+                                  }}>{t('pd_save_note') || 'Enregistrer'}</button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    ) : (
+                      ) : (
                       <>
                         <div className="ecr-stats">
                           <div className="ecr-stat-card">
@@ -2948,9 +4026,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     {showOngoing ? (
                       <div className="dash-projects">
                         <div className="dash-proj-list-header">
-                          <button className="dash-back-btn" onClick={() => { setShowOngoing(false); setSelectedProject(null) }}>{'\u2190'} {t('form_back')}</button>
+                          <button className="dash-back-btn" onClick={() => { setShowOngoing(false); setShowExpired(false); setSelectedProject(null) }}>{'\u2190'} {t('form_back')}</button>
                           <span className="dash-section-title">{t('proj_ongoing') || 'Projets en cours'}</span>
-                          <span className="dash-proj-count">{ongoingProjects.length} {t('proj_projects') || 'projets'}</span>
+                          <span className="dash-proj-count">{(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => !p.end_date || p.end_date >= new Date().toISOString().split('T')[0]).length} {t('proj_projects') || 'projets'}</span>
                         </div>
                         {selectedProject ? (
                           <div className="dash-sub-form">
@@ -2991,7 +4069,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           </div>
                         ) : (
                           <div className="dash-proj-list">
-                            {ongoingProjects.map(proj => (
+                            {(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => !p.end_date || p.end_date >= new Date().toISOString().split('T')[0]).map(proj => (
                               <div key={proj.code} className="dash-proj-card" onClick={() => setSelectedProject(proj)}>
                                 <div className="dash-proj-card-top">
                                   <span className="dash-proj-code">{proj.code}</span>
@@ -3004,8 +4082,59 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 </div>
                               </div>
                             ))}
-                            {ongoingProjects.length === 0 && (
+                            {(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => !p.end_date || p.end_date >= new Date().toISOString().split('T')[0]).length === 0 && (
                               <div className="dash-empty-state"><span className="dash-empty-icon">{'\u{1F4CB}'}</span><p>{t('proj_no_ongoing') || 'Aucun projet en cours'}</p></div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : showExpired ? (
+                      <div className="dash-projects">
+                        <div className="dash-proj-list-header">
+                          <button className="dash-back-btn" onClick={() => { setShowExpired(false); setSelectedProject(null) }}>{'\u2190'} {t('form_back')}</button>
+                          <span className="dash-section-title">{t('proj_expired') || 'Projets expirés'}</span>
+                          <span className="dash-proj-count">{(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).length} {t('proj_expired_projects') || 'projets expirés'}</span>
+                        </div>
+                        {selectedProject ? (
+                          <div className="dash-sub-form">
+                            <div className="dash-sub-form-top">
+                              <button className="dash-back-btn" onClick={() => setSelectedProject(null)}>{'\u2190'} {t('form_back')}</button>
+                              <h3 className="dash-sub-form-title">{selectedProject.code} — {selectedProject.title}</h3>
+                              <span className={`dash-proj-status ${selectedProject.status}`}>{selectedProject.status === 'open' ? (t('proj_open') || 'Ouvert') : selectedProject.status === 'funded' ? (t('proj_funded') || 'Financé') : (t('proj_completed') || 'Terminé')}</span>
+                            </div>
+                            <div className="dash-proj-detail">
+                              <div className="dash-proj-meta">
+                                <span><strong>{t('proj_type') || 'Type'}:</strong> {PROJECT_TYPES.find(pt => pt.value === selectedProject.type)?.icon} {PROJECT_TYPES.find(pt => pt.value === selectedProject.type)?.label}</span>
+                                <span><strong>{t('proj_code') || 'Code'}:</strong> <span className="dash-proj-code-display">{selectedProject.code}</span></span>
+                                <span><strong>{t('proj_start_date') || 'Date de début'}:</strong> {selectedProject.start_date || '—'}</span>
+                                <span><strong>{t('proj_end_date') || 'Date de fin'}:</strong> {selectedProject.end_date || '—'}</span>
+                              </div>
+                              <p className="dash-proj-desc">{selectedProject.description}</p>
+                              {selectedProject.pdf_url && (
+                                <div className="dash-proj-pdf">
+                                  <a href={selectedProject.pdf_url} target="_blank" rel="noopener noreferrer" className="dash-proj-pdf-link">{'\u{1F4C4}'} {t('proj_read_pdf') || 'Lire le PDF'}</a>
+                                  <a href={selectedProject.pdf_url} download className="dash-proj-pdf-link">{'\u{1F4E5}'} {t('proj_download_pdf') || 'Télécharger le PDF'}</a>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="dash-proj-list">
+                            {(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).map(proj => (
+                              <div key={proj.code} className="dash-proj-card expired" onClick={() => setSelectedProject(proj)}>
+                                <div className="dash-proj-card-top">
+                                  <span className="dash-proj-code">{proj.code}</span>
+                                  <span className="dash-proj-badge">{PROJECT_TYPES.find(pt => pt.value === proj.type)?.icon} {PROJECT_TYPES.find(pt => pt.value === proj.type)?.label}</span>
+                                </div>
+                                <h4 className="dash-proj-card-title">{proj.title}</h4>
+                                <p className="dash-proj-card-summary">{proj.summary || proj.description?.substring(0, 80) + '...'}</p>
+                                <div className="dash-proj-card-dates">
+                                  <span>{proj.start_date || '—'} → {proj.end_date || '—'}</span>
+                                </div>
+                              </div>
+                            ))}
+                            {(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).length === 0 && (
+                              <div className="dash-empty-state"><span className="dash-empty-icon">{'\u{1F4CB}'}</span><p>{t('proj_no_expired') || 'Aucun projet expiré'}</p></div>
                             )}
                           </div>
                         )}
@@ -3144,7 +4273,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 setOngoingProjects(prev => [saved, ...prev])
                                 setProjects(prev => [saved, ...prev])
                                 setProjectTypeFilter(null)
-                                setShowOngoing(true)
+                                setShowOngoing(true); setShowExpired(false)
                               } catch (e) {
                                 // fallback: save locally
                                 const code = genProjectCode()
@@ -3158,7 +4287,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 setOngoingProjects(prev => [newProj, ...prev])
                                 setProjects(prev => [newProj, ...prev])
                                 setProjectTypeFilter(null)
-                                setShowOngoing(true)
+                                setShowOngoing(true); setShowExpired(false)
                               }
                               if (btn) btn.classList.remove('dash-proj-btn-loading')
                             }}>
@@ -3175,13 +4304,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       </div>
                     ) : (
                       <>
-                        <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'8px' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px' }}>
                           <span className="dash-section-title" style={{ fontSize:'15px', fontWeight:'700', color:'#e2e8f0' }}>{t('proj_choose_type') || 'Choisissez un type de projet'}</span>
-                          {ongoingProjects.length > 0 && (
-                            <button className="dash-proj-tab" style={{ marginLeft:'auto', fontSize:'12px', padding:'6px 14px' }} onClick={() => setShowOngoing(true)}>
-                              {'\u{1F4CB}'} {t('proj_ongoing') || 'Projets en cours'} ({ongoingProjects.length})
-                            </button>
-                          )}
+                          <button className="dash-proj-tab" style={{ marginLeft:'auto', fontSize:'12px', padding:'6px 14px' }} onClick={() => { setShowOngoing(true); setShowExpired(false); setSelectedProject(null) }}>
+                            {'\u{25B6}'} {t('proj_ongoing') || 'En cours'} ({(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => !p.end_date || p.end_date >= new Date().toISOString().split('T')[0]).length})
+                          </button>
+                          <button className="dash-proj-tab dash-proj-tab-expired" style={{ fontSize:'12px', padding:'6px 14px' }} onClick={() => { setShowExpired(true); setShowOngoing(false); setSelectedProject(null) }}>
+                            {'\u{23F3}'} {t('proj_expired') || 'Expirés'} ({(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).length})
+                          </button>
                         </div>
                         <div className="dash-category-cards" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
                           {PROJECT_TYPES.map(pt => (
