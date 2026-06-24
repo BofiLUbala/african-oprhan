@@ -451,6 +451,7 @@ const ROLE_NAV = {
     { label: 'Tableau de bord', key: 'dashboard' },
     { label: 'Enfants', key: 'enfants' },
     { label: 'Enfants enregistrés', key: 'enfants-enregistres' },
+    { label: 'Mise à jour', key: 'update-center' },
     { label: 'Projets', key: 'projets' },
     { label: 'Documents', key: 'documents' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
@@ -1419,6 +1420,42 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [savingEdu, setSavingEdu] = useState(false)
   const [profileTab, setProfileTab] = useState('overview')
 
+  /* Update Center state */
+  const [ucStep, setUcStep] = useState(0)
+  const [ucCategory, setUcCategory] = useState(null)
+  const [ucType, setUcType] = useState('')
+  const [ucTitle, setUcTitle] = useState('')
+  const [ucDescription, setUcDescription] = useState('')
+  const [ucPrevValue, setUcPrevValue] = useState('')
+  const [ucNewValue, setUcNewValue] = useState('')
+  const [ucReason, setUcReason] = useState('')
+  const [ucFiles, setUcFiles] = useState([])
+  const [ucSaving, setUcSaving] = useState(false)
+  const [ucSuccess, setUcSuccess] = useState(false)
+
+  /* History Center state */
+  const [hcView, setHcView] = useState('timeline')
+  const [hcEvents, setHcEvents] = useState([])
+  const [hcFilterCategory, setHcFilterCategory] = useState('')
+  const [hcFilterType, setHcFilterType] = useState('')
+  const [hcSearch, setHcSearch] = useState('')
+  const [hcLoading, setHcLoading] = useState(false)
+  const [hcExpanded, setHcExpanded] = useState(null)
+
+  /* Update Center v2 state */
+  const [updateChild, setUpdateChild] = useState(null)
+  const [uc2Step, setUc2Step] = useState(0)
+  const [uc2Category, setUc2Category] = useState(null)
+  const [uc2Type, setUc2Type] = useState('')
+  const [uc2FormData, setUc2FormData] = useState({})
+  const [uc2Priority, setUc2Priority] = useState('normal')
+  const [uc2Reason, setUc2Reason] = useState('')
+  const [uc2Comment, setUc2Comment] = useState('')
+  const [uc2Files, setUc2Files] = useState([])
+  const [uc2Saving, setUc2Saving] = useState(false)
+  const [uc2Success, setUc2Success] = useState(false)
+  const [uc2Search, setUc2Search] = useState('')
+
   useEffect(() => {
     if (subKey !== 'Scolarité') return
     const e = editingChild?.extra_data?.education
@@ -1494,6 +1531,45 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }, [])
 
   const { t, lang, setLang } = useTranslation()
+  const UC_CATEGORIES = [
+    { key:'health', icon:'💉', label:t('uc_category_health')||'Santé', desc:t('uc_category_desc_health')||'Vaccinations, maladies, examens', color:'#22c55e', types:[
+      { key:'vaccination', icon:'💉', label:'Vaccination', fields:[{key:'vaccine_name',label:'Nom du vaccin',type:'text',required:true},{key:'dose',label:'Dose',type:'select',options:['1ère dose','2ème dose','3ème dose','Rappel','Booster']},{key:'date_admin',label:'Date d\'administration',type:'date',required:true},{key:'next_dose',label:'Prochaine dose',type:'date'},{key:'admin_by',label:'Administré par',type:'text'},{key:'location',label:'Lieu',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'illness', icon:'🤒', label:'Maladie', fields:[{key:'diagnosis',label:'Diagnostic',type:'text',required:true},{key:'date_diag',label:'Date du diagnostic',type:'date',required:true},{key:'severity',label:'Sévérité',type:'select',options:['Léger','Modéré','Grave','Critique']},{key:'symptoms',label:'Symptômes',type:'textarea'},{key:'treatment',label:'Traitement prescrit',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'treatment', icon:'💊', label:'Traitement', fields:[{key:'medication',label:'Médicament',type:'text',required:true},{key:'dosage',label:'Posologie',type:'text',required:true},{key:'frequency',label:'Fréquence',type:'select',options:['1x/jour','2x/jour','3x/jour','1x/semaine','Selon besoin']},{key:'start_date',label:'Date de début',type:'date',required:true},{key:'end_date',label:'Date de fin',type:'date'},{key:'prescribed_by',label:'Prescrit par',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'consultation', icon:'🩺', label:'Consultation', fields:[{key:'doctor',label:'Médecin',type:'text',required:true},{key:'specialty',label:'Spécialité',type:'select',options:['Généraliste','Pédiatre','Psychologue','Nutritionniste','Dentiste','Ophtalmologue','Autre']},{key:'date_consult',label:'Date',type:'date',required:true},{key:'reason',label:'Motif',type:'textarea',required:true},{key:'diagnosis',label:'Diagnostic',type:'textarea'},{key:'prescriptions',label:'Prescriptions',type:'textarea'},{key:'follow_up',label:'Suivi nécessaire',type:'select',options:['Oui','Non']}] },
+      { key:'hospitalization', icon:'🏥', label:'Hospitalisation', fields:[{key:'hospital',label:'Hôpital',type:'text',required:true},{key:'admit_date',label:'Date d\'admission',type:'date',required:true},{key:'discharge_date',label:'Date de sortie',type:'date'},{key:'reason',label:'Motif',type:'textarea',required:true},{key:'ward',label:'Service',type:'text'},{key:'doctor',label:'Médecin traitant',type:'text'},{key:'outcome',label:'Issue',type:'select',options:['Rétabli','En cours','Référé','Décédé']},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'allergy', icon:'🤧', label:'Allergie', fields:[{key:'allergen',label:'Allergène',type:'text',required:true},{key:'reaction',label:'Réaction',type:'select',options:['Légère','Modérée','Grave','Anaphylaxie']},{key:'date_detected',label:'Date de détection',type:'date'},{key:'severity',label:'Sévérité',type:'select',options:['Faible','Moyenne','Haute','Critique']},{key:'treatment',label:'Traitement',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
+    ]},
+    { key:'education', icon:'📚', label:t('uc_category_education')||'Éducation', desc:t('uc_category_desc_education')||'Inscription, notes, examens', color:'#3b82f6', types:[
+      { key:'school_enrollment', icon:'🏫', label:'Inscription scolaire', fields:[{key:'school_name',label:'Nom de l\'école',type:'text',required:true},{key:'school_type',label:'Type',type:'select',options:['Maternelle','Primaire','Secondaire','Lycée','Université','Formation pro']},{key:'class',label:'Classe/Niveau',type:'text',required:true},{key:'academic_year',label:'Année scolaire',type:'text',required:true},{key:'start_date',label:'Date de début',type:'date',required:true},{key:'school_address',label:'Adresse',type:'text'},{key:'contact',label:'Contact école',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'school_transfer', icon:'🔄', label:'Transfert scolaire', fields:[{key:'from_school',label:'École d\'origine',type:'text',required:true},{key:'to_school',label:'Nouvelle école',type:'text',required:true},{key:'reason',label:'Motif du transfert',type:'select',options:['Déménagement','Familial','Disciplinaire','Scolaire','Autre']},{key:'date_transfer',label:'Date',type:'date',required:true},{key:'class',label:'Classe',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'grade_update', icon:'📊', label:'Notes/Classe', fields:[{key:'subject',label:'Matière',type:'text',required:true},{key:'grade',label:'Note /20',type:'number',required:true},{key:'coefficient',label:'Coefficient',type:'number'},{key:'term',label:'Trimestre',type:'select',options:['1er Trimestre','2ème Trimestre','3ème Trimestre']},{key:'academic_year',label:'Année scolaire',type:'text'},{key:'appreciation',label:'Appréciation',type:'textarea'}] },
+      { key:'exam_result', icon:'📝', label:'Résultat examen', fields:[{key:'exam_name',label:'Nom de l\'examen',type:'text',required:true},{key:'subject',label:'Matière',type:'text'},{key:'score',label:'Note',type:'number',required:true},{key:'max_score',label:'Note maximale',type:'number'},{key:'date_exam',label:'Date',type:'date'},{key:'result',label:'Résultat',type:'select',options:['Réussi','Échoué','En attente']},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'attendance_update', icon:'📋', label:'Présence', fields:[{key:'period',label:'Période',type:'text',required:true},{key:'days_present',label:'Jours présents',type:'number',required:true},{key:'days_absent',label:'Jours absents',type:'number'},{key:'days_total',label:'Total jours',type:'number'},{key:'absent_reason',label:'Motif absences',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'academic_note', icon:'📌', label:'Note pédagogique', fields:[{key:'teacher',label:'Enseignant',type:'text'},{key:'subject',label:'Matière',type:'text'},{key:'observation',label:'Observation',type:'textarea',required:true},{key:'recommendation',label:'Recommandation',type:'textarea'},{key:'date',label:'Date',type:'date'}] },
+    ]},
+    { key:'family', icon:'👨‍👩‍👧‍👦', label:t('uc_category_family')||'Famille', desc:t('uc_category_desc_family')||'Tuteurs, parents, réunification', color:'#a855f7', types:[
+      { key:'guardian_assignment', icon:'👤', label:'Attribution tuteur', fields:[{key:'guardian_name',label:'Nom du tuteur',type:'text',required:true},{key:'relation',label:'Lien de parenté',type:'select',options:['Père','Mère','Grand-parent','Oncle/Tante','Frère/Soeur','Famille d\'accueil','Institution']},{key:'phone',label:'Téléphone',type:'text'},{key:'address',label:'Adresse',type:'text'},{key:'date_assigned',label:'Date d\'attribution',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'parent_identification', icon:'🔍', label:'Identification parent', fields:[{key:'parent_name',label:'Nom du parent',type:'text',required:true},{key:'parent_type',label:'Type',type:'select',options:['Père','Mère','Père biologique','Mère biologique']},{key:'status',label:'Statut',type:'select',options:['Identifié','Contacté','En recherche']},{key:'last_known',label:'Dernière adresse connue',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'family_reunification', icon:'🤗', label:'Réunification', fields:[{key:'status',label:'Statut',type:'select',options:['En cours','Planifiée','Réalisée','Échouée']},{key:'date_planned',label:'Date prévue',type:'date'},{key:'date_completed',label:'Date réalisée',type:'date'},{key:'family_member',label:'Membre concerné',type:'text'},{key:'support_needed',label:'Soutien nécessaire',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'foster_care', icon:'🏡', label:'Placement familial', fields:[{key:'foster_family',label:'Famille d\'accueil',type:'text',required:true},{key:'address',label:'Adresse',type:'text'},{key:'start_date',label:'Date de début',type:'date',required:true},{key:'duration',label:'Durée prévue',type:'select',options:['Court terme','Long terme','Permanent']},{key:'social_worker',label:'Travailleur social',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'adoption_progress', icon:'📋', label:'Adoption', fields:[{key:'stage',label:'Étape',type:'select',options:['Pré-adoption','En cours','Finalisation','Finalisée']},{key:'agency',label:'Agence',type:'text'},{key:'adoptive_parents',label:'Parents adoptifs',type:'text'},{key:'date_started',label:'Date de début',type:'date'},{key:'expected_date',label:'Date prévue',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'family_visit', icon:'👋', label:'Visite familiale', fields:[{key:'visitor',label:'Visiteur',type:'text',required:true},{key:'relation',label:'Lien',type:'text'},{key:'date_visit',label:'Date',type:'date',required:true},{key:'duration',label:'Durée',type:'select',options:['1-2h','Demi-journée','Journée','Week-end','Plusieurs jours']},{key:'observations',label:'Observations',type:'textarea'}] },
+    ]},
+    { key:'documents', icon:'📄', label:t('uc_category_documents')||'Documents', desc:t('uc_category_desc_documents')||'Ajout, remplacement, vérification', color:'#f59e0b', types:[
+      { key:'new_document', icon:'📄', label:'Nouveau document', fields:[{key:'doc_type',label:'Type de document',type:'select',options:['Acte de naissance','CNI','Passeport','Photo','Rapport médical','Bulletin scolaire','Document judiciaire','Autre'],required:true},{key:'doc_number',label:'Numéro',type:'text'},{key:'issued_by',label:'Délivré par',type:'text'},{key:'issue_date',label:'Date de délivrance',type:'date'},{key:'expiry_date',label:'Date d\'expiration',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'document_replacement', icon:'🔄', label:'Remplacement', fields:[{key:'doc_type',label:'Type',type:'select',options:['Acte de naissance','CNI','Passeport','Photo','Rapport médical','Bulletin scolaire','Autre'],required:true},{key:'reason_replace',label:'Motif',type:'select',options:['Perte','Vol','Détérioration','Expiration','Mise à jour']},{key:'old_number',label:'Ancien numéro',type:'text'},{key:'new_number',label:'Nouveau numéro',type:'text'},{key:'date_replaced',label:'Date',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'document_verification', icon:'✅', label:'Vérification', fields:[{key:'doc_type',label:'Type',type:'select',options:['Acte de naissance','CNI','Passeport','Rapport médical','Bulletin scolaire','Document judiciaire','Autre'],required:true},{key:'verified_by',label:'Vérifié par',type:'text',required:true},{key:'verification_date',label:'Date',type:'date'},{key:'status',label:'Statut',type:'select',options:['Vérifié','En attente','Non conforme']},{key:'comments',label:'Commentaires',type:'textarea'}] },
+    ]},
+    { key:'social', icon:'🤝', label:t('uc_category_social')||'Social', desc:t('uc_category_desc_social')||'Suivi social, visites, rapports', color:'#ef4444', types:[
+      { key:'social_worker_note', icon:'📝', label:'Note sociale', fields:[{key:'worker',label:'Intervenant',type:'text',required:true},{key:'date_intervention',label:'Date',type:'date',required:true},{key:'type',label:'Type',type:'select',options:['Visite','Entretien','Appel','Réunion','Suivi']},{key:'content',label:'Contenu',type:'textarea',required:true},{key:'recommendations',label:'Recommandations',type:'textarea'}] },
+      { key:'home_visit', icon:'🏠', label:'Visite domicile', fields:[{key:'address_visited',label:'Adresse visitée',type:'text',required:true},{key:'date_visit',label:'Date',type:'date',required:true},{key:'living_conditions',label:'Conditions de vie',type:'select',options:['Bonnes','Moyennes','Précaires','Critiques']},{key:'observations',label:'Observations',type:'textarea',required:true},{key:'recommendations',label:'Recommandations',type:'textarea'}] },
+      { key:'counseling', icon:'💬', label:'Counseling', fields:[{key:'counselor',label:'Conseiller',type:'text',required:true},{key:'date_session',label:'Date',type:'date',required:true},{key:'type',label:'Type',type:'select',options:['Individuel','Groupe','Familial','Crise']},{key:'theme',label:'Thème',type:'select',options:['Scolaire','Familial','Émotionnel','Comportemental','Orientation','Traumatisme','Autre']},{key:'notes',label:'Notes',type:'textarea',required:true},{key:'outcome',label:'Résultat',type:'textarea'}] },
+      { key:'observation', icon:'👁️', label:'Observation', fields:[{key:'observer',label:'Observateur',type:'text',required:true},{key:'date_obs',label:'Date',type:'date',required:true},{key:'domain',label:'Domaine',type:'select',options:['Comportement','Santé','Éducation','Social','Émotionnel']},{key:'description',label:'Description',type:'textarea',required:true},{key:'concerns',label:'Préoccupations',type:'textarea'},{key:'actions',label:'Actions',type:'textarea'}] },
+      { key:'incident', icon:'⚠️', label:'Incident', fields:[{key:'incident_type',label:"Type d'incident",type:'select',options:['Violence','Accident','Fuite','Conflit','Vol','Abus','Négligence','Autre'],required:true},{key:'date_incident',label:'Date',type:'date',required:true},{key:'location',label:'Lieu',type:'text'},{key:'description',label:'Description',type:'textarea',required:true},{key:'people_involved',label:'Personnes impliquées',type:'textarea'},{key:'actions_taken',label:'Actions prises',type:'textarea'},{key:'follow_up',label:'Suivi',type:'textarea'}] },
+      { key:'protection', icon:'🛡️', label:'Protection', fields:[{key:'concern_type',label:'Type',type:'select',options:['Risque de maltraitance','Exploitation','Discrimination','Mariage forcé','Travail enfant','Autre'],required:true},{key:'severity',label:'Gravité',type:'select',options:['Faible','Moyenne','Haute','Urgente']},{key:'date_reported',label:'Date signalement',type:'date',required:true},{key:'reported_by',label:'Signalé par',type:'text'},{key:'description',label:'Description',type:'textarea',required:true},{key:'measures',label:'Mesures prises',type:'textarea'}] },
+    ]},
+  ]
   const [theme, setTheme] = useState(localStorage.getItem('cdo_theme') || 'dark')
   const [orphanageName, setOrphanageName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
   const [bgTheme, setBgTheme] = useState(localStorage.getItem('cdo_bg') || '')
@@ -3530,6 +3606,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             { key:'health', icon:'❤️', label: t('pd_health') || 'Santé' },
                             { key:'education', icon:'🏫', label: t('pd_education') || 'Scolarité' },
                             { key:'documents', icon:'📄', label: t('pd_documents') || 'Documents' },
+                            { key:'updates', icon:'📝', label: 'Updates' },
                             { key:'history', icon:'📜', label: t('pd_history') || 'Historique' },
                           ].map(tab => (
                             <button key={tab.key} className={`pd-tab${profileTab === tab.key ? ' active' : ''}`} onClick={() => setProfileTab(tab.key)}>
@@ -3741,32 +3818,291 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               </div>
                             )}
 
-                            {/* ── HISTORY TAB ── */}
-                            {profileTab === 'history' && (
-                              <div className="pd-card">
-                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(139,92,246,0.15)'}}>📜</div><span className="pd-card-title">{t('pd_history') || 'Historique'}</span></div>
-                                <div className="pd-card-body">
-                                  <div className="pd-timeline">
-                                    {[
-                                      { icon:'✅', text: t('pd_registered') || 'Enfant enregistré dans le système', time: selectedRegChild.created_at ? new Date(selectedRegChild.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—', color:'blue' },
-                                      { icon:'📄', text: t('pd_docs_added') || 'Documents administratifs ajoutés', time: selectedRegChild.updated_at ? new Date(selectedRegChild.updated_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric' }) : '—', color:'amber' },
-                                    ].concat(
-                                      selectedRegChild.extra_data?.medical?.vaccinations?.filter(v => v.done).map(v => ({ icon:'💉', text: `Vaccin ${v.name} administré`, time: v.dateAdmin || '—', color:'green' })) || [],
-                                      selectedRegChild.extra_data?.education?.subjects?.filter(s => s.grade).map(s => ({ icon:'📊', text: `Note en ${s.name} : ${s.grade}/20`, time: '—', color:'purple' })) || [],
-                                    ).filter(Boolean).map((event, i) => (
-                                      <div key={i} className="pd-tl-item">
-                                        <div className={`pd-tl-dot ${event.color}`}>{event.icon}</div>
+                            {/* ── UPDATES TAB ── */}
+                            {profileTab === 'updates' && (
+                              <div className="uc-wrap">
+                                <div className="uc-header">
+                                  <span className="uc-header-icon">📝</span>
+                                  <span className="uc-header-title">{t('uc_title') || 'Centre de Mise à Jour'}</span>
+                                  {ucStep > 0 && <button className="uc-back-top" onClick={() => { if (ucStep === 1) { setUcStep(0); setUcCategory(null); setUcType(''); setUcTitle(''); setUcDescription(''); setUcPrevValue(''); setUcNewValue(''); setUcReason(''); setUcFiles([]); setUcSuccess(false) } else setUcStep(s => s - 1) }}>← {t('form_back')}</button>}
+                                  {ucStep > 0 && <button className="uc-back-top" style={{marginLeft:'auto'}} onClick={() => { setUcStep(0); setUcCategory(null); setUcType(''); setUcTitle(''); setUcDescription(''); setUcPrevValue(''); setUcNewValue(''); setUcReason(''); setUcFiles([]); setUcSuccess(false) }}>{t('form_cancel') || 'Cancel'}</button>}
+                                </div>
+                                <div className="uc-steps">
+                                  {[t('uc_select_category')||'Catégorie', t('uc_fill_form')||'Détails', t('uc_reason')||'Raison', t('uc_review_save')||'Confirmer'].map((s, i) => (
+                                    <div key={i} className={`uc-step${ucStep === i ? ' active' : ''}${ucStep > i ? ' done' : ''}`}>
+                                      <div className="uc-step-num">{ucStep > i ? '✓' : i + 1}</div>
+                                      <span className="uc-step-label">{s}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                                {ucSuccess ? (
+                                  <div className="uc-success">
+                                    <div className="uc-success-icon">✅</div>
+                                    <div className="uc-success-text">{t('uc_success') || 'Mise à jour enregistrée !'}</div>
+                                    <button className="uc-btn-primary" onClick={() => { setUcStep(0); setUcCategory(null); setUcType(''); setUcTitle(''); setUcDescription(''); setUcPrevValue(''); setUcNewValue(''); setUcReason(''); setUcFiles([]); setUcSuccess(false); setProfileTab('history') }}>{t('pd_history') || 'Voir historique'}</button>
+                                  </div>
+                                ) : ucStep === 0 ? (
+                                  <div className="uc-categories">
+                                    {UC_CATEGORIES.map(cat => (
+                                      <button key={cat.key} className="uc-cat-card" style={{'--cat-color':cat.color}} onClick={() => { setUcCategory(cat.key); setUcStep(1) }}>
+                                        <span className="uc-cat-icon">{cat.icon}</span>
+                                        <span className="uc-cat-label">{cat.label}</span>
+                                        <span className="uc-cat-desc">{cat.desc}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : ucStep === 1 ? (
+                                  <div className="uc-form">
+                                    <div className="uc-form-group">
+                                      <label className="uc-label">{t('uc_category') || 'Type'}</label>
+                                      <div className="uc-type-grid">
+                                        {UC_CATEGORIES.find(c => c.key === ucCategory)?.types.map(tp => (
+                                          <button key={tp} className={`uc-type-btn${ucType === tp ? ' active' : ''}`} onClick={() => { setUcType(tp); setUcTitle((t('uc_type_' + tp) || tp.replace(/_/g, ' ')) + ' - ' + (selectedRegChild?.prenom || '') + ' ' + (selectedRegChild?.nom || '')) }}>
+                                            {t('uc_type_' + tp) || tp.replace(/_/g, ' ')}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    {ucType && <>
+                                      <div className="uc-form-group">
+                                        <label className="uc-label" htmlFor="uc-title">{t('form_title') || 'Titre'}</label>
+                                        <input id="uc-title" className="uc-input" value={ucTitle} onChange={e => setUcTitle(e.target.value)} placeholder={t('uc_title_placeholder')||'Titre...'} />
+                                      </div>
+                                      <div className="uc-form-group">
+                                        <label className="uc-label" htmlFor="uc-desc">{t('form_description') || 'Description'}</label>
+                                        <textarea id="uc-desc" className="uc-input uc-textarea" value={ucDescription} onChange={e => setUcDescription(e.target.value)} placeholder={t('uc_description_placeholder')||'Décrivez...'} rows={3} />
+                                      </div>
+                                      <div className="uc-form-row">
+                                        <div className="uc-form-group">
+                                          <label className="uc-label" htmlFor="uc-prev">{t('hc_old_value') || 'Ancien'}</label>
+                                          <textarea id="uc-prev" className="uc-input uc-textarea" value={ucPrevValue} onChange={e => setUcPrevValue(e.target.value)} placeholder={t('uc_prev_value_placeholder')||'Ancien...'} rows={2} />
+                                        </div>
+                                        <div className="uc-form-group">
+                                          <label className="uc-label" htmlFor="uc-new">{t('hc_new_value') || 'Nouveau'}</label>
+                                          <textarea id="uc-new" className="uc-input uc-textarea" value={ucNewValue} onChange={e => setUcNewValue(e.target.value)} placeholder={t('uc_new_value_placeholder')||'Nouveau...'} rows={2} />
+                                        </div>
+                                      </div>
+                                      <button className="uc-btn-primary" onClick={() => { if (!ucTitle.trim()) { alert(t('uc_required')||'Requis'); return } setUcStep(2) }}>{t('form_next')||'Suivant'} →</button>
+                                    </>}
+                                  </div>
+                                ) : ucStep === 2 ? (
+                                  <div className="uc-form">
+                                    <div className="uc-form-group">
+                                      <label className="uc-label" htmlFor="uc-reason">{t('uc_reason') || 'Motif'}</label>
+                                      <textarea id="uc-reason" className="uc-input uc-textarea" value={ucReason} onChange={e => setUcReason(e.target.value)} placeholder={t('uc_reason_placeholder')||'Raison...'} rows={3} />
+                                    </div>
+                                    <div className="uc-form-group">
+                                      <label className="uc-label">{t('uc_attachments') || 'Fichiers'}</label>
+                                      <div className="uc-dropzone" onClick={() => document.getElementById('uc-file-input')?.click()}>
+                                        <input id="uc-file-input" type="file" multiple hidden onChange={e => { const files = Array.from(e.target.files || []); setUcFiles(prev => [...prev, ...files.map(f => ({ name: f.name, size: f.size, file: f }))]) }} />
+                                        <div className="uc-dropzone-content">
+                                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                          <p>{t('uc_drag_drop')||'Glissez-déposez'}</p>
+                                          <span className="uc-dropzone-hint">{t('uc_click_browse')||'ou cliquez'}</span>
+                                        </div>
+                                      </div>
+                                      {ucFiles.length > 0 && <div className="uc-file-list">{ucFiles.map((f, i) => (
+                                        <div key={i} className="uc-file-item">
+                                          <span className="uc-file-name">📎 {f.name}</span>
+                                          <span className="uc-file-size">{(f.size/1024).toFixed(0)} Ko</span>
+                                          <button className="uc-file-remove" onClick={() => setUcFiles(prev => prev.filter((_, j) => j !== i))}>✕</button>
+                                        </div>
+                                      ))}</div>}
+                                    </div>
+                                    <div className="uc-form-actions">
+                                      <button className="uc-btn-secondary" onClick={() => setUcStep(1)}>← {t('form_back')}</button>
+                                      <button className="uc-btn-primary" onClick={() => { if (!ucReason.trim() && ucFiles.length === 0) { if (!confirm(t('uc_save')||'Enregistrer sans raison ?')) return } setUcStep(3) }}>{t('form_next')||'Suivant'} →</button>
+                                    </div>
+                                  </div>
+                                ) : ucStep === 3 ? (
+                                  <div className="uc-preview">
+                                    <div className="uc-preview-card">
+                                      <div className="uc-preview-header">
+                                        <span className="uc-preview-badge" style={{background:UC_CATEGORIES.find(c => c.key === ucCategory)?.color}}>{UC_CATEGORIES.find(c => c.key === ucCategory)?.icon} {UC_CATEGORIES.find(c => c.key === ucCategory)?.label}</span>
+                                        <span className="uc-preview-type">{t('uc_type_' + ucType) || ucType.replace(/_/g,' ')}</span>
+                                      </div>
+                                      <h4 className="uc-preview-title">{ucTitle}</h4>
+                                      {ucDescription && <p className="uc-preview-desc">{ucDescription}</p>}
+                                      {(ucPrevValue || ucNewValue) && <div className="uc-preview-values">
+                                        {ucPrevValue && <div className="uc-preview-old"><strong>{t('hc_old_value')||'Ancien'}:</strong> {ucPrevValue}</div>}
+                                        {ucNewValue && <div className="uc-preview-new"><strong>{t('hc_new_value')||'Nouveau'}:</strong> {ucNewValue}</div>}
+                                      </div>}
+                                      {ucReason && <div className="uc-preview-reason"><strong>{t('uc_reason')||'Motif'}:</strong> {ucReason}</div>}
+                                      {ucFiles.length > 0 && <div className="uc-preview-files"><strong>{t('uc_attachments')||'Fichiers'}:</strong> {ucFiles.map(f => f.name).join(', ')}</div>}
+                                    </div>
+                                    <div className="uc-timeline-preview">
+                                      <div className="uc-tl-preview-title">{t('uc_preview')||'Aperçu'}</div>
+                                      <div className="pd-tl-item" style={{background:'rgba(255,255,255,0.03)',borderRadius:'10px',padding:'12px'}}>
+                                        <div className="pd-tl-dot" style={{background:UC_CATEGORIES.find(c => c.key === ucCategory)?.color}}>{UC_CATEGORIES.find(c => c.key === ucCategory)?.icon}</div>
                                         <div className="pd-tl-content">
-                                          <div className="pd-tl-text">{event.text}</div>
-                                          <div className="pd-tl-time">{event.time}</div>
+                                          <div className="pd-tl-text" style={{fontWeight:'600'}}>{ucTitle}</div>
+                                          <div className="pd-tl-time">{new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
+                                          <div style={{fontSize:'11px',color:'#64748b',marginTop:'4px'}}>{t('hc_performed_by')||'Par'}: {user?.first_name||''} {user?.last_name||''}</div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <button className="uc-btn-primary uc-btn-save" onClick={async () => {
+                                      setUcSaving(true)
+                                      const token = localStorage.getItem('access_token')
+                                      const body = JSON.stringify({ category: ucCategory, update_type: ucType, title: ucTitle, description: ucDescription, previous_value: ucPrevValue, new_value: ucNewValue, reason: ucReason, attachments: ucFiles.map(f => f.name) })
+                                      try {
+                                        const res = await fetch(`${API}/enfants/${selectedRegChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }, body })
+                                        if (res.ok) { setUcSaving(false); setUcSuccess(true); setUcStep(4) }
+                                        else throw new Error()
+                                      } catch {
+                                        const updates = JSON.parse(localStorage.getItem('cdo_updates_' + selectedRegChild.uid) || '[]')
+                                        updates.unshift({ id:Date.now(), category:ucCategory, update_type:ucType, title:ucTitle, description:ucDescription, previous_value:ucPrevValue, new_value:ucNewValue, reason:ucReason, attachments:ucFiles.map(f => f.name), created_at:new Date().toISOString(), created_by:(user?.first_name||'')+' '+(user?.last_name||'') })
+                                        localStorage.setItem('cdo_updates_' + selectedRegChild.uid, JSON.stringify(updates))
+                                        setUcSaving(false); setUcSuccess(true); setUcStep(4)
+                                      }
+                                    }} disabled={ucSaving}>
+                                      {ucSaving ? (t('uc_saving')||'Saving...') : (t('uc_save')||'Enregistrer')}
+                                    </button>
+                                  </div>
+                                ) : null}
+                              </div>
+                            )}
+
+                            {/* ── HISTORY TAB ── */}
+                            {profileTab === 'history' && (() => {
+                            const hcIcons = { created:'✅', updated:'✏️', update_added:'📝', document_added:'📄', document_verified:'✅', health_update:'💉', education_update:'📚', family_update:'👨‍👩‍👧‍👦', social_update:'🤝', status_change:'🔄', note_added:'💬' }
+                            const hcColors = { general:'#64748b', health:'#22c55e', education:'#3b82f6', family:'#a855f7', documents:'#f59e0b', social:'#ef4444' }
+                            const hcLocalEvents = (() => {
+                              const stored = JSON.parse(localStorage.getItem('cdo_updates_' + selectedRegChild.uid) || '[]')
+                              const med = selectedRegChild.extra_data?.medical
+                              const vax = med?.vaccinations?.filter(v => v.done).map(v => ({ event_type:'health_update', category:'health', title:`Vaccination ${v.name}`, description:'', old_value:'Non administré', new_value:'Administré le '+(v.dateAdmin||'—'), performed_by_name:'', performed_role:'', department:'', attachments:[], event_date:v.dateAdmin||selectedRegChild.created_at })) || []
+                              const edu = selectedRegChild.extra_data?.education
+                              const grades = edu?.subjects?.filter(s => s.grade).map(s => ({ event_type:'education_update', category:'education', title:`Note ${s.name}`, description:'', old_value:'', new_value:`${s.grade}/20`, performed_by_name:'', performed_role:'', department:'', attachments:[], event_date:selectedRegChild.updated_at })) || []
+                              const all = [...stored.map(s => ({ ...s, event_type:'update_added', performed_by_name:s.created_by||s.created_by_name||'', department:'', attachments:s.attachments||[], event_date:s.created_at })), ...vax, ...grades, { event_type:'created', category:'general', title:t('pd_registered')||'Enfant enregistré', description:'', old_value:'', new_value:'', performed_by_name:(user?.first_name||'')+' '+(user?.last_name||''), performed_role:user?.role||'', department:'', attachments:[], event_date:selectedRegChild.created_at }]
+                              return all.sort((a, b) => new Date(b.event_date||0) - new Date(a.event_date||0))
+                            })()
+                            const hcFiltered = hcLocalEvents.filter(e => {
+                              if (hcFilterCategory && e.category !== hcFilterCategory) return false
+                              if (hcFilterType && e.event_type !== hcFilterType) return false
+                              if (hcSearch && !(e.title||'').toLowerCase().includes(hcSearch.toLowerCase()) && !(e.description||'').toLowerCase().includes(hcSearch.toLowerCase())) return false
+                              return true
+                            })
+                            return (
+                              <div className="hc-wrap">
+                                <div className="hc-kpi-row">
+                                  {[
+                                    { label:t('hc_total_events')||'Événements', value:hcLocalEvents.length, icon:'📊', color:'#3b82f6' },
+                                    { label:t('hc_total_updates')||'Mises à jour', value:hcLocalEvents.filter(e => e.event_type === 'update_added').length, icon:'📝', color:'#22c55e' },
+                                    { label:t('hc_health_events')||'Santé', value:hcLocalEvents.filter(e => e.category === 'health').length, icon:'💉', color:'#22c55e' },
+                                    { label:t('hc_education_events')||'Éducation', value:hcLocalEvents.filter(e => e.category === 'education').length, icon:'📚', color:'#3b82f6' },
+                                    { label:t('hc_family_events')||'Famille', value:hcLocalEvents.filter(e => e.category === 'family').length, icon:'👨‍👩‍👧‍👦', color:'#a855f7' },
+                                    { label:t('hc_documents_events')||'Documents', value:hcLocalEvents.filter(e => e.category === 'documents').length, icon:'📄', color:'#f59e0b' },
+                                  ].map((kpi, i) => (
+                                    <div key={i} className="hc-kpi" style={{borderLeftColor:kpi.color}}>
+                                      <span className="hc-kpi-icon">{kpi.icon}</span>
+                                      <div className="hc-kpi-info"><span className="hc-kpi-value">{kpi.value}</span><span className="hc-kpi-label">{kpi.label}</span></div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="hc-toolbar">
+                                  <div className="hc-view-tabs">
+                                    {[{ key:'timeline', icon:'📋', label:t('hc_timeline')||'Chronologie' }, { key:'audit', icon:'📋', label:t('hc_audit_log')||'Audit' }, { key:'analytics', icon:'📊', label:t('hc_analytics')||'Analytiques' }].map(v => (
+                                      <button key={v.key} className={`hc-view-tab${hcView === v.key ? ' active' : ''}`} onClick={() => setHcView(v.key)}>{v.icon} {v.label}</button>
+                                    ))}
+                                  </div>
+                                  <div className="hc-filters">
+                                    <select className="hc-filter-select" value={hcFilterCategory} onChange={e => setHcFilterCategory(e.target.value)}>
+                                      <option value="">{t('hc_all_categories')||'Toutes'}</option>
+                                      {['health','education','family','documents','social','general'].map(c => <option key={c} value={c}>{t('uc_category_'+c)||c}</option>)}
+                                    </select>
+                                    <select className="hc-filter-select" value={hcFilterType} onChange={e => setHcFilterType(e.target.value)}>
+                                      <option value="">{t('hc_all_types')||'Tous'}</option>
+                                      {Object.entries(hcIcons).map(([k, icon]) => <option key={k} value={k}>{icon} {t('hc_event_'+k)||k}</option>)}
+                                    </select>
+                                    <div className="hc-search-wrap">
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                      <input className="hc-search-input" value={hcSearch} onChange={e => setHcSearch(e.target.value)} placeholder={t('hc_search')||'Rechercher...'} />
+                                    </div>
+                                    {(hcFilterCategory||hcFilterType||hcSearch) && <button className="hc-clear-btn" onClick={() => { setHcFilterCategory(''); setHcFilterType(''); setHcSearch('') }}>{t('hc_clear_filters')||'Effacer'}</button>}
+                                  </div>
+                                </div>
+                                {hcView === 'timeline' && (
+                                  <div className="hc-timeline">
+                                    {hcFiltered.length === 0 && <div className="hc-empty"><span className="hc-empty-icon">📭</span><p>{t('hc_no_events')||'Aucun événement'}</p></div>}
+                                    {hcFiltered.map((event, i) => (
+                                      <div key={i} className={`hc-tl-item${hcExpanded === i ? ' expanded' : ''}`} onClick={() => setHcExpanded(hcExpanded === i ? null : i)}>
+                                        <div className="hc-tl-line" />
+                                        <div className="hc-tl-dot" style={{background:hcColors[event.category]||'#64748b'}}>{hcIcons[event.event_type]||'📌'}</div>
+                                        <div className="hc-tl-card">
+                                          <div className="hc-tl-card-top">
+                                            <span className="hc-tl-badge" style={{background:hcColors[event.category]||'#64748b'}}>{event.category ? (t('uc_category_'+event.category)||event.category) : ''}</span>
+                                            <span className="hc-tl-time">{event.event_date ? new Date(event.event_date).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}</span>
+                                          </div>
+                                          <div className="hc-tl-title">{event.title}</div>
+                                          {event.performed_by_name && <div className="hc-tl-meta">{t('hc_performed_by')||'Par'}: {event.performed_by_name}{event.performed_role ? ' ('+event.performed_role+')' : ''}</div>}
+                                          {hcExpanded === i && (
+                                            <div className="hc-tl-details">
+                                              {event.description && <div className="hc-tl-detail-row"><strong>{t('form_description')||'Description'}:</strong><span>{event.description}</span></div>}
+                                              {event.old_value && <div className="hc-tl-detail-row"><strong style={{color:'#ef4444'}}>{t('hc_old_value')||'Ancien'}:</strong><span>{event.old_value}</span></div>}
+                                              {event.new_value && <div className="hc-tl-detail-row"><strong style={{color:'#22c55e'}}>{t('hc_new_value')||'Nouveau'}:</strong><span>{event.new_value}</span></div>}
+                                              {event.reason && <div className="hc-tl-detail-row"><strong>{t('hc_reason')||'Motif'}:</strong><span>{event.reason}</span></div>}
+                                              {event.department && <div className="hc-tl-detail-row"><strong>{t('hc_department')||'Département'}:</strong><span>{event.department}</span></div>}
+                                              {event.attachments?.length > 0 && <div className="hc-tl-detail-row"><strong>{t('hc_attachments')||'Fichiers'}:</strong><span>{event.attachments.join(', ')}</span></div>}
+                                            </div>
+                                          )}
+                                          <div className="hc-tl-expand">{hcExpanded === i ? '▲' : '▼'}</div>
                                         </div>
                                       </div>
                                     ))}
-                                    {(!selectedRegChild.created_at && !selectedRegChild.extra_data?.medical?.vaccinations?.length) && <div style={{fontSize:'12px',color:'#64748B',textAlign:'center',padding:'16px 0'}}>{t('pd_no_history') || 'Aucun historique disponible'}</div>}
                                   </div>
-                                </div>
+                                )}
+                                {hcView === 'audit' && (
+                                  <div className="hc-audit">
+                                    <div className="hc-audit-table">
+                                      <div className="hc-audit-header">
+                                        <span className="hc-audit-col-date">{t('form_date')||'Date'}</span>
+                                        <span className="hc-audit-col-event">{t('form_type')||'Événement'}</span>
+                                        <span className="hc-audit-col-cat">{t('uc_category')||'Catégorie'}</span>
+                                        <span className="hc-audit-col-user">{t('hc_performed_by')||'Utilisateur'}</span>
+                                        <span className="hc-audit-col-old">{t('hc_old_value')||'Ancien'}</span>
+                                        <span className="hc-audit-col-new">{t('hc_new_value')||'Nouveau'}</span>
+                                      </div>
+                                      {hcFiltered.length === 0 && <div className="hc-empty"><p>{t('hc_no_events')||'Aucun'}</p></div>}
+                                      {hcFiltered.map((event, i) => (
+                                        <div key={i} className="hc-audit-row">
+                                          <span className="hc-audit-col-date">{event.event_date ? new Date(event.event_date).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}</span>
+                                          <span className="hc-audit-col-event"><span className="hc-event-badge" style={{background:hcColors[event.category]||'#64748b'}}>{hcIcons[event.event_type]||'📌'} {t('hc_event_'+event.event_type)||event.event_type}</span></span>
+                                          <span className="hc-audit-col-cat">{event.category ? (t('uc_category_'+event.category)||event.category) : '—'}</span>
+                                          <span className="hc-audit-col-user">{event.performed_by_name||'—'}</span>
+                                          <span className="hc-audit-col-old" style={{color:'#ef4444'}}>{event.old_value||'—'}</span>
+                                          <span className="hc-audit-col-new" style={{color:'#22c55e'}}>{event.new_value||'—'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {hcView === 'analytics' && (
+                                  <div className="hc-analytics">
+                                    <div className="hc-analytics-grid">
+                                      {UC_CATEGORIES.map(cat => {
+                                        const ct = hcLocalEvents.filter(e => e.category === cat.key).length
+                                        return (
+                                          <div key={cat.key} className="hc-analytics-card" style={{borderLeftColor:cat.color}}>
+                                            <div className="hc-analytics-card-top">
+                                              <span className="hc-analytics-icon" style={{background:cat.color+'20'}}>{cat.icon}</span>
+                                              <span className="hc-analytics-count">{ct}</span>
+                                            </div>
+                                            <span className="hc-analytics-label">{cat.label}</span>
+                                            <div className="hc-analytics-bar"><div className="hc-analytics-bar-fill" style={{width:hcLocalEvents.length ? (ct/hcLocalEvents.length*100)+'%' : '0%', background:cat.color}} /></div>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                    <div className="hc-analytics-summary">
+                                      <div className="hc-analytics-summary-item"><span>{t('hc_total_events')||'Total'}</span><strong>{hcLocalEvents.length}</strong></div>
+                                      <div className="hc-analytics-summary-item"><span>{t('hc_total_updates')||'Updates'}</span><strong>{hcLocalEvents.filter(e => e.event_type === 'update_added').length}</strong></div>
+                                      <div className="hc-analytics-summary-item"><span>{t('hc_recent_activities')||'Récent'}</span><strong>{hcLocalEvents.slice(0,5).length}</strong></div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            )
+                            })()}
                           </div>
 
                           {/* ═══ SIDEBAR ═══ */}
@@ -3790,6 +4126,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   </button>
                                   <button className="pd-action-btn" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey('Santé & médical'); setSelectedRegChild(null) }}>
                                     <span className="pd-action-icon">❤️</span> {t('pd_health') || 'Santé'}
+                                  </button>
+                                  <button className="pd-action-btn" onClick={() => { setUpdateChild(selectedRegChild); setActiveKey('update-center'); setSelectedRegChild(null); setUc2Step(0); setUc2Category(null); setUc2Type(''); setUc2FormData({}); setUc2Priority('normal'); setUc2Reason(''); setUc2Comment(''); setUc2Files([]); setUc2Success(false) }}>
+                                    <span className="pd-action-icon">📝</span> {t('uc_title') || 'Mise à jour'}
                                   </button>
                                   <button className="pd-action-btn" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey('Scolarité'); setSelectedRegChild(null) }}>
                                     <span className="pd-action-icon">🏫</span> {t('pd_education') || 'Scolarité'}
@@ -4325,6 +4664,302 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           ))}
                         </div>
                       </>
+                    )}
+                  </div>
+                ) : activeKey === 'update-center' ? (
+                  <div className="uc2-wrap">
+                    {updateChild ? <>
+                      <div className="uc2-layout">
+                        <div className="uc2-main">
+                          {/* Header */}
+                          <div className="uc2-header">
+                            <button className="dash-back-btn" onClick={() => { setActiveKey('enfants-enregistres'); setUpdateChild(null); setUc2Category(null); setUc2Type(''); setUc2Step(0) }}>{'\u2190'} {t('form_back')}</button>
+                            <div className="uc2-header-title">
+                              <span className="uc2-header-icon">📝</span>
+                              <span>{t('uc_title') || 'Centre de Mise à Jour'}</span>
+                            </div>
+                          </div>
+
+                          {/* Child identity card */}
+                          <div className="uc2-child-card">
+                            <div className="uc2-child-avatar">
+                              {(() => { const lp = localStorage.getItem('cdo_child_photo_' + updateChild.uid); if (lp) return <img src={lp} alt="" />; if (updateChild.photo) return <img src={updateChild.photo} alt="" />; return <span>{updateChild.prenom?.[0] || updateChild.nom?.[0] || '?'}</span> })()}
+                            </div>
+                            <div className="uc2-child-info">
+                              <div className="uc2-child-name">{updateChild.prenom || ''} {updateChild.nom || ''}</div>
+                              <div className="uc2-child-meta">
+                                <span>#{updateChild.uid}</span>
+                                <span>🎂 {updateChild.date_naissance ? (() => { const d = new Date(updateChild.date_naissance); return d.toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric' }) + ' (' + Math.floor((Date.now() - d.getTime()) / 31557600000) + ' ' + (t('form_years') || 'ans') + ')' })() : '—'}</span>
+                                <span>⚤ {updateChild.sexe === 'M' ? (t('form_male')||'M') : updateChild.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
+                                {updateChild.nationalite && <span>{updateChild.nationalite}</span>}
+                              </div>
+                            </div>
+                            <span className="uc2-child-status" style={{background: updateChild.status === 'active' ? 'rgba(34,197,94,0.15)' : 'rgba(100,116,139,0.15)', color: updateChild.status === 'active' ? '#22c55e' : '#94a3b8'}}>{updateChild.status === 'active' ? (t('form_active')||'Actif') : (t('form_inactive')||'Inactif')}</span>
+                          </div>
+
+                          {/* Stepper */}
+                          <div className="uc2-steps">
+                            {[
+                              { icon:'📋', label:t('uc_select_category')||'Catégorie' },
+                              { icon:'📝', label:t('uc_fill_form')||'Détails' },
+                              { icon:'📎', label:t('uc_reason')||'Raison & Fichiers' },
+                              { icon:'✅', label:t('uc_review_save')||'Confirmer' },
+                            ].map((s, i) => (
+                              <div key={i} className={`uc2-step${uc2Step === i ? ' active' : ''}${uc2Step > i ? ' done' : ''}`}>
+                                <div className="uc2-step-dot">{uc2Step > i ? '✓' : s.icon}</div>
+                                <span className="uc2-step-label">{s.label}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Content */}
+                          {uc2Success ? (
+                            <div className="uc2-success">
+                              <div className="uc2-success-icon">✅</div>
+                              <div className="uc2-success-title">{t('uc_success') || 'Mise à jour enregistrée !'}</div>
+                              <p className="uc2-success-desc">{t('uc_success_desc') || 'Un événement a été ajouté à l\'historique de l\'enfant.'}</p>
+                              <div className="uc2-success-actions">
+                                <button className="uc2-btn uc2-btn-primary" onClick={() => { setUc2Step(0); setUc2Category(null); setUc2Type(''); setUc2FormData({}); setUc2Priority('normal'); setUc2Reason(''); setUc2Comment(''); setUc2Files([]); setUc2Success(false) }}>{t('uc_add_another') || 'Ajouter une autre'}</button>
+                                <button className="uc2-btn uc2-btn-secondary" onClick={() => { setActiveKey('enfants-enregistres'); setUpdateChild(null); setUc2Step(0); setUc2Category(null); setUc2Type(''); setUc2FormData({}); setUc2Priority('normal'); setUc2Reason(''); setUc2Comment(''); setUc2Files([]); setUc2Success(false) }}>{t('form_back') || 'Retour'}</button>
+                              </div>
+                            </div>
+                          ) : uc2Step === 0 ? (
+                            <div className="uc2-categories">
+                              <div className="uc2-section-title">{t('uc_select_category') || 'Choisissez une catégorie de mise à jour'}</div>
+                              <div className="uc2-cat-grid">
+                                {UC_CATEGORIES.map(cat => (
+                                  <button key={cat.key} className="uc2-cat-card" style={{'--cat-color':cat.color}} onClick={() => { setUc2Category(cat.key); setUc2Step(1) }}>
+                                    <span className="uc2-cat-icon">{cat.icon}</span>
+                                    <span className="uc2-cat-label">{cat.label}</span>
+                                    <span className="uc2-cat-desc">{cat.desc}</span>
+                                    <span className="uc2-cat-types">{cat.types.length} {t('uc_types') || 'types'}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ) : uc2Step === 1 ? (
+                            <div className="uc2-form-step">
+                              <div className="uc2-section-title">{t('uc_select_type') || 'Choisissez le type de mise à jour'}</div>
+                              <div className="uc2-type-grid">
+                                {UC_CATEGORIES.find(c => c.key === uc2Category)?.types.map(tp => (
+                                  <button key={tp.key} className={`uc2-type-card${uc2Type === tp.key ? ' active' : ''}`} onClick={() => { setUc2Type(tp.key); setUc2FormData({}) }}>
+                                    <span className="uc2-type-icon">{tp.icon}</span>
+                                    <span className="uc2-type-label">{tp.label}</span>
+                                  </button>
+                                ))}
+                              </div>
+                              {uc2Type && (() => {
+                                const typeDef = UC_CATEGORIES.find(c => c.key === uc2Category)?.types.find(t => t.key === uc2Type)
+                                if (!typeDef) return null
+                                return (
+                                  <div className="uc2-dynamic-form">
+                                    <div className="uc2-section-subtitle">{t('uc_fill_form') || 'Remplissez les détails'} — {typeDef.label}</div>
+                                    {typeDef.fields.map(f => (
+                                      <div key={f.key} className="uc2-field">
+                                        <label className="uc2-field-label">{f.label}{f.required ? ' *' : ''}</label>
+                                        {f.type === 'text' && <input className="uc2-input" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))} placeholder={f.placeholder || ''} />}
+                                        {f.type === 'textarea' && <textarea className="uc2-input uc2-textarea" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))} placeholder={f.placeholder || ''} rows={3} />}
+                                        {f.type === 'date' && <input className="uc2-input" type="date" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))} />}
+                                        {f.type === 'select' && (
+                                          <select className="uc2-input uc2-select" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))}>
+                                            <option value="">{t('form_select')||'Sélectionnez...'}</option>
+                                            {(f.options || []).map(o => <option key={o} value={o}>{o}</option>)}
+                                          </select>
+                                        )}
+                                        {f.type === 'number' && <input className="uc2-input" type="number" value={uc2FormData[f.key] || ''} onChange={e => setUc2FormData(p => ({...p, [f.key]: e.target.value}))} placeholder={f.placeholder || ''} />}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )
+                              })()}
+                              <div className="uc2-form-actions">
+                                <button className="uc2-btn uc2-btn-ghost" onClick={() => setUc2Step(0)}>← {t('form_back')}</button>
+                                <button className="uc2-btn uc2-btn-primary" onClick={() => { if (!uc2Type) { alert(t('uc_required')||'Requis'); return }; setUc2Step(2) }} disabled={!uc2Type}>{t('form_next')||'Suivant'} →</button>
+                              </div>
+                            </div>
+                          ) : uc2Step === 2 ? (
+                            <div className="uc2-form-step">
+                              <div className="uc2-section-title">{t('uc_reason') || 'Raison & Pièces jointes'}</div>
+                              <div className="uc2-field">
+                                <label className="uc2-field-label">{t('uc_priority') || 'Priorité'} *</label>
+                                <div className="uc2-priority-group">
+                                  {[
+                                    { value:'low', label:t('uc_priority_low')||'Basse', color:'#22c55e' },
+                                    { value:'normal', label:t('uc_priority_normal')||'Normale', color:'#3b82f6' },
+                                    { value:'high', label:t('uc_priority_high')||'Haute', color:'#f59e0b' },
+                                    { value:'critical', label:t('uc_priority_critical')||'Critique', color:'#ef4444' },
+                                  ].map(p => (
+                                    <button key={p.value} className={`uc2-priority-btn${uc2Priority === p.value ? ' active' : ''}`} style={uc2Priority === p.value ? {borderColor:p.color,background:p.color+'20',color:p.color} : {}} onClick={() => setUc2Priority(p.value)}>
+                                      {p.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="uc2-field">
+                                <label className="uc2-field-label" htmlFor="uc2-reason">{t('uc_reason') || 'Motif'} *</label>
+                                <textarea id="uc2-reason" className="uc2-input uc2-textarea" value={uc2Reason} onChange={e => setUc2Reason(e.target.value)} placeholder={t('uc_reason_placeholder')||'Expliquez la raison...'} rows={3} />
+                              </div>
+                              <div className="uc2-field">
+                                <label className="uc2-field-label" htmlFor="uc2-comment">{t('uc_comment') || 'Commentaire'}</label>
+                                <textarea id="uc2-comment" className="uc2-input uc2-textarea" value={uc2Comment} onChange={e => setUc2Comment(e.target.value)} placeholder={t('uc_comment_placeholder')||'Notes supplémentaires...'} rows={2} />
+                              </div>
+                              <div className="uc2-field">
+                                <label className="uc2-field-label">{t('uc_attachments') || 'Pièces jointes'}</label>
+                                <div className="uc2-dropzone" onClick={() => document.getElementById('uc2-files')?.click()}>
+                                  <input id="uc2-files" type="file" multiple hidden onChange={e => { setUc2Files(prev => [...prev, ...Array.from(e.target.files||[]).map(f => ({ name: f.name, size: f.size, type: f.type }))]) }} />
+                                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                  <p>{t('uc_drag_drop')||'Glissez-déposez'}</p>
+                                  <span>{t('uc_click_browse')||'ou cliquez'}</span>
+                                </div>
+                                {uc2Files.length > 0 && <div className="uc2-file-list">{uc2Files.map((f, i) => (
+                                  <div key={i} className="uc2-file-item"><span>📎 {f.name}</span><span className="uc2-file-size">{(f.size/1024).toFixed(0)} Ko</span><button className="uc2-file-remove" onClick={() => setUc2Files(prev => prev.filter((_, j) => j !== i))}>✕</button></div>
+                                ))}</div>}
+                              </div>
+                              <div className="uc2-form-actions">
+                                <button className="uc2-btn uc2-btn-ghost" onClick={() => setUc2Step(1)}>← {t('form_back')}</button>
+                                <button className="uc2-btn uc2-btn-primary" onClick={() => { if (!uc2Reason.trim()) { alert(t('uc_required')||'Requis'); return }; setUc2Step(3) }}>{t('form_next')||'Suivant'} →</button>
+                              </div>
+                            </div>
+                          ) : uc2Step === 3 ? (
+                            <div className="uc2-review-step">
+                              <div className="uc2-section-title">{t('uc_review_save') || 'Vérifiez et enregistrez'}</div>
+                              <div className="uc2-review-card">
+                                <div className="uc2-review-header">
+                                  <span className="uc2-review-badge" style={{background:UC_CATEGORIES.find(c => c.key === uc2Category)?.color}}>{UC_CATEGORIES.find(c => c.key === uc2Category)?.icon} {UC_CATEGORIES.find(c => c.key === uc2Category)?.label}</span>
+                                  <span className="uc2-review-type">{UC_CATEGORIES.find(c => c.key === uc2Category)?.types.find(t => t.key === uc2Type)?.label || uc2Type}</span>
+                                </div>
+                                <div className="uc2-review-body">
+                                  {(() => {
+                                    const cat = UC_CATEGORIES.find(c => c.key === uc2Category)
+                                    const typeDef = cat?.types.find(t => t.key === uc2Type)
+                                    return Object.entries(uc2FormData).filter(([_, v]) => v).map(([k, v]) => {
+                                      const fieldLabel = typeDef?.fields.find(f => f.key === k)?.label || k
+                                      return <div key={k} className="uc2-review-row"><strong>{fieldLabel}:</strong> <span>{v}</span></div>
+                                    })
+                                  })()}
+                                  <div className="uc2-review-row"><strong>{t('uc_priority')||'Priorité'}:</strong> <span className="uc2-priority-tag" style={{color: { low:'#22c55e', normal:'#3b82f6', high:'#f59e0b', critical:'#ef4444' }[uc2Priority]}}>{uc2Priority}</span></div>
+                                  <div className="uc2-review-row"><strong>{t('uc_reason')||'Motif'}:</strong> <span>{uc2Reason}</span></div>
+                                  {uc2Comment && <div className="uc2-review-row"><strong>{t('uc_comment')||'Commentaire'}:</strong> <span>{uc2Comment}</span></div>}
+                                  {uc2Files.length > 0 && <div className="uc2-review-row"><strong>{t('uc_attachments')||'Fichiers'}:</strong> <span>{uc2Files.map(f => f.name).join(', ')}</span></div>}
+                                  <div className="uc2-review-row"><strong>{t('hc_performed_by')||'Par'}:</strong> <span>{user?.first_name||''} {user?.last_name||''}</span></div>
+                                </div>
+                              </div>
+                              <div className="uc2-timeline-preview">
+                                <div className="uc2-tl-title">{t('uc_preview')||'Aperçu dans l\'historique'}</div>
+                                <div className="uc2-tl-item">
+                                  <div className="uc2-tl-dot" style={{background:UC_CATEGORIES.find(c => c.key === uc2Category)?.color}}>{UC_CATEGORIES.find(c => c.key === uc2Category)?.icon}</div>
+                                  <div className="uc2-tl-content">
+                                    <div className="uc2-tl-text">{uc2Type ? (t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' ')) : ''} — {updateChild.prenom} {updateChild.nom}</div>
+                                    <div className="uc2-tl-time">{new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
+                                  </div>
+                                </div>
+                              </div>
+                              <button className="uc2-btn uc2-btn-primary uc2-btn-save" onClick={async () => {
+                                setUc2Saving(true)
+                                const token = localStorage.getItem('access_token')
+                                const payload = { category: uc2Category, update_type: uc2Type, title: (t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' '))+' - '+updateChild.prenom+' '+updateChild.nom, description: JSON.stringify(uc2FormData), previous_value: '', new_value: JSON.stringify(uc2FormData), reason: uc2Reason+' | Priorité: '+uc2Priority+(uc2Comment ? ' | '+uc2Comment : ''), attachments: uc2Files.map(f => f.name) }
+                                try {
+                                  const res = await fetch(`${API}/enfants/${updateChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }, body:JSON.stringify(payload) })
+                                  if (res.ok) { setUc2Saving(false); setUc2Success(true); setUc2Step(4) }
+                                  else throw new Error()
+                                } catch {
+                                  const updates = JSON.parse(localStorage.getItem('cdo_updates_'+updateChild.uid)||'[]')
+                                  updates.unshift({ id:Date.now(), ...payload, created_at: new Date().toISOString(), created_by: (user?.first_name||'')+' '+(user?.last_name||'') })
+                                  localStorage.setItem('cdo_updates_'+updateChild.uid, JSON.stringify(updates))
+                                  setUc2Saving(false); setUc2Success(true); setUc2Step(4)
+                                }
+                              }} disabled={uc2Saving}>
+                                {uc2Saving ? (t('uc_saving')||'Enregistrement...') : (t('uc_save')||'Enregistrer la mise à jour')}
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        {/* Right sidebar */}
+                        <div className="uc2-side">
+                          <div className="uc2-side-card">
+                            <div className="uc2-side-title">{t('form_summary')||'Résumé'}</div>
+                            <div className="uc2-side-child">
+                              <div className="uc2-side-avatar">
+                                {(() => { const lp = localStorage.getItem('cdo_child_photo_'+updateChild.uid); if (lp) return <img src={lp} alt="" />; return <span>{updateChild.prenom?.[0]||updateChild.nom?.[0]||'?'}</span> })()}
+                              </div>
+                              <div>
+                                <div className="uc2-side-name">{updateChild.prenom||''} {updateChild.nom||''}</div>
+                                <div className="uc2-side-uid">#{updateChild.uid}</div>
+                              </div>
+                            </div>
+                            {uc2Category && <div className="uc2-side-info"><span className="uc2-side-label">{t('uc_category')||'Catégorie'}</span><span>{UC_CATEGORIES.find(c=>c.key===uc2Category)?.icon} {UC_CATEGORIES.find(c=>c.key===uc2Category)?.label}</span></div>}
+                            {uc2Type && <div className="uc2-side-info"><span className="uc2-side-label">{t('form_type')||'Type'}</span><span>{t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' ')}</span></div>}
+                            {uc2Priority && <div className="uc2-side-info"><span className="uc2-side-label">{t('uc_priority')||'Priorité'}</span><span style={{color:{ low:'#22c55e', normal:'#3b82f6', high:'#f59e0b', critical:'#ef4444' }[uc2Priority]}}>{uc2Priority}</span></div>}
+                            {Object.keys(uc2FormData).length > 0 && (
+                              <div className="uc2-side-fields">
+                                <div className="uc2-side-label">{t('uc_fill_form')||'Données'}</div>
+                                {(() => {
+                                  const cat = UC_CATEGORIES.find(c => c.key === uc2Category)
+                                  const typeDef = cat?.types.find(t => t.key === uc2Type)
+                                  return Object.entries(uc2FormData).filter(([_,v]) => v).slice(0,5).map(([k,v]) => {
+                                    const fl = typeDef?.fields.find(f => f.key === k)?.label || k
+                                    return <div key={k} className="uc2-side-field"><span>{fl}</span><span>{v}</span></div>
+                                  })
+                                })()}
+                              </div>
+                            )}
+                            <div className="uc2-side-label" style={{marginTop:'auto',fontSize:'10px',color:'#475569'}}>{user?.first_name||''} {user?.last_name||''}</div>
+                          </div>
+
+                          <div className="uc2-side-actions">
+                            {uc2Step > 0 && uc2Step < 4 && <button className="uc2-btn uc2-btn-secondary uc2-btn-full" onClick={() => setUc2Step(s => s - 1)}>← {t('form_back')}</button>}
+                            {uc2Step === 0 ? <button className="uc2-btn uc2-btn-primary uc2-btn-full" onClick={() => { if (!uc2Category) { alert(t('uc_required')||'Requis'); return }; setUc2Step(1) }} disabled={!uc2Category}>{t('form_next')||'Démarrer'} →</button> : null}
+                            {uc2Step === 1 ? <button className="uc2-btn uc2-btn-primary uc2-btn-full" onClick={() => { if (!uc2Type) { alert(t('uc_required')||'Requis'); return }; setUc2Step(2) }} disabled={!uc2Type}>{t('form_next')||'Suivant'} →</button> : null}
+                            {uc2Step === 2 ? <button className="uc2-btn uc2-btn-primary uc2-btn-full" onClick={() => { if (!uc2Reason.trim()) { alert(t('uc_required')||'Requis'); return }; setUc2Step(3) }}>{t('form_next')||'Suivant'} →</button> : null}
+                            {uc2Step === 3 ? <button className="uc2-btn uc2-btn-primary uc2-btn-full" onClick={async () => {
+                              setUc2Saving(true)
+                              const token = localStorage.getItem('access_token')
+                              const payload = { category: uc2Category, update_type: uc2Type, title: (t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' '))+' - '+updateChild.prenom+' '+updateChild.nom, description: JSON.stringify(uc2FormData), previous_value: '', new_value: JSON.stringify(uc2FormData), reason: uc2Reason+' | Priorité: '+uc2Priority+(uc2Comment ? ' | '+uc2Comment : ''), attachments: uc2Files.map(f => f.name) }
+                              try {
+                                const res = await fetch(`${API}/enfants/${updateChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }, body:JSON.stringify(payload) })
+                                if (res.ok) { setUc2Saving(false); setUc2Success(true); setUc2Step(4) }
+                                else throw new Error()
+                              } catch {
+                                const updates = JSON.parse(localStorage.getItem('cdo_updates_'+updateChild.uid)||'[]')
+                                updates.unshift({ id:Date.now(), ...payload, created_at: new Date().toISOString(), created_by: (user?.first_name||'')+' '+(user?.last_name||'') })
+                                localStorage.setItem('cdo_updates_'+updateChild.uid, JSON.stringify(updates))
+                                setUc2Saving(false); setUc2Success(true); setUc2Step(4)
+                              }
+                            }} disabled={uc2Saving}>
+                              {uc2Saving ? (t('uc_saving')||'...') : (t('uc_save')||'Enregistrer')}
+                            </button> : null}
+                          </div>
+                        </div>
+                      </div>
+                    </> : (
+                      <div className="uc2-select-child">
+                        <div className="uc2-select-header">
+                          <span className="uc2-select-icon">📝</span>
+                          <span className="uc2-select-title">{t('uc_title') || 'Centre de Mise à Jour'}</span>
+                          <p className="uc2-select-desc">{t('uc_select_child') || 'Sélectionnez un enfant pour ajouter une mise à jour'}</p>
+                        </div>
+                        <div className="uc2-search-bar">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                          <input className="uc2-search-input" value={uc2Search} onChange={e => setUc2Search(e.target.value)} placeholder={t('uc_search_child')||'Rechercher un enfant...'} />
+                        </div>
+                        <div className="uc2-child-grid">
+                          {(registeredChildren.length > 0 ? registeredChildren : []).filter(c => !uc2Search || (c.prenom||'').toLowerCase().includes(uc2Search.toLowerCase()) || (c.nom||'').toLowerCase().includes(uc2Search.toLowerCase()) || (c.uid||'').toLowerCase().includes(uc2Search.toLowerCase())).map(child => (
+                            <button key={child.id} className="uc2-child-card" onClick={() => { setUpdateChild(child); setUc2Search('') }}>
+                              <div className="uc2-child-card-avatar">
+                                {(() => { const lp = localStorage.getItem('cdo_child_photo_'+child.uid); if (lp) return <img src={lp} alt="" />; return <span>{child.prenom?.[0]||child.nom?.[0]||'?'}</span> })()}
+                              </div>
+                              <div className="uc2-child-card-info">
+                                <div className="uc2-child-card-name">{child.prenom||''} {child.nom||''}</div>
+                                <div className="uc2-child-card-uid">#{child.uid}</div>
+                                <div className="uc2-child-card-meta">{child.sexe === 'M' ? (t('form_male')||'M') : child.sexe === 'F' ? (t('form_female')||'F') : ''} · {child.date_naissance ? Math.floor((Date.now()-new Date(child.date_naissance).getTime())/31557600000) + ' ' + (t('form_years')||'ans') : '—'}</div>
+                              </div>
+                              <span className="uc2-child-card-arrow">→</span>
+                            </button>
+                          ))}
+                          {(registeredChildren.length === 0 || registeredChildren.filter(c => !uc2Search || (c.prenom||'').toLowerCase().includes(uc2Search.toLowerCase()) || (c.nom||'').toLowerCase().includes(uc2Search.toLowerCase()) || (c.uid||'').toLowerCase().includes(uc2Search.toLowerCase())).length === 0) && <div className="uc2-empty"><span>👶</span><p>{t('uc_no_children')||'Aucun enfant trouvé'}</p></div>}
+                        </div>
+                      </div>
                     )}
                   </div>
                 ) : (
