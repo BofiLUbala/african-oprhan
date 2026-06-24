@@ -74,7 +74,8 @@ def child_list(request):
                 break
             uid = _gen_uid()
         for attempt in range(10):
-            data = {**request.data, "uid": uid}
+            data = request.data.dict() if hasattr(request.data, 'dict') else {**request.data}
+            data["uid"] = uid
             serializer = ChildSerializer(data=data, context={"request": request})
             if serializer.is_valid():
                 try:

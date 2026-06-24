@@ -1383,7 +1383,18 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [profileImg, setProfileImg] = useState(localStorage.getItem('cdo_profile_img') || null)
   const uidRef = useRef(genChildUid())
+  const migratePhoto = (oldUid, newUid) => {
+    if (oldUid && newUid && oldUid !== newUid) {
+      const photo = localStorage.getItem('cdo_child_photo_' + oldUid)
+      if (photo) { localStorage.setItem('cdo_child_photo_' + newUid, photo); localStorage.removeItem('cdo_child_photo_' + oldUid) }
+    }
+  }
   const [dashTime, setDashTime] = useState(new Date())
+  const [toast, setToast] = useState(null)
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3500)
+  }
 
   /* ── Medical form state ── */
   const DEFAULT_VAX = [
@@ -1846,6 +1857,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
           document.body.style.userSelect = 'none'
         }} />
 
+        {toast && (
+          <div className={`dash-toast dash-toast-${toast.type}`} onClick={() => setToast(null)}>
+            <span className="dash-toast-icon">{toast.type === 'success' ? '✓' : toast.type === 'error' ? '✗' : toast.type === 'warning' ? '⚠' : 'ℹ'}</span>
+            <span className="dash-toast-msg">{toast.message}</span>
+          </div>
+        )}
         <main className="dash-main">
           {activeKey === 'dashboard' ? (
             <div className="dash-dashboard">
@@ -2446,9 +2463,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 const saved = await res.json()
                                 setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
                                 if (btn) btn.classList.remove('dash-prof-btn-loading')
-                                setSubKey(null)
+                                setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null)
                                 setEditingChild(saved)
-                                uidRef.current = saved.uid
+                                migratePhoto(uidRef.current, saved.uid); uidRef.current = saved.uid
                               } catch (e) {
                                 if (method === 'POST' && e.message?.includes('dupliquée')) {
                                   uidRef.current = genChildUid()
@@ -2461,7 +2478,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       const saved = await retry.json()
                                       setRegisteredChildren(prev => [...prev, saved])
                                       if (btn) btn.classList.remove('dash-prof-btn-loading')
-                                      setSubKey(null); setEditingChild(saved); uidRef.current = saved.uid
+                                      setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null); migratePhoto(uidRef.current, saved.uid); uidRef.current = saved.uid
                                       return
                                     }
                                   } catch (_) {}
@@ -2604,13 +2621,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             const saved = await res.json()
                             setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
                             if (btn) btn.classList.remove('dash-fam-btn-loading')
-                            setSubKey(null); setEditingChild(saved); uidRef.current = saved.uid
+                            setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null); migratePhoto(uidRef.current, saved.uid); uidRef.current = saved.uid
                           } catch (e) {
                             if (method === 'POST' && e.message?.includes('dupliquée')) {
                               uidRef.current = genChildUid(); body.uid = uidRef.current
                               try {
                                 let retry = await fetch(`${API}/enfants/`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` }, body: JSON.stringify(body) })
-                                if (retry.ok) { const saved = await retry.json(); setRegisteredChildren(prev => [...prev, saved]); if (btn) btn.classList.remove('dash-fam-btn-loading'); setSubKey(null); setEditingChild(saved); uidRef.current = saved.uid; return }
+                                if (retry.ok) { const saved = await retry.json(); setRegisteredChildren(prev => [...prev, saved]); if (btn) btn.classList.remove('dash-fam-btn-loading'); setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null); setEditingChild(saved); migratePhoto(uidRef.current, saved.uid); uidRef.current = saved.uid; return }
                               } catch (_) {}
                             }
                             if (btn) btn.classList.remove('dash-fam-btn-loading')
@@ -2713,7 +2730,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           const saved = await res.json()
                           setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
                           if (btn) btn.classList.remove('dash-docs-btn-loading')
-                          setEditingChild(saved); uidRef.current = saved.uid
+                          setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null); migratePhoto(uidRef.current, saved.uid); uidRef.current = saved.uid
                         } catch (e) {
                           if (btn) btn.classList.remove('dash-docs-btn-loading')
                           alert(e.message || 'Erreur lors de l\'enregistrement')
@@ -3591,9 +3608,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           try {
                             const saved = await send()
                             setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
-                            setSubKey(null)
+                            setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null)
                             setEditingChild(saved)
-                            uidRef.current = saved.uid
+                            migratePhoto(uidRef.current, saved.uid); uidRef.current = saved.uid
                           } catch (e) {
                             if (method === 'POST' && e.message?.includes('dupliquée')) {
                               uidRef.current = genChildUid()
@@ -3605,9 +3622,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 if (retryRes.ok) {
                                   const saved = await retryRes.json()
                                   setRegisteredChildren(prev => [...prev, saved])
-                                  setSubKey(null)
+                                  setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null)
                                   setEditingChild(saved)
-                                  uidRef.current = saved.uid
+                                  migratePhoto(uidRef.current, saved.uid); uidRef.current = saved.uid
                                   return
                                 }
                               } catch (_) {}
