@@ -12,11 +12,12 @@ class OrphanageSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "address", "capacity", "status", "latitude", "longitude",
             "document_details", "validation_note", "validated_at", "director",
-            "director_name", "ambassador", "ambassador_name", "created_at", "updated_at",
+            "director_name", "ambassador", "ambassador_name", "feedback",
+            "created_at", "updated_at",
         ]
         read_only_fields = [
             "status", "validation_note", "validated_at", "director", "director_name",
-            "ambassador_name", "created_at", "updated_at",
+            "ambassador_name", "feedback", "created_at", "updated_at",
         ]
 
     def get_director_name(self, obj):

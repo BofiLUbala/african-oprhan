@@ -46,15 +46,53 @@ def orphanage_validate(request, orphanage_id):
         return Response({"error": "Orphelinat introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
     action = request.data.get("action")
-    if action not in ("approve", "reject"):
-        return Response({"error": "Action invalide."}, status=status.HTTP_400_BAD_REQUEST)
+    role = request.user.role
+    note = request.data.get("validation_note", "")
+    update_fields = ["validation_note", "updated_at"]
 
-    orphanage.status = "approved" if action == "approve" else "rejected"
-    orphanage.validation_note = request.data.get("validation_note", "")
-    orphanage.validated_at = timezone.now()
-    if request.user.role == "ambassador":
-        orphanage.ambassador = request.user
-    orphanage.save(update_fields=["status", "validation_note", "validated_at", "ambassador", "updated_at"])
+    if role == "federation":
+        if action == "accept":
+            orphanage.status = "active"
+        elif action == "reject":
+            orphanage.status = "rejected"
+        else:
+            return Response({"error": "Action invalide. Utilisez 'accept' ou 'reject'."}, status=status.HTTP_400_BAD_REQUEST)
+        orphanage.validated_at = timezone.now()
+        orphanage.validation_note = note
+        update_fields += ["status", "validated_at"]
+
+    elif role == "ambassador":
+        if orphanage.ambassador != request.user:
+            return Response({"error": "Cet orphelinat ne vous est pas assigné."}, status=status.HTTP_403_FORBIDDEN)
+        if action == "approve":
+            orphanage.status = "approved"
+            orphanage.validated_at = timezone.now()
+            update_fields += ["status", "validated_at"]
+        elif action == "reject":
+            orphanage.status = "rejected"
+            orphanage.validated_at = timezone.now()
+            update_fields += ["status", "validated_at"]
+        elif action == "request_changes":
+            orphanage.status = "changes_requested"
+            orphanage.feedback = note
+            update_fields += ["status", "feedback"]
+        else:
+            return Response({"error": "Action invalide. Utilisez 'approve', 'reject' ou 'request_changes'."}, status=status.HTTP_400_BAD_REQUEST)
+
+    else:
+        if action == "approve":
+            orphanage.status = "approved"
+            orphanage.validated_at = timezone.now()
+            update_fields += ["status", "validated_at"]
+        elif action == "reject":
+            orphanage.status = "rejected"
+            orphanage.validated_at = timezone.now()
+            update_fields += ["status", "validated_at"]
+        else:
+            return Response({"error": "Action invalide."}, status=status.HTTP_400_BAD_REQUEST)
+
+    orphanage.validation_note = note
+    orphanage.save(update_fields=update_fields)
     return Response(OrphanageSerializer(orphanage).data)
 
 
@@ -81,5 +119,26 @@ def assign_ambassador(request, orphanage_id):
         return Response({"error": "Ambassadeur introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
     orphanage.ambassador = ambassador
-    orphanage.save(update_fields=["ambassador", "updated_at"])
+    orphanage.status = "under_review"
+    orphanage.save(update_fields=["ambassador", "status", "updated_at"])
+    return Response(OrphanageSerializer(orphanage).data)
+
+
+@api_view(["POST"])
+def orphanage_feedback(request, orphanage_id):
+    try:
+        orphanage = Orphanage.objects.get(pk=orphanage_id)
+    except Orphanage.DoesNotExist:
+        return Response({"error": "Orphelinat introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.user.role != "ambassador" or orphanage.ambassador != request.user:
+        return Response({"error": "Seul l'ambassadeur assigné peut envoyer un feedback."}, status=status.HTTP_403_FORBIDDEN)
+
+    message = request.data.get("message", "")
+    if not message.strip():
+        return Response({"error": "Le message ne peut pas être vide."}, status=status.HTTP_400_BAD_REQUEST)
+
+    orphanage.feedback = message
+    orphanage.status = "changes_requested"
+    orphanage.save(update_fields=["feedback", "status", "updated_at"])
     return Response(OrphanageSerializer(orphanage).data)

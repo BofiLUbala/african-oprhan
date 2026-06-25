@@ -2006,18 +2006,19 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     }
   }
 
-  const validateOrphanage = async (id, action) => {
+  const validateOrphanage = async (id, action, note) => {
     const token = localStorage.getItem('access_token')
     setOrphanageLoading(true)
     try {
       const res = await fetch(`${API}/orphanages/${id}/validate/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ action, validation_note: orphanageNote }),
+        body: JSON.stringify({ action, validation_note: note ?? orphanageNote }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Validation impossible')
-      showToast(action === 'approve' ? 'Dossier accepte.' : 'Dossier refuse.', action === 'approve' ? 'success' : 'warning')
+      const msgs = { accept:'Orphelinat accepté dans le système.', approve:'Dossier validé par l\'ambassadeur.', reject:'Dossier rejeté.', request_changes:'Modifications demandées.' }
+      showToast(msgs[action] || 'Action effectuée.', 'success')
       setOrphanageNote('')
       loadOrphanages()
     } catch (err) {
@@ -6462,55 +6463,95 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       </div>
                     )}
                   </div>
-                ) : activeKey === 'orphelinats' && role === 'federation' ? (
+                ) : activeKey === 'orphelinats' && role === 'federation' ? (() => {
+                  const pending = orphanageRequests.filter(o => o.status === 'pending')
+                  const accepted = orphanageRequests.filter(o => ['active','under_review','changes_requested','approved'].includes(o.status))
+                  return (
                   <div>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
                       <div>
                         <h3 style={{fontSize:20,fontWeight:700,color:'#e2e8f0',margin:0}}>🏛️ Gestion des Orphelinats</h3>
-                        <p style={{fontSize:13,color:'#64748b',margin:'4px 0 0'}}>{orphanageRequests.length} orphelinat{(orphanageRequests.length>1)?'s':''} dans le système</p>
+                        <p style={{fontSize:13,color:'#64748b',margin:'4px 0 0'}}>{orphanageRequests.length} orphelinat{(orphanageRequests.length>1)?'s':''}</p>
                       </div>
                     </div>
-                    {orphanageLoading && orphanageRequests.length === 0 ? (
-                      <div style={{textAlign:'center',padding:40,color:'#64748b',fontSize:14}}>Chargement...</div>
-                    ) : (
-                      <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                        {orphanageRequests.map(o => (
-                          <div key={o.id} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
-                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
-                              <div>
-                                <div style={{fontSize:16,fontWeight:700,color:'#e2e8f0',marginBottom:4}}>{o.name}</div>
-                                <div style={{fontSize:12,color:'#64748b'}}>Directeur: {o.director_name || '—'}</div>
+                    <div style={{display:'flex',gap:8,marginBottom:20}}>
+                      <button type="button" onClick={()=>setFedTab('pending')} style={{border:'none',borderRadius:10,padding:'8px 18px',fontSize:13,fontWeight:600,cursor:'pointer',background:fedTab==='pending'?'linear-gradient(135deg,#f59e0b,#f97316)':'rgba(255,255,255,0.05)',color:fedTab==='pending'?'#fff':'#94a3b8',transition:'all .2s'}}>📥 En attente ({pending.length})</button>
+                      <button type="button" onClick={()=>setFedTab('accepted')} style={{border:'none',borderRadius:10,padding:'8px 18px',fontSize:13,fontWeight:600,cursor:'pointer',background:fedTab==='accepted'?'linear-gradient(135deg,#f59e0b,#f97316)':'rgba(255,255,255,0.05)',color:fedTab==='accepted'?'#fff':'#94a3b8',transition:'all .2s'}}>✅ Acceptés ({accepted.length})</button>
+                    </div>
+                    {fedTab === 'pending' && (
+                      pending.length === 0 ? (
+                        <div style={{textAlign:'center',padding:40,color:'#64748b',fontSize:14}}>Aucune nouvelle soumission en attente.</div>
+                      ) : (
+                        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                          {pending.map(o => (
+                            <div key={o.id} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+                                <div>
+                                  <div style={{fontSize:16,fontWeight:700,color:'#e2e8f0',marginBottom:2}}>{o.name}</div>
+                                  <div style={{fontSize:12,color:'#64748b'}}>Directeur: {o.director_name || '—'}</div>
+                                </div>
+                                <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:'rgba(245,158,11,0.1)',color:'#f59e0b'}}>⏳ Nouveau</span>
                               </div>
-                              <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:o.status==='approved'?'rgba(34,197,94,0.1)':o.status==='pending'?'rgba(245,158,11,0.1)':'rgba(239,68,68,0.1)',color:o.status==='approved'?'#22c55e':o.status==='pending'?'#f59e0b':'#ef4444'}}>{o.status === 'approved' ? '✓ Validé' : o.status === 'pending' ? '⏳ En attente' : o.status === 'active' ? '▶ Actif' : '✗ Rejeté'}</span>
-                            </div>
-                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
-                              <span style={{fontSize:12,color:'#64748b'}}>Ambassadeur:</span>
-                              <span style={{fontSize:13,fontWeight:600,color:o.ambassador?'#f59e0b':'#94a3b8'}}>{o.ambassador_name || 'Non assigné'}</span>
-                            </div>
-                            {assigningId === o.id ? (
-                              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                                <select className="dash-form-input" style={{flex:1,margin:0,padding:'8px 12px',fontSize:13}} defaultValue="" onChange={e=>{const v=e.target.value;if(v)handleAssignAmbassador(o.id,Number(v))}}>
-                                  <option value="" disabled>Choisir un ambassadeur</option>
-                                  {ambassadorsList.filter(a=>a.is_active).map(a => (
-                                    <option key={a.id} value={a.id}>{a.full_name || `${a.first_name} ${a.last_name}`} ({a.email})</option>
-                                  ))}
-                                </select>
-                                <button type="button" onClick={()=>setAssigningId(null)} style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:8,color:'#94a3b8',fontSize:12,padding:'8px 12px',cursor:'pointer'}}>Annuler</button>
+                              <div style={{display:'flex',gap:8,marginTop:12}}>
+                                <button type="button" onClick={()=>{setOrphanageNote('');validateOrphanage(o.id,'accept').then(loadOrphanages)}} style={{background:'rgba(34,197,94,0.1)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:10,color:'#22c55e',fontSize:12,fontWeight:600,padding:'8px 18px',cursor:'pointer'}}>✅ Accepter</button>
+                                <button type="button" onClick={()=>{const r=prompt('Motif du rejet (optionnel):');validateOrphanage(o.id,'reject',r||'')}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:12,fontWeight:600,padding:'8px 18px',cursor:'pointer'}}>✗ Rejeter</button>
                               </div>
-                            ) : (
-                              <button type="button" onClick={()=>{setAssigningId(o.id);if(ambassadorsList.length===0)fetchAmbassadors()}} style={{background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:10,color:'#f59e0b',fontSize:12,fontWeight:600,padding:'8px 16px',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}>
-                                {o.ambassador ? '🔄 Changer' : '👤 Assigner un ambassadeur'}
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                        {orphanageRequests.length === 0 && (
-                          <div style={{textAlign:'center',padding:40,color:'#64748b',fontSize:14}}>Aucun orphelinat trouvé.</div>
-                        )}
-                      </div>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    )}
+                    {fedTab === 'accepted' && (
+                      accepted.length === 0 ? (
+                        <div style={{textAlign:'center',padding:40,color:'#64748b',fontSize:14}}>Aucun orphelinat accepté pour le moment.</div>
+                      ) : (
+                        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                          {accepted.map(o => (
+                            <div key={o.id} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+                                <div>
+                                  <div style={{fontSize:16,fontWeight:700,color:'#e2e8f0',marginBottom:2}}>{o.name}</div>
+                                  <div style={{fontSize:12,color:'#64748b'}}>Directeur: {o.director_name || '—'}</div>
+                                </div>
+                                <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:o.status==='approved'?'rgba(34,197,94,0.1)':o.status==='under_review'?'rgba(59,130,246,0.1)':o.status==='changes_requested'?'rgba(245,158,11,0.1)':'rgba(255,255,255,0.06)',color:o.status==='approved'?'#22c55e':o.status==='under_review'?'#3b82f6':o.status==='changes_requested'?'#f59e0b':'#94a3b8'}}>
+                                  {o.status === 'approved' ? '✓ Validé' : o.status === 'under_review' ? '🔍 En cours' : o.status === 'changes_requested' ? '📝 Modifications' : '▶ Actif'}
+                                </span>
+                              </div>
+                              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+                                <span style={{fontSize:12,color:'#64748b'}}>Ambassadeur:</span>
+                                <span style={{fontSize:13,fontWeight:600,color:o.ambassador?'#f59e0b':'#94a3b8'}}>{o.ambassador_name || 'Non assigné'}</span>
+                              </div>
+                              {assigningId === o.id ? (
+                                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                                  <select className="dash-form-input" style={{flex:1,margin:0,padding:'8px 12px',fontSize:13}} defaultValue="" onChange={e=>{const v=e.target.value;if(v)handleAssignAmbassador(o.id,Number(v))}}>
+                                    <option value="" disabled>Choisir un ambassadeur</option>
+                                    {ambassadorsList.filter(a=>a.is_active).map(a => (
+                                      <option key={a.id} value={a.id}>{a.full_name || `${a.first_name} ${a.last_name}`} ({a.email})</option>
+                                    ))}
+                                  </select>
+                                  <button type="button" onClick={()=>setAssigningId(null)} style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:8,color:'#94a3b8',fontSize:12,padding:'8px 12px',cursor:'pointer'}}>Annuler</button>
+                                </div>
+                              ) : (
+                                !o.ambassador && (
+                                  <button type="button" onClick={()=>{setAssigningId(o.id);if(ambassadorsList.length===0)fetchAmbassadors()}} style={{background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:10,color:'#f59e0b',fontSize:12,fontWeight:600,padding:'8px 16px',cursor:'pointer'}}>
+                                    👤 Assigner un ambassadeur
+                                  </button>
+                                )
+                              )}
+                              {o.ambassador && o.feedback && (
+                                <div style={{marginTop:12,padding:'12px',background:'rgba(245,158,11,0.06)',borderRadius:10,border:'1px solid rgba(245,158,11,0.1)'}}>
+                                  <div style={{fontSize:11,fontWeight:600,color:'#f59e0b',marginBottom:4}}>📬 Feedback ambassadeur:</div>
+                                  <div style={{fontSize:12,color:'#e2e8f0'}}>{o.feedback}</div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )
                     )}
                   </div>
-                ) : (
+                  )})()
+                : (
                   <div className="dash-category-cards">
                     {activeKey === 'parametres' && !subKey && (
                       <div className="dash-category-card" onClick={() => setSubKey('Profil')}>

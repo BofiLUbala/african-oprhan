@@ -1,0 +1,38 @@
+# Skills to Prevent Anti-Gravity Architecture (Focused on Demanded Tasks, Excluding System Refactoring)
+skills_to_prevent_antigravity:
+  focus_area: "Implementing demanded features cleanly and minimally without widespread refactoring of existing legacy code."
+  
+  core_skills:
+    - name: "YAGNI-Centric Design (You Ain't Gonna Need It)"
+      description: "Ruthlessly resisting the urge to build for hypothetical future requirements."
+      competencies:
+        - "Just-in-Time Abstraction: Write concrete code first; introduce interfaces/abstractions only when at least two concrete use-cases exist simultaneously."
+        - "Scope Shielding: Strictly isolate explicit ticket requirements from speculative extensions."
+
+    - name: "Micro-Refactoring & Scoped Encapsulation"
+      description: "Building clean, modern additions on top of a messy foundation without triggering regression risks."
+      competencies:
+        - "Micro-Scale Boy Scout Rule: Refactor only the exact line, function, or hook points necessary to inject the new feature safely."
+        - "Anti-Corruption Layer (ACL) Design: Build tiny, isolated translation boundaries to shield new code from legacy complexity."
+
+    - name: "Advanced Requirements Defusing"
+      description: "Clarifying ambiguous product specs to minimize technical footprint."
+      competencies:
+        - "Feature Pruning: Actively collaborate to strip out hidden complexity and find the simplest functional path."
+        - "Acceptance Criteria Anchoring: Directing design strictly toward satisfying automated tests and explicit definitions of done."
+
+    - name: "Pragmatic Pattern Selection"
+      description: "Choosing simple, readable programming constructs over complex architectural patterns."
+      competencies:
+        - "Pattern Restraint: Opting for standard control flows (e.g., simple functions, if/else) over complex patterns (e.g., Strategy, Factory) when logic is linear."
+        - "Composition over Inheritance: Bundling small, focused units of behavior rather than expanding deep, rigid class hierarchies."
+
+  demanded_task_checklist:
+    - question: "Does this code directly solve the current ticket?"
+      expected_answer: "Yes"
+    - question: "Am I modifying code completely unrelated to this ticket?"
+      expected_answer: "No"
+    - question: "Did I introduce an interface with only one implementation?"
+      expected_answer: "Avoid"
+    - question: "Is the new feature easily testable without spawning heavy, unrelated frameworks?"
+      expected_answer: "Yes"

@@ -3,10 +3,12 @@ from django.db import models
 
 class Orphanage(models.Model):
     STATUS_CHOICES = [
-        ("pending", "En attente de validation"),
-        ("approved", "Valide"),
-        ("rejected", "Rejete"),
-        ("active", "Actif"),
+        ("pending", "En attente du federation"),
+        ("active", "Accepté - en attente d'ambassadeur"),
+        ("under_review", "En cours de vérification"),
+        ("changes_requested", "Modifications demandées"),
+        ("approved", "Validé"),
+        ("rejected", "Rejeté"),
     ]
 
     name = models.CharField(max_length=255, verbose_name="Nom de l'orphelinat")
@@ -35,6 +37,7 @@ class Orphanage(models.Model):
         related_name="supervised_orphanages",
         verbose_name="Ambassadeur"
     )
+    feedback = models.TextField(blank=True, verbose_name="Feedback ambassadeur")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
