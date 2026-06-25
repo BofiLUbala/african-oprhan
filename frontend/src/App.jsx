@@ -2259,16 +2259,19 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       <button className="dash-form-save" onClick={loadOrphanages} disabled={orphanageLoading}>Actualiser</button>
                     </div>
                     {orphanageLoading && <div className="dash-dash-empty">Chargement...</div>}
-                    {!orphanageLoading && orphanageRequests.length === 0 && <div className="dash-dash-empty">Aucun dossier a valider.</div>}
+                    {(() => {
+                      const items = role === 'ambassador' ? orphanageRequests.filter(o => o.ambassador === user.id) : orphanageRequests
+                      return !orphanageLoading && items.length === 0 && <div className="dash-dash-empty">Aucun dossier a valider.</div>
+                    })()}
                     <div className="dash-validation-list">
-                      {orphanageRequests.map(item => (
+                      {(role === 'ambassador' ? orphanageRequests.filter(o => o.ambassador === user.id) : orphanageRequests).map(item => (
                         <div key={item.id} className="dash-validation-card">
                           <div className="dash-validation-top">
                             <div>
                               <h3>{item.name}</h3>
                               <p>{item.address || 'Adresse non renseignee'} - Capacite {item.capacity || 0}</p>
                             </div>
-                            <span className={`dash-validation-status ${item.status}`}>{item.status}</span>
+                            <span className={`dash-validation-status ${item.status}`}>{item.status === 'pending' ? '🔴 En attente que le chef de fédération accepte' : item.status === 'approved' ? '🟢 Document accepté' : item.status === 'rejected' ? '❌ Rejeté' : '🟡 En attendant que l\'ambassadeur accepte'}</span>
                           </div>
                           <div className="dash-validation-doc">{item.document_details || 'Aucun detail de document transmis.'}</div>
                           <div className="dash-validation-meta">Chef: {item.director_name || 'Non renseigne'} {item.ambassador_name ? `- Ambassadeur: ${item.ambassador_name}` : ''}</div>
@@ -2278,6 +2281,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <input className="dash-form-input" value={orphanageNote} onChange={e => setOrphanageNote(e.target.value)} placeholder="Note de validation optionnelle" />
                               <button className="dash-form-save" onClick={() => validateOrphanage(item.id, 'approve')}>Accepter</button>
                               <button className="dash-orp-save-btn" onClick={() => validateOrphanage(item.id, 'reject')}>Refuser</button>
+                            </div>
+                          )}
+                          {role === 'ambassador' && ['under_review','active','changes_requested'].includes(item.status) && (
+                            <div className="dash-validation-actions">
+                              <input className="dash-form-input" value={orphanageNote} onChange={e => setOrphanageNote(e.target.value)} placeholder="Note de validation optionnelle" />
+                              <button className="dash-form-save" onClick={() => validateOrphanage(item.id, 'approve')}>✅ Approuver</button>
+                              <button className="dash-orp-save-btn" onClick={() => validateOrphanage(item.id, 'reject')}>✗ Rejeter</button>
+                              <button className="dash-orp-save-btn" onClick={() => { const r = prompt('Modifications demandées (optionnel):'); validateOrphanage(item.id, 'request_changes', r||'') }} style={{background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:8,color:'#f59e0b',fontSize:12,fontWeight:600,padding:'8px 16px',cursor:'pointer'}}>📝 Modifications</button>
                             </div>
                           )}
                         </div>
@@ -2461,35 +2472,48 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}>✅ Verification & Submission</h3>
                       <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Review your submission and track verification status.</p>
 
-                      {/* Ambassador Card */}
-                      <div style={{background:'rgba(168,85,247,0.06)',borderRadius:16,padding:'20px',border:'1px solid rgba(168,85,247,0.15)',marginBottom:20}}>
-                        <div style={{fontSize:13,fontWeight:600,color:'#a855f7',marginBottom:14}}>🔍 Assigned Ambassador</div>
-                        <div style={{display:'flex',alignItems:'center',gap:16}}>
-                          <div style={{width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,#a855f7,#6366f1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,color:'#fff'}}>🛡️</div>
-                          <div style={{flex:1}}>
-                            <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>Awaiting Assignment</div>
-                            <div style={{fontSize:12,color:'#64748b'}}>An ambassador will be assigned after submission</div>
-                          </div>
-                          <div style={{padding:'6px 14px',borderRadius:20,background:'rgba(245,158,11,0.12)',color:'#f59e0b',fontSize:11,fontWeight:700}}>⏳ Pending</div>
-                        </div>
-                      </div>
-
-                      {/* Verification Timeline */}
-                      <div style={{background:'rgba(255,255,255,0.02)',borderRadius:14,padding:'20px',border:'1px solid rgba(255,255,255,0.06)',marginBottom:20}}>
-                        <div style={{fontSize:13,fontWeight:600,color:'#94a3b8',marginBottom:16}}>📋 Verification Timeline</div>
-                        {['Registration Submitted','Documents Reviewed','Field Inspection','Final Approval'].map((step,i)=>(
-                          <div key={i} style={{display:'flex',alignItems:'flex-start',gap:14,marginBottom:i<3?16:0}}>
-                            <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
-                              <div style={{width:28,height:28,borderRadius:'50%',background:i===0?'rgba(245,158,11,0.15)':'rgba(255,255,255,0.04)',border:`2px solid ${i===0?'#f59e0b':'rgba(255,255,255,0.1)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:i===0?'#f59e0b':'#475569'}}>{i===0?'⏳':i+1}</div>
-                              {i<3 && <div style={{width:2,height:24,background:'rgba(255,255,255,0.06)',marginTop:4}} />}
+                      {/* Status du dossier */}
+                      {(() => {
+                        const directorOrp = orphanageRequests.find(o => o.director === user.id)
+                        if (!directorOrp) {
+                          return (
+                            <div style={{background:'rgba(168,85,247,0.06)',borderRadius:16,padding:'20px',border:'1px solid rgba(168,85,247,0.15)',marginBottom:20}}>
+                              <div style={{fontSize:13,fontWeight:600,color:'#a855f7',marginBottom:14}}>🔍 Assigned Ambassador</div>
+                              <div style={{display:'flex',alignItems:'center',gap:16}}>
+                                <div style={{width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,#a855f7,#6366f1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,color:'#fff'}}>🛡️</div>
+                                <div style={{flex:1}}>
+                                  <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>Awaiting Assignment</div>
+                                  <div style={{fontSize:12,color:'#64748b'}}>An ambassador will be assigned after submission</div>
+                                </div>
+                                <div style={{padding:'6px 14px',borderRadius:20,background:'rgba(245,158,11,0.12)',color:'#f59e0b',fontSize:11,fontWeight:700}}>⏳ Pending</div>
+                              </div>
                             </div>
-                            <div style={{paddingTop:4}}>
-                              <div style={{fontSize:13,fontWeight:600,color:i===0?'#f59e0b':'#64748b'}}>{step}</div>
-                              <div style={{fontSize:11,color:'#475569'}}>{i===0?'Will be submitted upon form completion':'Pending previous step'}</div>
+                          )
+                        }
+                        const statusConfig = {
+                          pending: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)', color: '#ef4444', icon: '🔴', label: "En attente que le chef de fédération accepte" },
+                          active: { bg: 'rgba(234,179,8,0.1)', border: 'rgba(234,179,8,0.2)', color: '#eab308', icon: '🟡', label: "En attendant que l'ambassadeur accepte" },
+                          under_review: { bg: 'rgba(234,179,8,0.1)', border: 'rgba(234,179,8,0.2)', color: '#eab308', icon: '🟡', label: "En attendant que l'ambassadeur accepte" },
+                          changes_requested: { bg: 'rgba(234,179,8,0.1)', border: 'rgba(234,179,8,0.2)', color: '#eab308', icon: '🟡', label: "En attendant que l'ambassadeur accepte" },
+                          approved: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.2)', color: '#22c55e', icon: '🟢', label: 'Document accepté' },
+                          rejected: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)', color: '#ef4444', icon: '❌', label: 'Rejeté' },
+                        }
+                        const cfg = statusConfig[directorOrp.status] || statusConfig.pending
+                        return (
+                          <div style={{background:cfg.bg,borderRadius:16,padding:'20px',border:`1px solid ${cfg.border}`,marginBottom:20}}>
+                            <div style={{fontSize:13,fontWeight:600,color:cfg.color,marginBottom:14}}>{cfg.icon} Statut du dossier</div>
+                            <div style={{display:'flex',alignItems:'center',gap:16}}>
+                              <div style={{width:56,height:56,borderRadius:'50%',background:`${cfg.color}20`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,color:cfg.color}}>{cfg.icon}</div>
+                              <div style={{flex:1}}>
+                                <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>{cfg.label}</div>
+                                {directorOrp.ambassador_name && <div style={{fontSize:12,color:cfg.color,marginTop:4}}>Ambassadeur: {directorOrp.ambassador_name}</div>}
+                                {directorOrp.feedback && <div style={{fontSize:12,color:'#64748b',marginTop:4,fontStyle:'italic'}}>Feedback: {directorOrp.feedback}</div>}
+                              </div>
+                              <div style={{padding:'6px 14px',borderRadius:20,background:cfg.bg,color:cfg.color,fontSize:11,fontWeight:700,border:`1px solid ${cfg.border}`}}>{directorOrp.status}</div>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        )
+                      })()}
 
                       {/* Summary */}
                       <div style={{background:'rgba(59,130,246,0.04)',borderRadius:14,padding:'16px 20px',border:'1px solid rgba(59,130,246,0.12)'}}>
@@ -6491,7 +6515,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <div style={{fontSize:16,fontWeight:700,color:'#e2e8f0',marginBottom:2}}>{o.name}</div>
                                   <div style={{fontSize:12,color:'#64748b'}}>Directeur: {o.director_name || '—'}</div>
                                 </div>
-                                <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:'rgba(245,158,11,0.1)',color:'#f59e0b'}}>⏳ Nouveau</span>
+                                <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:'rgba(239,68,68,0.15)',color:'#ef4444'}}>🔴 En attente que le chef de fédération accepte</span>
                               </div>
                               <div style={{display:'flex',gap:8,marginTop:12}}>
                                 <button type="button" onClick={()=>{setOrphanageNote('');validateOrphanage(o.id,'accept').then(loadOrphanages)}} style={{background:'rgba(34,197,94,0.1)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:10,color:'#22c55e',fontSize:12,fontWeight:600,padding:'8px 18px',cursor:'pointer'}}>✅ Accepter</button>
@@ -6514,8 +6538,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <div style={{fontSize:16,fontWeight:700,color:'#e2e8f0',marginBottom:2}}>{o.name}</div>
                                   <div style={{fontSize:12,color:'#64748b'}}>Directeur: {o.director_name || '—'}</div>
                                 </div>
-                                <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:o.status==='approved'?'rgba(34,197,94,0.1)':o.status==='under_review'?'rgba(59,130,246,0.1)':o.status==='changes_requested'?'rgba(245,158,11,0.1)':'rgba(255,255,255,0.06)',color:o.status==='approved'?'#22c55e':o.status==='under_review'?'#3b82f6':o.status==='changes_requested'?'#f59e0b':'#94a3b8'}}>
-                                  {o.status === 'approved' ? '✓ Validé' : o.status === 'under_review' ? '🔍 En cours' : o.status === 'changes_requested' ? '📝 Modifications' : '▶ Actif'}
+                                <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:o.status==='approved'?'rgba(34,197,94,0.1)':'rgba(234,179,8,0.15)',color:o.status==='approved'?'#22c55e':'#eab308'}}>
+                                  {o.status === 'approved' ? '🟢 Document accepté' : '🟡 En attendant que l\'ambassadeur accepte'}
                                 </span>
                               </div>
                               <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
