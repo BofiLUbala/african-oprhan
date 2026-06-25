@@ -20,6 +20,7 @@ AFRICAN_COUNTRIES = [
 
 ROLES = [
     ("ambassador", "Ambassadeur"),
+    ("federation", "Administrateur Federation"),
     ("supermaster", "Super Master"),
     ("partner", "Partenaire"),
     ("director", "Chef d'orphelinat"),
@@ -50,6 +51,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     role = models.CharField(max_length=20, choices=ROLES, verbose_name="Rôle")
     is_active = models.BooleanField(default=False, verbose_name="Compte activé")
     is_staff = models.BooleanField(default=False, verbose_name="Staff")
+    
+    orphanage = models.ForeignKey(
+        "orphanages.Orphanage",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="staff_members",
+        verbose_name="Orphelinat affilié"
+    )
 
     email_verification_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=True)
     verification_sent_at = models.DateTimeField(null=True, blank=True)

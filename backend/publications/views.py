@@ -16,7 +16,7 @@ from .serializers import (
 @api_view(["GET", "POST"])
 def post_list(request):
     if request.method == "GET":
-        posts = Post.objects.all().prefetch_related(
+        posts = Post.objects.filter(status="approved").prefetch_related(
             "media", "likes", "comments", "views"
         )
         serializer = PostListSerializer(posts, many=True, context={"request": request})
@@ -155,3 +155,39 @@ def story_detail(request, story_id):
     StoryView.objects.get_or_create(story=story, user=request.user)
     serializer = StorySerializer(story, context={"request": request})
     return Response(serializer.data)
+
+
+@api_view(["GET"])
+def pending_posts(request):
+    if getattr(request.user, 'role', '') not in ['ambassador', 'admin', 'federation']:
+        return Response({"error": "Accès refusé. Réservé aux ambassadeurs."}, status=status.HTTP_403_FORBIDDEN)
+    
+    posts = Post.objects.filter(status="pending").prefetch_related(
+        "media", "likes", "comments", "views"
+    )
+    serializer = PostListSerializer(posts, many=True, context={"request": request})
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+def review_post(request, post_id):
+    if getattr(request.user, 'role', '') not in ['ambassador', 'admin', 'federation']:
+        return Response({"error": "Accès refusé."}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        post = Post.objects.get(pk=post_id, status="pending")
+    except Post.DoesNotExist:
+        return Response({"error": "Publication en attente introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+    new_status = request.data.get("status")
+    reason = request.data.get("reason", "")
+
+    if new_status not in ["approved", "rejected"]:
+        return Response({"error": "Statut invalide."}, status=status.HTTP_400_BAD_REQUEST)
+
+    post.status = new_status
+    if new_status == "rejected":
+        post.rejection_reason = reason
+    
+    post.save()
+    return Response({"message": f"Publication {new_status} avec succès."})

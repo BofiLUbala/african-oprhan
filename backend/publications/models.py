@@ -10,6 +10,16 @@ class Post(models.Model):
         ("story", "Histoire"),
     ]
 
+    AUDIENCE_CHOICES = [
+        ("general", "Général"),
+        ("child_info", "Information Enfant"),
+    ]
+    STATUS_CHOICES = [
+        ("pending", "En attente"),
+        ("approved", "Approuvé"),
+        ("rejected", "Refusé"),
+    ]
+
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -19,6 +29,21 @@ class Post(models.Model):
     content = models.TextField(verbose_name="Contenu", blank=True)
     post_type = models.CharField(
         max_length=10, choices=POST_TYPES, default="text", verbose_name="Type"
+    )
+    audience = models.CharField(
+        max_length=20, choices=AUDIENCE_CHOICES, default="general", verbose_name="Audience"
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="approved", verbose_name="Statut"
+    )
+    rejection_reason = models.TextField(blank=True, verbose_name="Raison du refus")
+    child = models.ForeignKey(
+        "children.Child",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="posts",
+        verbose_name="Enfant concerné"
     )
     location = models.CharField(
         max_length=200, blank=True, verbose_name="Localisation"

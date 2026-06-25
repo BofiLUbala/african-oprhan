@@ -26,6 +26,11 @@ INSTALLED_APPS = [
     "publications",
     "children",
     "projets",
+    "orphanages",
+    "needs",
+    "finances",
+    "communications",
+    "sponsorships",
 ]
 
 MIDDLEWARE = [

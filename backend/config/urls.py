@@ -12,6 +12,7 @@ urlpatterns = [
     path("api/", include("publications.urls")),
     path("api/", include("children.urls")),
     path("api/", include("projets.urls")),
+    path("api/", include("orphanages.urls")),
 ]
 
 if settings.DEBUG:

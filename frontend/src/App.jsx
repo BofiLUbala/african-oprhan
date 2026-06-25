@@ -454,6 +454,7 @@ const ROLE_NAV = {
     { label: 'Mise à jour', key: 'update-center' },
     { label: 'Historique', key: 'history-center' },
     { label: 'Projets', key: 'projets' },
+    { label: 'Orphelinat', key: 'orphelinats' },
     { label: 'Documents', key: 'documents' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
     { label: 'Demandes', key: 'demandes' },
@@ -486,6 +487,7 @@ const ROLE_NAV = {
     { label: 'Utilisateurs', key: 'users' },
     { label: 'Orphelinats', key: 'orphelinats' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
+    { label: 'Validation des donnees', key: 'validationLocale' },
     { label: 'Partenaires', key: 'partenaires' },
     { label: 'Rapports', key: 'rapports' },
     { label: 'Communication', key: 'communication' },
@@ -1039,6 +1041,41 @@ function genChildUid(exclude = new Set()) {
 }
 
 /* ===== L'ÉCLAT SOCIAL APP ===== */
+const ES_POSTS = [
+  {
+    id: 1,
+    author: "Orphelinat Espoir",
+    avatar: "data:image/svg+xml,..." /* ... */,
+    time: "Il y a 2 heures",
+    text: "Nous venons de recevoir une nouvelle livraison de fournitures scolaires ! Merci à tous nos donateurs.",
+    image: "/images/bg.jpg",
+    likes: 24,
+    comments: 5
+  },
+  {
+    id: 2,
+    author: "Marie Claire",
+    avatar: "data:image/svg+xml,..." /* ... */,
+    time: "Il y a 5 heures",
+    text: "Retour sur notre journée de vaccination. Tout s'est très bien passé.",
+    image: "/images/bg.jpg",
+    likes: 45,
+    comments: 12
+  }
+];
+
+const ES_PENDING_POSTS = [
+  {
+    id: 99,
+    author: "Orphelinat Saint Jean",
+    avatar: "data:image/svg+xml,..." /* ... */,
+    time: "Il y a 30 minutes",
+    text: "Mise à jour médicale pour l'enfant David K. Il a besoin d'une intervention chirurgicale mineure la semaine prochaine. Merci de valider pour informer les partenaires.",
+    image: null,
+    childName: "David K."
+  }
+];
+
 function EclatSocialApp({ user, onReturn }) {
   const [esView, setEsView] = useState('home')
   const [esModal, setEsModal] = useState(null) // 'create' | 'detail' | null
@@ -1057,34 +1094,6 @@ function EclatSocialApp({ user, onReturn }) {
     { name: 'Mike', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#34D399"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">MT</text></svg>')}`, active: false },
     { name: 'Emma', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#A78BFA"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">EW</text></svg>')}`, active: true },
     { name: 'David', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#FBBF24"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">DK</text></svg>')}`, active: false },
-  ]
-
-  const ES_POSTS = [
-    {
-      id: 1,
-      author: 'Johnson',
-      avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="#60A5FA"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">JN</text></svg>')}`,
-      time: 'Il y a 2 heures',
-      text: 'Nouvelle interface de monitoring en cours de développement. 🚀',
-      image: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="680" height="380" viewBox="0 0 680 380"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1E293B"/><stop offset="100%" stop-color="#0F172A"/></linearGradient></defs><rect width="680" height="380" fill="url(#bg)"/><rect x="40" y="40" width="200" height="120" rx="12" fill="#1E40AF" opacity="0.4"/><rect x="40" y="60" width="120" height="8" rx="4" fill="#60A5FA"/><rect x="40" y="80" width="80" height="6" rx="3" fill="#94A3B8"/><rect x="40" y="100" width="160" height="40" rx="8" fill="#1E40AF" opacity="0.6"/><rect x="260" y="40" width="380" height="120" rx="12" fill="#1E40AF" opacity="0.3"/><rect x="280" y="60" width="200" height="8" rx="4" fill="#60A5FA"/><rect x="280" y="80" width="340" height="60" rx="8" fill="#1E40AF" opacity="0.5"/><rect x="40" y="180" width="600" height="160" rx="12" fill="#1E40AF" opacity="0.25"/><rect x="60" y="200" width="100" height="8" rx="4" fill="#60A5FA"/><circle cx="110" cy="280" r="40" fill="#3B82F6" opacity="0.3"/><rect x="200" y="200" width="420" height="6" rx="3" fill="#475569"/><rect x="200" y="220" width="380" height="6" rx="3" fill="#334155"/><rect x="200" y="240" width="300" height="6" rx="3" fill="#334155"/><text x="340" y="300" text-anchor="middle" fill="#60A5FA" font-size="18" font-family="system-ui" font-weight="600">▶ Video Preview</text></svg>')}`,
-      isVideo: true,
-      duration: '2:34',
-      likes: 124,
-      comments: 12,
-      views: '1.2K'
-    },
-    {
-      id: 2,
-      author: 'Sarah M.',
-      avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="#F472B6"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">SM</text></svg>')}`,
-      time: 'Il y a 5 heures',
-      text: 'Setup de la journée 💻',
-      image: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="680" height="380" viewBox="0 0 680 380"><defs><linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F8FAFC"/><stop offset="100%" stop-color="#E2E8F0"/></linearGradient></defs><rect width="680" height="380" fill="url(#bg2)"/><rect x="180" y="80" width="320" height="200" rx="12" fill="#CBD5E1"/><rect x="200" y="100" width="280" height="160" rx="8" fill="#1E293B"/><rect x="220" y="120" width="100" height="6" rx="3" fill="#60A5FA"/><rect x="220" y="136" width="240" height="4" rx="2" fill="#475569"/><rect x="220" y="150" width="200" height="4" rx="2" fill="#475569"/><rect x="220" y="164" width="160" height="4" rx="2" fill="#475569"/><rect x="220" y="190" width="60" height="20" rx="4" fill="#3B82F6"/><rect x="290" y="190" width="60" height="20" rx="4" fill="#1E40AF"/><rect x="280" y="290" width="120" height="8" rx="4" fill="#94A3B8"/><text x="340" y="340" text-anchor="middle" fill="#64748B" font-size="14" font-family="system-ui" font-weight="500">💻 Setup</text></svg>')}`,
-      isVideo: false,
-      likes: 342,
-      comments: 45,
-      views: '3.8K'
-    },
   ]
 
   const ES_SUGGESTIONS = [
@@ -1108,15 +1117,24 @@ function EclatSocialApp({ user, onReturn }) {
       {/* LEFT SIDEBAR */}
       <aside className="es-sidebar">
         <div className="es-logo-area">
-          <span className="es-logo-icon">✦</span>
-          <h2>L'Éclat</h2>
+          <img src="/logo.jpg" alt="Logo Fédération" style={{ height: '32px', borderRadius: '4px' }} />
         </div>
 
         <div className="es-sidebar-profile" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#F8FAFC', borderRadius: '12px', marginBottom: '24px' }}>
           <img src={avatarSvg} alt="" className="es-avatar-sm" />
           <div>
-            <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '14px' }}>{displayName}</div>
-            <div style={{ fontSize: '12px', color: '#64748B' }}>Développeur Fullstack</div>
+            <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '14px' }}>
+              {user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : displayName}
+            </div>
+            <div style={{ fontSize: '12px', color: '#64748B' }}>
+              {user ? (
+                user.role === 'admin' ? 'Administrateur' :
+                user.role === 'federation' ? 'Fédération' :
+                user.role === 'ambassador' ? 'Ambassadeur' :
+                user.role === 'orphanage' ? 'Orphelinat' :
+                user.role === 'partner' ? 'Partenaire' : 'Utilisateur'
+              ) : 'Utilisateur'}
+            </div>
           </div>
         </div>
 
@@ -1137,7 +1155,7 @@ function EclatSocialApp({ user, onReturn }) {
       <main className="es-main">
         {/* Mobile Header */}
         <div className="es-mobile-header">
-          <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', margin: 0 }}>L'Éclat</h2>
+          <img src="/logo.jpg" alt="Logo Fédération" style={{ height: '32px', borderRadius: '4px' }} />
           <div className="es-header-actions">
             <button onClick={onReturn} title="Retourner au dashboard">🚪</button>
             <button onClick={() => setEsModal('create')}>✏️</button>
@@ -1164,6 +1182,30 @@ function EclatSocialApp({ user, onReturn }) {
             <div className="es-quick-input">Quoi de neuf ?</div>
             <button className="es-publish-btn" style={{ fontSize: '13px' }}>Publier</button>
           </div>
+
+          {/* AMBASSADOR VALIDATION SECTION */}
+          {user && user.role === 'ambassador' && (
+            <div style={{ marginBottom: '24px', background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: '12px', padding: '16px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#92400E', margin: '0 0 12px 0' }}>⚠️ Publications en attente de validation</h3>
+              {ES_PENDING_POSTS.map(post => (
+                <div key={post.id} style={{ background: '#fff', borderRadius: '8px', padding: '12px', border: '1px solid #FDE68A', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <img src={post.avatar} alt="" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+                    <strong style={{ fontSize: '13px', color: '#1E293B' }}>{post.author}</strong>
+                    <span style={{ fontSize: '11px', color: '#94A3B8' }}>{post.time}</span>
+                  </div>
+                  <p style={{ fontSize: '13px', color: '#475569', margin: '0 0 12px 0' }}>{post.text}</p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button style={{ background: '#10B981', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }} onClick={() => alert("Publication validée et envoyée au système !")}>✓ Valider</button>
+                    <button style={{ background: '#EF4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }} onClick={() => {
+                      const reason = prompt("Raison du refus :");
+                      if(reason) alert("Refus envoyé au directeur.");
+                    }}>✕ Refuser</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* POSTS */}
           <div className="es-posts">
@@ -1278,8 +1320,16 @@ function EclatSocialApp({ user, onReturn }) {
               <div className="es-post-author-row">
                 <img src={avatarSvg} alt="" className="es-avatar-sm" />
                 <div className="es-author-info">
-                  <span className="es-author-name">{displayName}</span>
-                  <span className="es-author-visibility">🌍 Tout le monde</span>
+                  <span className="es-author-name">
+                    {user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : displayName}
+                  </span>
+                  <select 
+                    style={{ border: 'none', background: 'transparent', fontSize: '12px', color: '#64748B', outline: 'none', cursor: 'pointer' }}
+                    defaultValue="general"
+                  >
+                    <option value="general">🌍 Général</option>
+                    <option value="child_info">🔒 Information Enfant (Validation Ambassadeur)</option>
+                  </select>
                 </div>
               </div>
               <textarea placeholder="Quoi de neuf ?" rows={3}></textarea>
@@ -1605,6 +1655,15 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   ]
   const [theme, setTheme] = useState(localStorage.getItem('cdo_theme') || 'dark')
   const [orphanageName, setOrphanageName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
+  const [orphanageRequests, setOrphanageRequests] = useState([])
+  const [orphanageForm, setOrphanageForm] = useState({
+    name: localStorage.getItem('cdo_orphanage_name') || '',
+    address: '',
+    capacity: '',
+    document_details: '',
+  })
+  const [orphanageLoading, setOrphanageLoading] = useState(false)
+  const [orphanageNote, setOrphanageNote] = useState('')
   const [bgTheme, setBgTheme] = useState(localStorage.getItem('cdo_bg') || '')
 
   useEffect(() => {
@@ -1819,6 +1878,72 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       })
       .catch(() => { setProjects(MOCK_PROJECTS); setProjectLoading(false) })
   }, [activeKey])
+
+  const loadOrphanages = async () => {
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+    setOrphanageLoading(true)
+    try {
+      const res = await fetch(`${API}/orphanages/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (res.ok) setOrphanageRequests(Array.isArray(data) ? data : [])
+    } catch {
+      setOrphanageRequests([])
+    } finally {
+      setOrphanageLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!['validationLocale', 'orphelinats', 'parametres'].includes(activeKey)) return
+    loadOrphanages()
+  }, [activeKey])
+
+  const submitOrphanage = async () => {
+    if (!orphanageForm.name.trim()) { showToast("Nom de l'orphelinat requis.", 'error'); return }
+    const token = localStorage.getItem('access_token')
+    setOrphanageLoading(true)
+    try {
+      const res = await fetch(`${API}/orphanages/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ ...orphanageForm, capacity: Number(orphanageForm.capacity || 0) }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Envoi impossible")
+      localStorage.setItem('cdo_orphanage_name', data.name)
+      setOrphanageName(data.name)
+      showToast("Dossier envoye a l'ambassadeur pour validation.")
+      loadOrphanages()
+    } catch (err) {
+      showToast(err.message || "Erreur pendant l'envoi du dossier.", 'error')
+    } finally {
+      setOrphanageLoading(false)
+    }
+  }
+
+  const validateOrphanage = async (id, action) => {
+    const token = localStorage.getItem('access_token')
+    setOrphanageLoading(true)
+    try {
+      const res = await fetch(`${API}/orphanages/${id}/validate/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ action, validation_note: orphanageNote }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Validation impossible')
+      showToast(action === 'approve' ? 'Dossier accepte.' : 'Dossier refuse.', action === 'approve' ? 'success' : 'warning')
+      setOrphanageNote('')
+      loadOrphanages()
+    } catch (err) {
+      showToast(err.message || 'Erreur de validation.', 'error')
+    } finally {
+      setOrphanageLoading(false)
+    }
+  }
 
   if (activeKey === 'communication') {
     return <EclatSocialApp user={user} onReturn={() => { setActiveKey('dashboard'); setSubKey(null) }} />
@@ -2043,7 +2168,61 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   <div style={{ paddingTop: '32px' }} />
                 )}
 
-                {subKey === 'Profil' && activeKey === 'parametres' ? (
+                {activeKey === 'validationLocale' ? (
+                  <div className="dash-sub-form">
+                    <div className="dash-validation-head">
+                      <p className="dash-page-subtitle">{page?.subtitle || "Dossiers d'orphelinat en attente."}</p>
+                      <button className="dash-form-save" onClick={loadOrphanages} disabled={orphanageLoading}>Actualiser</button>
+                    </div>
+                    {orphanageLoading && <div className="dash-dash-empty">Chargement...</div>}
+                    {!orphanageLoading && orphanageRequests.length === 0 && <div className="dash-dash-empty">Aucun dossier a valider.</div>}
+                    <div className="dash-validation-list">
+                      {orphanageRequests.map(item => (
+                        <div key={item.id} className="dash-validation-card">
+                          <div className="dash-validation-top">
+                            <div>
+                              <h3>{item.name}</h3>
+                              <p>{item.address || 'Adresse non renseignee'} - Capacite {item.capacity || 0}</p>
+                            </div>
+                            <span className={`dash-validation-status ${item.status}`}>{item.status}</span>
+                          </div>
+                          <div className="dash-validation-doc">{item.document_details || 'Aucun detail de document transmis.'}</div>
+                          <div className="dash-validation-meta">Chef: {item.director_name || 'Non renseigne'} {item.ambassador_name ? `- Ambassadeur: ${item.ambassador_name}` : ''}</div>
+                          {item.validation_note && <div className="dash-validation-note">Note: {item.validation_note}</div>}
+                          {item.status === 'pending' && (
+                            <div className="dash-validation-actions">
+                              <input className="dash-form-input" value={orphanageNote} onChange={e => setOrphanageNote(e.target.value)} placeholder="Note de validation optionnelle" />
+                              <button className="dash-form-save" onClick={() => validateOrphanage(item.id, 'approve')}>Accepter</button>
+                              <button className="dash-orp-save-btn" onClick={() => validateOrphanage(item.id, 'reject')}>Refuser</button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : activeKey === 'orphelinats' && role === 'director' ? (
+                  <div className="dash-sub-form">
+                    <div className="dash-sub-form-fields">
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">Nom de l'orphelinat</label>
+                        <input className="dash-form-input" value={orphanageForm.name} onChange={e => setOrphanageForm(f => ({ ...f, name: e.target.value }))} />
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">Adresse</label>
+                        <input className="dash-form-input" value={orphanageForm.address} onChange={e => setOrphanageForm(f => ({ ...f, address: e.target.value }))} />
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">Capacite</label>
+                        <input type="number" className="dash-form-input" value={orphanageForm.capacity} onChange={e => setOrphanageForm(f => ({ ...f, capacity: e.target.value }))} />
+                      </div>
+                      <div className="dash-form-field">
+                        <label className="dash-form-label">Details du document d'orphelinat</label>
+                        <textarea className="dash-form-input" rows={5} value={orphanageForm.document_details} onChange={e => setOrphanageForm(f => ({ ...f, document_details: e.target.value }))} placeholder="Numero du document, autorite, date, resume..." />
+                      </div>
+                      <button className="dash-form-save" onClick={submitOrphanage} disabled={orphanageLoading}>Envoyer a l'ambassadeur</button>
+                    </div>
+                  </div>
+                ) : subKey === 'Profil' && activeKey === 'parametres' ? (
                   <div className="dash-sub-form">
                     <div className="dash-sub-form-top">
                       <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'\u2190'} {t('form_back')}</button>

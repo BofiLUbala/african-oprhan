@@ -52,6 +52,15 @@ class Child(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active", verbose_name="Statut")
     extra_data = models.JSONField(default=dict, blank=True, verbose_name="Données supplémentaires")
 
+    orphanage = models.ForeignKey(
+        "orphanages.Orphanage",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="children",
+        verbose_name="Orphelinat"
+    )
+
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
