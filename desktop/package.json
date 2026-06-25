@@ -5,10 +5,36 @@
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently -k \"vite --port 5173\" \"wait-on http://localhost:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
-    "build": "vite build",
-    "preview": "vite preview",
-    "electron:build": "vite build && electron-builder"
+    "dev": "concurrently -k \"wait-on http://localhost:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
+    "build:frontend": "cd ../frontend && npm run build",
+    "electron:build": "npm run build:frontend && electron-builder"
+  },
+  "build": {
+    "appId": "com.orphenolina.desktop",
+    "productName": "Orphenlina Desktop",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/dist",
+        "to": "frontend-dist",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   },
   "dependencies": {
     "react": "^18.2.0",

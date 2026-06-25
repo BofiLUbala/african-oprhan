@@ -56,3 +56,30 @@ def orphanage_validate(request, orphanage_id):
         orphanage.ambassador = request.user
     orphanage.save(update_fields=["status", "validation_note", "validated_at", "ambassador", "updated_at"])
     return Response(OrphanageSerializer(orphanage).data)
+
+
+@api_view(["POST"])
+def assign_ambassador(request, orphanage_id):
+    user = request.user
+    if user.role not in ("federation", "supermaster"):
+        return Response({"error": "Seul un administrateur federation peut assigner un ambassadeur."}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        orphanage = Orphanage.objects.get(pk=orphanage_id)
+    except Orphanage.DoesNotExist:
+        return Response({"error": "Orphelinat introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+    ambassador_id = request.data.get("ambassador_id")
+    if not ambassador_id:
+        return Response({"error": "ID de l'ambassadeur requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    try:
+        ambassador = User.objects.get(pk=ambassador_id, role="ambassador")
+    except User.DoesNotExist:
+        return Response({"error": "Ambassadeur introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+    orphanage.ambassador = ambassador
+    orphanage.save(update_fields=["ambassador", "updated_at"])
+    return Response(OrphanageSerializer(orphanage).data)

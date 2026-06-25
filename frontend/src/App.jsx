@@ -1697,9 +1697,56 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [orpFiles, setOrpFiles] = useState({ registration_cert: null, operating_license: null, director_id: null, tax_doc: null, child_protection: null, annual_report: null, ngo_accreditation: null, partnership_certs: null })
   const [orpDraftSaved, setOrpDraftSaved] = useState(false)
   const [bgTheme, setBgTheme] = useState(localStorage.getItem('cdo_bg') || '')
+  const [gpsLoading, setGpsLoading] = useState(false)
   const autoSaveRef = useRef(null)
   useEffect(() => { if(autoSaveRef.current) clearTimeout(autoSaveRef.current); autoSaveRef.current = setTimeout(() => { try { localStorage.setItem('cdo_orp_draft', JSON.stringify(orphanageForm)); } catch(e){} }, 3000); return () => clearTimeout(autoSaveRef.current); }, [orphanageForm])
   useEffect(() => { try { const d = localStorage.getItem('cdo_orp_draft'); const s = localStorage.getItem('cdo_orp_step'); if(d) setOrphanageForm(prev => ({...prev, ...JSON.parse(d)})); if(s) setOrpWizStep(Number(s)); } catch(e){} }, [])
+
+  const [ambassadorsList, setAmbassadorsList] = useState([])
+  const [assigningId, setAssigningId] = useState(null)
+
+  const fetchAmbassadors = async () => {
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+    try {
+      const res = await fetch(`${API}/auth/users/?role=ambassador`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setAmbassadorsList(Array.isArray(data) ? data : [])
+      }
+    } catch {}
+  }
+
+  const handleAssignAmbassador = async (orphanageId, ambassadorId) => {
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+    setOrphanageLoading(true)
+    try {
+      const res = await fetch(`${API}/orphanages/${orphanageId}/assign-ambassador/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ambassador_id: ambassadorId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Erreur d'assignation")
+      showToast("Ambassadeur assigné avec succès.", 'success')
+      setAssigningId(null)
+      loadOrphanages()
+    } catch (err) {
+      showToast(err.message, 'error')
+    } finally {
+      setOrphanageLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeKey === 'orphelinats' && role === 'federation') {
+      loadOrphanages()
+      fetchAmbassadors()
+    }
+  }, [activeKey, role])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -1932,7 +1979,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }
 
   useEffect(() => {
-    if (!['validationLocale', 'orphelinats', 'parametres'].includes(activeKey)) return
+    if (!['validationLocale', 'orphelinats', 'parametres', 'ambassadeurs'].includes(activeKey)) return
     loadOrphanages()
   }, [activeKey])
 
@@ -2285,7 +2332,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Provide the general details about your orphanage.</p>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16}}>
                         <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Orphanage Name <span style={{color:'#ef4444'}}>*</span></label><input className="dash-form-input" value={orphanageForm.name} onChange={e=>orpUpd('name',e.target.value)} placeholder="Enter orphanage name" /></div>
-                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Legal Registration Number <span style={{color:'#ef4444'}}>*</span></label><input className="dash-form-input" value={orphanageForm.registration_number} onChange={e=>orpUpd('registration_number',e.target.value)} placeholder="e.g. ORG-2024-001" /></div>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Legal Registration Number <span style={{color:'#ef4444'}}>*</span></label><div style={{display:'flex',gap:8}}><input className="dash-form-input" style={{flex:1}} value={orphanageForm.registration_number} onChange={e=>orpUpd('registration_number',e.target.value)} placeholder="e.g. ORG-2024-001" /><button type="button" onClick={()=>{const g=()=>{let r='';for(let i=0;i<6;i++)r+='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random()*36)];return r};let c=g();const e=new Set([...(orphanageRequests||[]).map(o=>o.registration_number).filter(Boolean),...Object.values(orphanageForm).filter(v=>typeof v==='string')]);while(e.has(c))c=g();orpUpd('registration_number',c)}} style={{background:'rgba(245,158,11,0.12)',border:'1px solid rgba(245,158,11,0.3)',borderRadius:12,color:'#f59e0b',fontSize:12,fontWeight:700,padding:'8px 14px',cursor:'pointer',whiteSpace:'nowrap'}}>🎲 Générer</button></div></div>
                         <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Orphanage Type <span style={{color:'#ef4444'}}>*</span></label><select className="dash-form-input" value={orphanageForm.orphanage_type} onChange={e=>orpUpd('orphanage_type',e.target.value)} style={{cursor:'pointer'}}><option value="">Select type...</option>{ORP_TYPES.map(t2=>(<option key={t2} value={t2}>{t2}</option>))}</select></div>
                         <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Date of Establishment</label><input type="date" className="dash-form-input" value={orphanageForm.date_established} onChange={e=>orpUpd('date_established',e.target.value)} /></div>
                         <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Country <span style={{color:'#ef4444'}}>*</span></label><select className="dash-form-input" value={orphanageForm.country} onChange={e=>orpUpd('country',e.target.value)} style={{cursor:'pointer'}}><option value="">Select country...</option>{ORP_COUNTRIES.map(c=>(<option key={c} value={c}>{c}</option>))}</select></div>
@@ -2294,7 +2341,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <div style={{gridColumn:'1/-1'}}><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Full Address</label><input className="dash-form-input" value={orphanageForm.address} onChange={e=>orpUpd('address',e.target.value)} placeholder="Full street address" /></div>
                       </div>
                       <div style={{marginTop:20,padding:'16px',background:'rgba(59,130,246,0.06)',borderRadius:12,border:'1px solid rgba(59,130,246,0.15)'}}>
-                        <div style={{fontSize:13,fontWeight:600,color:'#3b82f6',marginBottom:10,display:'flex',alignItems:'center',gap:6}}>📍 GPS Location</div>
+                        <div style={{fontSize:13,fontWeight:600,color:'#3b82f6',marginBottom:10,display:'flex',alignItems:'center',gap:6}}>📍 GPS Location
+                          <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>{gpsLoading&&<span style={{fontSize:11,color:'#3b82f6'}}>⏳ Recherche...</span>}<button type="button" onClick={()=>{if(gpsLoading)return;setGpsLoading(true);const t=setTimeout(()=>{setGpsLoading(false);showToast('Délai dépassé. Passage en géolocalisation IP...','info');fetch('https://ip-api.com/json/').then(r=>r.json()).then(d=>{if(d.status==='success'){orpUpd('gps_lat',String(d.lat));orpUpd('gps_lng',String(d.lon));showToast(`Position approx: ${d.city}, ${d.country}`,'success')}else showToast('Impossible de localiser. Entrez manuellement.','error')}).catch(()=>showToast('Impossible de localiser. Entrez manuellement.','error')).finally(()=>setGpsLoading(false))},8000);navigator.geolocation.getCurrentPosition(p=>{clearTimeout(t);setGpsLoading(false);orpUpd('gps_lat',String(p.coords.latitude.toFixed(4)));orpUpd('gps_lng',String(p.coords.longitude.toFixed(4)));showToast('Position GPS obtenue avec succès','success')},()=>{clearTimeout(t);fetch('https://ip-api.com/json/').then(r=>r.json()).then(d=>{if(d.status==='success'){orpUpd('gps_lat',String(d.lat));orpUpd('gps_lng',String(d.lon));showToast(`Position approx: ${d.city}, ${d.country}`,'success')}else showToast('Impossible de localiser. Entrez manuellement.','error')}).catch(()=>showToast('Impossible de localiser. Entrez manuellement.','error')).finally(()=>setGpsLoading(false))},{enableHighAccuracy:true,timeout:7000})}} style={{background:'rgba(59,130,246,0.12)',border:'1px solid rgba(59,130,246,0.3)',borderRadius:12,color:gpsLoading?'#94a3b8':'#3b82f6',fontSize:11,fontWeight:700,padding:'6px 12px',cursor:gpsLoading?'not-allowed':'pointer',opacity:gpsLoading?0.6:1}}>{gpsLoading?'...':'📍 Obtenir ma position'}</button></div>
+                        </div>
                         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                           <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:4}}>Latitude</label><input className="dash-form-input" value={orphanageForm.gps_lat} onChange={e=>orpUpd('gps_lat',e.target.value)} placeholder="e.g. -4.3250" /></div>
                           <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:4}}>Longitude</label><input className="dash-form-input" value={orphanageForm.gps_lng} onChange={e=>orpUpd('gps_lng',e.target.value)} placeholder="e.g. 15.3222" /></div>
@@ -2474,7 +2523,40 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     </div>
                   </div>
                   );})()
-                : subKey === 'Profil' && activeKey === 'parametres' ? (
+                : activeKey === 'documents' && role === 'director' ? (
+                  <div className="dash-sub-form">
+                    <div className="dash-sub-form-top">
+                      <h3 className="dash-sub-form-title" style={{fontSize:20}}>📄 Documents de l'orphelinat</h3>
+                    </div>
+                    <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Gérez les documents légaux et administratifs de votre orphelinat.</p>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:14,marginBottom:24}}>
+                      {[{k:'registration_cert',l:'Registration Certificate',req:true},{k:'operating_license',l:'Operating License',req:true},{k:'director_id',l:'Director Identification',req:true},{k:'tax_doc',l:'Tax Registration',req:true},{k:'child_protection',l:'Child Protection Policy',req:true}].map(d=>(
+                        <div key={d.k} {...orpDragHandler(d.k)} style={{border:`2px dashed ${orpFiles[d.k]?'#22c55e':'rgba(255,255,255,0.1)'}`,borderRadius:14,padding:'20px 16px',textAlign:'center',cursor:'pointer',background:orpFiles[d.k]?'rgba(34,197,94,0.04)':'rgba(255,255,255,0.02)',transition:'all .2s ease'}} onClick={()=>document.getElementById('doc-file-'+d.k)?.click()}>
+                          <div style={{fontSize:28,marginBottom:6}}>{orpFiles[d.k]?'✅':'📤'}</div>
+                          <div style={{fontSize:12,fontWeight:600,color:orpFiles[d.k]?'#22c55e':'#94a3b8',marginBottom:4}}>{d.l}{d.req&&<span style={{color:'#ef4444'}}> *</span>}</div>
+                          <div style={{fontSize:11,color:'#64748b'}}>{orpFiles[d.k]?orpFiles[d.k].name:'Cliquez pour télécharger'}</div>
+                          {orpFiles[d.k]&&<button type="button" onClick={e=>{e.stopPropagation();setOrpFiles(p=>({...p,[d.k]:null}))}} style={{marginTop:8,background:'rgba(239,68,68,0.1)',border:'none',borderRadius:8,color:'#ef4444',fontSize:11,padding:'4px 12px',cursor:'pointer'}}>🗑 Supprimer</button>}
+                          <input id={'doc-file-'+d.k} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{display:'none'}} onChange={orpFileHandler(d.k)} />
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{fontSize:13,fontWeight:600,color:'#64748b',marginBottom:14}}>📎 Documents optionnels</div>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:14,marginBottom:24}}>
+                      {[{k:'annual_report',l:'Annual Report'},{k:'ngo_accreditation',l:'NGO Accreditation'},{k:'partnership_certs',l:'Partnership Certificates'}].map(d=>(
+                        <div key={d.k} {...orpDragHandler(d.k)} style={{border:`2px dashed ${orpFiles[d.k]?'#3b82f6':'rgba(255,255,255,0.06)'}`,borderRadius:14,padding:'16px',textAlign:'center',cursor:'pointer',background:orpFiles[d.k]?'rgba(59,130,246,0.04)':'rgba(255,255,255,0.01)',transition:'all .2s ease'}} onClick={()=>document.getElementById('doc-file-'+d.k)?.click()}>
+                          <div style={{fontSize:22,marginBottom:4}}>{orpFiles[d.k]?'📎':'📤'}</div>
+                          <div style={{fontSize:12,color:orpFiles[d.k]?'#3b82f6':'#64748b'}}>{d.l}</div>
+                          <div style={{fontSize:10,color:'#475569'}}>{orpFiles[d.k]?orpFiles[d.k].name:'Optionnel'}</div>
+                          {orpFiles[d.k]&&<button type="button" onClick={e=>{e.stopPropagation();setOrpFiles(p=>({...p,[d.k]:null}))}} style={{marginTop:8,background:'rgba(239,68,68,0.1)',border:'none',borderRadius:8,color:'#ef4444',fontSize:11,padding:'4px 12px',cursor:'pointer'}}>🗑 Supprimer</button>}
+                          <input id={'doc-file-'+d.k} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{display:'none'}} onChange={orpFileHandler(d.k)} />
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{display:'flex',gap:12,justifyContent:'flex-end',borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:16}}>
+                      <button type="button" onClick={()=>{const c=Object.values(orpFiles).filter(Boolean).length;showToast(`${c} document${c>1?'s':''} enregistré${c>1?'s':''} localement`,'success')}} style={{background:'linear-gradient(135deg,#f59e0b,#f97316)',border:'none',borderRadius:12,color:'#fff',fontWeight:700,fontSize:13,padding:'10px 24px',cursor:'pointer'}}>💾 Enregistrer les documents</button>
+                    </div>
+                  </div>
+                ) : subKey === 'Profil' && activeKey === 'parametres' ? (
                   <div className="dash-sub-form">
                     <div className="dash-sub-form-top">
                       <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'\u2190'} {t('form_back')}</button>
@@ -5164,6 +5246,30 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         </div>
                       </div>
                     </div>
+                    {(() => {
+                      const myOrp = orphanageRequests.find(o => o.name === orphanageName || o.director === user.id)
+                      const amb = myOrp?.ambassador_name
+                      return (
+                        <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'24px',marginBottom:16}}>
+                          <h4 style={{fontSize:16,fontWeight:700,color:'#e2e8f0',margin:'0 0 16px',display:'flex',alignItems:'center',gap:8}}>👤 Ambassadeur assigné</h4>
+                          {amb ? (
+                            <div style={{display:'flex',alignItems:'center',gap:16,padding:'16px',background:'rgba(245,158,11,0.06)',borderRadius:12,border:'1px solid rgba(245,158,11,0.15)'}}>
+                              <div style={{width:48,height:48,borderRadius:'50%',background:'linear-gradient(135deg,#f59e0b,#f97316)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,fontWeight:700,color:'#fff'}}>{amb.charAt(0).toUpperCase()}</div>
+                              <div>
+                                <div style={{fontSize:15,fontWeight:700,color:'#f59e0b'}}>{amb}</div>
+                                <div style={{fontSize:12,color:'#64748b',marginTop:2}}>Ambassadeur responsable de votre orphelinat</div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{padding:'20px',textAlign:'center',color:'#64748b',fontSize:14}}>
+                              <div style={{fontSize:36,marginBottom:8}}>🤝</div>
+                              <p style={{margin:'0 0 4px'}}>Aucun ambassadeur assigné à votre orphelinat pour le moment.</p>
+                              <p style={{margin:0,fontSize:12,color:'#475569'}}>Un administrateur federation vous assignera un ambassadeur.</p>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
                     <div className="dash-category-cards">
                       {page?.categories?.map((cat, i) => (
                         <button key={i} className="dash-category-card" onClick={() => {
@@ -6353,6 +6459,54 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             })
                           })()}
                         </div>
+                      </div>
+                    )}
+                  </div>
+                ) : activeKey === 'orphelinats' && role === 'federation' ? (
+                  <div>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+                      <div>
+                        <h3 style={{fontSize:20,fontWeight:700,color:'#e2e8f0',margin:0}}>🏛️ Gestion des Orphelinats</h3>
+                        <p style={{fontSize:13,color:'#64748b',margin:'4px 0 0'}}>{orphanageRequests.length} orphelinat{(orphanageRequests.length>1)?'s':''} dans le système</p>
+                      </div>
+                    </div>
+                    {orphanageLoading && orphanageRequests.length === 0 ? (
+                      <div style={{textAlign:'center',padding:40,color:'#64748b',fontSize:14}}>Chargement...</div>
+                    ) : (
+                      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                        {orphanageRequests.map(o => (
+                          <div key={o.id} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
+                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
+                              <div>
+                                <div style={{fontSize:16,fontWeight:700,color:'#e2e8f0',marginBottom:4}}>{o.name}</div>
+                                <div style={{fontSize:12,color:'#64748b'}}>Directeur: {o.director_name || '—'}</div>
+                              </div>
+                              <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:o.status==='approved'?'rgba(34,197,94,0.1)':o.status==='pending'?'rgba(245,158,11,0.1)':'rgba(239,68,68,0.1)',color:o.status==='approved'?'#22c55e':o.status==='pending'?'#f59e0b':'#ef4444'}}>{o.status === 'approved' ? '✓ Validé' : o.status === 'pending' ? '⏳ En attente' : o.status === 'active' ? '▶ Actif' : '✗ Rejeté'}</span>
+                            </div>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+                              <span style={{fontSize:12,color:'#64748b'}}>Ambassadeur:</span>
+                              <span style={{fontSize:13,fontWeight:600,color:o.ambassador?'#f59e0b':'#94a3b8'}}>{o.ambassador_name || 'Non assigné'}</span>
+                            </div>
+                            {assigningId === o.id ? (
+                              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                                <select className="dash-form-input" style={{flex:1,margin:0,padding:'8px 12px',fontSize:13}} defaultValue="" onChange={e=>{const v=e.target.value;if(v)handleAssignAmbassador(o.id,Number(v))}}>
+                                  <option value="" disabled>Choisir un ambassadeur</option>
+                                  {ambassadorsList.filter(a=>a.is_active).map(a => (
+                                    <option key={a.id} value={a.id}>{a.full_name || `${a.first_name} ${a.last_name}`} ({a.email})</option>
+                                  ))}
+                                </select>
+                                <button type="button" onClick={()=>setAssigningId(null)} style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:8,color:'#94a3b8',fontSize:12,padding:'8px 12px',cursor:'pointer'}}>Annuler</button>
+                              </div>
+                            ) : (
+                              <button type="button" onClick={()=>{setAssigningId(o.id);if(ambassadorsList.length===0)fetchAmbassadors()}} style={{background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:10,color:'#f59e0b',fontSize:12,fontWeight:600,padding:'8px 16px',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}>
+                                {o.ambassador ? '🔄 Changer' : '👤 Assigner un ambassadeur'}
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        {orphanageRequests.length === 0 && (
+                          <div style={{textAlign:'center',padding:40,color:'#64748b',fontSize:14}}>Aucun orphelinat trouvé.</div>
+                        )}
                       </div>
                     )}
                   </div>

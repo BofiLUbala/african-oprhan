@@ -13,6 +13,30 @@ User = get_user_model()
 
 
 @api_view(["GET"])
+def user_list(request):
+    user = request.user
+    if not user.is_authenticated or user.role not in ("federation", "supermaster"):
+        return Response({"error": "Accès refusé."}, status=status.HTTP_403_FORBIDDEN)
+    role_filter = request.query_params.get("role")
+    qs = User.objects.all()
+    if role_filter:
+        qs = qs.filter(role=role_filter)
+    return Response([
+        {
+            "id": u.pk,
+            "email": u.email,
+            "first_name": u.first_name,
+            "last_name": u.last_name,
+            "full_name": u.full_name,
+            "country": u.country,
+            "role": u.role,
+            "is_active": u.is_active,
+        }
+        for u in qs
+    ])
+
+
+@api_view(["GET"])
 @permission_classes([AllowAny])
 def me(request):
     user = request.user

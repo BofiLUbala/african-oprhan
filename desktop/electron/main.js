@@ -18,8 +18,10 @@ function createWindow() {
   const devUrl = process.env.VITE_DEV_SERVER_URL
   if (devUrl) {
     win.loadURL(devUrl)
+  } else if (app.isPackaged) {
+    win.loadFile(path.join(process.resourcesPath, 'frontend-dist', 'index.html'))
   } else {
-    win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
+    win.loadFile(path.join(__dirname, '..', '..', 'frontend', 'dist', 'index.html'))
   }
 }
 
