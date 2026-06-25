@@ -1440,6 +1440,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     }
   }
   const [dashTime, setDashTime] = useState(new Date())
+  const [fedTab, setFedTab] = useState('pending')
   const [toast, setToast] = useState(null)
   const showToast = (message, type = 'success') => {
     setToast({ message, type })

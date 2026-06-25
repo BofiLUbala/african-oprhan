@@ -1,6 +1,6 @@
-import React from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions } from 'react-native'
-import { ROLE_STATS, ROLE_NAV, ROLE_PAGES, RECENT_ACTIVITIES, COLORS, getInitials, hueFromName } from '../constants'
+import React, { useState, useRef } from 'react'
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, Animated } from 'react-native'
+import { ROLE_STATS, ROLE_NAV, ROLE_PAGES, RECENT_ACTIVITIES, COLORS, ROLE_LABELS, getInitials, hueFromName } from '../constants'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 const CARD_GAP = 12
@@ -16,58 +16,156 @@ export default function DashboardScreen({ user, role, onNavigate }) {
   const initials = getInitials(user?.first_name)
   const hue = hueFromName(user?.first_name)
 
+  const [isOpen, setIsOpen] = useState(false)
+  const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH * 0.5)).current
+
+  const toggleMenu = () => {
+    const toValue = isOpen ? -SCREEN_WIDTH * 0.5 : 0
+    Animated.timing(slideAnim, {
+      toValue,
+      duration: 300,
+      useNativeDriver: true,
+    }).start()
+    setIsOpen(!isOpen)
+  }
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>{page?.title || 'Tableau de bord'}</Text>
-          <Text style={styles.subtitle}>{page?.subtitle}</Text>
-        </View>
-        <View style={[styles.avatar, { backgroundColor: `hsl(${hue},50%,35%)` }]}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </View>
-      </View>
-
-      <View style={styles.statRow}>
-        {statCards.map((card, i) => (
-          <View key={i} style={[styles.statCard, { borderTopColor: card.color }]}>
-            <Text style={styles.statValue}>{card.value}</Text>
-            <Text style={styles.statLabel}>{card.label}</Text>
-            <Text style={[styles.statSub, { color: card.color }]}>{card.sub}</Text>
+    <View style={styles.wrapper}>
+      {/* Top Trigger Area */}
+      <TouchableOpacity style={styles.topTrigger} onPress={toggleMenu} activeOpacity={0.85}>
+        <View style={styles.topTriggerContent}>
+          <Text style={styles.topTriggerEmoji}>🌐</Text>
+          <Text style={styles.topTriggerText}>MENU DES FONCTIONNALITÉS WEB</Text>
+          <View style={styles.topTriggerBadge}>
+            <Text style={styles.topTriggerBadgeText}>{(ROLE_LABELS[role] || role).toUpperCase()}</Text>
           </View>
-        ))}
-      </View>
+        </View>
+      </TouchableOpacity>
 
-      <Text style={styles.sectionTitle}>Accès rapide</Text>
-      <View style={styles.gridRow}>
-        {quickAccess.slice(0, 4).map((item, i) => {
-          const color = statCards[i]?.color || '#f59e0b'
-          return (
-            <TouchableOpacity key={item.key} style={[styles.gridCard, { borderTopColor: color }]} onPress={() => onNavigate(item.key)}>
-              <Text style={styles.gridCardTitle}>{item.label.toUpperCase()}</Text>
-              <Text style={styles.gridCardSub}>Accéder à {item.label.toLowerCase()}</Text>
-            </TouchableOpacity>
-          )
-        })}
-      </View>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>{page?.title || 'Tableau de bord'}</Text>
+            <Text style={styles.subtitle}>{page?.subtitle}</Text>
+          </View>
+          <View style={[styles.avatar, { backgroundColor: `hsl(${hue},50%,35%)` }]}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+        </View>
 
-      <Text style={styles.sectionTitle}>Activités récentes</Text>
-      <View style={styles.activityCard}>
-        {RECENT_ACTIVITIES.map((act, i) => (
-          <View key={i} style={[styles.activityItem, i > 0 && { borderTopWidth: 1, borderTopColor: COLORS.borderLight, paddingTop: 12 }]}>
-            <View style={styles.activityDot} />
-            <View style={styles.activityContent}>
-              <Text style={styles.activityText}>{act.text}</Text>
-              <Text style={styles.activityTime}>{act.time}</Text>
+        <View style={styles.statRow}>
+          {statCards.map((card, i) => (
+            <View key={i} style={[styles.statCard, { borderTopColor: card.color }]}>
+              <Text style={styles.statValue}>{card.value}</Text>
+              <Text style={styles.statLabel}>{card.label}</Text>
+              <Text style={[styles.statSub, { color: card.color }]}>{card.sub}</Text>
             </View>
-          </View>
-        ))}
-      </View>
-    </ScrollView>
+          ))}
+        </View>
+
+        <Text style={styles.sectionTitle}>Accès rapide</Text>
+        <View style={styles.gridRow}>
+          {quickAccess.slice(0, 4).map((item, i) => {
+            const color = statCards[i]?.color || '#f59e0b'
+            return (
+              <TouchableOpacity key={item.key} style={[styles.gridCard, { borderTopColor: color }]} onPress={() => onNavigate(item.key)}>
+                <Text style={styles.gridCardTitle}>{item.label.toUpperCase()}</Text>
+                <Text style={styles.gridCardSub}>Accéder à {item.label.toLowerCase()}</Text>
+              </TouchableOpacity>
+            )
+          })}
+        </View>
+
+        <Text style={styles.sectionTitle}>Activités récentes</Text>
+        <View style={styles.activityCard}>
+          {RECENT_ACTIVITIES.map((act, i) => (
+            <View key={i} style={[styles.activityItem, i > 0 && { borderTopWidth: 1, borderTopColor: COLORS.borderLight, paddingTop: 12 }]}>
+              <View style={styles.activityDot} />
+              <View style={styles.activityContent}>
+                <Text style={styles.activityText}>{act.text}</Text>
+                <Text style={styles.activityTime}>{act.time}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+
+      {/* Slide-out Backdrop Overlay */}
+      {isOpen && (
+        <TouchableOpacity
+          style={StyleSheet.absoluteFillObject}
+          activeOpacity={1}
+          onPress={toggleMenu}
+        >
+          <View style={styles.backdrop} />
+        </TouchableOpacity>
+      )}
+
+      {/* Left-Side Half-Screen sliding menu */}
+      <Animated.View style={[styles.slidingMenu, { transform: [{ translateX: slideAnim }] }]}>
+        <View style={styles.menuHeader}>
+          <Text style={styles.menuTitle}>Menu Web</Text>
+          <Text style={styles.menuRole}>{(ROLE_LABELS[role] || role).toUpperCase()}</Text>
+        </View>
+        <ScrollView style={styles.menuItemsList}>
+          {navItems.map((item) => (
+            <TouchableOpacity
+              key={item.key}
+              style={styles.menuItem}
+              onPress={() => {
+                toggleMenu()
+                onNavigate(item.key)
+              }}
+            >
+              <Text style={styles.menuItemText}>{item.label}</Text>
+              <Text style={styles.menuItemArrow}>→</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </Animated.View>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
+  wrapper: { flex: 1, backgroundColor: COLORS.bg },
+  topTrigger: {
+    backgroundColor: '#0f172a',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    zIndex: 10,
+  },
+  topTriggerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  topTriggerEmoji: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  topTriggerText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#cbd5e1',
+    letterSpacing: 1,
+    flex: 1,
+  },
+  topTriggerBadge: {
+    backgroundColor: COLORS.accentDim,
+    borderColor: COLORS.accent,
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  topTriggerBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: COLORS.accent,
+  },
   container: { flex: 1, backgroundColor: COLORS.bg },
   content: { padding: 16, paddingBottom: 32 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
@@ -102,4 +200,60 @@ const styles = StyleSheet.create({
   activityContent: { flex: 1 },
   activityText: { fontSize: 12, color: '#cbd5e1', fontWeight: '600', lineHeight: 18 },
   activityTime: { fontSize: 10, color: '#475569', fontWeight: '500', marginTop: 2 },
+
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(7, 13, 26, 0.75)',
+  },
+  slidingMenu: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: SCREEN_WIDTH * 0.5,
+    backgroundColor: '#0f172a',
+    borderRightWidth: 1,
+    borderRightColor: COLORS.border,
+    zIndex: 100,
+    paddingTop: 40,
+  },
+  menuHeader: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderLight,
+  },
+  menuTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#f8fafc',
+  },
+  menuRole: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.accent,
+    marginTop: 4,
+    letterSpacing: 1,
+  },
+  menuItemsList: {
+    flex: 1,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.02)',
+  },
+  menuItemText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#cbd5e1',
+  },
+  menuItemArrow: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
 })

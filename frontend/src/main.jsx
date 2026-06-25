@@ -7,11 +7,13 @@ import App from './App'
 // intercept console.log and hide only that single line. Everything else is left
 // untouched. (For full inspection power, install the React DevTools extension.)
 if (import.meta.env.DEV) {
+  const DEVTOOLS_HINT = 'Download the React DevTools'
   const originalLog = console.log
   console.log = function (...args) {
-    if (args.length === 1 && typeof args[0] === 'string' && args[0].includes('Download the React DevTools')) {
-      return
-    }
+    const isDevtoolsHint =
+      typeof args[0] === 'string' && args[0].includes(DEVTOOLS_HINT) ||
+      (args.length > 1 && typeof args[1] === 'string' && args[1].includes(DEVTOOLS_HINT))
+    if (isDevtoolsHint) return
     return originalLog.apply(console, args)
   }
 }
