@@ -1658,12 +1658,44 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [orphanageRequests, setOrphanageRequests] = useState([])
   const [orphanageForm, setOrphanageForm] = useState({
     name: localStorage.getItem('cdo_orphanage_name') || '',
+    registration_number: '',
+    orphanage_type: '',
+    date_established: '',
+    country: '',
+    province: '',
+    city: '',
     address: '',
+    gps_lat: '',
+    gps_lng: '',
+    director_name: '',
+    director_position: '',
+    director_phone: '',
+    director_whatsapp: '',
+    director_email: '',
+    emergency_contact: '',
     capacity: '',
+    current_children: '',
+    boys: '',
+    girls: '',
+    children_disabled: '',
+    infants_0_5: '',
+    children_6_12: '',
+    teenagers_13_18: '',
+    staff_permanent: '',
+    staff_volunteers: '',
+    staff_caregivers: '',
+    staff_teachers: '',
     document_details: '',
+    needs: [],
+    needs_priority: 'medium',
+    needs_description: '',
+    donor_visible: true,
   })
   const [orphanageLoading, setOrphanageLoading] = useState(false)
   const [orphanageNote, setOrphanageNote] = useState('')
+  const [orpWizStep, setOrpWizStep] = useState(0)
+  const [orpFiles, setOrpFiles] = useState({ registration_cert: null, operating_license: null, director_id: null, tax_doc: null, child_protection: null, annual_report: null, ngo_accreditation: null, partnership_certs: null })
+  const [orpDraftSaved, setOrpDraftSaved] = useState(false)
   const [bgTheme, setBgTheme] = useState(localStorage.getItem('cdo_bg') || '')
 
   useEffect(() => {
@@ -2200,29 +2232,249 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       ))}
                     </div>
                   </div>
-                ) : activeKey === 'orphelinats' && role === 'director' ? (
-                  <div className="dash-sub-form">
-                    <div className="dash-sub-form-fields">
-                      <div className="dash-form-field">
-                        <label className="dash-form-label">Nom de l'orphelinat</label>
-                        <input className="dash-form-input" value={orphanageForm.name} onChange={e => setOrphanageForm(f => ({ ...f, name: e.target.value }))} />
+                ) : activeKey === 'orphelinats' && role === 'director' ? (() => {
+                  const ORP_STEPS = ['General Information','Management','Capacity & Statistics','Documents','Needs Assessment','Verification'];
+                  const ORP_STEP_ICONS = ['🏛️','👤','📊','📄','🆘','✅'];
+                  const ORP_NEEDS_OPTIONS = ['Food','Clean Water','Clothing','School Supplies','Medicine','Beds','Electricity','Internet','Infrastructure','Transportation','Sponsorship Programs'];
+                  const ORP_NEEDS_ICONS = ['🍚','💧','👕','📚','💊','🛏️','⚡','🌐','🏗️','🚌','🤝'];
+                  const ORP_TYPES = ['Government','Private','Religious','NGO','Community'];
+                  const ORP_COUNTRIES = ['Angola','Benin','Botswana','Burkina Faso','Burundi','Cameroun','Cap-Vert','Centrafrique','Comores','Congo-Brazzaville','RD Congo','Côte d\'Ivoire','Djibouti','Egypte','Guinée Équ.','Érythrée','Eswatini','Éthiopie','Gabon','Gambie','Ghana','Guinée','Guinée-Bissau','Kenya','Lesotho','Libéria','Libye','Madagascar','Malawi','Mali','Mauritanie','Maurice','Maroc','Mozambique','Namibie','Niger','Nigeria','Rwanda','Sao Tomé','Sénégal','Seychelles','Sierra Leone','Somalie','Afrique du Sud','Soudan du Sud','Soudan','Tanzanie','Togo','Tunisie','Ouganda','Zambie','Zimbabwe'];
+                  const orpUpd = (k, v) => setOrphanageForm(f => ({ ...f, [k]: v }));
+                  const orpToggleNeed = (n) => setOrphanageForm(f => ({ ...f, needs: f.needs.includes(n) ? f.needs.filter(x => x !== n) : [...f.needs, n] }));
+                  const orpFileHandler = (key) => (e) => { const file = e.target.files?.[0]; if (file) setOrpFiles(p => ({ ...p, [key]: file })); };
+                  const orpDragHandler = (key) => ({ onDragOver: e => e.preventDefault(), onDrop: e => { e.preventDefault(); const file = e.dataTransfer.files?.[0]; if (file) setOrpFiles(p => ({ ...p, [key]: file })); } });
+                  const filledFields = [orphanageForm.name, orphanageForm.registration_number, orphanageForm.orphanage_type, orphanageForm.country, orphanageForm.director_name, orphanageForm.director_phone, orphanageForm.director_email, orphanageForm.capacity].filter(Boolean).length;
+                  const profileCompletion = Math.round((filledFields / 8) * 100);
+                  const docCount = Object.values(orpFiles).filter(Boolean).length;
+                  const docCompletion = Math.round((docCount / 5) * 100);
+                  const saveDraft = () => { try { localStorage.setItem('cdo_orp_draft', JSON.stringify(orphanageForm)); localStorage.setItem('cdo_orp_step', String(orpWizStep)); setOrpDraftSaved(true); showToast('Draft saved successfully.'); setTimeout(() => setOrpDraftSaved(false), 2000); } catch(e) {} };
+                  const autoSaveRef = React.useRef(null);
+                  React.useEffect(() => { if(autoSaveRef.current) clearTimeout(autoSaveRef.current); autoSaveRef.current = setTimeout(() => { try { localStorage.setItem('cdo_orp_draft', JSON.stringify(orphanageForm)); } catch(e){} }, 3000); return () => clearTimeout(autoSaveRef.current); }, [orphanageForm]);
+                  React.useEffect(() => { try { const d = localStorage.getItem('cdo_orp_draft'); const s = localStorage.getItem('cdo_orp_step'); if(d) setOrphanageForm(prev => ({...prev, ...JSON.parse(d)})); if(s) setOrpWizStep(Number(s)); } catch(e){} }, []);
+                  return (
+                  <div style={{padding:'0 8px'}}>
+                    {/* ── TRUST SCORE CARDS ── */}
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:12,marginBottom:24}}>
+                      {[{label:'Verification',val:'Pending',icon:'🛡️',color:'#f59e0b'},{label:'Profile',val:profileCompletion+'%',icon:'👤',color:'#3b82f6'},{label:'Documents',val:docCompletion+'%',icon:'📄',color:'#22c55e'},{label:'Transparency',val:orphanageForm.donor_visible?'Public':'Private',icon:'👁️',color:'#a855f7'}].map((c,i) => (
+                        <div key={i} style={{background:'rgba(30,41,59,0.7)',backdropFilter:'blur(16px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'18px 16px',display:'flex',alignItems:'center',gap:14}}>
+                          <div style={{width:48,height:48,borderRadius:12,background:`${c.color}18`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>{c.icon}</div>
+                          <div><div style={{fontSize:11,color:'#64748b',textTransform:'uppercase',letterSpacing:1,marginBottom:2}}>{c.label}</div><div style={{fontSize:18,fontWeight:700,color:'#e2e8f0'}}>{c.val}</div></div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* ── PROGRESS STEPPER ── */}
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:0,marginBottom:28,overflowX:'auto',padding:'4px 0'}}>
+                      {ORP_STEPS.map((s,i) => (
+                        <React.Fragment key={i}>
+                          <div onClick={() => setOrpWizStep(i)} style={{display:'flex',flexDirection:'column',alignItems:'center',cursor:'pointer',minWidth:80,opacity:orpWizStep===i?1:0.55,transition:'all .3s ease'}}>
+                            <div style={{width:38,height:38,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:700,background:orpWizStep>i?'#22c55e':orpWizStep===i?'linear-gradient(135deg,#f59e0b,#f97316)':'rgba(255,255,255,0.06)',color:orpWizStep>=i?'#fff':'#64748b',border:orpWizStep===i?'2px solid #f59e0b':'2px solid transparent',transition:'all .3s ease',boxShadow:orpWizStep===i?'0 0 20px rgba(245,158,11,0.3)':'none'}}>{orpWizStep>i?'✓':ORP_STEP_ICONS[i]}</div>
+                            <span style={{fontSize:10,marginTop:6,color:orpWizStep===i?'#f59e0b':'#64748b',fontWeight:orpWizStep===i?700:500,textAlign:'center',maxWidth:80}}>{s}</span>
+                          </div>
+                          {i<ORP_STEPS.length-1 && <div style={{flex:1,height:2,background:orpWizStep>i?'#22c55e':'rgba(255,255,255,0.08)',margin:'0 4px',marginBottom:18,minWidth:16,transition:'background .3s ease'}} />}
+                        </React.Fragment>
+                      ))}
+                    </div>
+
+                    {/* ── FORM CARD ── */}
+                    <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:20,padding:'28px 24px',marginBottom:20}}>
+
+                    {/* ══ STEP 0: GENERAL INFORMATION ══ */}
+                    {orpWizStep === 0 && <>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}>🏛️ Orphanage Information</h3>
+                      <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Provide the general details about your orphanage.</p>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16}}>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Orphanage Name <span style={{color:'#ef4444'}}>*</span></label><input className="dash-form-input" value={orphanageForm.name} onChange={e=>orpUpd('name',e.target.value)} placeholder="Enter orphanage name" /></div>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Legal Registration Number <span style={{color:'#ef4444'}}>*</span></label><input className="dash-form-input" value={orphanageForm.registration_number} onChange={e=>orpUpd('registration_number',e.target.value)} placeholder="e.g. ORG-2024-001" /></div>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Orphanage Type <span style={{color:'#ef4444'}}>*</span></label><select className="dash-form-input" value={orphanageForm.orphanage_type} onChange={e=>orpUpd('orphanage_type',e.target.value)} style={{cursor:'pointer'}}><option value="">Select type...</option>{ORP_TYPES.map(t2=>(<option key={t2} value={t2}>{t2}</option>))}</select></div>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Date of Establishment</label><input type="date" className="dash-form-input" value={orphanageForm.date_established} onChange={e=>orpUpd('date_established',e.target.value)} /></div>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Country <span style={{color:'#ef4444'}}>*</span></label><select className="dash-form-input" value={orphanageForm.country} onChange={e=>orpUpd('country',e.target.value)} style={{cursor:'pointer'}}><option value="">Select country...</option>{ORP_COUNTRIES.map(c=>(<option key={c} value={c}>{c}</option>))}</select></div>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Province / State</label><input className="dash-form-input" value={orphanageForm.province} onChange={e=>orpUpd('province',e.target.value)} placeholder="Province" /></div>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>City</label><input className="dash-form-input" value={orphanageForm.city} onChange={e=>orpUpd('city',e.target.value)} placeholder="City" /></div>
+                        <div style={{gridColumn:'1/-1'}}><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Full Address</label><input className="dash-form-input" value={orphanageForm.address} onChange={e=>orpUpd('address',e.target.value)} placeholder="Full street address" /></div>
                       </div>
-                      <div className="dash-form-field">
-                        <label className="dash-form-label">Adresse</label>
-                        <input className="dash-form-input" value={orphanageForm.address} onChange={e => setOrphanageForm(f => ({ ...f, address: e.target.value }))} />
+                      <div style={{marginTop:20,padding:'16px',background:'rgba(59,130,246,0.06)',borderRadius:12,border:'1px solid rgba(59,130,246,0.15)'}}>
+                        <div style={{fontSize:13,fontWeight:600,color:'#3b82f6',marginBottom:10,display:'flex',alignItems:'center',gap:6}}>📍 GPS Location</div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                          <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:4}}>Latitude</label><input className="dash-form-input" value={orphanageForm.gps_lat} onChange={e=>orpUpd('gps_lat',e.target.value)} placeholder="e.g. -4.3250" /></div>
+                          <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:4}}>Longitude</label><input className="dash-form-input" value={orphanageForm.gps_lng} onChange={e=>orpUpd('gps_lng',e.target.value)} placeholder="e.g. 15.3222" /></div>
+                        </div>
                       </div>
-                      <div className="dash-form-field">
-                        <label className="dash-form-label">Capacite</label>
-                        <input type="number" className="dash-form-input" value={orphanageForm.capacity} onChange={e => setOrphanageForm(f => ({ ...f, capacity: e.target.value }))} />
+                    </>}
+
+                    {/* ══ STEP 1: MANAGEMENT ══ */}
+                    {orpWizStep === 1 && <>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}>👤 Management & Contact Information</h3>
+                      <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Director and key contact details for verification.</p>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16}}>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Director Full Name <span style={{color:'#ef4444'}}>*</span></label><input className="dash-form-input" value={orphanageForm.director_name} onChange={e=>orpUpd('director_name',e.target.value)} placeholder="Full name" /></div>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Position <span style={{color:'#ef4444'}}>*</span></label><input className="dash-form-input" value={orphanageForm.director_position} onChange={e=>orpUpd('director_position',e.target.value)} placeholder="e.g. Executive Director" /></div>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Phone Number <span style={{color:'#ef4444'}}>*</span></label><input type="tel" className="dash-form-input" value={orphanageForm.director_phone} onChange={e=>orpUpd('director_phone',e.target.value)} placeholder="+243 ..." /></div>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>WhatsApp Number</label><input type="tel" className="dash-form-input" value={orphanageForm.director_whatsapp} onChange={e=>orpUpd('director_whatsapp',e.target.value)} placeholder="+243 ..." /></div>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Email Address <span style={{color:'#ef4444'}}>*</span></label><input type="email" className="dash-form-input" value={orphanageForm.director_email} onChange={e=>orpUpd('director_email',e.target.value)} placeholder="director@email.com" /></div>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Emergency Contact</label><input className="dash-form-input" value={orphanageForm.emergency_contact} onChange={e=>orpUpd('emergency_contact',e.target.value)} placeholder="Emergency phone number" /></div>
                       </div>
-                      <div className="dash-form-field">
-                        <label className="dash-form-label">Details du document d'orphelinat</label>
-                        <textarea className="dash-form-input" rows={5} value={orphanageForm.document_details} onChange={e => setOrphanageForm(f => ({ ...f, document_details: e.target.value }))} placeholder="Numero du document, autorite, date, resume..." />
+                    </>}
+
+                    {/* ══ STEP 2: CAPACITY & STATISTICS ══ */}
+                    {orpWizStep === 2 && <>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}>📊 Population Statistics</h3>
+                      <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Detailed breakdown of children and staff.</p>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
+                        <div style={{background:'rgba(245,158,11,0.06)',borderRadius:14,padding:16,border:'1px solid rgba(245,158,11,0.15)'}}>
+                          <label style={{fontSize:12,color:'#f59e0b',fontWeight:600,marginBottom:6,display:'block'}}>Maximum Capacity</label>
+                          <input type="number" className="dash-form-input" value={orphanageForm.capacity} onChange={e=>orpUpd('capacity',e.target.value)} placeholder="0" style={{fontSize:22,fontWeight:700,textAlign:'center'}} />
+                        </div>
+                        <div style={{background:'rgba(59,130,246,0.06)',borderRadius:14,padding:16,border:'1px solid rgba(59,130,246,0.15)'}}>
+                          <label style={{fontSize:12,color:'#3b82f6',fontWeight:600,marginBottom:6,display:'block'}}>Current Children</label>
+                          <input type="number" className="dash-form-input" value={orphanageForm.current_children} onChange={e=>orpUpd('current_children',e.target.value)} placeholder="0" style={{fontSize:22,fontWeight:700,textAlign:'center'}} />
+                        </div>
                       </div>
-                      <button className="dash-form-save" onClick={submitOrphanage} disabled={orphanageLoading}>Envoyer a l'ambassadeur</button>
+                      <div style={{fontSize:13,fontWeight:600,color:'#94a3b8',marginBottom:10}}>Children Breakdown</div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12,marginBottom:20}}>
+                        {[{k:'boys',l:'Boys 👦',c:'#3b82f6'},{k:'girls',l:'Girls 👧',c:'#ec4899'},{k:'children_disabled',l:'With Disabilities ♿',c:'#a855f7'},{k:'infants_0_5',l:'Infants (0-5) 👶',c:'#22c55e'},{k:'children_6_12',l:'Children (6-12) 🧒',c:'#f59e0b'},{k:'teenagers_13_18',l:'Teenagers (13-18) 🧑',c:'#06b6d4'}].map(f=>(
+                          <div key={f.k} style={{background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'12px',border:'1px solid rgba(255,255,255,0.06)'}}>
+                            <label style={{fontSize:11,color:f.c,display:'block',marginBottom:6,fontWeight:600}}>{f.l}</label>
+                            <input type="number" className="dash-form-input" value={orphanageForm[f.k]} onChange={e=>orpUpd(f.k,e.target.value)} placeholder="0" style={{textAlign:'center'}} />
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{fontSize:13,fontWeight:600,color:'#94a3b8',marginBottom:10}}>Staff Information</div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12}}>
+                        {[{k:'staff_permanent',l:'Permanent Staff',i:'🏢'},{k:'staff_volunteers',l:'Volunteers',i:'🙋'},{k:'staff_caregivers',l:'Caregivers',i:'🤱'},{k:'staff_teachers',l:'Teachers',i:'👩‍🏫'}].map(f=>(
+                          <div key={f.k} style={{background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'12px',border:'1px solid rgba(255,255,255,0.06)'}}>
+                            <label style={{fontSize:11,color:'#94a3b8',display:'block',marginBottom:6,fontWeight:600}}>{f.i} {f.l}</label>
+                            <input type="number" className="dash-form-input" value={orphanageForm[f.k]} onChange={e=>orpUpd(f.k,e.target.value)} placeholder="0" style={{textAlign:'center'}} />
+                          </div>
+                        ))}
+                      </div>
+                      {/* Live summary */}
+                      {(orphanageForm.capacity || orphanageForm.current_children) && <div style={{marginTop:20,padding:'16px',background:'rgba(34,197,94,0.06)',borderRadius:12,border:'1px solid rgba(34,197,94,0.15)',display:'flex',flexWrap:'wrap',gap:20}}>
+                        <div><span style={{fontSize:11,color:'#64748b'}}>Capacity Usage</span><div style={{fontSize:20,fontWeight:700,color:Number(orphanageForm.current_children||0)/Number(orphanageForm.capacity||1)>0.9?'#ef4444':'#22c55e'}}>{orphanageForm.capacity?Math.round(Number(orphanageForm.current_children||0)/Number(orphanageForm.capacity)*100):0}%</div></div>
+                        <div><span style={{fontSize:11,color:'#64748b'}}>Available Spots</span><div style={{fontSize:20,fontWeight:700,color:'#3b82f6'}}>{Math.max(0,Number(orphanageForm.capacity||0)-Number(orphanageForm.current_children||0))}</div></div>
+                        <div><span style={{fontSize:11,color:'#64748b'}}>Total Staff</span><div style={{fontSize:20,fontWeight:700,color:'#f59e0b'}}>{Number(orphanageForm.staff_permanent||0)+Number(orphanageForm.staff_volunteers||0)+Number(orphanageForm.staff_caregivers||0)+Number(orphanageForm.staff_teachers||0)}</div></div>
+                      </div>}
+                    </>}
+
+                    {/* ══ STEP 3: DOCUMENTS ══ */}
+                    {orpWizStep === 3 && <>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}>📄 Legal Documents</h3>
+                      <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Upload required legal documents for verification.</p>
+                      <div style={{fontSize:13,fontWeight:600,color:'#22c55e',marginBottom:14}}>✅ Required Documents ({Object.entries(orpFiles).filter(([k])=>['registration_cert','operating_license','director_id','tax_doc','child_protection'].includes(k)).filter(([,v])=>v).length}/5)</div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:14,marginBottom:24}}>
+                        {[{k:'registration_cert',l:'Registration Certificate',req:true},{k:'operating_license',l:'Operating License',req:true},{k:'director_id',l:'Director Identification',req:true},{k:'tax_doc',l:'Tax Registration',req:true},{k:'child_protection',l:'Child Protection Policy',req:true}].map(d=>(
+                          <div key={d.k} {...orpDragHandler(d.k)} style={{border:`2px dashed ${orpFiles[d.k]?'#22c55e':'rgba(255,255,255,0.1)'}`,borderRadius:14,padding:'20px 16px',textAlign:'center',cursor:'pointer',background:orpFiles[d.k]?'rgba(34,197,94,0.04)':'rgba(255,255,255,0.02)',transition:'all .2s ease'}} onClick={()=>document.getElementById('orp-file-'+d.k)?.click()}>
+                            <div style={{fontSize:28,marginBottom:6}}>{orpFiles[d.k]?'✅':'📤'}</div>
+                            <div style={{fontSize:12,fontWeight:600,color:orpFiles[d.k]?'#22c55e':'#94a3b8',marginBottom:4}}>{d.l}{d.req&&<span style={{color:'#ef4444'}}> *</span>}</div>
+                            <div style={{fontSize:11,color:'#64748b'}}>{orpFiles[d.k]?orpFiles[d.k].name:'Drag & drop or click to upload'}</div>
+                            <input id={'orp-file-'+d.k} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{display:'none'}} onChange={orpFileHandler(d.k)} />
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{fontSize:13,fontWeight:600,color:'#64748b',marginBottom:14}}>📎 Optional Documents</div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:14}}>
+                        {[{k:'annual_report',l:'Annual Report'},{k:'ngo_accreditation',l:'NGO Accreditation'},{k:'partnership_certs',l:'Partnership Certificates'}].map(d=>(
+                          <div key={d.k} {...orpDragHandler(d.k)} style={{border:`2px dashed ${orpFiles[d.k]?'#3b82f6':'rgba(255,255,255,0.06)'}`,borderRadius:14,padding:'16px',textAlign:'center',cursor:'pointer',background:orpFiles[d.k]?'rgba(59,130,246,0.04)':'rgba(255,255,255,0.01)',transition:'all .2s ease'}} onClick={()=>document.getElementById('orp-file-'+d.k)?.click()}>
+                            <div style={{fontSize:22,marginBottom:4}}>{orpFiles[d.k]?'📎':'📤'}</div>
+                            <div style={{fontSize:12,color:orpFiles[d.k]?'#3b82f6':'#64748b'}}>{d.l}</div>
+                            <div style={{fontSize:10,color:'#475569'}}>{orpFiles[d.k]?orpFiles[d.k].name:'Optional'}</div>
+                            <input id={'orp-file-'+d.k} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{display:'none'}} onChange={orpFileHandler(d.k)} />
+                          </div>
+                        ))}
+                      </div>
+                    </>}
+
+                    {/* ══ STEP 4: NEEDS ASSESSMENT ══ */}
+                    {orpWizStep === 4 && <>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}>🆘 Current Needs</h3>
+                      <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Select areas where your orphanage requires support.</p>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
+                        {ORP_NEEDS_OPTIONS.map((n,i) => {
+                          const active = orphanageForm.needs.includes(n);
+                          return (<button key={n} onClick={()=>orpToggleNeed(n)} style={{background:active?'rgba(245,158,11,0.12)':'rgba(255,255,255,0.03)',border:`1px solid ${active?'rgba(245,158,11,0.4)':'rgba(255,255,255,0.06)'}`,borderRadius:12,padding:'14px 10px',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:6,transition:'all .2s ease',transform:active?'scale(1.03)':'scale(1)'}}>
+                            <span style={{fontSize:24}}>{ORP_NEEDS_ICONS[i]}</span>
+                            <span style={{fontSize:11,fontWeight:active?700:500,color:active?'#f59e0b':'#94a3b8'}}>{n}</span>
+                            {active && <span style={{fontSize:10,color:'#22c55e'}}>✓ Selected</span>}
+                          </button>)
+                        })}
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Priority Level</label><select className="dash-form-input" value={orphanageForm.needs_priority} onChange={e=>orpUpd('needs_priority',e.target.value)} style={{cursor:'pointer'}}><option value="low">🟢 Low</option><option value="medium">🟡 Medium</option><option value="high">🟠 High</option><option value="critical">🔴 Critical</option></select></div>
+                        <div style={{display:'flex',alignItems:'center',gap:8,paddingTop:20}}><label style={{fontSize:12,color:'#94a3b8',cursor:'pointer',display:'flex',alignItems:'center',gap:8}}><input type="checkbox" checked={orphanageForm.donor_visible} onChange={e=>orpUpd('donor_visible',e.target.checked)} style={{accentColor:'#f59e0b'}} /> 👁️ Visible to donors</label></div>
+                      </div>
+                      <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Describe Current Needs & Challenges</label><textarea className="dash-form-input" rows={4} value={orphanageForm.needs_description} onChange={e=>orpUpd('needs_description',e.target.value)} placeholder="Describe the most urgent needs and current challenges your orphanage is facing..." /></div>
+                    </>}
+
+                    {/* ══ STEP 5: VERIFICATION ══ */}
+                    {orpWizStep === 5 && <>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}>✅ Verification & Submission</h3>
+                      <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Review your submission and track verification status.</p>
+
+                      {/* Ambassador Card */}
+                      <div style={{background:'rgba(168,85,247,0.06)',borderRadius:16,padding:'20px',border:'1px solid rgba(168,85,247,0.15)',marginBottom:20}}>
+                        <div style={{fontSize:13,fontWeight:600,color:'#a855f7',marginBottom:14}}>🔍 Assigned Ambassador</div>
+                        <div style={{display:'flex',alignItems:'center',gap:16}}>
+                          <div style={{width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,#a855f7,#6366f1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,color:'#fff'}}>🛡️</div>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>Awaiting Assignment</div>
+                            <div style={{fontSize:12,color:'#64748b'}}>An ambassador will be assigned after submission</div>
+                          </div>
+                          <div style={{padding:'6px 14px',borderRadius:20,background:'rgba(245,158,11,0.12)',color:'#f59e0b',fontSize:11,fontWeight:700}}>⏳ Pending</div>
+                        </div>
+                      </div>
+
+                      {/* Verification Timeline */}
+                      <div style={{background:'rgba(255,255,255,0.02)',borderRadius:14,padding:'20px',border:'1px solid rgba(255,255,255,0.06)',marginBottom:20}}>
+                        <div style={{fontSize:13,fontWeight:600,color:'#94a3b8',marginBottom:16}}>📋 Verification Timeline</div>
+                        {['Registration Submitted','Documents Reviewed','Field Inspection','Final Approval'].map((step,i)=>(
+                          <div key={i} style={{display:'flex',alignItems:'flex-start',gap:14,marginBottom:i<3?16:0}}>
+                            <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
+                              <div style={{width:28,height:28,borderRadius:'50%',background:i===0?'rgba(245,158,11,0.15)':'rgba(255,255,255,0.04)',border:`2px solid ${i===0?'#f59e0b':'rgba(255,255,255,0.1)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:i===0?'#f59e0b':'#475569'}}>{i===0?'⏳':i+1}</div>
+                              {i<3 && <div style={{width:2,height:24,background:'rgba(255,255,255,0.06)',marginTop:4}} />}
+                            </div>
+                            <div style={{paddingTop:4}}>
+                              <div style={{fontSize:13,fontWeight:600,color:i===0?'#f59e0b':'#64748b'}}>{step}</div>
+                              <div style={{fontSize:11,color:'#475569'}}>{i===0?'Will be submitted upon form completion':'Pending previous step'}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Summary */}
+                      <div style={{background:'rgba(59,130,246,0.04)',borderRadius:14,padding:'16px 20px',border:'1px solid rgba(59,130,246,0.12)'}}>
+                        <div style={{fontSize:13,fontWeight:600,color:'#3b82f6',marginBottom:12}}>📝 Submission Summary</div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,fontSize:12}}>
+                          <div style={{color:'#64748b'}}>Orphanage:</div><div style={{color:'#e2e8f0',fontWeight:600}}>{orphanageForm.name || '—'}</div>
+                          <div style={{color:'#64748b'}}>Type:</div><div style={{color:'#e2e8f0'}}>{orphanageForm.orphanage_type || '—'}</div>
+                          <div style={{color:'#64748b'}}>Country:</div><div style={{color:'#e2e8f0'}}>{orphanageForm.country || '—'}</div>
+                          <div style={{color:'#64748b'}}>Director:</div><div style={{color:'#e2e8f0'}}>{orphanageForm.director_name || '—'}</div>
+                          <div style={{color:'#64748b'}}>Capacity:</div><div style={{color:'#e2e8f0'}}>{orphanageForm.capacity || '—'}</div>
+                          <div style={{color:'#64748b'}}>Documents:</div><div style={{color:'#e2e8f0'}}>{docCount}/8 uploaded</div>
+                          <div style={{color:'#64748b'}}>Needs:</div><div style={{color:'#e2e8f0'}}>{orphanageForm.needs.length} selected</div>
+                        </div>
+                      </div>
+                    </>}
+
+                    </div>{/* end form card */}
+
+                    {/* ── BOTTOM ACTIONS ── */}
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap',marginBottom:20}}>
+                      <div style={{display:'flex',gap:10}}>
+                        {orpWizStep > 0 && <button className="dash-form-save" onClick={()=>setOrpWizStep(s=>s-1)} style={{background:'rgba(255,255,255,0.06)',color:'#94a3b8'}}>← Previous</button>}
+                      </div>
+                      <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                        {orpDraftSaved && <span style={{fontSize:11,color:'#22c55e'}}>✓ Draft saved</span>}
+                        <button className="dash-form-save" onClick={saveDraft} style={{background:'rgba(255,255,255,0.06)',color:'#94a3b8'}}>💾 Save Draft</button>
+                        {orpWizStep < 5 ? (
+                          <button className="dash-form-save" onClick={()=>setOrpWizStep(s=>s+1)} style={{background:'linear-gradient(135deg,#f59e0b,#f97316)',color:'#fff',fontWeight:700}}>Next Step →</button>
+                        ) : (
+                          <button className="dash-form-save" onClick={submitOrphanage} disabled={orphanageLoading} style={{background:'linear-gradient(135deg,#22c55e,#16a34a)',color:'#fff',fontWeight:700,padding:'10px 28px'}}>{orphanageLoading?'Submitting...':'🚀 Submit for Verification'}</button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                ) : subKey === 'Profil' && activeKey === 'parametres' ? (
+                  );})()
+                : subKey === 'Profil' && activeKey === 'parametres' ? (
                   <div className="dash-sub-form">
                     <div className="dash-sub-form-top">
                       <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'\u2190'} {t('form_back')}</button>
@@ -4126,7 +4378,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       <label className="uc-label">{t('uc_category') || 'Type'}</label>
                                       <div className="uc-type-grid">
                                         {UC_CATEGORIES.find(c => c.key === ucCategory)?.types.map(tp => (
-                                          <button key={tp} className={`uc-type-btn${ucType === tp ? ' active' : ''}`} onClick={() => { setUcType(tp); setUcTitle((t('uc_type_' + tp) || tp.replace(/_/g, ' ')) + ' - ' + (selectedRegChild?.prenom || '') + ' ' + (selectedRegChild?.nom || '')) }}>
+                                          <button key={tp.key} className={`uc-type-btn${ucType === tp.key ? ' active' : ''}`} onClick={() => { setUcType(tp.key); setUcTitle((t('uc_type_' + tp.key) || tp.label || tp.key.replace(/_/g, ' ')) + ' - ' + (selectedRegChild?.prenom || '') + ' ' + (selectedRegChild?.nom || '')) }}>
                                             {t('uc_type_' + tp) || tp.replace(/_/g, ' ')}
                                           </button>
                                         ))}

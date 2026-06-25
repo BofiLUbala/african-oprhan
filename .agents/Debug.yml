@@ -1,0 +1,47 @@
+debugging_skills:
+  backend:
+    - log_analysis: "Mastery of structured logging (JSON) and log aggregation tools (ELK Stack, Splunk, Datadog)."
+    - APM_tracing: "Profiling and distributed tracing using OpenTelemetry, New Relic, or Jaeger to find bottlenecks."
+    - remote_debugging: "Attaching IDE debuggers to live or staged environments (e.g., Delve for Go, jdb for Java, inspect for Node.js)."
+    - database_profiling: "Analyzing slow queries using EXPLAIN plans, monitoring connection pools, and checking deadlocks."
+
+  frontend:
+    - browser_devtools: "Advanced use of Chrome/Firefox DevTools (Network tab for payloads, Performance tab for main-thread blocking, Memory tab for leaks)."
+    - state_management_inspection: "Debugging UI state machines via Redux DevTools, Vuex/Pinia trackers, or React Context profilers."
+    - DOM_and_CSS_inspection: "Isolating rendering issues, layout thrashing, and paint flashing."
+    - error_tracking: "Triaging client-side exceptions using Sentry, LogRocket, or Bugsnag."
+
+  caching_layers:
+    - redis_memcached_inspection: "Using CLI tools (`MONITOR`, `SLOWLOG`, `INFO`) to inspect hit/miss ratios, TTLs, and memory eviction."
+    - cache_invalidation_triaging: "Identifying race conditions, stale data, and cache stampedes (thundering herd problem)."
+    - browser_cache_debugging: "Analyzing Cache-Control headers, ETag mismatches, and Service Worker/Cache Storage states."
+
+  mobile_general:
+    - console_and_crash_logs: "Analyzing crash vectors via Crashlytics, Android logcat, and iOS Console.app."
+    - network_proxying: "Intercepting and mocking mobile HTTP/HTTPS traffic using Charles Proxy, Proxyman, or Fiddler."
+
+  expo:
+    - expo_cli_diagnostics: "Utilizing Expo Go logs, Metro Bundler console, and `expo doctor` for dependency alignment."
+    - react_native_debugger: "Connecting to Chrome DevTools or standalone React Native Debugger for JS thread inspection."
+    - EAS_build_debugging: "Reviewing remote build logs from Expo Application Services to fix native credentials and plugin errors."
+
+  android:
+    - android_studio_profiler: "Tracking CPU usage, memory leaks (LeakCanary), and energy consumption in real-time."
+    - adb_mastery: "Leveraging Android Debug Bridge (`adb shell`, `adb logcat`, `adb bugreport`) for deep device control."
+    - native_crash_analysis: "Deobfuscating ProGuard/R8 stack traces and analyzing NDK (C/C++) crashes via ndk-stack."
+
+  desktop:
+    - native_os_monitors: "Using Windows Event Viewer, macOS Console, and Linux `dmesg` / `journalctl`."
+    - electron_tauri_debugging: "Splitting context debugging between the frontend Render process (DevTools) and the Main backend process (Node.js/Rust debuggers)."
+    - crash_dump_analysis: "Reading minidumps (`.dmp`) and core dumps using WinDbg, LLDB, or GDB."
+
+  system_level:
+    - kernel_and_syscall_tracing: "Using `strace` (Linux), `dtrace` (macOS), or Process Monitor (Windows) to track system calls and file I/O."
+    - resource_triage: "Diagnosing CPU/Memory constraints using `htop`, `vmstat`, `iostat`, and netstat."
+    - network_diagnostics: "Packet capturing and analysis using `tcpdump` and Wireshark to isolate TCP/IP issues."
+
+  ai_and_llm:
+    - prompt_and_output_tracing: "Using LLM observability frameworks (LangSmith, Phoenix, Arize) to trace chain-of-thought and token usage."
+    - embedding_and_vector_search_triage: "Debugging vector database recall, distance metrics (Cosine vs. L2), and indexing bottlenecks."
+    - model_evaluation_metrics: "Analyzing hallucination rates, toxicity scores, and retrieval accuracy (RAG triad: Context Relevance, Groundedness, Answer Relevance)."
+    - tensor_and_memory_profiling: "Fixing CUDA out-of-memory (OOM) errors using PyTorch profiler and monitoring weights/biases drift."

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { View, Text, Image, TouchableOpacity, StyleSheet, StatusBar } from 'react-native'
+import React, { useState, useEffect, useRef } from 'react'
+import { View, Text, Image, TouchableOpacity, StyleSheet, StatusBar, Animated, Easing } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import LoginScreen from './screens/LoginScreen'
@@ -16,6 +16,189 @@ const TABS = [
   { key: 'parametres', label: 'Paramètres', icon: '⚙️' },
 ]
 
+/* ─── Animated Splash Screen ─── */
+function SplashScreen() {
+  const pulseAnim = useRef(new Animated.Value(1)).current
+  const progressAnim = useRef(new Animated.Value(0)).current
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const glowAnim = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    // Fade in everything
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start()
+
+    // Pulsing logo
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.08,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start()
+
+    // Glow ring pulsing
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 1,
+          duration: 1200,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0.3,
+          duration: 1200,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start()
+
+    // Progress bar (fills over ~2s)
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 2200,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start()
+  }, [])
+
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  })
+
+  return (
+    <View style={splashStyles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#070d1a" />
+
+      <Animated.View style={[splashStyles.content, { opacity: fadeAnim }]}>
+        {/* Glow ring behind logo */}
+        <Animated.View
+          style={[
+            splashStyles.glowRing,
+            { opacity: glowAnim },
+          ]}
+        />
+
+        {/* Pulsing logo */}
+        <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+          <Image
+            source={require('../assets/logo.jpg')}
+            style={splashStyles.logo}
+          />
+        </Animated.View>
+
+        {/* App name */}
+        <Text style={splashStyles.title}>Fédération des</Text>
+        <Text style={splashStyles.titleAccent}>Orphelinats</Text>
+
+        {/* Progress bar */}
+        <View style={splashStyles.progressTrack}>
+          <Animated.View
+            style={[splashStyles.progressFill, { width: progressWidth }]}
+          />
+        </View>
+
+        <Text style={splashStyles.statusText}>Initialisation en cours…</Text>
+
+        {/* Version */}
+        <Text style={splashStyles.version}>v2.4.1</Text>
+      </Animated.View>
+    </View>
+  )
+}
+
+const splashStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#070d1a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    alignItems: 'center',
+  },
+  glowRing: {
+    position: 'absolute',
+    top: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+    alignSelf: 'center',
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 16,
+    color: '#94a3b8',
+    fontWeight: '400',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  titleAccent: {
+    fontSize: 26,
+    color: '#f59e0b',
+    fontWeight: '700',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    marginTop: 4,
+    marginBottom: 32,
+  },
+  progressTrack: {
+    width: 200,
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: '#f59e0b',
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 16,
+    letterSpacing: 0.5,
+  },
+  version: {
+    fontSize: 11,
+    color: '#334155',
+    marginTop: 40,
+    letterSpacing: 1,
+  },
+})
+
+/* ─── Main App ─── */
 export default function App() {
   return (
     <SafeAreaProvider>
@@ -34,6 +217,8 @@ function AppContent() {
   }, [])
 
   const checkAuth = async () => {
+    // Minimum splash duration so the user always sees it
+    const minSplash = new Promise(resolve => setTimeout(resolve, 2400))
     try {
       const stored = await AsyncStorage.getItem('cdo_auth')
       if (stored) {
@@ -41,9 +226,9 @@ function AppContent() {
       }
     } catch (e) {
       console.error('Auth restore error:', e)
-    } finally {
-      setLoading(false)
     }
+    await minSplash
+    setLoading(false)
   }
 
   const handleLogin = async (authData) => {
@@ -76,13 +261,7 @@ function AppContent() {
   }
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
-        <Image source={require('../assets/logo.jpg')} style={styles.loadingLogo} />
-        <Text style={styles.loadingLabel}>Chargement...</Text>
-      </SafeAreaView>
-    )
+    return <SplashScreen />
   }
 
   if (!auth) {
