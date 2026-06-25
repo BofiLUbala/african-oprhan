@@ -16,6 +16,9 @@ export default function DashboardScreen({ user, role, onNavigate }) {
   const initials = getInitials(user?.first_name)
   const hue = hueFromName(user?.first_name)
 
+  const safeRole = role || 'director'
+  const displayRole = (ROLE_LABELS[safeRole] || safeRole).toUpperCase()
+
   const [isOpen, setIsOpen] = useState(false)
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH * 0.5)).current
 
@@ -37,7 +40,7 @@ export default function DashboardScreen({ user, role, onNavigate }) {
           <Text style={styles.topTriggerEmoji}>🌐</Text>
           <Text style={styles.topTriggerText}>MENU DES FONCTIONNALITÉS WEB</Text>
           <View style={styles.topTriggerBadge}>
-            <Text style={styles.topTriggerBadgeText}>{(ROLE_LABELS[role] || role).toUpperCase()}</Text>
+            <Text style={styles.topTriggerBadgeText}>{displayRole}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -105,7 +108,7 @@ export default function DashboardScreen({ user, role, onNavigate }) {
       <Animated.View style={[styles.slidingMenu, { transform: [{ translateX: slideAnim }] }]}>
         <View style={styles.menuHeader}>
           <Text style={styles.menuTitle}>Menu Web</Text>
-          <Text style={styles.menuRole}>{(ROLE_LABELS[role] || role).toUpperCase()}</Text>
+          <Text style={styles.menuRole}>{displayRole}</Text>
         </View>
         <ScrollView style={styles.menuItemsList}>
           {navItems.map((item) => (
