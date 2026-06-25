@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, Animated } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, Animated, Alert } from 'react-native'
 import { ROLE_STATS, ROLE_NAV, ROLE_PAGES, RECENT_ACTIVITIES, COLORS, ROLE_LABELS, getInitials, hueFromName } from '../constants'
+
+const MOBILE_SCREENS = ['dashboard', 'enfants', 'communication', 'parametres']
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 const CARD_GAP = 12
@@ -34,11 +36,14 @@ export default function DashboardScreen({ user, role, onNavigate }) {
 
   return (
     <View style={styles.wrapper}>
-      {/* Top Trigger Area */}
-      <TouchableOpacity style={styles.topTrigger} onPress={toggleMenu} activeOpacity={0.85}>
+      {/* Top Trigger Area - Hamburger */}
+      <TouchableOpacity style={styles.topTrigger} onPress={toggleMenu} activeOpacity={0.7}>
         <View style={styles.topTriggerContent}>
-          <Text style={styles.topTriggerEmoji}>🌐</Text>
-          <Text style={styles.topTriggerText}>MENU DES FONCTIONNALITÉS WEB</Text>
+          <View style={styles.hamburger}>
+            <View style={styles.hamburgerLine} />
+            <View style={styles.hamburgerLine} />
+            <View style={styles.hamburgerLine} />
+          </View>
           <View style={styles.topTriggerBadge}>
             <Text style={styles.topTriggerBadgeText}>{displayRole}</Text>
           </View>
@@ -71,7 +76,7 @@ export default function DashboardScreen({ user, role, onNavigate }) {
           {quickAccess.slice(0, 4).map((item, i) => {
             const color = statCards[i]?.color || '#f59e0b'
             return (
-              <TouchableOpacity key={item.key} style={[styles.gridCard, { borderTopColor: color }]} onPress={() => onNavigate(item.key)}>
+              <TouchableOpacity key={item.key} style={[styles.gridCard, { borderTopColor: color }]} onPress={() => MOBILE_SCREENS.includes(item.key) ? onNavigate(item.key) : Alert.alert('Version Web', 'Cette fonctionnalité est disponible sur la version web du tableau de bord.')}>
                 <Text style={styles.gridCardTitle}>{item.label.toUpperCase()}</Text>
                 <Text style={styles.gridCardSub}>Accéder à {item.label.toLowerCase()}</Text>
               </TouchableOpacity>
@@ -145,16 +150,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  topTriggerEmoji: {
-    fontSize: 16,
-    marginRight: 8,
+  hamburger: {
+    width: 24, height: 18, justifyContent: 'space-between', alignItems: 'flex-start',
   },
-  topTriggerText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#cbd5e1',
-    letterSpacing: 1,
-    flex: 1,
+  hamburgerLine: {
+    width: '100%', height: 2.5, backgroundColor: '#94a3b8', borderRadius: 2,
   },
   topTriggerBadge: {
     backgroundColor: COLORS.accentDim,

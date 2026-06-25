@@ -1847,6 +1847,18 @@ select.dash-prof-input option { background:#1e293b; color:#e2e8f0; }
 .dash-category-cards {
   display:grid; grid-template-columns:1fr 1fr; gap:12px;
 }
+.dash-amb-card {
+  display:flex; flex-direction:column; justify-content:space-between;
+  padding:20px; min-height:150px; cursor:pointer;
+  background:linear-gradient(160deg,#1E293B,rgba(15,23,42,0.6));
+  border:1px solid #334155; border-radius:12px;
+  transition:all .25s cubic-bezier(.4,0,.2,1); text-align:left;
+  color:inherit; font-family:inherit; width:100%; position:relative;
+}
+.dash-amb-card:hover {
+  border-color:#3b82f6; transform:translateY(-2px);
+  box-shadow:0 8px 25px rgba(59,130,246,0.08);
+}
 .dash-category-card {
   display:flex; flex-direction:column; align-items:center; gap:8px;
   padding:20px 14px 18px;

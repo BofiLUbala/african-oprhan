@@ -6576,6 +6576,37 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     )}
                   </div>
                   )})()
+                : activeKey === 'ambassadeurs' && (role === 'federation' || role === 'supermaster') ? (() => {
+                  const ambCards = [
+                    { id:'A1', label:'Ambassadeurs actifs', value:'12', status:'En poste', dotColor:'#22c55e', iconColor:'#22c55e', iconBg:'rgba(34,197,94,0.12)',
+                      svg: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+                    { id:'A2', label:'Rapports reçus', value:'8', status:'Ce mois', dotColor:'#3b82f6', iconColor:'#3b82f6', iconBg:'rgba(59,130,246,0.12)',
+                      svg: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> },
+                    { id:'A3', label:'Évaluations', value:'3', status:'En cours', dotColor:'#f59e0b', iconColor:'#f59e0b', iconBg:'rgba(245,158,11,0.12)',
+                      svg: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> },
+                    { id:'A4', label:'Affectations', value:'5', status:'Demandes', dotColor:'#a855f7', iconColor:'#a855f7', iconBg:'rgba(168,85,247,0.12)',
+                      svg: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> },
+                  ]
+                  return (
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+                      {ambCards.map((c,i) => (
+                        <button key={i} className="dash-amb-card" onClick={() => { setSubKey(c.label); window.scrollTo({top:0,behavior:'smooth'}) }}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
+                            <span style={{fontSize:12,color:'#94A3B8',fontWeight:500,letterSpacing:'0.3px',textTransform:'uppercase'}}>{c.label}</span>
+                            <div style={{width:40,height:40,borderRadius:10,background:c.iconBg,display:'flex',alignItems:'center',justifyContent:'center',color:c.iconColor,flexShrink:0}}>
+                              {c.svg}
+                            </div>
+                          </div>
+                          <div style={{fontSize:36,fontWeight:700,color:'#fff',lineHeight:1,marginBottom:14}}>{c.value}</div>
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <span style={{width:8,height:8,borderRadius:'50%',background:c.dotColor,flexShrink:0}} />
+                            <span style={{fontSize:11,color:'#64748b',fontWeight:500}}>{c.status}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )
+                })()
                 : (
                   <div className="dash-category-cards">
                     {activeKey === 'parametres' && !subKey && (

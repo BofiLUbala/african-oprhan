@@ -18,6 +18,12 @@ def orphanage_list(request):
     if request.method == "POST":
         if user.role != "director":
             return Response({"error": "Seul un chef d'orphelinat peut soumettre un orphelinat."}, status=status.HTTP_403_FORBIDDEN)
+        existing = Orphanage.objects.filter(director=user).first()
+        if existing:
+            serializer = OrphanageSerializer(existing, data=request.data, context={"request": request})
+            serializer.is_valid(raise_exception=True)
+            orphanage = serializer.save()
+            return Response(OrphanageSerializer(orphanage).data)
         serializer = OrphanageSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         orphanage = serializer.save()
