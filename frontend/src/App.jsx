@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { LangProvider, useTranslation } from './i18n'
 import './App.css'
 
@@ -1697,6 +1697,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [orpFiles, setOrpFiles] = useState({ registration_cert: null, operating_license: null, director_id: null, tax_doc: null, child_protection: null, annual_report: null, ngo_accreditation: null, partnership_certs: null })
   const [orpDraftSaved, setOrpDraftSaved] = useState(false)
   const [bgTheme, setBgTheme] = useState(localStorage.getItem('cdo_bg') || '')
+  const autoSaveRef = useRef(null)
+  useEffect(() => { if(autoSaveRef.current) clearTimeout(autoSaveRef.current); autoSaveRef.current = setTimeout(() => { try { localStorage.setItem('cdo_orp_draft', JSON.stringify(orphanageForm)); } catch(e){} }, 3000); return () => clearTimeout(autoSaveRef.current); }, [orphanageForm])
+  useEffect(() => { try { const d = localStorage.getItem('cdo_orp_draft'); const s = localStorage.getItem('cdo_orp_step'); if(d) setOrphanageForm(prev => ({...prev, ...JSON.parse(d)})); if(s) setOrpWizStep(Number(s)); } catch(e){} }, [])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -2248,9 +2251,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const docCount = Object.values(orpFiles).filter(Boolean).length;
                   const docCompletion = Math.round((docCount / 5) * 100);
                   const saveDraft = () => { try { localStorage.setItem('cdo_orp_draft', JSON.stringify(orphanageForm)); localStorage.setItem('cdo_orp_step', String(orpWizStep)); setOrpDraftSaved(true); showToast('Draft saved successfully.'); setTimeout(() => setOrpDraftSaved(false), 2000); } catch(e) {} };
-                  const autoSaveRef = React.useRef(null);
-                  React.useEffect(() => { if(autoSaveRef.current) clearTimeout(autoSaveRef.current); autoSaveRef.current = setTimeout(() => { try { localStorage.setItem('cdo_orp_draft', JSON.stringify(orphanageForm)); } catch(e){} }, 3000); return () => clearTimeout(autoSaveRef.current); }, [orphanageForm]);
-                  React.useEffect(() => { try { const d = localStorage.getItem('cdo_orp_draft'); const s = localStorage.getItem('cdo_orp_step'); if(d) setOrphanageForm(prev => ({...prev, ...JSON.parse(d)})); if(s) setOrpWizStep(Number(s)); } catch(e){} }, []);
                   return (
                   <div style={{padding:'0 8px'}}>
                     {/* ── TRUST SCORE CARDS ── */}
