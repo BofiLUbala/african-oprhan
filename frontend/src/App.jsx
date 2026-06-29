@@ -1555,6 +1555,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [orpSelChildren, setOrpSelChildren] = useState([])
   const [orpAssignAmb, setOrpAssignAmb] = useState('')
   const [orpAssignLoading, setOrpAssignLoading] = useState(false)
+  const [ambSearchQuery, setAmbSearchQuery] = useState('')
   const [orpDetailTab, setOrpDetailTab] = useState('status')
   const [dirAmbAssignments, setDirAmbAssignments] = useState([])
   const [dirAmbLoading, setDirAmbLoading] = useState(false)
@@ -1617,13 +1618,16 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       setLoadingOrpDetails(true)
       Promise.all([
         fetch(`${API}/enfants/?orphanage_id=${subKey}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/besoins/?orphanage_id=${subKey}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/assignments/?orphanage_id=${subKey}`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${API}/assignments/`, { headers: { Authorization: `Bearer ${token}` } })
       ])
-        .then(async ([cRes, nRes, aRes]) => {
-          if (cRes.ok) setOrphanageChildren(await cRes.json())
-          if (nRes.ok) setOrphanageNeeds(await nRes.json())
-          if (aRes.ok) setOrphanageAssignments(await aRes.json())
+        .then(async ([cRes, aRes]) => {
+          const children = cRes.ok ? await cRes.json() : []
+          if (cRes.ok) setOrphanageChildren(children)
+          if (aRes.ok) {
+            const allAssignments = await aRes.json()
+            const childIds = new Set(children.map(c => c.id))
+            setOrphanageAssignments(allAssignments.filter(a => childIds.has(a.child)))
+          }
         })
         .catch(() => {})
         .finally(() => setLoadingOrpDetails(false))
@@ -6761,139 +6765,202 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     {orpDetailTab === 'enfants' && (
                       <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
                         <div style={{flex:'1 1 380px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',maxHeight:560,overflowY:'auto'}}>
-                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>Enfants ({orphanageChildren.length})</div>
-                          {orphanageChildren.length > 0 && (
-                            <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:14,padding:'10px 12px',background:'rgba(99,102,241,0.08)',borderRadius:10}}>
-                              <select value={orpAssignAmb} onChange={e=>setOrpAssignAmb(e.target.value)} style={{flex:1,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,color:'#e2e8f0',fontSize:13,padding:'7px 10px',outline:'none'}}>
-                                <option value="">Sélectionner un ambassadeur...</option>
-                                {ambassadorsList.filter(a=>a.is_active).map(a => (
-                                  <option key={a.id} value={a.id}>{a.full_name || `${a.first_name} ${a.last_name}`}</option>
-                                ))}
-                              </select>
-                              <button type="button" disabled={orpSelChildren.length===0||!orpAssignAmb||orpAssignLoading} onClick={async()=>{
-                                if (orpSelChildren.length===0||!orpAssignAmb) return
-                                setOrpAssignLoading(true)
-                                try {
-                                  const res=await fetch(`${API}/assignments/bulk/`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('access_token')}`},body:JSON.stringify({child_ids:orpSelChildren,ambassador_id:Number(orpAssignAmb)})})
-                                  const data=await res.json()
-                                  if (res.ok) {
-                                    setOrpSelChildren([])
-                                    setOrpAssignAmb('')
-                                    const cRes=await fetch(`${API}/assignments/?orphanage_id=${subKey}`,{headers:{Authorization:`Bearer ${localStorage.getItem('access_token')}`}})
-                                    if (cRes.ok) setOrphanageAssignments(await cRes.json())
-                                    alert(`${data.results.length} enfant(s) assigné(s) avec succès.`)
-                                  } else {
-                                    alert(data.error||'Erreur lors de l\'assignation')
-                                  }
-                                } catch(_){alert('Erreur réseau')}
-                                setOrpAssignLoading(false)
-                              }} style={{background:orpSelChildren.length>0&&orpAssignAmb?'linear-gradient(135deg,#8b5cf6,#6366f1)':'rgba(100,116,139,0.3)',border:'none',borderRadius:8,color:'#fff',fontSize:13,fontWeight:600,padding:'7px 16px',cursor:orpSelChildren.length>0&&orpAssignAmb?'pointer':'not-allowed',whiteSpace:'nowrap'}}>
-                                {orpAssignLoading ? '⏳...' : `Assigner (${orpSelChildren.length})`}
-                              </button>
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                            <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>Enfants ({orphanageChildren.length})</div>
+                            <div style={{fontSize:12,fontWeight:600,color:'#22c55e',background:'rgba(34,197,94,0.1)',padding:'4px 10px',borderRadius:20}}>
+                              {Object.values(assignMap).length} assigné(s)
                             </div>
-                          )}
+                          </div>
+                          <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:14,padding:'10px 12px',background:'rgba(99,102,241,0.08)',borderRadius:10}}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                            <select value={ambSearchQuery} onChange={e=>setAmbSearchQuery(e.target.value)} style={{flex:1,background:'transparent',border:'none',color:'#e2e8f0',fontSize:13,outline:'none',cursor:'pointer'}}>
+                              <option value="" style={{background:'#1e293b',color:'#94a3b8'}}>Tous les ambassadeurs</option>
+                              {ambassadorsList.filter(a=>a.is_active).map(a => (
+                                <option key={a.id} value={a.id} style={{background:'#1e293b',color:'#e2e8f0'}}>{a.full_name || `${a.first_name} ${a.last_name}`}</option>
+                              ))}
+                            </select>
+                            {ambSearchQuery && <button type="button" onClick={()=>setAmbSearchQuery('')} style={{background:'none',border:'none',color:'#64748b',fontSize:13,cursor:'pointer',padding:0}}>✕</button>}
+                          </div>
                           {loadingOrpDetails ? (
                             <div style={{textAlign:'center',padding:30,color:'#64748b'}}>Chargement...</div>
                           ) : orphanageChildren.length === 0 ? (
                             <div style={{textAlign:'center',padding:30,color:'#64748b',fontSize:14}}>Aucun enfant dans cet orphelinat.</div>
                           ) : (
-                            orphanageChildren.map(c => {
-                              const assignment = assignMap[c.id]
-                              const checked = orpSelChildren.includes(c.id)
-                              return (
-                                <div key={c.id} style={{background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'10px 12px',marginBottom:8}}>
-                                  <div style={{display:'flex',alignItems:'center',gap:10}}>
-                                    <input type="checkbox" checked={checked} disabled={!!assignment} onChange={()=>setOrpSelChildren(prev=>checked?prev.filter(id=>id!==c.id):[...prev,c.id])} style={{width:17,height:17,cursor:assignment?'not-allowed':'pointer',accentColor:'#6366f1',opacity:assignment?0.4:1}} />
-                                    <div style={{flex:1}}>
-                                      <div style={{fontSize:13,fontWeight:600,color:assignment?'#22c55e':'#e2e8f0'}}>{c.child_name || `${c.prenom} ${c.nom}`}</div>
-                                      <div style={{fontSize:11,color:'#64748b',marginTop:1}}>
-                                        {c.age ? `${c.age} ans` : ''} {c.sexe === 'M' ? '♂' : '♀'} {c.nationalite ? `• ${c.nationalite}` : ''}
+                            (() => {
+                              const ambId = ambSearchQuery
+                              const filtered = ambId
+                                ? orphanageChildren.filter(c => {
+                                    const a = assignMap[c.id]
+                                    return a && String(a.ambassador) === ambId
+                                  })
+                                : orphanageChildren
+                              if (filtered.length === 0) {
+                                return <div style={{textAlign:'center',padding:30,color:'#64748b',fontSize:13}}>{ambId ? 'Aucun enfant assigné à cet ambassadeur.' : 'Aucun enfant trouvé.'}</div>
+                              }
+                              return filtered.map(c => {
+                                const assignment = assignMap[c.id]
+                                return (
+                                  <div key={c.id} style={{background:assignment?'rgba(34,197,94,0.04)':'rgba(255,255,255,0.03)',borderRadius:12,padding:'10px 12px',marginBottom:8,border:assignment?'1px solid rgba(34,197,94,0.15)':'none'}}>
+                                    <div style={{display:'flex',alignItems:'center',gap:10}}>
+                                      <div style={{flex:1}}>
+                                        <div style={{fontSize:13,fontWeight:600,color:assignment?'#22c55e':'#e2e8f0'}}>{c.child_name || `${c.prenom} ${c.nom}`}</div>
+                                        <div style={{fontSize:11,color:'#64748b',marginTop:1}}>
+                                          {c.age ? `${c.age} ans` : ''} {c.sexe === 'M' ? '♂' : '♀'} {c.nationalite ? `• ${c.nationalite}` : ''}
+                                        </div>
                                       </div>
-                                    </div>
-                                    {assignment ? (
-                                      <div style={{display:'flex',alignItems:'center',gap:4}}>
+                                      {assignment ? (
                                         <span style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(34,197,94,0.1)',color:'#22c55e',whiteSpace:'nowrap'}}>Assigné</span>
-                                        <button type="button" onClick={()=>setUnassignConfirm({childName:c.child_name||c.prenom+' '+c.nom,assignmentId:assignment.id,orphanageId:subKey})} style={{background:'rgba(239,68,68,0.1)',border:'none',borderRadius:6,color:'#ef4444',fontSize:11,cursor:'pointer',padding:'3px 7px',whiteSpace:'nowrap'}}>✕</button>
+                                      ) : (
+                                        <span style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(100,116,139,0.1)',color:'#64748b',whiteSpace:'nowrap'}}>Libre</span>
+                                      )}
+                                    </div>
+                                    {assignment && (
+                                      <div style={{marginTop:4,marginLeft:0,padding:'4px 8px',background:'rgba(99,102,241,0.08)',borderRadius:6,fontSize:11,color:'#818cf8'}}>
+                                        Ambassadeur: {assignment.ambassador_name}
                                       </div>
-                                    ) : (
-                                      <span style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(100,116,139,0.1)',color:'#64748b',whiteSpace:'nowrap'}}>Libre</span>
                                     )}
                                   </div>
-                                  {assignment && (
-                                    <div style={{marginTop:4,marginLeft:27,padding:'4px 8px',background:'rgba(99,102,241,0.08)',borderRadius:6,fontSize:11,color:'#818cf8',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                      <span>Ambassadeur: {assignment.ambassador_name}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              )
-                            })
+                                )
+                              })
+                            })()
                           )}
                         </div>
                         <div style={{flex:'1 1 300px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',maxHeight:560,overflowY:'auto'}}>
-                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>Sélection multiple</div>
-                          <div style={{fontSize:13,color:'#94a3b8',lineHeight:1.6}}>
-                            <p>✔ Cochez les enfants à assigner</p>
-                            <p>📌 Choisissez un ambassadeur dans la liste</p>
-                            <p>🚀 Cliquez sur <strong style={{color:'#8b5cf6'}}>Assigner</strong></p>
-                            {orpSelChildren.length > 0 && (
-                              <div style={{marginTop:12,padding:'10px 14px',background:'rgba(99,102,241,0.1)',borderRadius:8}}>
-                                <div style={{fontSize:12,fontWeight:600,color:'#818cf8'}}>{orpSelChildren.length} enfant(s) sélectionné(s)</div>
-                                <div style={{fontSize:11,color:'#64748b',marginTop:4}}>
-                                  {orphanageChildren.filter(c=>orpSelChildren.includes(c.id)).map(c=>c.child_name||`${c.prenom} ${c.nom}`).join(', ')}
-                                </div>
-                              </div>
-                            )}
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>📋 Résumé des assignations</div>
+                          <div style={{fontSize:13,color:'#94a3b8',lineHeight:1.8}}>
+                            <p>👶 <strong style={{color:'#e2e8f0'}}>{orphanageChildren.length}</strong> enfant(s) dans cet orphelinat</p>
+                            <p>✅ <strong style={{color:'#22c55e'}}>{Object.values(assignMap).length}</strong> assigné(s) à un ambassadeur</p>
+                            <p>⬜ <strong style={{color:'#64748b'}}>{orphanageChildren.length - Object.values(assignMap).length}</strong> libre(s)</p>
                           </div>
+                          {Object.values(assignMap).length > 0 && (
+                            <div style={{marginTop:16}}>
+                              <div style={{fontSize:12,fontWeight:600,color:'#94a3b8',marginBottom:8}}>Ambassadeurs actifs</div>
+                              {(() => {
+                                const ambMap = {}
+                                Object.values(assignMap).forEach(a => {
+                                  const name = a.ambassador_name || 'Inconnu'
+                                  ambMap[name] = (ambMap[name] || 0) + 1
+                                })
+                                return Object.entries(ambMap).map(([name, count]) => (
+                                  <div key={name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',background:'rgba(99,102,241,0.06)',borderRadius:8,marginBottom:4}}>
+                                    <span style={{fontSize:12,color:'#818cf8'}}>{name}</span>
+                                    <span style={{fontSize:12,fontWeight:600,color:'#22c55e'}}>{count} enfant(s)</span>
+                                  </div>
+                                ))
+                              })()}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
                     {orpDetailTab === 'besoins' && (
-                      <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
-                        <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>Besoins ({orphanageNeeds.length})</div>
-                        {loadingOrpDetails ? (
-                          <div style={{textAlign:'center',padding:30,color:'#64748b'}}>Chargement...</div>
-                        ) : orphanageNeeds.length === 0 ? (
-                          <div style={{textAlign:'center',padding:30,color:'#64748b',fontSize:14}}>Aucun besoin enregistré.</div>
-                        ) : (
-                          orphanageNeeds.map(n => (
-                            <div key={n.id} style={{background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'14px 16px',marginBottom:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                              <div>
-                                <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>{n.title}</div>
-                                <div style={{fontSize:12,color:'#64748b',marginTop:2}}>{n.category_label} • {n.description}</div>
-                              </div>
-                              <div style={{textAlign:'right'}}>
-                                <span style={{fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:20,background:n.status==='open'?'rgba(239,68,68,0.15)':'rgba(34,197,94,0.1)',color:n.status==='open'?'#ef4444':'#22c55e'}}>
-                                  {n.status_label}
-                                </span>
-                                <div style={{fontSize:11,color:'#64748b',marginTop:2}}>{n.quantity && `Qté: ${n.quantity}`} {n.priority && `• ${n.priority_label}`}</div>
-                              </div>
-                            </div>
-                          ))
-                        )}
+                      <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
+                        <div style={{flex:'1 1 380px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>📦 Besoins soumis</div>
+                          {(() => {
+                            const needsList = Array.isArray(orp.needs) ? orp.needs : []
+                            const icons = { 'Food':'🍚','Clean Water':'💧','Clothing':'👕','School Supplies':'📚','Medicine':'💊','Beds':'🛏️','Electricity':'⚡','Internet':'🌐','Infrastructure':'🏗️','Transportation':'🚌','Sponsorship Programs':'🤝' }
+                            if (needsList.length === 0 && !orp.needs_description) {
+                              return <div style={{textAlign:'center',padding:30,color:'#64748b',fontSize:14}}>Aucun besoin soumis par l'orphelinat.</div>
+                            }
+                            return (
+                              <>
+                                {needsList.length > 0 && (
+                                  <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}}>
+                                    {needsList.map(n => (
+                                      <span key={n} style={{padding:'6px 12px',background:'rgba(239,68,68,0.1)',borderRadius:20,fontSize:12,fontWeight:600,color:'#f59e0b'}}>
+                                        {icons[n] || '📌'} {n}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                {orp.needs_priority && (
+                                  <div style={{marginBottom:12,padding:'10px 14px',background:'rgba(99,102,241,0.06)',borderRadius:10,fontSize:13}}>
+                                    <span style={{color:'#64748b'}}>Priorité: </span>
+                                    <span style={{fontWeight:600,color:{low:'#22c55e',medium:'#f59e0b',high:'#f97316',critical:'#ef4444'}[orp.needs_priority] || '#94a3b8'}}>
+                                      {orp.needs_priority === 'low' ? '🟢 Faible' : orp.needs_priority === 'medium' ? '🟡 Moyenne' : orp.needs_priority === 'high' ? '🟠 Haute' : orp.needs_priority === 'critical' ? '🔴 Critique' : orp.needs_priority}
+                                    </span>
+                                  </div>
+                                )}
+                                {orp.needs_description && (
+                                  <div style={{padding:'14px 16px',background:'rgba(255,255,255,0.03)',borderRadius:10,fontSize:13,color:'#cbd5e1',lineHeight:1.6,whiteSpace:'pre-wrap'}}>
+                                    {orp.needs_description}
+                                  </div>
+                                )}
+                              </>
+                            )
+                          })()}
+                        </div>
+                        <div style={{flex:'1 1 280px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',alignSelf:'flex-start'}}>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>📋 Résumé</div>
+                          <div style={{fontSize:13,color:'#94a3b8',lineHeight:2}}>
+                            <p>📌 <strong style={{color:'#e2e8f0'}}>{(Array.isArray(orp.needs) ? orp.needs.length : 0)}</strong> besoin(s) identifié(s)</p>
+                            <p>🎯 <strong style={{color:'#e2e8f0'}}>{(Array.isArray(orp.needs) && orp.needs_priority) ? orp.needs_priority : 'Non spécifiée'}</strong> — priorité</p>
+                          </div>
+                        </div>
                       </div>
                     )}
                     {orpDetailTab === 'capacite' && (
-                      <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
-                        <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:16}}>Capacité d'accueil</div>
-                        <div style={{display:'flex',gap:20,flexWrap:'wrap'}}>
-                          <div style={{flex:'1',minWidth:180,background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'20px',textAlign:'center'}}>
-                            <div style={{fontSize:32,fontWeight:700,color:'#3b82f6'}}>{orp.capacity}</div>
-                            <div style={{fontSize:13,color:'#64748b',marginTop:4}}>Capacité totale</div>
-                          </div>
-                          <div style={{flex:'1',minWidth:180,background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'20px',textAlign:'center'}}>
-                            <div style={{fontSize:32,fontWeight:700,color:orphanageChildren.length <= orp.capacity ? '#22c55e' : '#ef4444'}}>{orphanageChildren.length}</div>
-                            <div style={{fontSize:13,color:'#64748b',marginTop:4}}>Enfants enregistrés</div>
-                          </div>
-                          <div style={{flex:'1',minWidth:180,background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'20px',textAlign:'center'}}>
-                            <div style={{fontSize:24,fontWeight:700,color:orphanageChildren.length < orp.capacity ? '#22c55e' : '#ef4444'}}>
-                              {orphanageChildren.length < orp.capacity ? '✅' : '❌'}
+                      <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
+                        <div style={{flex:'1 1 380px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:16}}>🏠 Capacité d'accueil</div>
+                          <div style={{display:'flex',gap:20,flexWrap:'wrap',marginBottom:20}}>
+                            <div style={{flex:'1',minWidth:140,background:'rgba(59,130,246,0.08)',borderRadius:12,padding:'16px',textAlign:'center'}}>
+                              <div style={{fontSize:28,fontWeight:700,color:'#3b82f6'}}>{orp.capacity || 0}</div>
+                              <div style={{fontSize:12,color:'#64748b',marginTop:4}}>Capacité totale</div>
                             </div>
-                            <div style={{fontSize:13,color:'#64748b',marginTop:4}}>
-                              {orphanageChildren.length < orp.capacity
-                                ? `Places disponibles: ${orp.capacity - orphanageChildren.length}`
-                                : 'Aucune place disponible'}
+                            <div style={{flex:'1',minWidth:140,background:'rgba(34,197,94,0.08)',borderRadius:12,padding:'16px',textAlign:'center'}}>
+                              <div style={{fontSize:28,fontWeight:700,color:orphanageChildren.length <= (orp.capacity||0) ? '#22c55e' : '#ef4444'}}>{orphanageChildren.length}</div>
+                              <div style={{fontSize:12,color:'#64748b',marginTop:4}}>Enfants enregistrés</div>
+                            </div>
+                            <div style={{flex:'1',minWidth:140,background:'rgba(245,158,11,0.08)',borderRadius:12,padding:'16px',textAlign:'center'}}>
+                              <div style={{fontSize:28,fontWeight:700,color:orphanageChildren.length < (orp.capacity||0) ? '#22c55e' : '#ef4444'}}>
+                                {Math.max(0, (orp.capacity||0) - orphanageChildren.length)}
+                              </div>
+                              <div style={{fontSize:12,color:'#64748b',marginTop:4}}>Places disponibles</div>
                             </div>
                           </div>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>Répartition des enfants</div>
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                            {[
+                              {label:'Garçons',value:orp.boys,icon:'♂️',color:'#3b82f6'},
+                              {label:'Filles',value:orp.girls,icon:'♀️',color:'#ec4899'},
+                              {label:'0-5 ans',value:orp.infants_0_5,icon:'👶',color:'#f59e0b'},
+                              {label:'6-12 ans',value:orp.children_6_12,icon:'🧒',color:'#22c55e'},
+                              {label:'Enfants handicapés',value:orp.children_disabled,icon:'♿',color:'#a855f7'},
+                            ].map(d => (
+                              <div key={d.label} style={{background:'rgba(255,255,255,0.03)',borderRadius:10,padding:'12px',textAlign:'center'}}>
+                                <div style={{fontSize:20,fontWeight:700,color:d.color}}>{d.value ?? '—'}</div>
+                                <div style={{fontSize:11,color:'#64748b',marginTop:2}}>{d.icon} {d.label}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{flex:'1 1 280px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',alignSelf:'flex-start'}}>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>👥 Personnel</div>
+                          {(() => {
+                            const staff = [
+                              {label:'Permanent',key:'staff_permanent',icon:'🏢'},
+                              {label:'Bénévoles',key:'staff_volunteers',icon:'🙋'},
+                              {label:'Soignants',key:'staff_caregivers',icon:'🤱'},
+                              {label:'Enseignants',key:'staff_teachers',icon:'👩‍🏫'},
+                            ]
+                            const total = staff.reduce((s,f) => s + Number(orp[f.key]||0), 0)
+                            return (
+                              <>
+                                {staff.map(f => (
+                                  <div key={f.key} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 10px',background:'rgba(255,255,255,0.03)',borderRadius:8,marginBottom:6}}>
+                                    <span style={{fontSize:12,color:'#94a3b8'}}>{f.icon} {f.label}</span>
+                                    <span style={{fontSize:13,fontWeight:600,color:'#e2e8f0'}}>{orp[f.key] || 0}</span>
+                                  </div>
+                                ))}
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 10px',background:'rgba(245,158,11,0.1)',borderRadius:8,marginTop:8}}>
+                                  <span style={{fontSize:13,fontWeight:600,color:'#f59e0b'}}>👥 Total personnel</span>
+                                  <span style={{fontSize:16,fontWeight:700,color:'#f59e0b'}}>{total}</span>
+                                </div>
+                              </>
+                            )
+                          })()}
                         </div>
                       </div>
                     )}
@@ -7031,7 +7098,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     fetch(`${API}/assignments/`, { headers: { Authorization: `Bearer ${token}` } })
                                   ]).then(async ([cRes, aRes]) => {
                                     if (cRes.ok) setFedAllChildren(await cRes.json())
-          if (aRes.ok) setOrphanageAssignments(await aRes.json())
+          if (aRes.ok) setFedAllAssignments(await aRes.json())
                                   }).catch(() => {})
                                 }}
                               />
