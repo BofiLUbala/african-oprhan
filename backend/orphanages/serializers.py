@@ -12,6 +12,8 @@ class OrphanageSerializer(serializers.ModelSerializer):
             "id", "name", "address", "capacity", "status", "latitude", "longitude",
             "document_details", "validation_note", "validated_at", "director",
             "director_name",
+            "registration_cert", "operating_license", "director_id_doc", "tax_doc",
+            "child_protection", "annual_report", "ngo_accreditation", "partnership_certs",
             "created_at", "updated_at",
         ]
         read_only_fields = [

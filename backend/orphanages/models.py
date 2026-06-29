@@ -17,6 +17,15 @@ class Orphanage(models.Model):
     validated_at = models.DateTimeField(null=True, blank=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name="Latitude")
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name="Longitude")
+
+    registration_cert = models.FileField(upload_to="orphanage_docs/", blank=True, null=True)
+    operating_license = models.FileField(upload_to="orphanage_docs/", blank=True, null=True)
+    director_id_doc = models.FileField(upload_to="orphanage_docs/", blank=True, null=True, verbose_name="Director ID document")
+    tax_doc = models.FileField(upload_to="orphanage_docs/", blank=True, null=True)
+    child_protection = models.FileField(upload_to="orphanage_docs/", blank=True, null=True)
+    annual_report = models.FileField(upload_to="orphanage_docs/", blank=True, null=True)
+    ngo_accreditation = models.FileField(upload_to="orphanage_docs/", blank=True, null=True)
+    partnership_certs = models.FileField(upload_to="orphanage_docs/", blank=True, null=True)
     
     director = models.OneToOneField(
         settings.AUTH_USER_MODEL, 

@@ -1556,6 +1556,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [orpAssignAmb, setOrpAssignAmb] = useState('')
   const [orpAssignLoading, setOrpAssignLoading] = useState(false)
   const [ambSearchQuery, setAmbSearchQuery] = useState('')
+  const [docVerified, setDocVerified] = useState({})
   const [orpDetailTab, setOrpDetailTab] = useState('status')
   const [dirAmbAssignments, setDirAmbAssignments] = useState([])
   const [dirAmbLoading, setDirAmbLoading] = useState(false)
@@ -2060,7 +2061,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }
 
   useEffect(() => {
-    if (activeKey !== 'projets') return
+    if (activeKey !== 'projets' && activeKey !== 'dashboard') return
+    if (projects.length > 0) return
     setProjectLoading(true)
     const token = localStorage.getItem('access_token')
     fetch(`${API}/projets/`, {
@@ -2068,10 +2070,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        setProjects(Array.isArray(data) ? data : data?.results || MOCK_PROJECTS)
+        const list = Array.isArray(data) ? data : data?.results || MOCK_PROJECTS
+        setProjects(list)
+        setOngoingProjects(list)
         setProjectLoading(false)
       })
-      .catch(() => { setProjects(MOCK_PROJECTS); setProjectLoading(false) })
+      .catch(() => { setProjects(MOCK_PROJECTS); setOngoingProjects(MOCK_PROJECTS); setProjectLoading(false) })
   }, [activeKey])
 
   const loadOrphanages = async () => {
@@ -2101,10 +2105,18 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     const token = localStorage.getItem('access_token')
     setOrphanageLoading(true)
     try {
+      const fd = new FormData()
+      Object.entries(orphanageForm).forEach(([k, v]) => {
+        if (v !== null && v !== undefined) fd.append(k, typeof v === 'object' ? JSON.stringify(v) : v)
+      })
+      fd.set('capacity', String(Number(orphanageForm.capacity || 0)))
+      Object.entries(orpFiles).forEach(([k, file]) => {
+        if (file) fd.append(k, file)
+      })
       const res = await fetch(`${API}/orphanages/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ ...orphanageForm, capacity: Number(orphanageForm.capacity || 0) }),
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Envoi impossible")
@@ -2707,9 +2719,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const REQ_KEYS = ['registration_cert','operating_license','director_id','tax_doc','child_protection']
                   const OPT_KEYS = ['annual_report','ngo_accreditation','partnership_certs']
                   const sc = myDocOrp ? { pending:{c:'#ef4444',b:'rgba(239,68,68,0.15)',l:"En attente de validation par la fédération"}, approved:{c:'#22c55e',b:'rgba(34,197,94,0.15)',l:'Validé par la fédération'}, rejected:{c:'#ef4444',b:'rgba(239,68,68,0.15)',l:'Rejeté'} }[myDocOrp.status] : {}
+                  const DOC_API_MAP_DIR = { registration_cert:'registration_cert', operating_license:'operating_license', director_id:'director_id_doc', tax_doc:'tax_doc', child_protection:'child_protection', annual_report:'annual_report', ngo_accreditation:'ngo_accreditation', partnership_certs:'partnership_certs' }
                   const renderDocCard = (k, required) => {
                     const color = DOC_COLORS[k]
-                    const hasFile = !!orpFiles[k]
+                    const uploadedFile = myDocOrp ? myDocOrp[DOC_API_MAP_DIR[k]] : null
+                    const hasFile = !!(myDocOrp ? uploadedFile : orpFiles[k])
                     return (
                       <div key={k} className="dash-amb-card" style={{padding:'16px',minHeight:'auto',cursor:myDocOrp?'default':'pointer',justifyContent:'flex-start',gap:12}} onClick={myDocOrp ? undefined : ()=>document.getElementById('doc-file-'+k)?.click()} {...(myDocOrp?{}:orpDragHandler(k))}>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}}>
@@ -2718,7 +2732,17 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         </div>
                         <div style={{fontSize:12,fontWeight:600,color:hasFile?'#e2e8f0':'#94a3b8',marginBottom:2}}>{DOC_LABELS[k]}</div>
                         <div style={{fontSize:10,color:hasFile?'#22c55e':'#475569',display:'flex',alignItems:'center',gap:4}}>
-                          {hasFile ? <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>{orpFiles[k].name}</> : (myDocOrp ? <span style={{color:'#64748b'}}>Non soumis</span> : <span style={{color:'#475569'}}>Cliquez pour télécharger</span>)}
+                          {hasFile ? (
+                            myDocOrp && uploadedFile ? (
+                              <span style={{display:'flex',alignItems:'center',gap:6}}>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                                <a href={uploadedFile} target="_blank" rel="noopener noreferrer" style={{color:'#60a5fa',textDecoration:'underline',fontSize:11}}>📖 Ouvrir</a>
+                                <a href={uploadedFile} download style={{color:'#22c55e',textDecoration:'underline',fontSize:11}}>⬇ Télécharger</a>
+                              </span>
+                            ) : (
+                              <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>{orpFiles[k].name}</>
+                            )
+                          ) : (myDocOrp ? <span style={{color:'#64748b'}}>Non soumis</span> : <span style={{color:'#475569'}}>Cliquez pour télécharger</span>)}
                         </div>
                         {!myDocOrp && hasFile && (
                           <button type="button" onClick={e=>{e.stopPropagation();setOrpFiles(p=>({...p,[k]:null}))}} style={{marginTop:'auto',background:'rgba(239,68,68,0.1)',border:'none',borderRadius:8,color:'#ef4444',fontSize:10,padding:'4px 12px',cursor:'pointer',alignSelf:'flex-start'}}>🗑 Supprimer</button>
@@ -6704,6 +6728,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   if (!orp) return null
                   const assignMap = {}
                   orphanageAssignments.forEach(a => { assignMap[a.child] = a })
+                  const DOC_API_MAP_S = { registration_cert:'registration_cert', operating_license:'operating_license', director_id:'director_id_doc', tax_doc:'tax_doc', child_protection:'child_protection' }
+                  const REQ_KEYS_S = ['registration_cert','operating_license','director_id','tax_doc','child_protection']
+                  const requiredDocsCount = REQ_KEYS_S.filter(k => orp[DOC_API_MAP_S[k]]).length
+                  const allVerifiedDocs = requiredDocsCount > 0 && REQ_KEYS_S.filter(k => orp[DOC_API_MAP_S[k]]).every(k => docVerified[k])
+                  const canApprove = requiredDocsCount === 0 || allVerifiedDocs
                   return (
                   <div>
                     <button type="button" onClick={() => { setSubKey(null); setOrpDetailTab('status') }}
@@ -6746,20 +6775,97 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         )}
                         {orp.status === 'pending' && (
                           <div style={{display:'flex',gap:8,marginTop:16}}>
-                            <button type="button" onClick={()=>{setOrphanageNote('');validateOrphanage(orp.id,'approve');setSubKey(null);setOrpDetailTab('status')}} style={{background:'rgba(34,197,94,0.1)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:10,color:'#22c55e',fontSize:13,fontWeight:600,padding:'10px 22px',cursor:'pointer'}}>✅ Approuver</button>
+                            <button type="button" onClick={()=>{
+                              if (!canApprove) { showToast('Veuillez vérifier tous les documents requis avant d\'approuver.', 'error'); return }
+                              setOrphanageNote(''); validateOrphanage(orp.id,'approve'); setSubKey(null); setOrpDetailTab('status')
+                            }} style={{background:canApprove?'rgba(34,197,94,0.1)':'rgba(100,116,139,0.3)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:10,color:canApprove?'#22c55e':'#64748b',fontSize:13,fontWeight:600,padding:'10px 22px',cursor:canApprove?'pointer':'not-allowed'}}>✅ Approuver</button>
                             <button type="button" onClick={()=>{const r=prompt('Motif du rejet (optionnel):');if(r!==null){validateOrphanage(orp.id,'reject',r||'');setSubKey(null);setOrpDetailTab('status')}}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:13,fontWeight:600,padding:'10px 22px',cursor:'pointer'}}>✗ Rejeter</button>
                           </div>
                         )}
                       </div>
                     )}
                     {orpDetailTab === 'documents' && (
-                      <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
-                        <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>Documents</div>
-                        {orp.document_details ? (
-                          <div style={{fontSize:13,color:'#cbd5e1',whiteSpace:'pre-wrap'}}>{orp.document_details}</div>
-                        ) : (
-                          <div style={{textAlign:'center',padding:30,color:'#64748b',fontSize:14}}>Aucun document soumis.</div>
-                        )}
+                      <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
+                        <div style={{flex:'1 1 400px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>📄 Documents soumis</div>
+                          {(() => {
+                            const DOC_LABELS = {
+                              registration_cert:'Registration Certificate', operating_license:'Operating License',
+                              director_id:'Director ID', tax_doc:'Tax Registration', child_protection:'Child Protection Policy',
+                              annual_report:'Annual Report', ngo_accreditation:'NGO Accreditation', partnership_certs:'Partnership Certificates',
+                            }
+                              const DOC_API_MAP = { registration_cert:'registration_cert', operating_license:'operating_license', director_id:'director_id_doc', tax_doc:'tax_doc', child_protection:'child_protection', annual_report:'annual_report', ngo_accreditation:'ngo_accreditation', partnership_certs:'partnership_certs' }
+                              const REQ_KEYS = ['registration_cert','operating_license','director_id','tax_doc','child_protection']
+                            const OPT_KEYS = ['annual_report','ngo_accreditation','partnership_certs']
+                            const allKeys = [...REQ_KEYS, ...OPT_KEYS]
+                            const hasAny = allKeys.some(k => orp[DOC_API_MAP[k]])
+                            if (!hasAny && !orp.document_details) {
+                              return <div style={{textAlign:'center',padding:30,color:'#64748b',fontSize:14}}>Aucun document soumis.</div>
+                            }
+                            return (
+                              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                                {allKeys.map(k => {
+                                  const file = orp[DOC_API_MAP[k]]
+                                  const isReq = REQ_KEYS.includes(k)
+                                  const verified = docVerified[k]
+                                  return (
+                                    <div key={k} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',background:verified?'rgba(34,197,94,0.06)':'rgba(255,255,255,0.03)',borderRadius:10,border:verified?'1px solid rgba(34,197,94,0.2)':'1px solid transparent'}}>
+                                      <div style={{flex:1}}>
+                                        <div style={{fontSize:13,fontWeight:600,color:file?'#e2e8f0':'#64748b',marginBottom:2}}>
+                                          {DOC_LABELS[k]} {isReq && <span style={{fontSize:9,color:'#ef4444',fontWeight:700,background:'rgba(239,68,68,0.1)',padding:'1px 6px',borderRadius:4}}>REQUIS</span>}
+                                        </div>
+                                        {file ? (
+                                          <div style={{display:'flex',alignItems:'center',gap:8,fontSize:11}}>
+                                            <a href={file} target="_blank" rel="noopener noreferrer" style={{color:'#60a5fa',textDecoration:'underline',cursor:'pointer'}}>📖 Ouvrir</a>
+                                            <a href={file} download style={{color:'#22c55e',textDecoration:'underline',cursor:'pointer'}}>⬇ Télécharger</a>
+                                          </div>
+                                        ) : (
+                                          <span style={{fontSize:11,color:'#64748b'}}>Non soumis</span>
+                                        )}
+                                      </div>
+                                      {file && (
+                                        <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',fontSize:12,color:verified?'#22c55e':'#94a3b8',background:verified?'rgba(34,197,94,0.1)':'rgba(255,255,255,0.05)',padding:'6px 12px',borderRadius:8,userSelect:'none'}}>
+                                          <input type="checkbox" checked={verified} onChange={() => setDocVerified(p => ({...p, [k]: !p[k]}))} style={{accentColor:'#22c55e',width:16,height:16}} />
+                                          {verified ? 'Vérifié' : 'Vérifier'}
+                                        </label>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                                {orp.document_details && (
+                                  <div style={{marginTop:12,padding:'12px 14px',background:'rgba(59,130,246,0.06)',borderRadius:10,fontSize:12,color:'#cbd5e1',whiteSpace:'pre-wrap'}}>
+                                    <span style={{fontWeight:600,color:'#60a5fa'}}>Détails:</span> {orp.document_details}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })()}
+                        </div>
+                        <div style={{flex:'1 1 280px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',alignSelf:'flex-start'}}>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>✅ Vérification des documents</div>
+                          {(() => {
+                            const DOC_API_MAP = { registration_cert:'registration_cert', operating_license:'operating_license', director_id:'director_id_doc', tax_doc:'tax_doc', child_protection:'child_protection' }
+                            const REQ_KEYS = ['registration_cert','operating_license','director_id','tax_doc','child_protection']
+                            const requiredDocs = REQ_KEYS.filter(k => orp[DOC_API_MAP[k]])
+                            const verifiedCount = requiredDocs.filter(k => docVerified[k]).length
+                            const allVerified = requiredDocs.length > 0 && verifiedCount === requiredDocs.length
+                            return (
+                              <div style={{fontSize:13,color:'#94a3b8',lineHeight:2}}>
+                                <p>📄 <strong style={{color:'#e2e8f0'}}>{requiredDocs.length}</strong> document(s) requis soumis</p>
+                                <p>✅ <strong style={{color:'#22c55e'}}>{verifiedCount}/{requiredDocs.length}</strong> vérifié(s)</p>
+                                {allVerified ? (
+                                  <div style={{marginTop:12,padding:'10px 14px',background:'rgba(34,197,94,0.1)',borderRadius:10,fontSize:12,color:'#22c55e',fontWeight:600}}>
+                                    🟢 Tous les documents requis sont vérifiés
+                                  </div>
+                                ) : requiredDocs.length > 0 && (
+                                  <div style={{marginTop:12,padding:'10px 14px',background:'rgba(239,68,68,0.1)',borderRadius:10,fontSize:12,color:'#ef4444',fontWeight:600}}>
+                                    🔴 Veuillez vérifier tous les documents requis
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })()}
+                        </div>
                       </div>
                     )}
                     {orpDetailTab === 'enfants' && (
