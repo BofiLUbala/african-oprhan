@@ -2,7 +2,10 @@ import base64
 import uuid
 from django.core.files.base import ContentFile
 from rest_framework import serializers
-from .models import Child, ChildUpdate, ChildHistory
+from django.contrib.auth import get_user_model
+from .models import Child, ChildUpdate, ChildHistory, ChildAssignment
+
+User = get_user_model()
 
 
 class Base64ImageField(serializers.ImageField):
@@ -27,12 +30,14 @@ class ChildSerializer(serializers.ModelSerializer):
     status_label = serializers.SerializerMethodField()
     child_name = serializers.SerializerMethodField()
     age = serializers.SerializerMethodField()
+    orphanage_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Child
         fields = [
             "id", "uid", "nom", "prenom", "sexe", "date_naissance",
             "nationalite", "photo", "adresse", "status", "extra_data",
+            "orphanage", "orphanage_name",
             "created_by", "created_at", "updated_at",
             "status_label", "child_name", "age",
         ]
@@ -50,6 +55,9 @@ class ChildSerializer(serializers.ModelSerializer):
 
     def get_child_name(self, obj):
         return f"{obj.prenom} {obj.nom}".strip()
+
+    def get_orphanage_name(self, obj):
+        return obj.orphanage.name if obj.orphanage else ""
 
     def get_age(self, obj):
         if not obj.date_naissance:
@@ -141,3 +149,41 @@ class ChildHistorySerializer(serializers.ModelSerializer):
 
     def get_source_module_label(self, obj):
         return dict(ChildHistory.SOURCE_MODULE_CHOICES).get(obj.source_module, obj.source_module)
+
+
+class ChildAssignmentSerializer(serializers.ModelSerializer):
+    child_name = serializers.SerializerMethodField()
+    child_uid = serializers.SerializerMethodField()
+    orphanage_name = serializers.SerializerMethodField()
+    ambassador_name = serializers.SerializerMethodField()
+    assigned_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ChildAssignment
+        fields = [
+            "id", "child", "child_name", "child_uid",
+            "orphanage_name",
+            "ambassador", "ambassador_name",
+            "assigned_by", "assigned_by_name",
+            "note", "assigned_at", "updated_at",
+        ]
+        read_only_fields = ["assigned_by", "assigned_at", "updated_at"]
+
+    def get_child_name(self, obj):
+        return f"{obj.child.prenom} {obj.child.nom}".strip()
+
+    def get_child_uid(self, obj):
+        return obj.child.uid
+
+    def get_orphanage_name(self, obj):
+        return obj.child.orphanage.name if obj.child.orphanage else ""
+
+    def get_ambassador_name(self, obj):
+        return obj.ambassador.full_name
+
+    def get_assigned_by_name(self, obj):
+        return obj.assigned_by.full_name if obj.assigned_by else ""
+
+    def create(self, validated_data):
+        validated_data["assigned_by"] = self.context["request"].user
+        return super().create(validated_data)

@@ -3,10 +3,7 @@ from django.db import models
 
 class Orphanage(models.Model):
     STATUS_CHOICES = [
-        ("pending", "En attente du federation"),
-        ("active", "Accepté - en attente d'ambassadeur"),
-        ("under_review", "En cours de vérification"),
-        ("changes_requested", "Modifications demandées"),
+        ("pending", "En attente de validation"),
         ("approved", "Validé"),
         ("rejected", "Rejeté"),
     ]
@@ -29,15 +26,6 @@ class Orphanage(models.Model):
         related_name="managed_orphanage",
         verbose_name="Directeur"
     )
-    ambassador = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="supervised_orphanages",
-        verbose_name="Ambassadeur"
-    )
-    feedback = models.TextField(blank=True, verbose_name="Feedback ambassadeur")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

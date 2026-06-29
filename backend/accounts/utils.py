@@ -48,6 +48,7 @@ def send_activation_email(user, request):
         f"L'équipe Fédération des Orphelinats"
     )
 
+    import socket
     msg = EmailMultiAlternatives(
         subject=subject,
         body=text_body,
@@ -55,4 +56,7 @@ def send_activation_email(user, request):
         to=[user.email],
     )
     msg.attach_alternative(html_body, "text/html")
-    msg.send()
+    try:
+        msg.send()
+    except socket.timeout:
+        pass  # timeout silencieux pour ne pas bloquer l'inscription

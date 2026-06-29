@@ -15,4 +15,8 @@ urlpatterns = [
     # Bulk / Cross-child
     path("history/bulk/", views.child_bulk_history, name="child-history-bulk"),
     path("history/all/", views.all_children_history, name="all-children-history"),
+    # Child Assignments (Federation → Ambassador)
+    path("assignments/", views.child_assignment_list, name="child-assignment-list"),
+    path("assignments/<int:assignment_id>/", views.child_assignment_delete, name="child-assignment-delete"),
+    path("assignments/by-orphanage/", views.child_assignments_by_orphanage, name="child-assignments-by-orphanage"),
 ]

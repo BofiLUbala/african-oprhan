@@ -2,6 +2,36 @@ from django.conf import settings
 from django.db import models
 
 
+class ChildAssignment(models.Model):
+    child = models.ForeignKey("Child", on_delete=models.CASCADE, related_name="assignments", verbose_name="Enfant")
+    ambassador = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="assigned_children",
+        verbose_name="Ambassadeur",
+        limit_choices_to={"role": "ambassador"},
+    )
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="child_assignments_made",
+        verbose_name="Assigné par",
+    )
+    note = models.TextField(blank=True, default="", verbose_name="Note")
+    assigned_at = models.DateTimeField(auto_now_add=True, verbose_name="Assigné le")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Modifié le")
+
+    class Meta:
+        verbose_name = "Assignation d'enfant"
+        verbose_name_plural = "Assignations d'enfants"
+        ordering = ["-assigned_at"]
+        unique_together = [("child", "ambassador")]
+
+    def __str__(self):
+        return f"{self.child} → {self.ambassador}"
+
+
 class Child(models.Model):
     SEXE_CHOICES = [
         ("M", "Masculin"),

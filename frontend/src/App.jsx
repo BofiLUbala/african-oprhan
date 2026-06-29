@@ -1540,6 +1540,47 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [hcRegion, setHcRegion] = useState('')
   const [hcSortStatus, setHcSortStatus] = useState('')
 
+  /* Amb assign / Multi-orphelinats / Federation child data */
+  const [ambAssignments, setAmbAssignments] = useState([])
+  const [ambLoading, setAmbLoading] = useState(false)
+  const [fedAllChildren, setFedAllChildren] = useState([])
+  const [fedAllAssignments, setFedAllAssignments] = useState([])
+  const [fedLoadingData, setFedLoadingData] = useState(false)
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+    if (activeKey === 'validationLocale' && role === 'ambassador') {
+      setAmbLoading(true)
+      fetch(`${API}/assignments/by-orphanage/`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : [])
+        .then(d => setAmbAssignments(d))
+        .catch(() => {})
+        .finally(() => setAmbLoading(false))
+    }
+    if (activeKey === 'multiOrphelinats' && role === 'ambassador') {
+      setAmbLoading(true)
+      fetch(`${API}/assignments/by-orphanage/`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : [])
+        .then(d => setAmbAssignments(d))
+        .catch(() => {})
+        .finally(() => setAmbLoading(false))
+    }
+    if (activeKey === 'ambassadeurs' && (role === 'federation' || role === 'supermaster')) {
+      setFedLoadingData(true)
+      Promise.all([
+        fetch(`${API}/enfants/`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/assignments/`, { headers: { Authorization: `Bearer ${token}` } })
+      ])
+        .then(async ([cRes, aRes]) => {
+          if (cRes.ok) setFedAllChildren(await cRes.json())
+          if (aRes.ok) setFedAllAssignments(await aRes.json())
+        })
+        .catch(() => {})
+        .finally(() => setFedLoadingData(false))
+    }
+  }, [activeKey, role])
+
   useEffect(() => {
     if (subKey !== 'Scolarité') return
     const e = editingChild?.extra_data?.education
@@ -1742,8 +1783,16 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     }
   }
 
+  const orpFileHandler = (key) => (e) => { const file = e.target.files?.[0]; if (file) setOrpFiles(p => ({ ...p, [key]: file })); }
+  const orpDragHandler = (key) => ({ onDragOver: e => e.preventDefault(), onDrop: e => { e.preventDefault(); const file = e.dataTransfer.files?.[0]; if (file) setOrpFiles(p => ({ ...p, [key]: file })); } })
+  const directorOrpRec = () => orphanageRequests.find(o => o.director === user.id)
+
   useEffect(() => {
     if (activeKey === 'orphelinats' && role === 'federation') {
+      loadOrphanages()
+      fetchAmbassadors()
+    }
+    if (activeKey === 'ambassadeurs' && (role === 'federation' || role === 'supermaster')) {
       loadOrphanages()
       fetchAmbassadors()
     }
@@ -1998,7 +2047,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       if (!res.ok) throw new Error(data.error || "Envoi impossible")
       localStorage.setItem('cdo_orphanage_name', data.name)
       setOrphanageName(data.name)
-      showToast("Dossier envoye a l'ambassadeur pour validation.")
+      showToast("Dossier envoye a la federation pour validation.")
       loadOrphanages()
     } catch (err) {
       showToast(err.message || "Erreur pendant l'envoi du dossier.", 'error')
@@ -2018,7 +2067,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Validation impossible')
-      const msgs = { accept:'Orphelinat accepté dans le système.', approve:'Dossier validé par l\'ambassadeur.', reject:'Dossier rejeté.', request_changes:'Modifications demandées.' }
+      const msgs = { approve:'Orphelinat validé par la fédération.', reject:'Dossier rejeté.' }
       showToast(msgs[action] || 'Action effectuée.', 'success')
       setOrphanageNote('')
       loadOrphanages()
@@ -2252,50 +2301,76 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   <div style={{ paddingTop: '32px' }} />
                 )}
 
-                {activeKey === 'validationLocale' ? (
-                  <div className="dash-sub-form">
-                    <div className="dash-validation-head">
-                      <p className="dash-page-subtitle">{page?.subtitle || "Dossiers d'orphelinat en attente."}</p>
-                      <button className="dash-form-save" onClick={loadOrphanages} disabled={orphanageLoading}>Actualiser</button>
-                    </div>
-                    {orphanageLoading && <div className="dash-dash-empty">Chargement...</div>}
-                    {(() => {
-                      const items = role === 'ambassador' ? orphanageRequests.filter(o => o.ambassador === user.id) : orphanageRequests
-                      return !orphanageLoading && items.length === 0 && <div className="dash-dash-empty">Aucun dossier a valider.</div>
-                    })()}
-                    <div className="dash-validation-list">
-                      {(role === 'ambassador' ? orphanageRequests.filter(o => o.ambassador === user.id) : orphanageRequests).map(item => (
-                        <div key={item.id} className="dash-validation-card">
-                          <div className="dash-validation-top">
-                            <div>
-                              <h3>{item.name}</h3>
-                              <p>{item.address || 'Adresse non renseignee'} - Capacite {item.capacity || 0}</p>
-                            </div>
-                            <span className={`dash-validation-status ${item.status}`}>{item.status === 'pending' ? '🔴 En attente que le chef de fédération accepte' : item.status === 'approved' ? '🟢 Document accepté' : item.status === 'rejected' ? '❌ Rejeté' : '🟡 En attendant que l\'ambassadeur accepte'}</span>
+                {activeKey === 'validationLocale' && role === 'ambassador' ? (() => {
+                  return (
+                    <div className="dash-sub-form">
+                      <div className="dash-validation-head">
+                        <p className="dash-page-subtitle">Enfants qui vous sont assignés par la fédération.</p>
+                        <button className="dash-form-save" disabled={ambLoading}>Actualiser</button>
+                      </div>
+                      {ambLoading && <div className="dash-dash-empty">Chargement...</div>}
+                      {!ambLoading && Object.keys(ambAssignments).length === 0 && (
+                        <div className="dash-dash-empty">Aucun enfant assigné pour le moment.</div>
+                      )}
+                      {Object.entries(ambAssignments).map(([orpName, children]) => (
+                        <div key={orpName} style={{marginBottom:20}}>
+                          <h3 style={{fontSize:16,fontWeight:700,color:'#f59e0b',margin:'0 0 10px',display:'flex',alignItems:'center',gap:8}}>
+                            🏛️ {orpName}
+                          </h3>
+                          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                            {children.map(a => (
+                              <div key={a.id} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:12,padding:'14px 16px',display:'flex',alignItems:'center',gap:12}}>
+                                <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#3b82f6,#2563eb)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'#fff',flexShrink:0}}>
+                                  {(a.child_name||'?')[0]?.toUpperCase()}
+                                </div>
+                                <div style={{flex:1}}>
+                                  <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>{a.child_name}</div>
+                                  <div style={{fontSize:12,color:'#64748b'}}>UID: {a.child_uid} • Assigné le {new Date(a.assigned_at).toLocaleDateString('fr-FR')}</div>
+                                </div>
+                                {a.note && <div style={{fontSize:11,color:'#94a3b8',maxWidth:200}}>📝 {a.note}</div>}
+                              </div>
+                            ))}
                           </div>
-                          <div className="dash-validation-doc">{item.document_details || 'Aucun detail de document transmis.'}</div>
-                          <div className="dash-validation-meta">Chef: {item.director_name || 'Non renseigne'} {item.ambassador_name ? `- Ambassadeur: ${item.ambassador_name}` : ''}</div>
-                          {item.validation_note && <div className="dash-validation-note">Note: {item.validation_note}</div>}
-                          {item.status === 'pending' && (
-                            <div className="dash-validation-actions">
-                              <input className="dash-form-input" value={orphanageNote} onChange={e => setOrphanageNote(e.target.value)} placeholder="Note de validation optionnelle" />
-                              <button className="dash-form-save" onClick={() => validateOrphanage(item.id, 'approve')}>Accepter</button>
-                              <button className="dash-orp-save-btn" onClick={() => validateOrphanage(item.id, 'reject')}>Refuser</button>
-                            </div>
-                          )}
-                          {role === 'ambassador' && ['under_review','active','changes_requested'].includes(item.status) && (
-                            <div className="dash-validation-actions">
-                              <input className="dash-form-input" value={orphanageNote} onChange={e => setOrphanageNote(e.target.value)} placeholder="Note de validation optionnelle" />
-                              <button className="dash-form-save" onClick={() => validateOrphanage(item.id, 'approve')}>✅ Approuver</button>
-                              <button className="dash-orp-save-btn" onClick={() => validateOrphanage(item.id, 'reject')}>✗ Rejeter</button>
-                              <button className="dash-orp-save-btn" onClick={() => { const r = prompt('Modifications demandées (optionnel):'); validateOrphanage(item.id, 'request_changes', r||'') }} style={{background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:8,color:'#f59e0b',fontSize:12,fontWeight:600,padding:'8px 16px',cursor:'pointer'}}>📝 Modifications</button>
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
-                  </div>
-                ) : activeKey === 'orphelinats' && role === 'director' ? (() => {
+                  )
+                })()
+                : activeKey === 'validationLocale' && role === 'federation' ? (() => {
+                  const pending = orphanageRequests.filter(o => o.status === 'pending')
+                  return (
+                    <div className="dash-sub-form">
+                      <div className="dash-validation-head">
+                        <p className="dash-page-subtitle">Dossiers d'orphelinat en attente de validation.</p>
+                        <button className="dash-form-save" onClick={loadOrphanages} disabled={orphanageLoading}>Actualiser</button>
+                      </div>
+                      {orphanageLoading && <div className="dash-dash-empty">Chargement...</div>}
+                      {!orphanageLoading && pending.length === 0 && <div className="dash-dash-empty">Aucun dossier a valider.</div>}
+                      <div className="dash-validation-list">
+                        {pending.map(item => (
+                          <div key={item.id} className="dash-validation-card">
+                            <div className="dash-validation-top">
+                              <div>
+                                <h3>{item.name}</h3>
+                                <p>{item.address || 'Adresse non renseignee'} - Capacite {item.capacity || 0}</p>
+                              </div>
+                              <span className="dash-validation-status">🔴 En attente de validation</span>
+                            </div>
+                            <div className="dash-validation-doc">{item.document_details || 'Aucun detail de document transmis.'}</div>
+                            <div className="dash-validation-meta">Chef: {item.director_name || 'Non renseigne'}</div>
+                            {item.validation_note && <div className="dash-validation-note">Note: {item.validation_note}</div>}
+                            <div className="dash-validation-actions">
+                              <input className="dash-form-input" value={orphanageNote} onChange={e => setOrphanageNote(e.target.value)} placeholder="Note de validation optionnelle" />
+                              <button className="dash-form-save" onClick={() => validateOrphanage(item.id, 'approve')}>✅ Approuver</button>
+                              <button className="dash-orp-save-btn" onClick={() => { const r = prompt('Motif du rejet (optionnel):'); validateOrphanage(item.id, 'reject', r||'') }}>❌ Rejeter</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()
+                : activeKey === 'orphelinats' && role === 'director' ? (() => {
                   const ORP_STEPS = ['General Information','Management','Capacity & Statistics','Documents','Needs Assessment','Verification'];
                   const ORP_STEP_ICONS = ['🏛️','👤','📊','📄','🆘','✅'];
                   const ORP_NEEDS_OPTIONS = ['Food','Clean Water','Clothing','School Supplies','Medicine','Beds','Electricity','Internet','Infrastructure','Transportation','Sponsorship Programs'];
@@ -2304,13 +2379,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const ORP_COUNTRIES = ['Angola','Benin','Botswana','Burkina Faso','Burundi','Cameroun','Cap-Vert','Centrafrique','Comores','Congo-Brazzaville','RD Congo','Côte d\'Ivoire','Djibouti','Egypte','Guinée Équ.','Érythrée','Eswatini','Éthiopie','Gabon','Gambie','Ghana','Guinée','Guinée-Bissau','Kenya','Lesotho','Libéria','Libye','Madagascar','Malawi','Mali','Mauritanie','Maurice','Maroc','Mozambique','Namibie','Niger','Nigeria','Rwanda','Sao Tomé','Sénégal','Seychelles','Sierra Leone','Somalie','Afrique du Sud','Soudan du Sud','Soudan','Tanzanie','Togo','Tunisie','Ouganda','Zambie','Zimbabwe'];
                   const orpUpd = (k, v) => setOrphanageForm(f => ({ ...f, [k]: v }));
                   const orpToggleNeed = (n) => setOrphanageForm(f => ({ ...f, needs: f.needs.includes(n) ? f.needs.filter(x => x !== n) : [...f.needs, n] }));
-                  const orpFileHandler = (key) => (e) => { const file = e.target.files?.[0]; if (file) setOrpFiles(p => ({ ...p, [key]: file })); };
-                  const orpDragHandler = (key) => ({ onDragOver: e => e.preventDefault(), onDrop: e => { e.preventDefault(); const file = e.dataTransfer.files?.[0]; if (file) setOrpFiles(p => ({ ...p, [key]: file })); } });
                   const filledFields = [orphanageForm.name, orphanageForm.registration_number, orphanageForm.orphanage_type, orphanageForm.country, orphanageForm.director_name, orphanageForm.director_phone, orphanageForm.director_email, orphanageForm.capacity].filter(Boolean).length;
                   const profileCompletion = Math.round((filledFields / 8) * 100);
                   const docCount = Object.values(orpFiles).filter(Boolean).length;
                   const docCompletion = Math.round((docCount / 5) * 100);
                   const saveDraft = () => { try { localStorage.setItem('cdo_orp_draft', JSON.stringify(orphanageForm)); localStorage.setItem('cdo_orp_step', String(orpWizStep)); setOrpDraftSaved(true); showToast('Draft saved successfully.'); setTimeout(() => setOrpDraftSaved(false), 2000); } catch(e) {} };
+                  const directorOrp = directorOrpRec()
+                  const ORP_STATUS_BTN = { pending:{bg:'#ef4444',label:'🔴 En attente de validation par la fédération'}, approved:{bg:'#22c55e',label:'🟢 Validé par la fédération'}, rejected:{bg:'#ef4444',label:'❌ Rejeté'} }
                   return (
                   <div style={{padding:'0 8px'}}>
                     {/* ── TRUST SCORE CARDS ── */}
@@ -2473,29 +2548,22 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Review your submission and track verification status.</p>
 
                       {/* Status du dossier */}
-                      {(() => {
-                        const directorOrp = orphanageRequests.find(o => o.director === user.id)
-                        if (!directorOrp) {
-                          return (
-                            <div style={{background:'rgba(168,85,247,0.06)',borderRadius:16,padding:'20px',border:'1px solid rgba(168,85,247,0.15)',marginBottom:20}}>
-                              <div style={{fontSize:13,fontWeight:600,color:'#a855f7',marginBottom:14}}>🔍 Assigned Ambassador</div>
-                              <div style={{display:'flex',alignItems:'center',gap:16}}>
-                                <div style={{width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,#a855f7,#6366f1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,color:'#fff'}}>🛡️</div>
-                                <div style={{flex:1}}>
-                                  <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>Awaiting Assignment</div>
-                                  <div style={{fontSize:12,color:'#64748b'}}>An ambassador will be assigned after submission</div>
-                                </div>
-                                <div style={{padding:'6px 14px',borderRadius:20,background:'rgba(245,158,11,0.12)',color:'#f59e0b',fontSize:11,fontWeight:700}}>⏳ Pending</div>
-                              </div>
+                      {!directorOrp ? (
+                        <div style={{background:'rgba(168,85,247,0.06)',borderRadius:16,padding:'20px',border:'1px solid rgba(168,85,247,0.15)',marginBottom:20}}>
+                          <div style={{fontSize:13,fontWeight:600,color:'#a855f7',marginBottom:14}}>🔍 Assigned Ambassador</div>
+                          <div style={{display:'flex',alignItems:'center',gap:16}}>
+                            <div style={{width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,#a855f7,#6366f1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,color:'#fff'}}>🛡️</div>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>Awaiting Assignment</div>
+                              <div style={{fontSize:12,color:'#64748b'}}>An ambassador will be assigned after submission</div>
                             </div>
-                          )
-                        }
+                            <div style={{padding:'6px 14px',borderRadius:20,background:'rgba(245,158,11,0.12)',color:'#f59e0b',fontSize:11,fontWeight:700}}>⏳ Pending</div>
+                          </div>
+                        </div>
+                      ) : (() => {
                         const statusConfig = {
-                          pending: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)', color: '#ef4444', icon: '🔴', label: "En attente que le chef de fédération accepte" },
-                          active: { bg: 'rgba(234,179,8,0.1)', border: 'rgba(234,179,8,0.2)', color: '#eab308', icon: '🟡', label: "En attendant que l'ambassadeur accepte" },
-                          under_review: { bg: 'rgba(234,179,8,0.1)', border: 'rgba(234,179,8,0.2)', color: '#eab308', icon: '🟡', label: "En attendant que l'ambassadeur accepte" },
-                          changes_requested: { bg: 'rgba(234,179,8,0.1)', border: 'rgba(234,179,8,0.2)', color: '#eab308', icon: '🟡', label: "En attendant que l'ambassadeur accepte" },
-                          approved: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.2)', color: '#22c55e', icon: '🟢', label: 'Document accepté' },
+                          pending: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)', color: '#ef4444', icon: '🔴', label: "En attente de validation par la fédération" },
+                          approved: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.2)', color: '#22c55e', icon: '🟢', label: 'Validé par la fédération' },
                           rejected: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)', color: '#ef4444', icon: '❌', label: 'Rejeté' },
                         }
                         const cfg = statusConfig[directorOrp.status] || statusConfig.pending
@@ -2542,6 +2610,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <button className="dash-form-save" onClick={saveDraft} style={{background:'rgba(255,255,255,0.06)',color:'#94a3b8'}}>💾 Save Draft</button>
                         {orpWizStep < 5 ? (
                           <button className="dash-form-save" onClick={()=>setOrpWizStep(s=>s+1)} style={{background:'linear-gradient(135deg,#f59e0b,#f97316)',color:'#fff',fontWeight:700}}>Next Step →</button>
+                        ) : directorOrp && !orphanageLoading ? (
+                          (() => { const c = ORP_STATUS_BTN[directorOrp.status] || ORP_STATUS_BTN.pending; return <span style={{background:c.bg,color:'#fff',fontWeight:700,padding:'10px 28px',borderRadius:10,fontSize:13,display:'inline-block',whiteSpace:'nowrap'}}>{c.label}</span> })()
                         ) : (
                           <button className="dash-form-save" onClick={submitOrphanage} disabled={orphanageLoading} style={{background:'linear-gradient(135deg,#22c55e,#16a34a)',color:'#fff',fontWeight:700,padding:'10px 28px'}}>{orphanageLoading?'Submitting...':'🚀 Submit for Verification'}</button>
                         )}
@@ -2549,40 +2619,84 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     </div>
                   </div>
                   );})()
-                : activeKey === 'documents' && role === 'director' ? (
-                  <div className="dash-sub-form">
-                    <div className="dash-sub-form-top">
-                      <h3 className="dash-sub-form-title" style={{fontSize:20}}>📄 Documents de l'orphelinat</h3>
-                    </div>
-                    <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Gérez les documents légaux et administratifs de votre orphelinat.</p>
-                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:14,marginBottom:24}}>
-                      {[{k:'registration_cert',l:'Registration Certificate',req:true},{k:'operating_license',l:'Operating License',req:true},{k:'director_id',l:'Director Identification',req:true},{k:'tax_doc',l:'Tax Registration',req:true},{k:'child_protection',l:'Child Protection Policy',req:true}].map(d=>(
-                        <div key={d.k} {...orpDragHandler(d.k)} style={{border:`2px dashed ${orpFiles[d.k]?'#22c55e':'rgba(255,255,255,0.1)'}`,borderRadius:14,padding:'20px 16px',textAlign:'center',cursor:'pointer',background:orpFiles[d.k]?'rgba(34,197,94,0.04)':'rgba(255,255,255,0.02)',transition:'all .2s ease'}} onClick={()=>document.getElementById('doc-file-'+d.k)?.click()}>
-                          <div style={{fontSize:28,marginBottom:6}}>{orpFiles[d.k]?'✅':'📤'}</div>
-                          <div style={{fontSize:12,fontWeight:600,color:orpFiles[d.k]?'#22c55e':'#94a3b8',marginBottom:4}}>{d.l}{d.req&&<span style={{color:'#ef4444'}}> *</span>}</div>
-                          <div style={{fontSize:11,color:'#64748b'}}>{orpFiles[d.k]?orpFiles[d.k].name:'Cliquez pour télécharger'}</div>
-                          {orpFiles[d.k]&&<button type="button" onClick={e=>{e.stopPropagation();setOrpFiles(p=>({...p,[d.k]:null}))}} style={{marginTop:8,background:'rgba(239,68,68,0.1)',border:'none',borderRadius:8,color:'#ef4444',fontSize:11,padding:'4px 12px',cursor:'pointer'}}>🗑 Supprimer</button>}
-                          <input id={'doc-file-'+d.k} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{display:'none'}} onChange={orpFileHandler(d.k)} />
+                : activeKey === 'documents' && role === 'director' ? (() => {
+                  const myDocOrp = directorOrpRec()
+                  const DOC_ICONS = {
+                    registration_cert: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+                    operating_license: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 12 15 15 9"/></svg>,
+                    director_id: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+                    tax_doc: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
+                    child_protection: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
+                    annual_report: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+                    ngo_accreditation: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+                    partnership_certs: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+                  }
+                  const DOC_COLORS = {
+                    registration_cert: '#3b82f6', operating_license: '#22c55e', director_id: '#a855f7',
+                    tax_doc: '#f59e0b', child_protection: '#ef4444', annual_report: '#06b6d4',
+                    ngo_accreditation: '#f97316', partnership_certs: '#8b5cf6',
+                  }
+                  const DOC_LABELS = {
+                    registration_cert:'Registration Certificate', operating_license:'Operating License',
+                    director_id:'Director ID', tax_doc:'Tax Registration', child_protection:'Child Protection Policy',
+                    annual_report:'Annual Report', ngo_accreditation:'NGO Accreditation', partnership_certs:'Partnership Certificates',
+                  }
+                  const REQ_KEYS = ['registration_cert','operating_license','director_id','tax_doc','child_protection']
+                  const OPT_KEYS = ['annual_report','ngo_accreditation','partnership_certs']
+                  const sc = myDocOrp ? { pending:{c:'#ef4444',b:'rgba(239,68,68,0.15)',l:"En attente de validation par la fédération"}, approved:{c:'#22c55e',b:'rgba(34,197,94,0.15)',l:'Validé par la fédération'}, rejected:{c:'#ef4444',b:'rgba(239,68,68,0.15)',l:'Rejeté'} }[myDocOrp.status] : {}
+                  const renderDocCard = (k, required) => {
+                    const color = DOC_COLORS[k]
+                    const hasFile = !!orpFiles[k]
+                    return (
+                      <div key={k} className="dash-amb-card" style={{padding:'16px',minHeight:'auto',cursor:myDocOrp?'default':'pointer',justifyContent:'flex-start',gap:12}} onClick={myDocOrp ? undefined : ()=>document.getElementById('doc-file-'+k)?.click()} {...(myDocOrp?{}:orpDragHandler(k))}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}}>
+                          <div style={{width:38,height:38,borderRadius:10,background:`${color}15`,display:'flex',alignItems:'center',justifyContent:'center',color:color,flexShrink:0}}>{DOC_ICONS[k]}</div>
+                          {required && <span style={{fontSize:9,fontWeight:700,color:'#ef4444',background:'rgba(239,68,68,0.1)',padding:'2px 8px',borderRadius:6}}>REQUIS</span>}
                         </div>
-                      ))}
-                    </div>
-                    <div style={{fontSize:13,fontWeight:600,color:'#64748b',marginBottom:14}}>📎 Documents optionnels</div>
-                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:14,marginBottom:24}}>
-                      {[{k:'annual_report',l:'Annual Report'},{k:'ngo_accreditation',l:'NGO Accreditation'},{k:'partnership_certs',l:'Partnership Certificates'}].map(d=>(
-                        <div key={d.k} {...orpDragHandler(d.k)} style={{border:`2px dashed ${orpFiles[d.k]?'#3b82f6':'rgba(255,255,255,0.06)'}`,borderRadius:14,padding:'16px',textAlign:'center',cursor:'pointer',background:orpFiles[d.k]?'rgba(59,130,246,0.04)':'rgba(255,255,255,0.01)',transition:'all .2s ease'}} onClick={()=>document.getElementById('doc-file-'+d.k)?.click()}>
-                          <div style={{fontSize:22,marginBottom:4}}>{orpFiles[d.k]?'📎':'📤'}</div>
-                          <div style={{fontSize:12,color:orpFiles[d.k]?'#3b82f6':'#64748b'}}>{d.l}</div>
-                          <div style={{fontSize:10,color:'#475569'}}>{orpFiles[d.k]?orpFiles[d.k].name:'Optionnel'}</div>
-                          {orpFiles[d.k]&&<button type="button" onClick={e=>{e.stopPropagation();setOrpFiles(p=>({...p,[d.k]:null}))}} style={{marginTop:8,background:'rgba(239,68,68,0.1)',border:'none',borderRadius:8,color:'#ef4444',fontSize:11,padding:'4px 12px',cursor:'pointer'}}>🗑 Supprimer</button>}
-                          <input id={'doc-file-'+d.k} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{display:'none'}} onChange={orpFileHandler(d.k)} />
+                        <div style={{fontSize:12,fontWeight:600,color:hasFile?'#e2e8f0':'#94a3b8',marginBottom:2}}>{DOC_LABELS[k]}</div>
+                        <div style={{fontSize:10,color:hasFile?'#22c55e':'#475569',display:'flex',alignItems:'center',gap:4}}>
+                          {hasFile ? <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>{orpFiles[k].name}</> : (myDocOrp ? <span style={{color:'#64748b'}}>Non soumis</span> : <span style={{color:'#475569'}}>Cliquez pour télécharger</span>)}
                         </div>
-                      ))}
+                        {!myDocOrp && hasFile && (
+                          <button type="button" onClick={e=>{e.stopPropagation();setOrpFiles(p=>({...p,[k]:null}))}} style={{marginTop:'auto',background:'rgba(239,68,68,0.1)',border:'none',borderRadius:8,color:'#ef4444',fontSize:10,padding:'4px 12px',cursor:'pointer',alignSelf:'flex-start'}}>🗑 Supprimer</button>
+                        )}
+                        <input id={'doc-file-'+k} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{display:'none'}} onChange={orpFileHandler(k)} />
+                      </div>
+                    )
+                  }
+                  return (
+                  <div style={{padding:'0 8px'}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+                      <div>
+                        <h3 style={{fontSize:20,fontWeight:700,color:'#e2e8f0',margin:0}}>📄 Documents</h3>
+                        <p style={{fontSize:13,color:'#64748b',margin:'4px 0 0'}}>{myDocOrp ? `Documents soumis avec ${myDocOrp.name}` : 'Gérez les documents légaux et administratifs'}</p>
+                      </div>
+                      {myDocOrp && sc.c && <span style={{fontSize:11,fontWeight:600,padding:'5px 14px',borderRadius:20,background:sc.b,color:sc.c,border:`1px solid ${sc.c}25`}}>{sc.l}</span>}
                     </div>
-                    <div style={{display:'flex',gap:12,justifyContent:'flex-end',borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:16}}>
-                      <button type="button" onClick={()=>{const c=Object.values(orpFiles).filter(Boolean).length;showToast(`${c} document${c>1?'s':''} enregistré${c>1?'s':''} localement`,'success')}} style={{background:'linear-gradient(135deg,#f59e0b,#f97316)',border:'none',borderRadius:12,color:'#fff',fontWeight:700,fontSize:13,padding:'10px 24px',cursor:'pointer'}}>💾 Enregistrer les documents</button>
+                    <p style={{fontSize:12,color:'#64748b',marginBottom:16,display:'flex',alignItems:'center',gap:6}}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                      {myDocOrp ? 'Aperçu des documents soumis avec votre dossier' : 'Téléchargez les documents requis pour la validation de votre orphelinat'}
+                    </p>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12,marginBottom:24}}>
+                      {[...REQ_KEYS,...OPT_KEYS].map(k => renderDocCard(k, REQ_KEYS.includes(k)))}
                     </div>
+                    {myDocOrp?.document_details && (
+                      <div style={{background:'rgba(59,130,246,0.04)',borderRadius:14,padding:'16px 20px',border:'1px solid rgba(59,130,246,0.12)'}}>
+                        <div style={{fontSize:12,fontWeight:600,color:'#3b82f6',marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                          Détails des documents
+                        </div>
+                        <div style={{fontSize:12,color:'#cbd5e1',lineHeight:1.6}}>{myDocOrp.document_details}</div>
+                      </div>
+                    )}
+                    {!myDocOrp && (
+                      <div style={{display:'flex',justifyContent:'flex-end',borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:16}}>
+                        <button type="button" onClick={()=>{const c=Object.values(orpFiles).filter(Boolean).length;showToast(`${c} document${c>1?'s':''} enregistré${c>1?'s':''} localement`,'success')}} style={{background:'linear-gradient(135deg,#f59e0b,#f97316)',border:'none',borderRadius:12,color:'#fff',fontWeight:700,fontSize:13,padding:'10px 24px',cursor:'pointer'}}>💾 Enregistrer les documents</button>
+                      </div>
+                    )}
                   </div>
-                ) : subKey === 'Profil' && activeKey === 'parametres' ? (
+                  )})()
+                : subKey === 'Profil' && activeKey === 'parametres' ? (
                   <div className="dash-sub-form">
                     <div className="dash-sub-form-top">
                       <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'\u2190'} {t('form_back')}</button>
@@ -5289,8 +5403,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           ) : (
                             <div style={{padding:'20px',textAlign:'center',color:'#64748b',fontSize:14}}>
                               <div style={{fontSize:36,marginBottom:8}}>🤝</div>
-                              <p style={{margin:'0 0 4px'}}>Aucun ambassadeur assigné à votre orphelinat pour le moment.</p>
-                              <p style={{margin:0,fontSize:12,color:'#475569'}}>Un administrateur federation vous assignera un ambassadeur.</p>
+                              <p style={{margin:'0 0 4px'}}>Les enfants de votre orphelinat peuvent être assignés à un ambassadeur par la fédération.</p>
+                              <p style={{margin:0,fontSize:12,color:'#475569'}}>Les ambassadeurs supervisent les enfants à travers plusieurs orphelinats.</p>
                             </div>
                           )}
                         </div>
@@ -6490,7 +6604,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   </div>
                 ) : activeKey === 'orphelinats' && role === 'federation' ? (() => {
                   const pending = orphanageRequests.filter(o => o.status === 'pending')
-                  const accepted = orphanageRequests.filter(o => ['active','under_review','changes_requested','approved'].includes(o.status))
+                  const processed = orphanageRequests.filter(o => ['approved','rejected'].includes(o.status))
                   return (
                   <div>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
@@ -6501,7 +6615,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     </div>
                     <div style={{display:'flex',gap:8,marginBottom:20}}>
                       <button type="button" onClick={()=>setFedTab('pending')} style={{border:'none',borderRadius:10,padding:'8px 18px',fontSize:13,fontWeight:600,cursor:'pointer',background:fedTab==='pending'?'linear-gradient(135deg,#f59e0b,#f97316)':'rgba(255,255,255,0.05)',color:fedTab==='pending'?'#fff':'#94a3b8',transition:'all .2s'}}>📥 En attente ({pending.length})</button>
-                      <button type="button" onClick={()=>setFedTab('accepted')} style={{border:'none',borderRadius:10,padding:'8px 18px',fontSize:13,fontWeight:600,cursor:'pointer',background:fedTab==='accepted'?'linear-gradient(135deg,#f59e0b,#f97316)':'rgba(255,255,255,0.05)',color:fedTab==='accepted'?'#fff':'#94a3b8',transition:'all .2s'}}>✅ Acceptés ({accepted.length})</button>
+                      <button type="button" onClick={()=>setFedTab('processed')} style={{border:'none',borderRadius:10,padding:'8px 18px',fontSize:13,fontWeight:600,cursor:'pointer',background:fedTab==='processed'?'linear-gradient(135deg,#22c55e,#16a34a)':'rgba(255,255,255,0.05)',color:fedTab==='processed'?'#fff':'#94a3b8',transition:'all .2s'}}>✅ Traités ({processed.length})</button>
                     </div>
                     {fedTab === 'pending' && (
                       pending.length === 0 ? (
@@ -6515,10 +6629,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <div style={{fontSize:16,fontWeight:700,color:'#e2e8f0',marginBottom:2}}>{o.name}</div>
                                   <div style={{fontSize:12,color:'#64748b'}}>Directeur: {o.director_name || '—'}</div>
                                 </div>
-                                <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:'rgba(239,68,68,0.15)',color:'#ef4444'}}>🔴 En attente que le chef de fédération accepte</span>
+                                <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:'rgba(239,68,68,0.15)',color:'#ef4444'}}>🔴 En attente de validation</span>
                               </div>
                               <div style={{display:'flex',gap:8,marginTop:12}}>
-                                <button type="button" onClick={()=>{setOrphanageNote('');validateOrphanage(o.id,'accept').then(loadOrphanages)}} style={{background:'rgba(34,197,94,0.1)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:10,color:'#22c55e',fontSize:12,fontWeight:600,padding:'8px 18px',cursor:'pointer'}}>✅ Accepter</button>
+                                <button type="button" onClick={()=>{setOrphanageNote('');validateOrphanage(o.id,'approve')}} style={{background:'rgba(34,197,94,0.1)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:10,color:'#22c55e',fontSize:12,fontWeight:600,padding:'8px 18px',cursor:'pointer'}}>✅ Approuver</button>
                                 <button type="button" onClick={()=>{const r=prompt('Motif du rejet (optionnel):');validateOrphanage(o.id,'reject',r||'')}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:12,fontWeight:600,padding:'8px 18px',cursor:'pointer'}}>✗ Rejeter</button>
                               </div>
                             </div>
@@ -6526,47 +6640,26 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         </div>
                       )
                     )}
-                    {fedTab === 'accepted' && (
-                      accepted.length === 0 ? (
-                        <div style={{textAlign:'center',padding:40,color:'#64748b',fontSize:14}}>Aucun orphelinat accepté pour le moment.</div>
+                    {fedTab === 'processed' && (
+                      processed.length === 0 ? (
+                        <div style={{textAlign:'center',padding:40,color:'#64748b',fontSize:14}}>Aucun orphelinat traité pour le moment.</div>
                       ) : (
                         <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                          {accepted.map(o => (
+                          {processed.map(o => (
                             <div key={o.id} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
                                 <div>
                                   <div style={{fontSize:16,fontWeight:700,color:'#e2e8f0',marginBottom:2}}>{o.name}</div>
                                   <div style={{fontSize:12,color:'#64748b'}}>Directeur: {o.director_name || '—'}</div>
                                 </div>
-                                <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:o.status==='approved'?'rgba(34,197,94,0.1)':'rgba(234,179,8,0.15)',color:o.status==='approved'?'#22c55e':'#eab308'}}>
-                                  {o.status === 'approved' ? '🟢 Document accepté' : '🟡 En attendant que l\'ambassadeur accepte'}
+                                <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:o.status==='approved'?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.15)',color:o.status==='approved'?'#22c55e':'#ef4444'}}>
+                                  {o.status === 'approved' ? '🟢 Validé' : '❌ Rejeté'}
                                 </span>
                               </div>
-                              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
-                                <span style={{fontSize:12,color:'#64748b'}}>Ambassadeur:</span>
-                                <span style={{fontSize:13,fontWeight:600,color:o.ambassador?'#f59e0b':'#94a3b8'}}>{o.ambassador_name || 'Non assigné'}</span>
-                              </div>
-                              {assigningId === o.id ? (
-                                <div style={{display:'flex',alignItems:'center',gap:8}}>
-                                  <select className="dash-form-input" style={{flex:1,margin:0,padding:'8px 12px',fontSize:13}} defaultValue="" onChange={e=>{const v=e.target.value;if(v)handleAssignAmbassador(o.id,Number(v))}}>
-                                    <option value="" disabled>Choisir un ambassadeur</option>
-                                    {ambassadorsList.filter(a=>a.is_active).map(a => (
-                                      <option key={a.id} value={a.id}>{a.full_name || `${a.first_name} ${a.last_name}`} ({a.email})</option>
-                                    ))}
-                                  </select>
-                                  <button type="button" onClick={()=>setAssigningId(null)} style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:8,color:'#94a3b8',fontSize:12,padding:'8px 12px',cursor:'pointer'}}>Annuler</button>
-                                </div>
-                              ) : (
-                                !o.ambassador && (
-                                  <button type="button" onClick={()=>{setAssigningId(o.id);if(ambassadorsList.length===0)fetchAmbassadors()}} style={{background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.2)',borderRadius:10,color:'#f59e0b',fontSize:12,fontWeight:600,padding:'8px 16px',cursor:'pointer'}}>
-                                    👤 Assigner un ambassadeur
-                                  </button>
-                                )
-                              )}
-                              {o.ambassador && o.feedback && (
-                                <div style={{marginTop:12,padding:'12px',background:'rgba(245,158,11,0.06)',borderRadius:10,border:'1px solid rgba(245,158,11,0.1)'}}>
-                                  <div style={{fontSize:11,fontWeight:600,color:'#f59e0b',marginBottom:4}}>📬 Feedback ambassadeur:</div>
-                                  <div style={{fontSize:12,color:'#e2e8f0'}}>{o.feedback}</div>
+                              {o.validation_note && (
+                                <div style={{marginTop:8,padding:'10px 14px',background:'rgba(255,255,255,0.03)',borderRadius:10}}>
+                                  <div style={{fontSize:11,fontWeight:600,color:'#94a3b8',marginBottom:2}}>Note:</div>
+                                  <div style={{fontSize:12,color:'#cbd5e1'}}>{o.validation_note}</div>
                                 </div>
                               )}
                             </div>
@@ -6577,14 +6670,99 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   </div>
                   )})()
                 : activeKey === 'ambassadeurs' && (role === 'federation' || role === 'supermaster') ? (() => {
+                  if (subKey) {
+                    const goBack = () => setSubKey(null)
+                    const ambUsers = ambassadorsList
+                    const approvedOrps = orphanageRequests.filter(o => o.status === 'approved')
+                    const subViews = {
+                      'Ambassadeurs actifs': {
+                        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+                        color: '#22c55e', desc: 'Tous les ambassadeurs enregistrés dans le système.',
+                        content: ambUsers.length === 0
+                          ? <div style={{textAlign:'center',padding:40,color:'#64748b',fontSize:14}}>Aucun ambassadeur enregistré.</div>
+                          : ambUsers.map(a => (
+                              <div key={a.id} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'18px 20px',display:'flex',alignItems:'center',gap:14,marginBottom:10}}>
+                                <div style={{width:42,height:42,borderRadius:'50%',background:'linear-gradient(135deg,#22c55e,#16a34a)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:700,color:'#fff',flexShrink:0}}>{(a.full_name||a.first_name||'?')[0]?.toUpperCase()}</div>
+                                <div style={{flex:1}}>
+                                  <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>{a.full_name || `${a.first_name} ${a.last_name}`}</div>
+                                  <div style={{fontSize:12,color:'#64748b',marginTop:2}}>{a.email} {a.country ? `• ${a.country}` : ''}</div>
+                                </div>
+                                  <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:a.is_active?'rgba(34,197,94,0.1)':'rgba(100,116,139,0.1)',color:a.is_active?'#22c55e':'#64748b'}}>{a.is_active ? '🟢 Actif' : '⚪ Inactif'}</span>
+                              </div>
+                            )),
+                      },
+                      'Orphelinats validés': {
+                        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+                        color: '#3b82f6', desc: 'Orphelinats validés par la fédération.',
+                        content: approvedOrps.length === 0
+                          ? <div style={{textAlign:'center',padding:40,color:'#64748b',fontSize:14}}>Aucun orphelinat validé pour le moment.</div>
+                          : approvedOrps.map(o => (
+                              <div key={o.id} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'18px 20px',marginBottom:10}}>
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                                  <div>
+                                    <div style={{fontSize:15,fontWeight:700,color:'#e2e8f0'}}>{o.name}</div>
+                                    <div style={{fontSize:12,color:'#64748b',marginTop:2}}>Directeur: {o.director_name || '—'}</div>
+                                  </div>
+                                  <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:'rgba(34,197,94,0.1)',color:'#22c55e'}}>🟢 Validé</span>
+                                </div>
+                                <div style={{fontSize:12,color:'#64748b'}}>Validé le {o.validated_at ? new Date(o.validated_at).toLocaleDateString('fr-FR') : '—'}</div>
+                              </div>
+                            )),
+                      },
+                      'Assignation des enfants': {
+                        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>,
+                        color: '#a855f7', desc: 'Assigner des enfants à un ambassadeur.',
+                        content: (
+                          <div>
+                            {fedLoadingData && <div className="dash-dash-empty">Chargement...</div>}
+                            {!fedLoadingData && (
+                              <ChildAssignmentForm
+                                API={API}
+                                ambassadors={ambUsers.filter(a => a.is_active)}
+                                children={fedAllChildren}
+                                assignments={fedAllAssignments}
+                                onAssigned={() => {
+                                  const token = localStorage.getItem('access_token')
+                                  Promise.all([
+                                    fetch(`${API}/enfants/`, { headers: { Authorization: `Bearer ${token}` } }),
+                                    fetch(`${API}/assignments/`, { headers: { Authorization: `Bearer ${token}` } })
+                                  ]).then(async ([cRes, aRes]) => {
+                                    if (cRes.ok) setFedAllChildren(await cRes.json())
+                                    if (aRes.ok) setFedAllAssignments(await aRes.json())
+                                  }).catch(() => {})
+                                }}
+                              />
+                            )}
+                          </div>
+                        ),
+                      },
+                    }
+                    const sv = subViews[subKey]
+                    return (
+                      <div>
+                        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+                          <button type="button" onClick={goBack} style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:10,color:'#94a3b8',fontSize:13,padding:'8px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                            Retour
+                          </button>
+                          <div style={{width:36,height:36,borderRadius:10,background:sv?`${sv.color}15`:0,display:'flex',alignItems:'center',justifyContent:'center',color:sv?.color,flexShrink:0}}>{sv?.icon}</div>
+                          <div>
+                            <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',margin:0}}>{subKey}</h3>
+                            <p style={{fontSize:12,color:'#64748b',margin:'2px 0 0'}}>{sv?.desc}</p>
+                          </div>
+                        </div>
+                        {sv?.content}
+                      </div>
+                    )
+                  }
+                  const ambActiveCount = ambassadorsList.length
+                  const approvedCount = orphanageRequests.filter(o => o.status === 'approved').length
                   const ambCards = [
-                    { id:'A1', label:'Ambassadeurs actifs', value:'12', status:'En poste', dotColor:'#22c55e', iconColor:'#22c55e', iconBg:'rgba(34,197,94,0.12)',
+                    { id:'A1', label:'Ambassadeurs actifs', value: String(ambActiveCount), status:'Enregistrés', dotColor:'#22c55e', iconColor:'#22c55e', iconBg:'rgba(34,197,94,0.12)',
                       svg: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
-                    { id:'A2', label:'Rapports reçus', value:'8', status:'Ce mois', dotColor:'#3b82f6', iconColor:'#3b82f6', iconBg:'rgba(59,130,246,0.12)',
+                    { id:'A2', label:'Orphelinats validés', value: String(approvedCount), status: 'Validés', dotColor:'#3b82f6', iconColor:'#3b82f6', iconBg:'rgba(59,130,246,0.12)',
                       svg: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> },
-                    { id:'A3', label:'Évaluations', value:'3', status:'En cours', dotColor:'#f59e0b', iconColor:'#f59e0b', iconBg:'rgba(245,158,11,0.12)',
-                      svg: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> },
-                    { id:'A4', label:'Affectations', value:'5', status:'Demandes', dotColor:'#a855f7', iconColor:'#a855f7', iconBg:'rgba(168,85,247,0.12)',
+                    { id:'A3', label:'Assignation des enfants', value: '—', status: 'Gérer', dotColor:'#a855f7', iconColor:'#a855f7', iconBg:'rgba(168,85,247,0.12)',
                       svg: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> },
                   ]
                   return (
@@ -6603,6 +6781,41 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <span style={{fontSize:11,color:'#64748b',fontWeight:500}}>{c.status}</span>
                           </div>
                         </button>
+                      ))}
+                    </div>
+                  )
+                })()
+                : role === 'ambassador' && activeKey === 'multiOrphelinats' ? (() => {
+                  return (
+                    <div className="dash-sub-form">
+                      <div className="dash-validation-head">
+                        <p className="dash-page-subtitle">Enfants assignés par la fédération, regroupés par orphelinat.</p>
+                        <button className="dash-form-save" disabled={ambLoading}>Actualiser</button>
+                      </div>
+                      {ambLoading && <div className="dash-dash-empty">Chargement...</div>}
+                      {!ambLoading && Object.keys(ambAssignments).length === 0 && (
+                        <div className="dash-dash-empty">Aucun enfant assigné pour le moment.</div>
+                      )}
+                      {Object.entries(ambAssignments).map(([orpName, children]) => (
+                        <div key={orpName} style={{marginBottom:20}}>
+                          <h3 style={{fontSize:16,fontWeight:700,color:'#f59e0b',margin:'0 0 10px',display:'flex',alignItems:'center',gap:8}}>
+                            🏛️ {orpName}
+                          </h3>
+                          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                            {children.map(a => (
+                              <div key={a.id} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:12,padding:'14px 16px',display:'flex',alignItems:'center',gap:12}}>
+                                <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#3b82f6,#2563eb)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'#fff',flexShrink:0}}>
+                                  {(a.child_name||'?')[0]?.toUpperCase()}
+                                </div>
+                                <div style={{flex:1}}>
+                                  <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>{a.child_name}</div>
+                                  <div style={{fontSize:12,color:'#64748b'}}>UID: {a.child_uid} • Assigné le {new Date(a.assigned_at).toLocaleDateString('fr-FR')}</div>
+                                </div>
+                                {a.note && <div style={{fontSize:11,color:'#94a3b8',maxWidth:200}}>📝 {a.note}</div>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   )
@@ -6648,6 +6861,96 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
               <button className="dash-back-btn" onClick={() => setDeleteConfirm(null)} style={{ padding:'8px 24px' }}>{t('delete_cancel') || 'Annuler'}</button>
               <button className="dash-form-delete" onClick={() => deleteChild(deleteConfirm)} style={{ padding:'8px 24px' }}>{t('delete_confirm') || 'Supprimer'}</button>
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ChildAssignmentForm({ API, ambassadors, children, assignments, onAssigned }) {
+  const [selectedChild, setSelectedChild] = React.useState('')
+  const [selectedAmbassador, setSelectedAmbassador] = React.useState('')
+  const [note, setNote] = React.useState('')
+  const [loading, setLoading] = React.useState(false)
+  const [msg, setMsg] = React.useState('')
+
+  const handleAssign = async () => {
+    if (!selectedChild || !selectedAmbassador) {
+      setMsg('Veuillez sélectionner un enfant et un ambassadeur.')
+      return
+    }
+    setLoading(true)
+    setMsg('')
+    const token = localStorage.getItem('access_token')
+    try {
+      const res = await fetch(`${API}/assignments/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ child_id: Number(selectedChild), ambassador_id: Number(selectedAmbassador), note }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Erreur d'assignation")
+      setMsg('✅ ' + (data.message || 'Enfant assigné avec succès.'))
+      setSelectedChild('')
+      setSelectedAmbassador('')
+      setNote('')
+      if (onAssigned) onAssigned()
+    } catch (err) {
+      setMsg('❌ ' + err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const assignedChildIds = new Set(assignments.map(a => a.child))
+  const unassignedChildren = children.filter(c => !assignedChildIds.has(c.id))
+
+  return (
+    <div>
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        <div>
+          <label style={{fontSize:12,fontWeight:600,color:'#94a3b8',marginBottom:4,display:'block'}}>Enfant</label>
+          <select className="dash-form-input" value={selectedChild} onChange={e => setSelectedChild(e.target.value)} style={{width:'100%'}}>
+            <option value="">Sélectionner un enfant</option>
+            {unassignedChildren.map(c => (
+              <option key={c.id} value={c.id}>{c.child_name} (UID: {c.uid}) — {c.orphanage_name || 'Sans orphelinat'}</option>
+            ))}
+          </select>
+          {unassignedChildren.length === 0 && (
+            <div style={{fontSize:11,color:'#64748b',marginTop:4}}>Tous les enfants sont déjà assignés.</div>
+          )}
+        </div>
+        <div>
+          <label style={{fontSize:12,fontWeight:600,color:'#94a3b8',marginBottom:4,display:'block'}}>Ambassadeur</label>
+          <select className="dash-form-input" value={selectedAmbassador} onChange={e => setSelectedAmbassador(e.target.value)} style={{width:'100%'}}>
+            <option value="">Sélectionner un ambassadeur</option>
+            {ambassadors.map(a => (
+              <option key={a.id} value={a.id}>{a.full_name || `${a.first_name} ${a.last_name}`}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label style={{fontSize:12,fontWeight:600,color:'#94a3b8',marginBottom:4,display:'block'}}>Note (optionnelle)</label>
+          <input className="dash-form-input" value={note} onChange={e => setNote(e.target.value)} placeholder="Note pour l'ambassadeur..." style={{width:'100%'}} />
+        </div>
+        <button type="button" onClick={handleAssign} disabled={loading} style={{background:'linear-gradient(135deg,#a855f7,#7c3aed)',border:'none',borderRadius:10,color:'#fff',fontSize:13,fontWeight:600,padding:'10px 20px',cursor:loading?'not-allowed':'pointer',opacity:loading?0.6:1}}>
+          {loading ? 'Assignation...' : 'Assigner à l\'ambassadeur'}
+        </button>
+        {msg && <div style={{fontSize:12,padding:'8px 12px',borderRadius:8,background:'rgba(0,0,0,0.2)',color:'#e2e8f0'}}>{msg}</div>}
+      </div>
+      {assignments.length > 0 && (
+        <div style={{marginTop:20}}>
+          <h4 style={{fontSize:14,fontWeight:700,color:'#e2e8f0',margin:'0 0 10px'}}>Assignations existantes ({assignments.length})</h4>
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            {assignments.map(a => (
+              <div key={a.id} style={{background:'rgba(30,41,59,0.5)',borderRadius:10,padding:'10px 14px',display:'flex',alignItems:'center',gap:10,fontSize:13}}>
+                <span style={{color:'#e2e8f0',fontWeight:600}}>{a.child_name}</span>
+                <span style={{color:'#64748b'}}>→</span>
+                <span style={{color:'#a855f7'}}>{a.ambassador_name}</span>
+                <span style={{color:'#64748b',fontSize:11,flex:1,textAlign:'right'}}>{new Date(a.assigned_at).toLocaleDateString('fr-FR')}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}

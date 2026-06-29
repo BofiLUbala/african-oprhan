@@ -2,6 +2,7 @@ import string
 import random
 from datetime import datetime
 
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -9,11 +10,12 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .models import Child, ChildUpdate, ChildHistory
+from .models import Child, ChildUpdate, ChildHistory, ChildAssignment
 from .serializers import (
     ChildSerializer,
     ChildUpdateSerializer,
     ChildHistorySerializer,
+    ChildAssignmentSerializer,
 )
 
 
@@ -61,7 +63,15 @@ def _auto_create_history(child, event_type, category, title, description="", old
 @api_view(["GET", "POST"])
 def child_list(request):
     if request.method == "GET":
-        enfants = Child.objects.filter(created_by=request.user).order_by("-created_at")
+        user = request.user
+        if user.role in ("federation", "supermaster"):
+            enfants = Child.objects.select_related("orphanage").all().order_by("-created_at")
+        elif user.role == "ambassador":
+            enfants = Child.objects.filter(
+                assignments__ambassador=user
+            ).select_related("orphanage").order_by("-created_at")
+        else:
+            enfants = Child.objects.filter(created_by=user).order_by("-created_at")
         serializer = ChildSerializer(enfants, many=True)
         return Response(serializer.data)
 
@@ -476,3 +486,92 @@ def child_calendar_events(request, child_id):
         })
 
     return Response(calendar_data)
+
+
+# ── Child Assignment (Federation → Ambassador) ──
+
+
+@api_view(["GET", "POST"])
+def child_assignment_list(request):
+    user = request.user
+
+    if request.method == "GET":
+        if user.role == "ambassador":
+            qs = ChildAssignment.objects.filter(ambassador=user).select_related(
+                "child__orphanage", "ambassador", "assigned_by"
+            ).order_by("-assigned_at")
+        elif user.role in ("federation", "supermaster"):
+            qs = ChildAssignment.objects.select_related(
+                "child__orphanage", "ambassador", "assigned_by"
+            ).all().order_by("-assigned_at")
+        else:
+            qs = ChildAssignment.objects.none()
+        return Response(ChildAssignmentSerializer(qs, many=True).data)
+
+    elif request.method == "POST":
+        if user.role not in ("federation", "supermaster"):
+            return Response({"error": "Seul un administrateur federation peut assigner des enfants."}, status=status.HTTP_403_FORBIDDEN)
+
+        child_id = request.data.get("child_id")
+        ambassador_id = request.data.get("ambassador_id")
+        note = request.data.get("note", "")
+
+        if not child_id or not ambassador_id:
+            return Response({"error": "child_id et ambassador_id sont requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            child = Child.objects.get(pk=child_id)
+        except Child.DoesNotExist:
+            return Response({"error": "Enfant introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        User = get_user_model()
+        try:
+            ambassador = User.objects.get(pk=ambassador_id, role="ambassador")
+        except User.DoesNotExist:
+            return Response({"error": "Ambassadeur introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        assignment, created = ChildAssignment.objects.update_or_create(
+            child=child,
+            ambassador=ambassador,
+            defaults={"note": note, "assigned_by": user},
+        )
+
+        serializer = ChildAssignmentSerializer(assignment)
+        status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        msg = "Enfant assigné avec succès." if created else "Assignation mise à jour."
+        return Response({"message": msg, "data": serializer.data}, status=status_code)
+
+
+@api_view(["DELETE"])
+def child_assignment_delete(request, assignment_id):
+    user = request.user
+    if user.role not in ("federation", "supermaster"):
+        return Response({"error": "Seul un administrateur federation peut supprimer des assignations."}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        assignment = ChildAssignment.objects.get(pk=assignment_id)
+    except ChildAssignment.DoesNotExist:
+        return Response({"error": "Assignation introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+    assignment.delete()
+    return Response({"message": "Assignation supprimée."}, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+def child_assignments_by_orphanage(request):
+    user = request.user
+    if user.role != "ambassador":
+        return Response({"error": "Accès réservé aux ambassadeurs."}, status=status.HTTP_403_FORBIDDEN)
+
+    assignments = ChildAssignment.objects.filter(ambassador=user).select_related(
+        "child__orphanage", "ambassador", "assigned_by"
+    ).order_by("-assigned_at")
+
+    grouped = {}
+    for a in assignments:
+        orp_name = a.child.orphanage.name if a.child.orphanage else "Sans orphelinat"
+        if orp_name not in grouped:
+            grouped[orp_name] = []
+        grouped[orp_name].append(ChildAssignmentSerializer(a).data)
+
+    return Response(grouped)

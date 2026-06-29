@@ -134,6 +134,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "efandjaprince@gmail.com")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "jcwvjeanvfrapadc")
+EMAIL_TIMEOUT = 5
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "efandjaprince@gmail.com")
 
 # ── Frontend URL (for activation links) ────────────────────────────────────
