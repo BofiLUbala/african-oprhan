@@ -66,6 +66,12 @@ def child_list(request):
         user = request.user
         if user.role in ("federation", "supermaster"):
             enfants = Child.objects.select_related("orphanage").all().order_by("-created_at")
+            orphanage_id = request.query_params.get("orphanage_id")
+            if orphanage_id:
+                enfants = enfants.filter(
+                    Q(orphanage_id=orphanage_id) |
+                    Q(created_by__managed_orphanage__id=orphanage_id)
+                )
         elif user.role == "ambassador":
             enfants = Child.objects.filter(
                 assignments__ambassador=user
@@ -86,6 +92,12 @@ def child_list(request):
         for attempt in range(10):
             data = request.data.dict() if hasattr(request.data, 'dict') else {**request.data}
             data["uid"] = uid
+            if not data.get("orphanage") and request.user.role == "director":
+                try:
+                    if request.user.managed_orphanage:
+                        data["orphanage"] = request.user.managed_orphanage.id
+                except Exception:
+                    pass
             serializer = ChildSerializer(data=data, context={"request": request})
             if serializer.is_valid():
                 try:
@@ -504,6 +516,9 @@ def child_assignment_list(request):
             qs = ChildAssignment.objects.select_related(
                 "child__orphanage", "ambassador", "assigned_by"
             ).all().order_by("-assigned_at")
+            orphanage_id = request.query_params.get("orphanage_id")
+            if orphanage_id:
+                qs = qs.filter(child__orphanage_id=orphanage_id)
         else:
             qs = ChildAssignment.objects.none()
         return Response(ChildAssignmentSerializer(qs, many=True).data)
@@ -540,6 +555,46 @@ def child_assignment_list(request):
         status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         msg = "Enfant assigné avec succès." if created else "Assignation mise à jour."
         return Response({"message": msg, "data": serializer.data}, status=status_code)
+
+
+@api_view(["POST"])
+def child_assignment_bulk(request):
+    user = request.user
+    if user.role not in ("federation", "supermaster"):
+        return Response({"error": "Seul un administrateur federation peut assigner des enfants."}, status=status.HTTP_403_FORBIDDEN)
+
+    child_ids = request.data.get("child_ids", [])
+    ambassador_id = request.data.get("ambassador_id")
+    note = request.data.get("note", "")
+
+    if not child_ids or not ambassador_id:
+        return Response({"error": "child_ids et ambassador_id sont requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+    User = get_user_model()
+    try:
+        ambassador = User.objects.get(pk=ambassador_id, role="ambassador")
+    except User.DoesNotExist:
+        return Response({"error": "Ambassadeur introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+    results = []
+    errors = []
+    for cid in child_ids:
+        try:
+            child = Child.objects.get(pk=cid)
+            assignment, created = ChildAssignment.objects.update_or_create(
+                child=child,
+                ambassador=ambassador,
+                defaults={"note": note, "assigned_by": user},
+            )
+            results.append({
+                "child_id": cid,
+                "status": "assigned" if created else "updated",
+                "data": ChildAssignmentSerializer(assignment).data,
+            })
+        except Child.DoesNotExist:
+            errors.append({"child_id": cid, "error": "Enfant introuvable"})
+
+    return Response({"results": results, "errors": errors})
 
 
 @api_view(["DELETE"])

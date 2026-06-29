@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { LangProvider, useTranslation } from './i18n'
 import './App.css'
 
@@ -1431,6 +1431,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [childGenderFilter, setChildGenderFilter] = useState('')
   const [childSortBy, setChildSortBy] = useState('date')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [unassignConfirm, setUnassignConfirm] = useState(null)
   const [profileImg, setProfileImg] = useState(localStorage.getItem('cdo_profile_img') || null)
   const uidRef = useRef(genChildUid())
   const migratePhoto = (oldUid, newUid) => {
@@ -1446,6 +1447,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     setToast({ message, type })
     setTimeout(() => setToast(null), 3500)
   }
+  const [orphanageName, setOrphanageName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
 
   /* ── Medical form state ── */
   const DEFAULT_VAX = [
@@ -1546,6 +1548,36 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [fedAllChildren, setFedAllChildren] = useState([])
   const [fedAllAssignments, setFedAllAssignments] = useState([])
   const [fedLoadingData, setFedLoadingData] = useState(false)
+  const [orphanageChildren, setOrphanageChildren] = useState([])
+  const [orphanageNeeds, setOrphanageNeeds] = useState([])
+  const [loadingOrpDetails, setLoadingOrpDetails] = useState(false)
+  const [orphanageAssignments, setOrphanageAssignments] = useState([])
+  const [orpSelChildren, setOrpSelChildren] = useState([])
+  const [orpAssignAmb, setOrpAssignAmb] = useState('')
+  const [orpAssignLoading, setOrpAssignLoading] = useState(false)
+  const [orpDetailTab, setOrpDetailTab] = useState('status')
+  const [dirAmbAssignments, setDirAmbAssignments] = useState([])
+  const [dirAmbLoading, setDirAmbLoading] = useState(false)
+  const [dirSelectedAmb, setDirSelectedAmb] = useState(null)
+
+  /* ── Navigation state preservation ── */
+  const savedSubKeys = useRef({})
+  const prevSection = useRef('')
+  useLayoutEffect(() => {
+    const currKey = `${activeKey}_${role || ''}`
+    if (prevSection.current) {
+      savedSubKeys.current[prevSection.current] = subKey
+    }
+    prevSection.current = currKey
+    if (currKey in savedSubKeys.current) {
+      const saved = savedSubKeys.current[currKey]
+      if (saved !== undefined && saved !== null) {
+        setSubKey(saved)
+      }
+    } else {
+      setSubKey(null)
+    }
+  }, [activeKey, role])
 
   useEffect(() => {
     const token = localStorage.getItem('access_token')
@@ -1579,7 +1611,35 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
         .catch(() => {})
         .finally(() => setFedLoadingData(false))
     }
-  }, [activeKey, role])
+    if (activeKey === 'orphelinats' && role === 'federation' && subKey) {
+      setOrpSelChildren([])
+      setOrpAssignAmb('')
+      setLoadingOrpDetails(true)
+      Promise.all([
+        fetch(`${API}/enfants/?orphanage_id=${subKey}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/besoins/?orphanage_id=${subKey}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API}/assignments/?orphanage_id=${subKey}`, { headers: { Authorization: `Bearer ${token}` } })
+      ])
+        .then(async ([cRes, nRes, aRes]) => {
+          if (cRes.ok) setOrphanageChildren(await cRes.json())
+          if (nRes.ok) setOrphanageNeeds(await nRes.json())
+          if (aRes.ok) setOrphanageAssignments(await aRes.json())
+        })
+        .catch(() => {})
+        .finally(() => setLoadingOrpDetails(false))
+    }
+    if (activeKey === 'ambassadeurs' && orphanageName && user.role === 'director') {
+      const myOrp = orphanageRequests.find(o => String(o.director) === String(user.id))
+      if (myOrp) {
+        setDirAmbLoading(true)
+        fetch(`${API}/assignments/?orphanage_id=${myOrp.id}`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.ok ? r.json() : [])
+          .then(d => setDirAmbAssignments(d))
+          .catch(() => {})
+          .finally(() => setDirAmbLoading(false))
+      }
+    }
+  }, [activeKey, role, subKey, orphanageName])
 
   useEffect(() => {
     if (subKey !== 'Scolarité') return
@@ -1696,7 +1756,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     ]},
   ]
   const [theme, setTheme] = useState(localStorage.getItem('cdo_theme') || 'dark')
-  const [orphanageName, setOrphanageName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
   const [orphanageRequests, setOrphanageRequests] = useState([])
   const [orphanageForm, setOrphanageForm] = useState({
     name: localStorage.getItem('cdo_orphanage_name') || '',
@@ -5386,30 +5445,64 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         </div>
                       </div>
                     </div>
-                    {(() => {
-                      const myOrp = orphanageRequests.find(o => o.name === orphanageName || o.director === user.id)
-                      const amb = myOrp?.ambassador_name
+                    {dirSelectedAmb ? (() => {
+                      const ambAssigns = dirAmbAssignments.filter(a => a.ambassador === dirSelectedAmb)
                       return (
-                        <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'24px',marginBottom:16}}>
-                          <h4 style={{fontSize:16,fontWeight:700,color:'#e2e8f0',margin:'0 0 16px',display:'flex',alignItems:'center',gap:8}}>👤 Ambassadeur assigné</h4>
-                          {amb ? (
-                            <div style={{display:'flex',alignItems:'center',gap:16,padding:'16px',background:'rgba(245,158,11,0.06)',borderRadius:12,border:'1px solid rgba(245,158,11,0.15)'}}>
-                              <div style={{width:48,height:48,borderRadius:'50%',background:'linear-gradient(135deg,#f59e0b,#f97316)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,fontWeight:700,color:'#fff'}}>{amb.charAt(0).toUpperCase()}</div>
-                              <div>
-                                <div style={{fontSize:15,fontWeight:700,color:'#f59e0b'}}>{amb}</div>
-                                <div style={{fontSize:12,color:'#64748b',marginTop:2}}>Ambassadeur responsable de votre orphelinat</div>
-                              </div>
+                        <div>
+                          <button type="button" onClick={()=>setDirSelectedAmb(null)} style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:10,color:'#94a3b8',fontSize:13,padding:'8px 16px',cursor:'pointer',marginBottom:16}}>← Retour à la liste</button>
+                          <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'24px'}}>
+                            <h4 style={{fontSize:16,fontWeight:700,color:'#e2e8f0',margin:'0 0 16px',display:'flex',alignItems:'center',gap:8}}>
+                              <span style={{width:38,height:38,borderRadius:'50%',background:'linear-gradient(135deg,#f59e0b,#f97316)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:700,color:'#fff'}}>
+                                {(ambAssigns[0]?.ambassador_name||'?')[0].toUpperCase()}
+                              </span>
+                              {ambAssigns[0]?.ambassador_name || 'Ambassadeur'}
+                            </h4>
+                            <div style={{fontSize:13,color:'#64748b',marginBottom:12}}>{ambAssigns.length} enfant(s) assigné(s)</div>
+                            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                              {ambAssigns.map(a => (
+                                <div key={a.id} style={{background:'rgba(255,255,255,0.03)',borderRadius:10,padding:'12px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                  <div>
+                                    <div style={{fontSize:13,fontWeight:600,color:'#e2e8f0'}}>{a.child_name}</div>
+                                    <div style={{fontSize:11,color:'#64748b'}}>UID: {a.child_uid}</div>
+                                  </div>
+                                  <span style={{fontSize:10,color:'#64748b'}}>{new Date(a.assigned_at).toLocaleDateString('fr-FR')}</span>
+                                </div>
+                              ))}
                             </div>
-                          ) : (
-                            <div style={{padding:'20px',textAlign:'center',color:'#64748b',fontSize:14}}>
-                              <div style={{fontSize:36,marginBottom:8}}>🤝</div>
-                              <p style={{margin:'0 0 4px'}}>Les enfants de votre orphelinat peuvent être assignés à un ambassadeur par la fédération.</p>
-                              <p style={{margin:0,fontSize:12,color:'#475569'}}>Les ambassadeurs supervisent les enfants à travers plusieurs orphelinats.</p>
-                            </div>
-                          )}
+                          </div>
                         </div>
                       )
-                    })()}
+                    })() : (
+                      <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'24px',marginBottom:16}}>
+                        <h4 style={{fontSize:16,fontWeight:700,color:'#e2e8f0',margin:'0 0 16px',display:'flex',alignItems:'center',gap:8}}>👥 Ambassadeurs assignés</h4>
+                        {dirAmbLoading ? (
+                          <div style={{textAlign:'center',padding:20,color:'#64748b',fontSize:14}}>Chargement...</div>
+                        ) : dirAmbAssignments.length === 0 ? (
+                          <div style={{padding:'20px',textAlign:'center',color:'#64748b',fontSize:14}}>
+                            <div style={{fontSize:36,marginBottom:8}}>🤝</div>
+                            <p style={{margin:'0 0 4px'}}>Aucun ambassadeur assigné aux enfants de votre orphelinat.</p>
+                            <p style={{margin:0,fontSize:12,color:'#475569'}}>Les ambassadeurs sont assignés par la fédération.</p>
+                          </div>
+                        ) : (() => {
+                          const grouped = {}
+                          dirAmbAssignments.forEach(a => {
+                            if (!grouped[a.ambassador]) grouped[a.ambassador] = { name: a.ambassador_name, assigns: [] }
+                            grouped[a.ambassador].assigns.push(a)
+                          })
+                          return Object.entries(grouped).map(([ambId, g]) => (
+                            <button key={ambId} type="button" onClick={()=>setDirSelectedAmb(Number(ambId))} style={{width:'100%',textAlign:'left',background:'rgba(255,255,255,0.03)',border:'none',borderRadius:12,padding:'14px 16px',marginBottom:8,cursor:'pointer',display:'flex',alignItems:'center',gap:14,transition:'all .2s'}}
+                              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.06)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.03)'}>
+                              <div style={{width:42,height:42,borderRadius:'50%',background:'linear-gradient(135deg,#f59e0b,#f97316)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:700,color:'#fff',flexShrink:0}}>{g.name.charAt(0).toUpperCase()}</div>
+                              <div style={{flex:1}}>
+                                <div style={{fontSize:14,fontWeight:600,color:'#f59e0b'}}>{g.name}</div>
+                                <div style={{fontSize:12,color:'#64748b',marginTop:2}}>{g.assigns.length} enfant(s) assigné(s)</div>
+                              </div>
+                              <span style={{color:'#64748b',fontSize:13}}>→</span>
+                            </button>
+                          ))
+                        })()}
+                      </div>
+                    )}
                     <div className="dash-category-cards">
                       {page?.categories?.map((cat, i) => (
                         <button key={i} className="dash-category-card" onClick={() => {
@@ -6602,7 +6695,212 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       </div>
                     )}
                   </div>
-                ) : activeKey === 'orphelinats' && role === 'federation' ? (() => {
+                ) : activeKey === 'orphelinats' && role === 'federation' && subKey ? (() => {
+                  const orp = orphanageRequests.find(o => String(o.id) === subKey)
+                  if (!orp) return null
+                  const assignMap = {}
+                  orphanageAssignments.forEach(a => { assignMap[a.child] = a })
+                  return (
+                  <div>
+                    <button type="button" onClick={() => { setSubKey(null); setOrpDetailTab('status') }}
+                      style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:10,color:'#94a3b8',fontSize:13,padding:'8px 16px',cursor:'pointer',marginBottom:16}}>
+                      ← Retour à la liste
+                    </button>
+                    <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'24px',marginBottom:16}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+                        <div>
+                          <h3 style={{fontSize:22,fontWeight:700,color:'#e2e8f0',margin:0}}>🏛️ {orp.name}</h3>
+                          <p style={{fontSize:13,color:'#64748b',margin:'4px 0 0'}}>Directeur: {orp.director_name || '—'}</p>
+                        </div>
+                        <span style={{fontSize:12,fontWeight:600,padding:'5px 14px',borderRadius:20,background:orp.status==='approved'?'rgba(34,197,94,0.1)':orp.status==='rejected'?'rgba(239,68,68,0.15)':'rgba(239,68,68,0.15)',color:orp.status==='approved'?'#22c55e':orp.status==='rejected'?'#ef4444':'#ef4444'}}>
+                          {orp.status === 'approved' ? '🟢 Validé' : orp.status === 'rejected' ? '❌ Rejeté' : '🔴 En attente'}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
+                      {[{key:'status',label:'📋 Statut'},{key:'documents',label:'📄 Documents'},{key:'enfants',label:'👶 Enfants'},{key:'besoins',label:'📦 Besoins'},{key:'capacite',label:'🏠 Capacité'}].map(tab => (
+                        <button type="button" key={tab.key} onClick={()=>setOrpDetailTab(tab.key)}
+                          style={{border:'none',borderRadius:10,padding:'8px 18px',fontSize:13,fontWeight:600,cursor:'pointer',background:orpDetailTab===tab.key?'linear-gradient(135deg,#3b82f6,#6366f1)':'rgba(255,255,255,0.05)',color:orpDetailTab===tab.key?'#fff':'#94a3b8',transition:'all .2s'}}>
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+                    {orpDetailTab === 'status' && (
+                      <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
+                        <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>Informations générales</div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,fontSize:13}}>
+                          <div><span style={{color:'#64748b'}}>Adresse:</span><br/><span style={{color:'#cbd5e1'}}>{orp.address || '—'}</span></div>
+                          <div><span style={{color:'#64748b'}}>Capacité:</span><br/><span style={{color:'#cbd5e1'}}>{orp.capacity} places</span></div>
+                          <div><span style={{color:'#64748b'}}>Date de soumission:</span><br/><span style={{color:'#cbd5e1'}}>{new Date(orp.created_at).toLocaleDateString()}</span></div>
+                          <div><span style={{color:'#64748b'}}>Statut:</span><br/><span style={{color:'#cbd5e1'}}>{orp.status === 'pending' ? 'En attente' : orp.status === 'approved' ? 'Validé' : 'Rejeté'}</span></div>
+                        </div>
+                        {orp.validation_note && (
+                          <div style={{marginTop:16,padding:'12px 16px',background:'rgba(255,255,255,0.03)',borderRadius:10}}>
+                            <div style={{fontSize:12,fontWeight:600,color:'#94a3b8',marginBottom:4}}>Note de validation:</div>
+                            <div style={{fontSize:13,color:'#cbd5e1'}}>{orp.validation_note}</div>
+                          </div>
+                        )}
+                        {orp.status === 'pending' && (
+                          <div style={{display:'flex',gap:8,marginTop:16}}>
+                            <button type="button" onClick={()=>{setOrphanageNote('');validateOrphanage(orp.id,'approve');setSubKey(null);setOrpDetailTab('status')}} style={{background:'rgba(34,197,94,0.1)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:10,color:'#22c55e',fontSize:13,fontWeight:600,padding:'10px 22px',cursor:'pointer'}}>✅ Approuver</button>
+                            <button type="button" onClick={()=>{const r=prompt('Motif du rejet (optionnel):');if(r!==null){validateOrphanage(orp.id,'reject',r||'');setSubKey(null);setOrpDetailTab('status')}}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:13,fontWeight:600,padding:'10px 22px',cursor:'pointer'}}>✗ Rejeter</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {orpDetailTab === 'documents' && (
+                      <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
+                        <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>Documents</div>
+                        {orp.document_details ? (
+                          <div style={{fontSize:13,color:'#cbd5e1',whiteSpace:'pre-wrap'}}>{orp.document_details}</div>
+                        ) : (
+                          <div style={{textAlign:'center',padding:30,color:'#64748b',fontSize:14}}>Aucun document soumis.</div>
+                        )}
+                      </div>
+                    )}
+                    {orpDetailTab === 'enfants' && (
+                      <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
+                        <div style={{flex:'1 1 380px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',maxHeight:560,overflowY:'auto'}}>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>Enfants ({orphanageChildren.length})</div>
+                          {orphanageChildren.length > 0 && (
+                            <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:14,padding:'10px 12px',background:'rgba(99,102,241,0.08)',borderRadius:10}}>
+                              <select value={orpAssignAmb} onChange={e=>setOrpAssignAmb(e.target.value)} style={{flex:1,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,color:'#e2e8f0',fontSize:13,padding:'7px 10px',outline:'none'}}>
+                                <option value="">Sélectionner un ambassadeur...</option>
+                                {ambassadorsList.filter(a=>a.is_active).map(a => (
+                                  <option key={a.id} value={a.id}>{a.full_name || `${a.first_name} ${a.last_name}`}</option>
+                                ))}
+                              </select>
+                              <button type="button" disabled={orpSelChildren.length===0||!orpAssignAmb||orpAssignLoading} onClick={async()=>{
+                                if (orpSelChildren.length===0||!orpAssignAmb) return
+                                setOrpAssignLoading(true)
+                                try {
+                                  const res=await fetch(`${API}/assignments/bulk/`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('access_token')}`},body:JSON.stringify({child_ids:orpSelChildren,ambassador_id:Number(orpAssignAmb)})})
+                                  const data=await res.json()
+                                  if (res.ok) {
+                                    setOrpSelChildren([])
+                                    setOrpAssignAmb('')
+                                    const cRes=await fetch(`${API}/assignments/?orphanage_id=${subKey}`,{headers:{Authorization:`Bearer ${localStorage.getItem('access_token')}`}})
+                                    if (cRes.ok) setOrphanageAssignments(await cRes.json())
+                                    alert(`${data.results.length} enfant(s) assigné(s) avec succès.`)
+                                  } else {
+                                    alert(data.error||'Erreur lors de l\'assignation')
+                                  }
+                                } catch(_){alert('Erreur réseau')}
+                                setOrpAssignLoading(false)
+                              }} style={{background:orpSelChildren.length>0&&orpAssignAmb?'linear-gradient(135deg,#8b5cf6,#6366f1)':'rgba(100,116,139,0.3)',border:'none',borderRadius:8,color:'#fff',fontSize:13,fontWeight:600,padding:'7px 16px',cursor:orpSelChildren.length>0&&orpAssignAmb?'pointer':'not-allowed',whiteSpace:'nowrap'}}>
+                                {orpAssignLoading ? '⏳...' : `Assigner (${orpSelChildren.length})`}
+                              </button>
+                            </div>
+                          )}
+                          {loadingOrpDetails ? (
+                            <div style={{textAlign:'center',padding:30,color:'#64748b'}}>Chargement...</div>
+                          ) : orphanageChildren.length === 0 ? (
+                            <div style={{textAlign:'center',padding:30,color:'#64748b',fontSize:14}}>Aucun enfant dans cet orphelinat.</div>
+                          ) : (
+                            orphanageChildren.map(c => {
+                              const assignment = assignMap[c.id]
+                              const checked = orpSelChildren.includes(c.id)
+                              return (
+                                <div key={c.id} style={{background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'10px 12px',marginBottom:8}}>
+                                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                                    <input type="checkbox" checked={checked} disabled={!!assignment} onChange={()=>setOrpSelChildren(prev=>checked?prev.filter(id=>id!==c.id):[...prev,c.id])} style={{width:17,height:17,cursor:assignment?'not-allowed':'pointer',accentColor:'#6366f1',opacity:assignment?0.4:1}} />
+                                    <div style={{flex:1}}>
+                                      <div style={{fontSize:13,fontWeight:600,color:assignment?'#22c55e':'#e2e8f0'}}>{c.child_name || `${c.prenom} ${c.nom}`}</div>
+                                      <div style={{fontSize:11,color:'#64748b',marginTop:1}}>
+                                        {c.age ? `${c.age} ans` : ''} {c.sexe === 'M' ? '♂' : '♀'} {c.nationalite ? `• ${c.nationalite}` : ''}
+                                      </div>
+                                    </div>
+                                    {assignment ? (
+                                      <div style={{display:'flex',alignItems:'center',gap:4}}>
+                                        <span style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(34,197,94,0.1)',color:'#22c55e',whiteSpace:'nowrap'}}>Assigné</span>
+                                        <button type="button" onClick={()=>setUnassignConfirm({childName:c.child_name||c.prenom+' '+c.nom,assignmentId:assignment.id,orphanageId:subKey})} style={{background:'rgba(239,68,68,0.1)',border:'none',borderRadius:6,color:'#ef4444',fontSize:11,cursor:'pointer',padding:'3px 7px',whiteSpace:'nowrap'}}>✕</button>
+                                      </div>
+                                    ) : (
+                                      <span style={{fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'rgba(100,116,139,0.1)',color:'#64748b',whiteSpace:'nowrap'}}>Libre</span>
+                                    )}
+                                  </div>
+                                  {assignment && (
+                                    <div style={{marginTop:4,marginLeft:27,padding:'4px 8px',background:'rgba(99,102,241,0.08)',borderRadius:6,fontSize:11,color:'#818cf8',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                      <span>Ambassadeur: {assignment.ambassador_name}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })
+                          )}
+                        </div>
+                        <div style={{flex:'1 1 300px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',maxHeight:560,overflowY:'auto'}}>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>Sélection multiple</div>
+                          <div style={{fontSize:13,color:'#94a3b8',lineHeight:1.6}}>
+                            <p>✔ Cochez les enfants à assigner</p>
+                            <p>📌 Choisissez un ambassadeur dans la liste</p>
+                            <p>🚀 Cliquez sur <strong style={{color:'#8b5cf6'}}>Assigner</strong></p>
+                            {orpSelChildren.length > 0 && (
+                              <div style={{marginTop:12,padding:'10px 14px',background:'rgba(99,102,241,0.1)',borderRadius:8}}>
+                                <div style={{fontSize:12,fontWeight:600,color:'#818cf8'}}>{orpSelChildren.length} enfant(s) sélectionné(s)</div>
+                                <div style={{fontSize:11,color:'#64748b',marginTop:4}}>
+                                  {orphanageChildren.filter(c=>orpSelChildren.includes(c.id)).map(c=>c.child_name||`${c.prenom} ${c.nom}`).join(', ')}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {orpDetailTab === 'besoins' && (
+                      <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
+                        <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>Besoins ({orphanageNeeds.length})</div>
+                        {loadingOrpDetails ? (
+                          <div style={{textAlign:'center',padding:30,color:'#64748b'}}>Chargement...</div>
+                        ) : orphanageNeeds.length === 0 ? (
+                          <div style={{textAlign:'center',padding:30,color:'#64748b',fontSize:14}}>Aucun besoin enregistré.</div>
+                        ) : (
+                          orphanageNeeds.map(n => (
+                            <div key={n.id} style={{background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'14px 16px',marginBottom:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                              <div>
+                                <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>{n.title}</div>
+                                <div style={{fontSize:12,color:'#64748b',marginTop:2}}>{n.category_label} • {n.description}</div>
+                              </div>
+                              <div style={{textAlign:'right'}}>
+                                <span style={{fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:20,background:n.status==='open'?'rgba(239,68,68,0.15)':'rgba(34,197,94,0.1)',color:n.status==='open'?'#ef4444':'#22c55e'}}>
+                                  {n.status_label}
+                                </span>
+                                <div style={{fontSize:11,color:'#64748b',marginTop:2}}>{n.quantity && `Qté: ${n.quantity}`} {n.priority && `• ${n.priority_label}`}</div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                    {orpDetailTab === 'capacite' && (
+                      <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
+                        <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:16}}>Capacité d'accueil</div>
+                        <div style={{display:'flex',gap:20,flexWrap:'wrap'}}>
+                          <div style={{flex:'1',minWidth:180,background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'20px',textAlign:'center'}}>
+                            <div style={{fontSize:32,fontWeight:700,color:'#3b82f6'}}>{orp.capacity}</div>
+                            <div style={{fontSize:13,color:'#64748b',marginTop:4}}>Capacité totale</div>
+                          </div>
+                          <div style={{flex:'1',minWidth:180,background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'20px',textAlign:'center'}}>
+                            <div style={{fontSize:32,fontWeight:700,color:orphanageChildren.length <= orp.capacity ? '#22c55e' : '#ef4444'}}>{orphanageChildren.length}</div>
+                            <div style={{fontSize:13,color:'#64748b',marginTop:4}}>Enfants enregistrés</div>
+                          </div>
+                          <div style={{flex:'1',minWidth:180,background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'20px',textAlign:'center'}}>
+                            <div style={{fontSize:24,fontWeight:700,color:orphanageChildren.length < orp.capacity ? '#22c55e' : '#ef4444'}}>
+                              {orphanageChildren.length < orp.capacity ? '✅' : '❌'}
+                            </div>
+                            <div style={{fontSize:13,color:'#64748b',marginTop:4}}>
+                              {orphanageChildren.length < orp.capacity
+                                ? `Places disponibles: ${orp.capacity - orphanageChildren.length}`
+                                : 'Aucune place disponible'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  )
+                })()
+                : activeKey === 'orphelinats' && role === 'federation' ? (() => {
                   const pending = orphanageRequests.filter(o => o.status === 'pending')
                   const processed = orphanageRequests.filter(o => ['approved','rejected'].includes(o.status))
                   return (
@@ -6626,7 +6924,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div key={o.id} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
                                 <div>
-                                  <div style={{fontSize:16,fontWeight:700,color:'#e2e8f0',marginBottom:2}}>{o.name}</div>
+                                  <button type="button" onClick={()=>setSubKey(String(o.id))} style={{background:'none',border:'none',padding:0,cursor:'pointer',textAlign:'left',marginBottom:2}}>
+                                    <span style={{fontSize:16,fontWeight:700,color:'#60a5fa',textDecoration:'underline',textUnderlineOffset:3}}>{o.name}</span>
+                                  </button>
                                   <div style={{fontSize:12,color:'#64748b'}}>Directeur: {o.director_name || '—'}</div>
                                 </div>
                                 <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:'rgba(239,68,68,0.15)',color:'#ef4444'}}>🔴 En attente de validation</span>
@@ -6649,7 +6949,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div key={o.id} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
                                 <div>
-                                  <div style={{fontSize:16,fontWeight:700,color:'#e2e8f0',marginBottom:2}}>{o.name}</div>
+                                  <button type="button" onClick={()=>setSubKey(String(o.id))} style={{background:'none',border:'none',padding:0,cursor:'pointer',textAlign:'left',marginBottom:2}}>
+                                    <span style={{fontSize:16,fontWeight:700,color:'#60a5fa',textDecoration:'underline',textUnderlineOffset:3}}>{o.name}</span>
+                                  </button>
                                   <div style={{fontSize:12,color:'#64748b'}}>Directeur: {o.director_name || '—'}</div>
                                 </div>
                                 <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:o.status==='approved'?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.15)',color:o.status==='approved'?'#22c55e':'#ef4444'}}>
@@ -6721,6 +7023,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 ambassadors={ambUsers.filter(a => a.is_active)}
                                 children={fedAllChildren}
                                 assignments={fedAllAssignments}
+                                setUnassignConfirm={setUnassignConfirm}
                                 onAssigned={() => {
                                   const token = localStorage.getItem('access_token')
                                   Promise.all([
@@ -6728,7 +7031,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     fetch(`${API}/assignments/`, { headers: { Authorization: `Bearer ${token}` } })
                                   ]).then(async ([cRes, aRes]) => {
                                     if (cRes.ok) setFedAllChildren(await cRes.json())
-                                    if (aRes.ok) setFedAllAssignments(await aRes.json())
+          if (aRes.ok) setOrphanageAssignments(await aRes.json())
                                   }).catch(() => {})
                                 }}
                               />
@@ -6864,35 +7167,56 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
           </div>
         </div>
       )}
+      {unassignConfirm && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center' }} onClick={() => setUnassignConfirm(null)}>
+          <div style={{ background:'#1e293b', border:'1px solid rgba(255,255,255,0.08)', borderRadius:16, padding:'28px 32px', maxWidth:'400px', width:'90%', textAlign:'center', display:'flex', flexDirection:'column', gap:'16px' }} onClick={e => e.stopPropagation()}>
+            <span style={{ fontSize:'40px' }}>✂️</span>
+            <h3 style={{ margin:0, fontSize:'17px', fontWeight:'700', color:'#e2e8f0' }}>Confirmer la désassignation</h3>
+            <p style={{ fontSize:'13px', color:'#94a3b8', margin:0 }}>Retirer l'assignation de <strong style={{color:'#f59e0b'}}>{unassignConfirm.childName}</strong> ?</p>
+            <div style={{ display:'flex', gap:'12px', justifyContent:'center', marginTop:'8px' }}>
+              <button type="button" onClick={() => setUnassignConfirm(null)} style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:10,color:'#94a3b8',fontSize:13,fontWeight:600,padding:'8px 24px',cursor:'pointer'}}>Annuler</button>
+              <button type="button" onClick={async()=>{const c=unassignConfirm;setUnassignConfirm(null);const token=localStorage.getItem('access_token');try{await fetch(API+'/assignments/'+c.assignmentId+'/',{method:'DELETE',headers:{Authorization:'Bearer '+token}});if(c.orphanageId){const r=await fetch(API+'/assignments/?orphanage_id='+c.orphanageId,{headers:{Authorization:'Bearer '+token}});if(r.ok)setOrphanageAssignments(await r.json())}if(c.onAssigned)c.onAssigned()}catch(_){}}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:13,fontWeight:600,padding:'8px 24px',cursor:'pointer'}}>Désassigner</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function ChildAssignmentForm({ API, ambassadors, children, assignments, onAssigned }) {
-  const [selectedChild, setSelectedChild] = React.useState('')
+function ChildAssignmentForm({ API, ambassadors, children, assignments, onAssigned, setUnassignConfirm }) {
+  const [selChildren, setSelChildren] = React.useState([])
   const [selectedAmbassador, setSelectedAmbassador] = React.useState('')
   const [note, setNote] = React.useState('')
   const [loading, setLoading] = React.useState(false)
   const [msg, setMsg] = React.useState('')
+  const [assignFilter, setAssignFilter] = React.useState('all')
+
+  const assignedChildIds = new Set(assignments.map(a => a.child))
+  const unassignedChildren = children.filter(c => !assignedChildIds.has(c.id))
+  const assignedChildren = children.filter(c => assignedChildIds.has(c.id))
+  const displayChildren = assignFilter === 'all' ? children : assignFilter === 'unassigned' ? unassignedChildren : assignedChildren
+  const assignMap = {}
+  assignments.forEach(a => { assignMap[a.child] = a })
 
   const handleAssign = async () => {
-    if (!selectedChild || !selectedAmbassador) {
-      setMsg('Veuillez sélectionner un enfant et un ambassadeur.')
+    if (selChildren.length === 0 || !selectedAmbassador) {
+      setMsg('Veuillez sélectionner au moins un enfant et un ambassadeur.')
       return
     }
     setLoading(true)
     setMsg('')
     const token = localStorage.getItem('access_token')
     try {
-      const res = await fetch(`${API}/assignments/`, {
+      const res = await fetch(`${API}/assignments/bulk/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ child_id: Number(selectedChild), ambassador_id: Number(selectedAmbassador), note }),
+        body: JSON.stringify({ child_ids: selChildren, ambassador_id: Number(selectedAmbassador), note }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Erreur d'assignation")
-      setMsg('✅ ' + (data.message || 'Enfant assigné avec succès.'))
-      setSelectedChild('')
+      setMsg(`✅ ${data.results.length} enfant(s) assigné(s) avec succès.`)
+      setSelChildren([])
       setSelectedAmbassador('')
       setNote('')
       if (onAssigned) onAssigned()
@@ -6903,46 +7227,73 @@ function ChildAssignmentForm({ API, ambassadors, children, assignments, onAssign
     }
   }
 
-  const assignedChildIds = new Set(assignments.map(a => a.child))
-  const unassignedChildren = children.filter(c => !assignedChildIds.has(c.id))
-
   return (
     <div>
-      <div style={{display:'flex',flexDirection:'column',gap:12}}>
-        <div>
-          <label style={{fontSize:12,fontWeight:600,color:'#94a3b8',marginBottom:4,display:'block'}}>Enfant</label>
-          <select className="dash-form-input" value={selectedChild} onChange={e => setSelectedChild(e.target.value)} style={{width:'100%'}}>
-            <option value="">Sélectionner un enfant</option>
-            {unassignedChildren.map(c => (
-              <option key={c.id} value={c.id}>{c.child_name} (UID: {c.uid}) — {c.orphanage_name || 'Sans orphelinat'}</option>
+      <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
+        <div style={{flex:'1 1 340px'}}>
+          <label style={{fontSize:12,fontWeight:600,color:'#94a3b8',marginBottom:6,display:'block'}}>Enfants</label>
+          <div style={{display:'flex',gap:4,marginBottom:8}}>
+            {[{k:'all',l:'Tous'},{k:'unassigned',l:'Non assignés'},{k:'assigned',l:'Assignés'}].map(f => (
+              <button key={f.k} type="button" onClick={()=>setAssignFilter(f.k)} style={{border:'none',borderRadius:6,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer',background:assignFilter===f.k?'rgba(168,85,247,0.2)':'rgba(255,255,255,0.05)',color:assignFilter===f.k?'#a855f7':'#94a3b8'}}>{f.l}</button>
             ))}
-          </select>
-          {unassignedChildren.length === 0 && (
-            <div style={{fontSize:11,color:'#64748b',marginTop:4}}>Tous les enfants sont déjà assignés.</div>
+          </div>
+          <div style={{maxHeight:260,overflowY:'auto',background:'rgba(0,0,0,0.15)',borderRadius:10,padding:'6px',marginBottom:10}}>
+            {displayChildren.length === 0 ? (
+              <div style={{textAlign:'center',padding:20,color:'#64748b',fontSize:12}}>Aucun enfant trouvé.</div>
+            ) : (
+              displayChildren.map(c => {
+                const checked = selChildren.includes(c.id)
+                const assignment = assignMap[c.id]
+                return (
+                  <div key={c.id} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 8px',background:checked?'rgba(168,85,247,0.08)':'transparent',borderRadius:8,marginBottom:2}}>
+                    <input type="checkbox" checked={checked} disabled={!!assignment} onChange={()=>setSelChildren(prev=>checked?prev.filter(id=>id!==c.id):[...prev,c.id])} style={{width:16,height:16,cursor:assignment?'not-allowed':'pointer',accentColor:'#a855f7',opacity:assignment?0.35:1}} />
+                    <div style={{flex:1,fontSize:12,color:assignment?'#22c55e':'#e2e8f0'}}>
+                      {c.child_name}
+                      <span style={{color:'#64748b',fontSize:10,marginLeft:4}}>({c.orphanage_name || '—'})</span>
+                    </div>
+                    {assignment ? (
+                      <div style={{display:'flex',alignItems:'center',gap:3}}>
+                        <span style={{fontSize:10,fontWeight:600,padding:'2px 6px',borderRadius:20,background:'rgba(34,197,94,0.1)',color:'#22c55e'}}>{assignment.ambassador_name?.split(' ')[0]}</span>
+                        <button type="button" onClick={()=>setUnassignConfirm?.({childName:c.child_name,assignmentId:assignment.id,onAssigned:onAssigned})} style={{background:'rgba(239,68,68,0.1)',border:'none',borderRadius:4,color:'#ef4444',fontSize:10,cursor:'pointer',padding:'2px 5px'}}>✕</button>
+                      </div>
+                    ) : (
+                      <span style={{fontSize:10,fontWeight:600,padding:'2px 8px',borderRadius:20,background:'rgba(100,116,139,0.1)',color:'#64748b'}}>Libre</span>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+          {selChildren.length > 0 && (
+            <div style={{fontSize:11,color:'#a855f7',marginBottom:8,fontWeight:600}}>{selChildren.length} enfant(s) sélectionné(s)</div>
           )}
         </div>
-        <div>
-          <label style={{fontSize:12,fontWeight:600,color:'#94a3b8',marginBottom:4,display:'block'}}>Ambassadeur</label>
-          <select className="dash-form-input" value={selectedAmbassador} onChange={e => setSelectedAmbassador(e.target.value)} style={{width:'100%'}}>
-            <option value="">Sélectionner un ambassadeur</option>
-            {ambassadors.map(a => (
-              <option key={a.id} value={a.id}>{a.full_name || `${a.first_name} ${a.last_name}`}</option>
-            ))}
-          </select>
+        <div style={{flex:'1 1 280px'}}>
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            <div>
+              <label style={{fontSize:12,fontWeight:600,color:'#94a3b8',marginBottom:4,display:'block'}}>Ambassadeur</label>
+              <select value={selectedAmbassador} onChange={e => setSelectedAmbassador(e.target.value)} style={{width:'100%',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,color:'#e2e8f0',fontSize:13,padding:'8px 10px',outline:'none'}}>
+                <option value="">Sélectionner un ambassadeur</option>
+                {ambassadors.map(a => (
+                  <option key={a.id} value={a.id}>{a.full_name || `${a.first_name} ${a.last_name}`}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={{fontSize:12,fontWeight:600,color:'#94a3b8',marginBottom:4,display:'block'}}>Note (optionnelle)</label>
+              <input value={note} onChange={e => setNote(e.target.value)} placeholder="Note pour l'ambassadeur..." style={{width:'100%',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,color:'#e2e8f0',fontSize:13,padding:'8px 10px',outline:'none'}} />
+            </div>
+            <button type="button" onClick={handleAssign} disabled={loading||selChildren.length===0||!selectedAmbassador} style={{background:'linear-gradient(135deg,#a855f7,#7c3aed)',border:'none',borderRadius:10,color:'#fff',fontSize:13,fontWeight:600,padding:'10px 20px',cursor:loading||selChildren.length===0||!selectedAmbassador?'not-allowed':'pointer',opacity:loading||selChildren.length===0||!selectedAmbassador?0.6:1}}>
+              {loading ? 'Assignation...' : `Assigner à l'ambassadeur (${selChildren.length})`}
+            </button>
+            {msg && <div style={{fontSize:12,padding:'8px 12px',borderRadius:8,background:'rgba(0,0,0,0.2)',color:'#e2e8f0'}}>{msg}</div>}
+          </div>
         </div>
-        <div>
-          <label style={{fontSize:12,fontWeight:600,color:'#94a3b8',marginBottom:4,display:'block'}}>Note (optionnelle)</label>
-          <input className="dash-form-input" value={note} onChange={e => setNote(e.target.value)} placeholder="Note pour l'ambassadeur..." style={{width:'100%'}} />
-        </div>
-        <button type="button" onClick={handleAssign} disabled={loading} style={{background:'linear-gradient(135deg,#a855f7,#7c3aed)',border:'none',borderRadius:10,color:'#fff',fontSize:13,fontWeight:600,padding:'10px 20px',cursor:loading?'not-allowed':'pointer',opacity:loading?0.6:1}}>
-          {loading ? 'Assignation...' : 'Assigner à l\'ambassadeur'}
-        </button>
-        {msg && <div style={{fontSize:12,padding:'8px 12px',borderRadius:8,background:'rgba(0,0,0,0.2)',color:'#e2e8f0'}}>{msg}</div>}
       </div>
       {assignments.length > 0 && (
         <div style={{marginTop:20}}>
           <h4 style={{fontSize:14,fontWeight:700,color:'#e2e8f0',margin:'0 0 10px'}}>Assignations existantes ({assignments.length})</h4>
-          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          <div style={{display:'flex',flexDirection:'column',gap:6,maxHeight:240,overflowY:'auto'}}>
             {assignments.map(a => (
               <div key={a.id} style={{background:'rgba(30,41,59,0.5)',borderRadius:10,padding:'10px 14px',display:'flex',alignItems:'center',gap:10,fontSize:13}}>
                 <span style={{color:'#e2e8f0',fontWeight:600}}>{a.child_name}</span>

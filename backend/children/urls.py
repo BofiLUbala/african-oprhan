@@ -17,6 +17,7 @@ urlpatterns = [
     path("history/all/", views.all_children_history, name="all-children-history"),
     # Child Assignments (Federation → Ambassador)
     path("assignments/", views.child_assignment_list, name="child-assignment-list"),
+    path("assignments/bulk/", views.child_assignment_bulk, name="child-assignment-bulk"),
     path("assignments/<int:assignment_id>/", views.child_assignment_delete, name="child-assignment-delete"),
     path("assignments/by-orphanage/", views.child_assignments_by_orphanage, name="child-assignments-by-orphanage"),
 ]
