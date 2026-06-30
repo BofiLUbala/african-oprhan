@@ -1,6 +1,35 @@
 from rest_framework import serializers
 
-from .models import Orphanage
+from .models import DocumentType, Orphanage, OrphanageDocument
+
+
+class DocumentTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DocumentType
+        fields = "__all__"
+
+
+class OrphanageDocumentSerializer(serializers.ModelSerializer):
+    document_type_name = serializers.SerializerMethodField()
+    document_type_required = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrphanageDocument
+        fields = [
+            "id", "orphanage", "document_type", "document_type_name",
+            "document_type_required", "file", "status", "feedback",
+            "points_to_update", "reviewed_by", "reviewed_at", "uploaded_at",
+        ]
+        read_only_fields = [
+            "orphanage", "status", "feedback", "points_to_update",
+            "reviewed_by", "reviewed_at", "uploaded_at",
+        ]
+
+    def get_document_type_name(self, obj):
+        return obj.document_type.label
+
+    def get_document_type_required(self, obj):
+        return obj.document_type.required
 
 
 class OrphanageSerializer(serializers.ModelSerializer):

@@ -766,7 +766,7 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
   const [time, setTime] = useState(new Date())
   const [profileImg, setProfileImg] = useState(localStorage.getItem('cdo_profile_img') || null)
   const [localOrpName, setLocalOrpName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
-  const [notifCount] = useState(3)
+  const [notifications, setNotifications] = useState([])
   const [notifOpen, setNotifOpen] = useState(false)
   const [theme, setTheme] = useState(localStorage.getItem('cdo_theme') || 'dark')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -798,6 +798,24 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(timer)
+  }, [])
+
+  /* ── Fetch notifications from API ── */
+  const notifFetchRef = useRef(false)
+  const fetchNotifications = () => {
+    const t = localStorage.getItem('access_token')
+    if (!t) return
+    fetch(`${API}/notifications/`, { headers: { Authorization: `Bearer ${t}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(list => { setNotifications(list) })
+      .catch(() => {})
+  }
+  useEffect(() => {
+    if (notifFetchRef.current) return
+    notifFetchRef.current = true
+    fetchNotifications()
+    const poll = setInterval(fetchNotifications, 30000)
+    return () => clearInterval(poll)
   }, [])
 
   // Close dropdowns on outside click
@@ -886,11 +904,31 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
     }
   }
 
-  const NOTIFS = [
-    { icon: '📋', text: t('dash_notif_new_report'), time: t('dash_notif_5min') },
-    { icon: '👤', text: t('dash_notif_profile_updated'), time: t('dash_notif_20min') },
-    { icon: '✅', text: t('dash_notif_approved'), time: t('dash_notif_1h') },
-  ]
+  const markNotifRead = (nid) => {
+    const t = localStorage.getItem('access_token')
+    if (!t) return
+    fetch(`${API}/notifications/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+      body: JSON.stringify({ id: nid }),
+    }).then(() => { setNotifications(prev => prev.map(n => n.id === nid ? { ...n, is_read: true } : n)) }).catch(() => {})
+  }
+  const markAllRead = () => {
+    const t = localStorage.getItem('access_token')
+    if (!t) return
+    fetch(`${API}/notifications/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+      body: JSON.stringify({ mark_read: true }),
+    }).then(() => { setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))) }).catch(() => {})
+  }
+
+  const notifCount = notifications.filter(n => !n.is_read).length
+  const notifIcon = (title) => {
+    if (title.includes('Refusé') || title.includes('rejet')) return '❌'
+    if (title.includes('Modification')) return '🔄'
+    return '📋'
+  }
 
   return (
     <header className="hd">
@@ -987,13 +1025,18 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
               </button>
               {notifOpen && (
                 <div className="hd-dropdown">
-                  <div className="hd-dropdown-header">{t('dash_notifications')}</div>
-                  {NOTIFS.map((n, i) => (
-                    <div key={i} className="hd-dropdown-item">
-                      <span className="hd-dropdown-icon">{n.icon}</span>
+                  <div className="hd-dropdown-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span>{t('dash_notifications')}</span>
+                    {notifCount > 0 && <button onClick={markAllRead} style={{background:'none',border:'none',color:'#60a5fa',fontSize:10,cursor:'pointer',padding:0}}>Tout marquer lu</button>}
+                  </div>
+                  {notifications.length === 0 && <div style={{padding:'16px',textAlign:'center',fontSize:11,color:'#64748b'}}>Aucune notification</div>}
+                  {notifications.slice(0, 20).map(n => (
+                    <div key={n.id} className="hd-dropdown-item" onClick={() => { if (!n.is_read) markNotifRead(n.id) }} style={{opacity:n.is_read?0.5:1,cursor:'pointer'}}>
+                      <span className="hd-dropdown-icon">{notifIcon(n.title)}</span>
                       <div className="hd-dropdown-body">
-                        <div className="hd-dropdown-text">{n.text}</div>
-                        <div className="hd-dropdown-time">{n.time}</div>
+                        <div className="hd-dropdown-text" style={{fontWeight:n.is_read?400:600}}>{n.title}</div>
+                        <div className="hd-dropdown-time" style={{fontSize:10,color:'#94a3b8',whiteSpace:'pre-wrap'}}>{n.content}</div>
+                        <div className="hd-dropdown-time">{new Date(n.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
                       </div>
                     </div>
                   ))}
@@ -1442,6 +1485,16 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }
   const [dashTime, setDashTime] = useState(new Date())
   const [fedTab, setFedTab] = useState('pending')
+  const [fedDocTab, setFedDocTab] = useState('dossiers')
+  const [fedDocTypes, setFedDocTypes] = useState([])
+  const [fedOrpDocuments, setFedOrpDocuments] = useState({})
+  const [fedDocFeedback, setFedDocFeedback] = useState({})
+  const [fedDocPoints, setFedDocPoints] = useState({})
+  const [fedDocReviewLoading, setFedDocReviewLoading] = useState(false)
+  const [fedDocTypeName, setFedDocTypeName] = useState('')
+  const [fedDocTypeKey, setFedDocTypeKey] = useState('')
+  const [fedDocTypeRequired, setFedDocTypeRequired] = useState(true)
+  const [fedSavingDocType, setFedSavingDocType] = useState(false)
   const [toast, setToast] = useState(null)
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -1644,7 +1697,62 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
           .finally(() => setDirAmbLoading(false))
       }
     }
+    /* ── Load document types for Federation validation ── */
+    if (activeKey === 'validationLocale' && role === 'federation') {
+      fetch(`${API}/document-types/`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : [])
+        .then(d => setFedDocTypes(d))
+        .catch(() => {})
+      orphanageRequests.forEach(o => {
+        if (!fedOrpDocuments[o.id]) {
+          fetch(`${API}/orphanages/${o.id}/documents/`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : [])
+            .then(d => setFedOrpDocuments(p => ({ ...p, [o.id]: d })))
+            .catch(() => {})
+        }
+      })
+    }
+    /* ── Load document types + submitted docs for Director documents ── */
+    if (activeKey === 'documents' && role === 'director') {
+      fetch(`${API}/document-types/`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : [])
+        .then(d => setDocTypes(d))
+        .catch(() => {})
+      const myDocOrp = orphanageRequests.find(o => String(o.director) === String(user.id))
+      if (myDocOrp) {
+        setDocLoading(true)
+        fetch(`${API}/orphanages/${myDocOrp.id}/documents/`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.ok ? r.json() : [])
+          .then(d => setSubmittedDocs(d))
+          .catch(() => {})
+          .finally(() => setDocLoading(false))
+      }
+    }
   }, [activeKey, role, subKey, orphanageName])
+
+  /* ── Dedicated document data loader (avoids race with main effect) ── */
+  useEffect(() => {
+    const seen = `${activeKey}_${role}`
+    if (docLoadKey.current === seen) return
+    if (activeKey !== 'documents') return
+    if (role !== 'director') return
+    docLoadKey.current = seen
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+    fetch(`${API}/document-types/`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setDocTypes(d))
+      .catch(() => {})
+    const myOrp = orphanageRequests.find(o => String(o.director) === String(user.id))
+    if (myOrp) {
+      setDocLoading(true)
+      fetch(`${API}/orphanages/${myOrp.id}/documents/`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : [])
+        .then(d => setSubmittedDocs(d))
+        .catch(() => {})
+        .finally(() => setDocLoading(false))
+    }
+  }, [activeKey, role])
 
   useEffect(() => {
     if (subKey !== 'Scolarité') return
@@ -1801,9 +1909,21 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [orphanageNote, setOrphanageNote] = useState('')
   const [orpWizStep, setOrpWizStep] = useState(0)
   const [orpFiles, setOrpFiles] = useState({ registration_cert: null, operating_license: null, director_id: null, tax_doc: null, child_protection: null, annual_report: null, ngo_accreditation: null, partnership_certs: null })
+  const [selDocKey, setSelDocKey] = useState('')
   const [orpDraftSaved, setOrpDraftSaved] = useState(false)
   const [bgTheme, setBgTheme] = useState(localStorage.getItem('cdo_bg') || '')
   const [gpsLoading, setGpsLoading] = useState(false)
+  /* ── Document management (director + federation) ── */
+  const [docTypes, setDocTypes] = useState([])
+  const [submittedDocs, setSubmittedDocs] = useState([])
+  const [docLoading, setDocLoading] = useState(false)
+  const [selDocTypeId, setSelDocTypeId] = useState('')
+  const [docFile, setDocFile] = useState(null)
+  const [docUploading, setDocUploading] = useState(false)
+  const [previewDoc, setPreviewDoc] = useState(null)
+  const [docResetKey, setDocResetKey] = useState(0)
+  const docFileRef = useRef(null)
+  const docLoadKey = useRef('')
   const autoSaveRef = useRef(null)
   useEffect(() => { if(autoSaveRef.current) clearTimeout(autoSaveRef.current); autoSaveRef.current = setTimeout(() => { try { localStorage.setItem('cdo_orp_draft', JSON.stringify(orphanageForm)); } catch(e){} }, 3000); return () => clearTimeout(autoSaveRef.current); }, [orphanageForm])
   useEffect(() => { try { const d = localStorage.getItem('cdo_orp_draft'); const s = localStorage.getItem('cdo_orp_step'); if(d) setOrphanageForm(prev => ({...prev, ...JSON.parse(d)})); if(s) setOrpWizStep(Number(s)); } catch(e){} }, [])
@@ -2096,7 +2216,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }
 
   useEffect(() => {
-    if (!['validationLocale', 'orphelinats', 'parametres', 'ambassadeurs'].includes(activeKey)) return
+    if (!['validationLocale', 'orphelinats', 'parametres', 'ambassadeurs', 'documents'].includes(activeKey)) return
     loadOrphanages()
   }, [activeKey])
 
@@ -2412,37 +2532,219 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   )
                 })()
                 : activeKey === 'validationLocale' && role === 'federation' ? (() => {
-                  const pending = orphanageRequests.filter(o => o.status === 'pending')
+                  const token = localStorage.getItem('access_token')
+                  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {}
+
+                  const loadFedDocTypes = () => {
+                    fetch(`${API}/document-types/`, { headers: authHeaders })
+                      .then(r => r.ok ? r.json() : [])
+                      .then(d => setFedDocTypes(d))
+                      .catch(() => {})
+                  }
+                  const loadOrpDocuments = (orpId) => {
+                    if (!orpId) return
+                    fetch(`${API}/orphanages/${orpId}/documents/`, { headers: authHeaders })
+                      .then(r => r.ok ? r.json() : [])
+                      .then(d => setFedOrpDocuments(p => ({ ...p, [orpId]: d })))
+                      .catch(() => {})
+                  }
+                  const reviewDocument = async (orpId, docId, action) => {
+                    const feedback = fedDocFeedback[`${orpId}_${docId}`] || ''
+                    const points_to_update = fedDocPoints[`${orpId}_${docId}`] || ''
+                    setFedDocReviewLoading(true)
+                    try {
+                      const headers = { 'Content-Type': 'application/json', ...authHeaders }
+                      const body = JSON.stringify({ action, feedback, points_to_update })
+                      let res = await fetch(`${API}/orphanages/${orpId}/documents/${docId}/review/`, {
+                        method: 'POST', headers, body,
+                      })
+                      if (res.status === 401) {
+                        const refresh = localStorage.getItem('refresh_token')
+                        if (refresh) {
+                          const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+                          if (refRes.ok) {
+                            const tokens = await refRes.json()
+                            localStorage.setItem('access_token', tokens.access)
+                            headers.Authorization = `Bearer ${tokens.access}`
+                            res = await fetch(`${API}/orphanages/${orpId}/documents/${docId}/review/`, {
+                              method: 'POST', headers, body,
+                            })
+                          }
+                        }
+                      }
+                      if (!res.ok) throw new Error('Review failed')
+                      const labels = { accept:'Accepté', request_changes:'Modifications demandées', reject:'Refusé' }
+                      showToast(`Document ${labels[action] || action} avec succès.`, 'success')
+                      setFedDocFeedback(p => ({ ...p, [`${orpId}_${docId}`]: '' }))
+                      setFedDocPoints(p => ({ ...p, [`${orpId}_${docId}`]: '' }))
+                      loadOrpDocuments(orpId)
+                    } catch (e) {
+                      showToast("Erreur lors de la révision.", 'error')
+                    } finally {
+                      setFedDocReviewLoading(false)
+                    }
+                  }
+
+                  const addDocType = async () => {
+                    if (!fedDocTypeKey.trim() || !fedDocTypeName.trim()) { showToast('Clé et libellé requis.', 'error'); return }
+                    setFedSavingDocType(true)
+                    try {
+                      const res = await fetch(`${API}/document-types/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...authHeaders },
+                        body: JSON.stringify({ key: fedDocTypeKey.trim(), label: fedDocTypeName.trim(), required: fedDocTypeRequired, order: fedDocTypes.length + 1 }),
+                      })
+                      if (!res.ok) throw new Error('Failed')
+                      showToast('Type de document ajouté.', 'success')
+                      setFedDocTypeKey(''); setFedDocTypeName(''); setFedDocTypeRequired(true)
+                      loadFedDocTypes()
+                    } catch (e) {
+                      showToast("Erreur lors de l'ajout.", 'error')
+                    } finally {
+                      setFedSavingDocType(false)
+                    }
+                  }
+                  const deleteDocType = async (id) => {
+                    if (!confirm('Supprimer ce type de document ?')) return
+                    try {
+                      const res = await fetch(`${API}/document-types/${id}/`, { method: 'DELETE', headers: authHeaders })
+                      if (!res.ok) throw new Error('Failed')
+                      showToast('Type de document supprimé.', 'success')
+                      loadFedDocTypes()
+                    } catch (e) {
+                      showToast('Erreur lors de la suppression.', 'error')
+                    }
+                  }
+                  const toggleDocTypeRequired = async (dt) => {
+                    try {
+                      const res = await fetch(`${API}/document-types/${dt.id}/`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', ...authHeaders },
+                        body: JSON.stringify({ required: !dt.required }),
+                      })
+                      if (!res.ok) throw new Error('Failed')
+                      loadFedDocTypes()
+                    } catch (e) {
+                      showToast('Erreur lors de la mise à jour.', 'error')
+                    }
+                  }
+
+                  const STATUS_BADGES_FED = {
+                    pending: { label: 'En attente', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+                    accepted: { label: 'Accepté', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
+                    changes_requested: { label: 'Modifications demandées', color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
+                    rejected: { label: 'Refusé', color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
+                  }
+
                   return (
-                    <div className="dash-sub-form">
-                      <div className="dash-validation-head">
-                        <p className="dash-page-subtitle">Dossiers d'orphelinat en attente de validation.</p>
-                        <button className="dash-form-save" onClick={loadOrphanages} disabled={orphanageLoading}>Actualiser</button>
-                      </div>
-                      {orphanageLoading && <div className="dash-dash-empty">Chargement...</div>}
-                      {!orphanageLoading && pending.length === 0 && <div className="dash-dash-empty">Aucun dossier a valider.</div>}
-                      <div className="dash-validation-list">
-                        {pending.map(item => (
-                          <div key={item.id} className="dash-validation-card">
-                            <div className="dash-validation-top">
-                              <div>
-                                <h3>{item.name}</h3>
-                                <p>{item.address || 'Adresse non renseignee'} - Capacite {item.capacity || 0}</p>
-                              </div>
-                              <span className="dash-validation-status">🔴 En attente de validation</span>
-                            </div>
-                            <div className="dash-validation-doc">{item.document_details || 'Aucun detail de document transmis.'}</div>
-                            <div className="dash-validation-meta">Chef: {item.director_name || 'Non renseigne'}</div>
-                            {item.validation_note && <div className="dash-validation-note">Note: {item.validation_note}</div>}
-                            <div className="dash-validation-actions">
-                              <input className="dash-form-input" value={orphanageNote} onChange={e => setOrphanageNote(e.target.value)} placeholder="Note de validation optionnelle" />
-                              <button className="dash-form-save" onClick={() => validateOrphanage(item.id, 'approve')}>✅ Approuver</button>
-                              <button className="dash-orp-save-btn" onClick={() => { const r = prompt('Motif du rejet (optionnel):'); validateOrphanage(item.id, 'reject', r||'') }}>❌ Rejeter</button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                  <div className="dash-sub-form">
+                    {/* ── Tabs: Dossiers / Types de documents ── */}
+                    <div style={{display:'flex',gap:0,marginBottom:20,borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+                      {['dossiers','types'].map(tab => (
+                        <button key={tab} onClick={() => setFedDocTab(tab)} style={{padding:'10px 20px',fontSize:13,fontWeight:600,cursor:'pointer',background:'none',border:'none',color:fedDocTab===tab?'#f59e0b':'#64748b',borderBottom:`2px solid ${fedDocTab===tab?'#f59e0b':'transparent'}`,transition:'all .15s ease'}}>
+                          {tab === 'dossiers' ? '📋 Dossiers des orphelinats' : '⚙️ Types de documents'}
+                        </button>
+                      ))}
                     </div>
+
+                    {fedDocTab === 'dossiers' ? (
+                      /* ── PER-DOCUMENT REVIEW ── */
+                      <div>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+                          <p className="dash-page-subtitle" style={{margin:0}}>Documents soumis par les orphelinats — validez ou demandez des modifications.</p>
+                          <button className="dash-form-save" onClick={() => { loadOrphanages(); loadAllOrpDocuments() }} disabled={orphanageLoading}>Actualiser</button>
+                        </div>
+                        {orphanageLoading && <div className="dash-dash-empty">Chargement...</div>}
+                        {!orphanageLoading && orphanageRequests.length === 0 && <div className="dash-dash-empty">Aucun orphelinat enregistré.</div>}
+                        {orphanageRequests.map(orp => {
+                          const docs = fedOrpDocuments[orp.id] || []
+                          return (
+                            <div key={orp.id} style={{marginBottom:20,background:'rgba(30,41,59,0.5)',borderRadius:14,border:'1px solid rgba(255,255,255,0.06)',padding:'18px 20px'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                                <div>
+                                  <h3 style={{fontSize:15,fontWeight:700,color:'#e2e8f0',margin:0}}>{orp.name}</h3>
+                                  <span style={{fontSize:11,color:'#64748b'}}>Directeur: {orp.director_name || 'Non renseigné'}</span>
+                                </div>
+                                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                                  <span style={{fontSize:11,color:'#64748b'}}>{docs.filter(d => d.status === 'accepted').length}/{fedDocTypes.length} documents validés</span>
+                                  <span style={{fontSize:10,fontWeight:700,padding:'3px 10px',borderRadius:12,background:orp.status==='pending'?'rgba(245,158,11,0.12)':orp.status==='approved'?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)',color:orp.status==='pending'?'#f59e0b':orp.status==='approved'?'#22c55e':'#ef4444'}}>
+                                    {orp.status === 'pending' ? 'En attente' : orp.status === 'approved' ? 'Validé' : 'Rejeté'}
+                                  </span>
+                                </div>
+                              </div>
+                              {docs.length === 0 && <div style={{fontSize:12,color:'#64748b',padding:'8px 0'}}>Aucun document soumis.</div>}
+                              {docs.map(doc => {
+                                const sb = STATUS_BADGES_FED[doc.status] || STATUS_BADGES_FED.pending
+                                return (
+                                  <div key={doc.id} style={{padding:'10px 12px',marginBottom:8,background:'rgba(255,255,255,0.02)',borderRadius:10,border:'1px solid rgba(255,255,255,0.04)'}}>
+                                    <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                                      <div style={{flex:1,minWidth:120}}>
+                                        <div style={{fontSize:12,fontWeight:600,color:'#e2e8f0'}}>{doc.document_type_name}</div>
+                                        <div style={{fontSize:10,color:'#64748b'}}>{new Date(doc.uploaded_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+                                      </div>
+                                      <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,background:sb.bg,color:sb.color}}>{sb.label}</span>
+                                      <a href={doc.file} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#60a5fa',textDecoration:'underline'}}>📖 Voir</a>
+                                      {doc.status === 'pending' && (
+                                        <div style={{display:'flex',gap:6,alignItems:'flex-start',flexWrap:'wrap',marginTop:4,width:'100%',flexDirection:'column'}}>
+                                          <input className="dash-form-input" value={fedDocFeedback[`${orp.id}_${doc.id}`] || ''} onChange={e => setFedDocFeedback(p => ({...p,[`${orp.id}_${doc.id}`]: e.target.value}))} placeholder="Retour (optionnel)" style={{width:'100%',fontSize:11}} />
+                                          <textarea className="dash-form-input" value={fedDocPoints[`${orp.id}_${doc.id}`] || ''} onChange={e => setFedDocPoints(p => ({...p,[`${orp.id}_${doc.id}`]: e.target.value}))} placeholder="Points à corriger (un par ligne)" rows={2} style={{width:'100%',fontSize:11,resize:'vertical',minHeight:36}} />
+                                          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                                            <button className="dash-form-save" onClick={() => reviewDocument(orp.id, doc.id, 'accept')} disabled={fedDocReviewLoading} style={{fontSize:11,padding:'5px 12px'}}>✅ Accepter</button>
+                                            <button className="dash-form-save" onClick={() => reviewDocument(orp.id, doc.id, 'request_changes')} disabled={fedDocReviewLoading} style={{fontSize:11,padding:'5px 12px',background:'rgba(245,158,11,0.15)',color:'#f59e0b'}}>🔄 Modifications</button>
+                                            <button className="dash-orp-save-btn" onClick={() => reviewDocument(orp.id, doc.id, 'reject')} disabled={fedDocReviewLoading} style={{fontSize:11,padding:'5px 12px'}}>❌ Refuser</button>
+                                          </div>
+                                        </div>
+                                      )}
+                                      {(doc.status === 'changes_requested' || doc.status === 'rejected') && (doc.feedback || doc.points_to_update) && (
+                                        <div style={{width:'100%',marginTop:4,padding:'6px 10px',background:'rgba(239,68,68,0.06)',borderRadius:6,fontSize:11,color:'#ef4444',border:'1px solid rgba(239,68,68,0.12)'}}>
+                                          {doc.feedback && <><strong>Retour:</strong> {doc.feedback}</>}
+                                          {doc.points_to_update && (
+                                            <><br /><strong>Points à corriger:</strong><br />{doc.points_to_update.split('\n').map((p,i) => <div key={i}>• {p}</div>)}</>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      /* ── DOCUMENT TYPE MANAGEMENT ── */
+                      <div>
+                        <div style={{marginBottom:20,padding:'18px 20px',background:'rgba(30,41,59,0.5)',borderRadius:14,border:'1px solid rgba(255,255,255,0.06)'}}>
+                          <h4 style={{fontSize:14,fontWeight:600,color:'#e2e8f0',margin:'0 0 14px 0'}}>Ajouter un type de document</h4>
+                          <div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'flex-end'}}>
+                            <div><label style={{fontSize:10,color:'#94a3b8',display:'block',marginBottom:2}}>Clé (slug)</label><input className="dash-form-input" value={fedDocTypeKey} onChange={e => setFedDocTypeKey(e.target.value)} placeholder="ex: audit_report" style={{fontSize:12,width:150}} /></div>
+                            <div><label style={{fontSize:10,color:'#94a3b8',display:'block',marginBottom:2}}>Libellé</label><input className="dash-form-input" value={fedDocTypeName} onChange={e => setFedDocTypeName(e.target.value)} placeholder="ex: Rapport d'audit" style={{fontSize:12,width:200}} /></div>
+                            <div style={{display:'flex',alignItems:'center',gap:6,paddingBottom:4}}>
+                              <input type="checkbox" id="fed-req" checked={fedDocTypeRequired} onChange={e => setFedDocTypeRequired(e.target.checked)} style={{accentColor:'#f59e0b'}} />
+                              <label htmlFor="fed-req" style={{fontSize:11,color:'#94a3b8',cursor:'pointer'}}>REQUIS</label>
+                            </div>
+                            <button className="dash-form-save" onClick={addDocType} disabled={fedSavingDocType} style={{fontSize:12,padding:'8px 16px'}}>{fedSavingDocType ? '...' : '➕ Ajouter'}</button>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 style={{fontSize:14,fontWeight:600,color:'#e2e8f0',margin:'0 0 12px 0'}}>Types de documents ({fedDocTypes.length})</h4>
+                          {fedDocTypes.map(dt => (
+                            <div key={dt.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',marginBottom:6,background:'rgba(30,41,59,0.3)',borderRadius:10,border:'1px solid rgba(255,255,255,0.04)'}}>
+                              <div style={{flex:1}}>
+                                <span style={{fontSize:13,fontWeight:600,color:'#e2e8f0'}}>{dt.label}</span>
+                                <span style={{fontSize:10,color:'#64748b',marginLeft:8}}>({dt.key})</span>
+                              </div>
+                              <button onClick={() => toggleDocTypeRequired(dt)} style={{fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:8,background:dt.required?'rgba(239,68,68,0.1)':'rgba(100,116,139,0.1)',border:'none',color:dt.required?'#ef4444':'#94a3b8',cursor:'pointer'}}>
+                                {dt.required ? 'REQUIS' : 'Optionnel'}
+                              </button>
+                              <span style={{fontSize:10,color:'#475569'}}>Ordre: {dt.order}</span>
+                              <button onClick={() => deleteDocType(dt.id)} style={{background:'rgba(239,68,68,0.1)',border:'none',borderRadius:8,color:'#ef4444',fontSize:11,padding:'4px 10px',cursor:'pointer'}}>🗑</button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   )
                 })()
                 : activeKey === 'orphelinats' && role === 'director' ? (() => {
@@ -2696,92 +2998,170 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   );})()
                 : activeKey === 'documents' && role === 'director' ? (() => {
                   const myDocOrp = directorOrpRec()
-                  const DOC_ICONS = {
-                    registration_cert: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
-                    operating_license: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 12 15 15 9"/></svg>,
-                    director_id: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-                    tax_doc: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
-                    child_protection: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
-                    annual_report: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
-                    ngo_accreditation: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-                    partnership_certs: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+                  const token = localStorage.getItem('access_token')
+                  const loadDocTypesDir = () => {
+                    fetch(`${API}/document-types/`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+                      .then(r => r.ok ? r.json() : [])
+                      .then(d => setDocTypes(d))
+                      .catch(() => {})
                   }
-                  const DOC_COLORS = {
-                    registration_cert: '#3b82f6', operating_license: '#22c55e', director_id: '#a855f7',
-                    tax_doc: '#f59e0b', child_protection: '#ef4444', annual_report: '#06b6d4',
-                    ngo_accreditation: '#f97316', partnership_certs: '#8b5cf6',
+                  const loadSubmittedDocsDir = () => {
+                    if (!myDocOrp) return
+                    setDocLoading(true)
+                    fetch(`${API}/orphanages/${myDocOrp.id}/documents/`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+                      .then(r => { if (!r.ok) throw new Error('Erreur chargement'); return r.json() })
+                      .then(d => { setSubmittedDocs(d); setDocResetKey(k => k + 1) })
+                      .catch(() => showToast('Impossible de charger les documents.', 'error'))
+                      .finally(() => setDocLoading(false))
                   }
-                  const DOC_LABELS = {
-                    registration_cert:'Registration Certificate', operating_license:'Operating License',
-                    director_id:'Director ID', tax_doc:'Tax Registration', child_protection:'Child Protection Policy',
-                    annual_report:'Annual Report', ngo_accreditation:'NGO Accreditation', partnership_certs:'Partnership Certificates',
+
+                  const docFileUrl = (url) => {
+                    if (!url) return ''
+                    try {
+                      const u = new URL(url)
+                      return u.pathname + u.search
+                    } catch { return url }
                   }
-                  const REQ_KEYS = ['registration_cert','operating_license','director_id','tax_doc','child_protection']
-                  const OPT_KEYS = ['annual_report','ngo_accreditation','partnership_certs']
-                  const sc = myDocOrp ? { pending:{c:'#ef4444',b:'rgba(239,68,68,0.15)',l:"En attente de validation par la fédération"}, approved:{c:'#22c55e',b:'rgba(34,197,94,0.15)',l:'Validé par la fédération'}, rejected:{c:'#ef4444',b:'rgba(239,68,68,0.15)',l:'Rejeté'} }[myDocOrp.status] : {}
-                  const DOC_API_MAP_DIR = { registration_cert:'registration_cert', operating_license:'operating_license', director_id:'director_id_doc', tax_doc:'tax_doc', child_protection:'child_protection', annual_report:'annual_report', ngo_accreditation:'ngo_accreditation', partnership_certs:'partnership_certs' }
-                  const renderDocCard = (k, required) => {
-                    const color = DOC_COLORS[k]
-                    const uploadedFile = myDocOrp ? myDocOrp[DOC_API_MAP_DIR[k]] : null
-                    const hasFile = !!(myDocOrp ? uploadedFile : orpFiles[k])
-                    return (
-                      <div key={k} className="dash-amb-card" style={{padding:'16px',minHeight:'auto',cursor:myDocOrp?'default':'pointer',justifyContent:'flex-start',gap:12}} onClick={myDocOrp ? undefined : ()=>document.getElementById('doc-file-'+k)?.click()} {...(myDocOrp?{}:orpDragHandler(k))}>
-                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}}>
-                          <div style={{width:38,height:38,borderRadius:10,background:`${color}15`,display:'flex',alignItems:'center',justifyContent:'center',color:color,flexShrink:0}}>{DOC_ICONS[k]}</div>
-                          {required && <span style={{fontSize:9,fontWeight:700,color:'#ef4444',background:'rgba(239,68,68,0.1)',padding:'2px 8px',borderRadius:6}}>REQUIS</span>}
-                        </div>
-                        <div style={{fontSize:12,fontWeight:600,color:hasFile?'#e2e8f0':'#94a3b8',marginBottom:2}}>{DOC_LABELS[k]}</div>
-                        <div style={{fontSize:10,color:hasFile?'#22c55e':'#475569',display:'flex',alignItems:'center',gap:4}}>
-                          {hasFile ? (
-                            myDocOrp && uploadedFile ? (
-                              <span style={{display:'flex',alignItems:'center',gap:6}}>
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                                <a href={uploadedFile} target="_blank" rel="noopener noreferrer" style={{color:'#60a5fa',textDecoration:'underline',fontSize:11}}>📖 Ouvrir</a>
-                                <a href={uploadedFile} download style={{color:'#22c55e',textDecoration:'underline',fontSize:11}}>⬇ Télécharger</a>
-                              </span>
-                            ) : (
-                              <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>{orpFiles[k].name}</>
-                            )
-                          ) : (myDocOrp ? <span style={{color:'#64748b'}}>Non soumis</span> : <span style={{color:'#475569'}}>Cliquez pour télécharger</span>)}
-                        </div>
-                        {!myDocOrp && hasFile && (
-                          <button type="button" onClick={e=>{e.stopPropagation();setOrpFiles(p=>({...p,[k]:null}))}} style={{marginTop:'auto',background:'rgba(239,68,68,0.1)',border:'none',borderRadius:8,color:'#ef4444',fontSize:10,padding:'4px 12px',cursor:'pointer',alignSelf:'flex-start'}}>🗑 Supprimer</button>
-                        )}
-                        <input id={'doc-file-'+k} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{display:'none'}} onChange={orpFileHandler(k)} />
-                      </div>
-                    )
+
+                  const handleUpload = async () => {
+                    if (!selDocTypeId || !docFile || !myDocOrp) return
+                    setDocUploading(true)
+                    try {
+                      const fd = new FormData()
+                      fd.append('document_type', selDocTypeId)
+                      fd.append('file', docFile)
+                      const res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/`, {
+                        method: 'POST',
+                        headers: token ? { Authorization: `Bearer ${token}` } : {},
+                        body: fd,
+                      })
+                      if (!res.ok) throw new Error('Upload failed')
+                      showToast('Document téléversé avec succès. En attente de validation par la fédération.', 'success')
+                      setDocFile(null)
+                      setSelDocTypeId('')
+                      setDocResetKey(k => k + 1)
+                      if (docFileRef.current) docFileRef.current.value = ''
+                      loadSubmittedDocsDir()
+                    } catch (e) {
+                      showToast("Erreur lors du téléversement.", 'error')
+                    } finally {
+                      setDocUploading(false)
+                    }
                   }
+
+                  const STATUS_BADGES = {
+                    pending: { label: 'En attente', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+                    accepted: { label: 'Accepté', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
+                    changes_requested: { label: 'Modifications demandées', color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
+                    rejected: { label: 'Refusé', color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
+                  }
+
+                  const totalRequired = docTypes.filter(d => d.required).length
+                  const totalOptional = docTypes.filter(d => !d.required).length
+                  const totalAll = docTypes.length
+                  const uploadedCount = new Set(submittedDocs.filter(d => d.status !== 'rejected').map(d => d.document_type)).size
+
                   return (
+                  <>
                   <div style={{padding:'0 8px'}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
                       <div>
                         <h3 style={{fontSize:20,fontWeight:700,color:'#e2e8f0',margin:0}}>📄 Documents</h3>
-                        <p style={{fontSize:13,color:'#64748b',margin:'4px 0 0'}}>{myDocOrp ? `Documents soumis avec ${myDocOrp.name}` : 'Gérez les documents légaux et administratifs'}</p>
+                        <p style={{fontSize:13,color:'#64748b',margin:'4px 0 0'}}>Gérez les documents administratifs de votre orphelinat</p>
                       </div>
-                      {myDocOrp && sc.c && <span style={{fontSize:11,fontWeight:600,padding:'5px 14px',borderRadius:20,background:sc.b,color:sc.c,border:`1px solid ${sc.c}25`}}>{sc.l}</span>}
                     </div>
-                    <p style={{fontSize:12,color:'#64748b',marginBottom:16,display:'flex',alignItems:'center',gap:6}}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                      {myDocOrp ? 'Aperçu des documents soumis avec votre dossier' : 'Téléchargez les documents requis pour la validation de votre orphelinat'}
-                    </p>
-                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12,marginBottom:24}}>
-                      {[...REQ_KEYS,...OPT_KEYS].map(k => renderDocCard(k, REQ_KEYS.includes(k)))}
+
+                    {/* Progress */}
+                    <div style={{marginBottom:20,padding:'16px 20px',background:'rgba(30,41,59,0.5)',borderRadius:14,border:'1px solid rgba(255,255,255,0.06)'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                        <span style={{fontSize:13,fontWeight:600,color:'#e2e8f0'}}>Progression</span>
+                        <span style={{fontSize:13,fontWeight:700,color:'#f59e0b'}}>{uploadedCount}/{totalAll} documents téléversés</span>
+                      </div>
+                      <div style={{height:6,background:'rgba(255,255,255,0.06)',borderRadius:3,overflow:'hidden'}}>
+                        <div style={{height:'100%',width:`${totalAll ? (uploadedCount/totalAll)*100 : 0}%`,background:'linear-gradient(90deg,#f59e0b,#f97316)',borderRadius:3,transition:'width .3s ease'}} />
+                      </div>
+                      <div style={{display:'flex',gap:16,marginTop:10,fontSize:11,color:'#64748b'}}>
+                        <span>🟠 Requis: {docTypes.filter(d => d.required && submittedDocs.some(s => s.document_type === d.id && s.status !== 'rejected')).length}/{totalRequired}</span>
+                        <span>🔵 Optionnel: {docTypes.filter(d => !d.required && submittedDocs.some(s => s.document_type === d.id && s.status !== 'rejected')).length}/{totalOptional}</span>
+                      </div>
                     </div>
-                    {myDocOrp?.document_details && (
-                      <div style={{background:'rgba(59,130,246,0.04)',borderRadius:14,padding:'16px 20px',border:'1px solid rgba(59,130,246,0.12)'}}>
-                        <div style={{fontSize:12,fontWeight:600,color:'#3b82f6',marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                          Détails des documents
+
+                    {/* Upload new document */}
+                    <div style={{background:'rgba(30,41,59,0.5)',borderRadius:14,border:'1px solid rgba(255,255,255,0.06)',padding:'20px',marginBottom:20}}>
+                      <h4 style={{fontSize:14,fontWeight:600,color:'#e2e8f0',margin:'0 0 14px 0'}}>📤 Téléverser un document</h4>
+                      <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'flex-end'}}>
+                        <div style={{flex:1,minWidth:200}}>
+                          <label style={{fontSize:11,color:'#94a3b8',display:'block',marginBottom:4}}>Type de document</label>
+                          <select className="dash-form-input" value={selDocTypeId} onChange={e => { setSelDocTypeId(e.target.value); setDocFile(null); setDocResetKey(k => k + 1); if (docFileRef.current) docFileRef.current.value = '' }} style={{cursor:'pointer'}}>
+                            <option value="">Sélectionnez un type...</option>
+                            {docTypes.filter(dt => !submittedDocs.some(s => s.document_type === dt.id && s.status === 'accepted')).map(dt => (
+                              <option key={dt.id} value={dt.id}>{dt.label}{dt.required ? ' (REQUIS)' : ' (Optionnel)'}</option>
+                            ))}
+                          </select>
                         </div>
-                        <div style={{fontSize:12,color:'#cbd5e1',lineHeight:1.6}}>{myDocOrp.document_details}</div>
+                        <div style={{flex:1,minWidth:200}}>
+                          <label style={{fontSize:11,color:'#94a3b8',display:'block',marginBottom:4}}>Fichier</label>
+                          <input type="file" ref={docFileRef} key={`file-input-${docResetKey}`} className="dash-form-input" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => setDocFile(e.target.files?.[0] || null)} style={{padding:'3px 12px'}} />
+                        </div>
+                        <button className="dash-form-save" onClick={handleUpload} disabled={!selDocTypeId || !docFile || docUploading} style={{background:'linear-gradient(135deg,#f59e0b,#f97316)',color:'#fff',fontWeight:700,padding:'10px 24px',whiteSpace:'nowrap'}}>
+                          {docUploading ? 'Envoi...' : '⬆ Téléverser'}
+                        </button>
                       </div>
-                    )}
-                    {!myDocOrp && (
-                      <div style={{display:'flex',justifyContent:'flex-end',borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:16}}>
-                        <button type="button" onClick={()=>{const c=Object.values(orpFiles).filter(Boolean).length;showToast(`${c} document${c>1?'s':''} enregistré${c>1?'s':''} localement`,'success')}} style={{background:'linear-gradient(135deg,#f59e0b,#f97316)',border:'none',borderRadius:12,color:'#fff',fontWeight:700,fontSize:13,padding:'10px 24px',cursor:'pointer'}}>💾 Enregistrer les documents</button>
-                      </div>
-                    )}
+                      {docFile && <div style={{marginTop:10,fontSize:11,color:'#22c55e'}}>✓ {docFile.name} ({(docFile.size / 1024).toFixed(1)} KB)</div>}
+                    </div>
+
+                    {/* List of submitted documents */}
+                    <div>
+                      <h4 style={{fontSize:14,fontWeight:600,color:'#e2e8f0',margin:'0 0 12px 0'}}>Documents soumis</h4>
+                      {docLoading && <div style={{fontSize:12,color:'#64748b',padding:12}}>Chargement...</div>}
+                      {!docLoading && submittedDocs.length === 0 && (
+                        <div style={{padding:'24px',textAlign:'center',color:'#64748b',fontSize:12,background:'rgba(255,255,255,0.02)',borderRadius:12,border:'1px dashed rgba(255,255,255,0.08)'}}>
+                          Aucun document soumis pour le moment.
+                        </div>
+                      )}
+                      {submittedDocs.map(doc => {
+                        const sb = STATUS_BADGES[doc.status] || STATUS_BADGES.pending
+                        return (
+                          <div key={doc.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',marginBottom:8,background:'rgba(30,41,59,0.4)',borderRadius:10,border:`1px solid rgba(255,255,255,0.04)`,flexWrap:'wrap'}}>
+                            <div style={{flex:1,minWidth:150}}>
+                              <div style={{fontSize:13,fontWeight:600,color:'#e2e8f0'}}>{doc.document_type_name}</div>
+                              <div style={{fontSize:10,color:'#64748b'}}>{new Date(doc.uploaded_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+                            </div>
+                            <span style={{fontSize:10,fontWeight:700,padding:'3px 10px',borderRadius:12,background:sb.bg,color:sb.color}}>{sb.label}</span>
+                            <button onClick={() => setPreviewDoc(docFileUrl(doc.file))} style={{background:'rgba(59,130,246,0.1)',border:'none',borderRadius:8,color:'#60a5fa',fontSize:11,padding:'4px 10px',cursor:'pointer'}}>👁 Voir</button>
+                            <a href={docFileUrl(doc.file)} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#64748b',textDecoration:'underline'}}>⬇ Télécharger</a>
+                            {(doc.status === 'changes_requested' || doc.status === 'rejected') && (doc.feedback || doc.points_to_update) && (
+                              <div style={{width:'100%',marginTop:4,padding:'8px 12px',background:'rgba(239,68,68,0.06)',borderRadius:8,border:'1px solid rgba(239,68,68,0.15)',fontSize:11,color:'#ef4444'}}>
+                                {doc.feedback && <><strong>{doc.status === 'rejected' ? 'Motif du refus' : 'Retour de la fédération'}:</strong> {doc.feedback}</>}
+                                {doc.points_to_update && (
+                                  <div style={{marginTop:doc.feedback?6:0}}>
+                                    <strong>Points à corriger:</strong>
+                                    {doc.points_to_update.split('\n').filter(p=>p.trim()).map((p,i) => <div key={i} style={{paddingLeft:12}}>• {p}</div>)}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
+                  {/* ── PDF / document preview modal ── */}
+                  {previewDoc && (
+                    <div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={() => setPreviewDoc(null)}>
+                      <div style={{position:'relative',width:'90%',height:'90%',background:'#1e293b',borderRadius:16,border:'1px solid rgba(255,255,255,0.1)',overflow:'hidden',display:'flex',flexDirection:'column'}} onClick={e => e.stopPropagation()}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 20px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+                          <span style={{fontSize:13,fontWeight:600,color:'#e2e8f0'}}>📄 Aperçu du document</span>
+                          <button onClick={() => setPreviewDoc(null)} style={{background:'rgba(239,68,68,0.15)',border:'none',borderRadius:8,color:'#ef4444',fontSize:18,width:32,height:32,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+                        </div>
+                        <div style={{flex:1,position:'relative'}}>
+                          <iframe src={previewDoc} style={{width:'100%',height:'100%',border:'none'}} title="Document preview" />
+                          <a href={previewDoc} target="_blank" rel="noopener noreferrer" style={{position:'absolute',bottom:16,right:16,background:'#f59e0b',color:'#fff',fontWeight:700,fontSize:12,padding:'8px 16px',borderRadius:8,textDecoration:'none'}}>⬇ Télécharger</a>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  </>
                   )})()
                 : subKey === 'Profil' && activeKey === 'parametres' ? (
                   <div className="dash-sub-form">
