@@ -12,17 +12,19 @@ class DocumentTypeSerializer(serializers.ModelSerializer):
 class OrphanageDocumentSerializer(serializers.ModelSerializer):
     document_type_name = serializers.SerializerMethodField()
     document_type_required = serializers.SerializerMethodField()
+    reviewed_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = OrphanageDocument
         fields = [
             "id", "orphanage", "document_type", "document_type_name",
             "document_type_required", "file", "status", "feedback",
-            "points_to_update", "reviewed_by", "reviewed_at", "uploaded_at",
+            "points_to_update", "reviewed_by", "reviewed_by_name",
+            "reviewed_at", "uploaded_at",
         ]
         read_only_fields = [
             "orphanage", "status", "feedback", "points_to_update",
-            "reviewed_by", "reviewed_at", "uploaded_at",
+            "reviewed_by", "reviewed_by_name", "reviewed_at", "uploaded_at",
         ]
 
     def get_document_type_name(self, obj):
@@ -30,6 +32,11 @@ class OrphanageDocumentSerializer(serializers.ModelSerializer):
 
     def get_document_type_required(self, obj):
         return obj.document_type.required
+
+    def get_reviewed_by_name(self, obj):
+        if obj.reviewed_by:
+            return obj.reviewed_by.full_name if hasattr(obj.reviewed_by, 'full_name') else str(obj.reviewed_by)
+        return ""
 
 
 class OrphanageSerializer(serializers.ModelSerializer):

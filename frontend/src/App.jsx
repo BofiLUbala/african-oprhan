@@ -1475,6 +1475,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [childSortBy, setChildSortBy] = useState('date')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [unassignConfirm, setUnassignConfirm] = useState(null)
+  const [docConfirmModal, setDocConfirmModal] = useState(null)
   const [profileImg, setProfileImg] = useState(localStorage.getItem('cdo_profile_img') || null)
   const uidRef = useRef(genChildUid())
   const migratePhoto = (oldUid, newUid) => {
@@ -1697,20 +1698,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
           .finally(() => setDirAmbLoading(false))
       }
     }
-    /* ── Load document types for Federation validation ── */
+    /* ── Load document types for Federation validation (orphanage docs loaded in separate effect) ── */
     if (activeKey === 'validationLocale' && role === 'federation') {
       fetch(`${API}/document-types/`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : [])
         .then(d => setFedDocTypes(d))
         .catch(() => {})
-      orphanageRequests.forEach(o => {
-        if (!fedOrpDocuments[o.id]) {
-          fetch(`${API}/orphanages/${o.id}/documents/`, { headers: { Authorization: `Bearer ${token}` } })
-            .then(r => r.ok ? r.json() : [])
-            .then(d => setFedOrpDocuments(p => ({ ...p, [o.id]: d })))
-            .catch(() => {})
-        }
-      })
     }
     /* ── Load document types + submitted docs for Director documents ── */
     if (activeKey === 'documents' && role === 'director') {
@@ -1730,28 +1723,34 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     }
   }, [activeKey, role, subKey, orphanageName])
 
-  /* ── Dedicated document data loader (avoids race with main effect) ── */
+  /* ── Dedicated document data loader + polling (avoids race with main effect) ── */
   useEffect(() => {
     const seen = `${activeKey}_${role}`
     if (docLoadKey.current === seen) return
     if (activeKey !== 'documents') return
     if (role !== 'director') return
     docLoadKey.current = seen
-    const token = localStorage.getItem('access_token')
-    if (!token) return
-    fetch(`${API}/document-types/`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setDocTypes(d))
-      .catch(() => {})
-    const myOrp = orphanageRequests.find(o => String(o.director) === String(user.id))
-    if (myOrp) {
-      setDocLoading(true)
-      fetch(`${API}/orphanages/${myOrp.id}/documents/`, { headers: { Authorization: `Bearer ${token}` } })
+    const loadDocs = () => {
+      const token = localStorage.getItem('access_token')
+      if (!token) return
+      fetch(`${API}/document-types/`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : [])
-        .then(d => setSubmittedDocs(d))
+        .then(d => setDocTypes(d))
         .catch(() => {})
-        .finally(() => setDocLoading(false))
+      const myOrp = orphanageRequests.find(o => String(o.director) === String(user.id))
+      if (myOrp) {
+        const loading = seen === `${activeKey}_${role}`
+        if (loading) setDocLoading(true)
+        fetch(`${API}/orphanages/${myOrp.id}/documents/`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.ok ? r.json() : [])
+          .then(d => setSubmittedDocs(d))
+          .catch(() => {})
+          .finally(() => { if (loading) setDocLoading(false) })
+      }
     }
+    loadDocs()
+    const poll = setInterval(loadDocs, 15000)
+    return () => clearInterval(poll)
   }, [activeKey, role])
 
   useEffect(() => {
@@ -1870,6 +1869,23 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   ]
   const [theme, setTheme] = useState(localStorage.getItem('cdo_theme') || 'dark')
   const [orphanageRequests, setOrphanageRequests] = useState([])
+  /* ── Load federation document data when orphanages are ready ── */
+  useEffect(() => {
+    if (activeKey !== 'validationLocale' || role !== 'federation') return
+    if (orphanageRequests.length === 0) return
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+    fetch(`${API}/document-types/`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setFedDocTypes(d))
+      .catch(() => {})
+    orphanageRequests.forEach(o => {
+      fetch(`${API}/orphanages/${o.id}/documents/`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : [])
+        .then(d => setFedOrpDocuments(p => ({ ...p, [o.id]: d })))
+        .catch(() => {})
+    })
+  }, [activeKey, role, orphanageRequests])
   const [orphanageForm, setOrphanageForm] = useState({
     name: localStorage.getItem('cdo_orphanage_name') || '',
     registration_number: '',
@@ -1923,6 +1939,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [previewDoc, setPreviewDoc] = useState(null)
   const [docResetKey, setDocResetKey] = useState(0)
   const [openModifDoc, setOpenModifDoc] = useState(null)
+  const [modifHistory, setModifHistory] = useState([])
+  const modifNotifTimers = useRef({})
   const docFileRef = useRef(null)
   const docLoadKey = useRef('')
   const autoSaveRef = useRef(null)
@@ -1973,7 +1991,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const directorOrpRec = () => orphanageRequests.find(o => o.director === user.id)
 
   useEffect(() => {
-    if (activeKey === 'orphelinats' && role === 'federation') {
+    if ((activeKey === 'orphelinats' || activeKey === 'validationLocale') && role === 'federation') {
       loadOrphanages()
       fetchAmbassadors()
     }
@@ -2605,16 +2623,23 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       setFedSavingDocType(false)
                     }
                   }
-                  const deleteDocType = async (id) => {
-                    if (!confirm('Supprimer ce type de document ?')) return
-                    try {
-                      const res = await fetch(`${API}/document-types/${id}/`, { method: 'DELETE', headers: authHeaders })
-                      if (!res.ok) throw new Error('Failed')
-                      showToast('Type de document supprimé.', 'success')
-                      loadFedDocTypes()
-                    } catch (e) {
-                      showToast('Erreur lors de la suppression.', 'error')
-                    }
+                  const deleteDocType = (id) => {
+                    setDocConfirmModal({
+                      title: 'Supprimer ce type de document\u00A0?',
+                      message: 'Cette action est irréversible. Les documents de ce type ne seront plus accessibles.',
+                      confirmLabel: 'Supprimer',
+                      onConfirm: async () => {
+                        setDocConfirmModal(null)
+                        try {
+                          const res = await fetch(`${API}/document-types/${id}/`, { method: 'DELETE', headers: authHeaders })
+                          if (!res.ok) throw new Error('Failed')
+                          showToast('Type de document supprimé.', 'success')
+                          loadFedDocTypes()
+                        } catch (e) {
+                          showToast('Erreur lors de la suppression.', 'error')
+                        }
+                      }
+                    })
                   }
                   const toggleDocTypeRequired = async (dt) => {
                     try {
@@ -2653,7 +2678,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       <div>
                         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
                           <p className="dash-page-subtitle" style={{margin:0}}>Documents soumis par les orphelinats — validez ou demandez des modifications.</p>
-                          <button className="dash-form-save" onClick={() => { loadOrphanages(); loadAllOrpDocuments() }} disabled={orphanageLoading}>Actualiser</button>
+                           <button className="dash-form-save" onClick={() => { loadOrphanages() }} disabled={orphanageLoading}>Actualiser</button>
                         </div>
                         {orphanageLoading && <div className="dash-dash-empty">Chargement...</div>}
                         {!orphanageLoading && orphanageRequests.length === 0 && <div className="dash-dash-empty">Aucun orphelinat enregistré.</div>}
@@ -3024,53 +3049,69 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     } catch { return url }
                   }
 
-                  const deleteDocument = async (docId) => {
-                    if (!myDocOrp || !confirm('Supprimer ce document ? Cette action est irréversible.')) return
-                    try {
-                      const h = { ...authHeaders }
-                      let res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
-                      if (res.status === 401) {
-                        const refresh = localStorage.getItem('refresh_token')
-                        if (refresh) {
-                          const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                          if (refRes.ok) {
-                            const tokens = await refRes.json()
-                            localStorage.setItem('access_token', tokens.access)
-                            h.Authorization = `Bearer ${tokens.access}`
-                            res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
-                          }
-                        }
-                      }
-                      if (!res.ok) throw new Error('Delete failed')
-                      showToast('Document supprimé.', 'success')
-                      loadSubmittedDocsDir()
-                    } catch (e) {
-                      showToast('Erreur lors de la suppression.', 'error')
-                    }
-                  }
-                  const modifyDocument = async (docId) => {
+                  const deleteDocument = (docId) => {
                     if (!myDocOrp) return
-                    try {
-                      const h = { ...authHeaders }
-                      let res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
-                      if (res.status === 401) {
-                        const refresh = localStorage.getItem('refresh_token')
-                        if (refresh) {
-                          const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                          if (refRes.ok) {
-                            const tokens = await refRes.json()
-                            localStorage.setItem('access_token', tokens.access)
-                            h.Authorization = `Bearer ${tokens.access}`
-                            res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
+                    setDocConfirmModal({
+                      title: 'Supprimer ce document\u00A0?',
+                      message: 'Cette action est irréversible. Le fichier sera définitivement supprimé.',
+                      confirmLabel: 'Supprimer',
+                      onConfirm: async () => {
+                        setDocConfirmModal(null)
+                        try {
+                          let h = token ? { Authorization: `Bearer ${token}` } : {}
+                          let res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
+                          if (res.status === 401) {
+                            const refresh = localStorage.getItem('refresh_token')
+                            if (refresh) {
+                              const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+                              if (refRes.ok) {
+                                const tokens = await refRes.json()
+                                localStorage.setItem('access_token', tokens.access)
+                                h = { Authorization: `Bearer ${tokens.access}` }
+                                res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
+                              }
+                            }
                           }
+                          if (!res.ok) throw new Error('Delete failed')
+                          showToast('Document supprimé.', 'success')
+                          loadSubmittedDocsDir()
+                        } catch (e) {
+                          showToast('Erreur lors de la suppression.', 'error')
                         }
                       }
-                      if (!res.ok) throw new Error('Modify failed')
-                      showToast('Vous pouvez maintenant téléverser une nouvelle version.', 'success')
-                      loadSubmittedDocsDir()
-                    } catch (e) {
-                      showToast('Erreur lors de la modification.', 'error')
-                    }
+                    })
+                  }
+                  const modifyDocument = (docId) => {
+                    if (!myDocOrp) return
+                    setDocConfirmModal({
+                      title: 'Remplacer ce document\u00A0?',
+                      message: 'La version actuelle sera supprimée. Vous pourrez téléverser une nouvelle version du même type.',
+                      confirmLabel: 'Remplacer',
+                      onConfirm: async () => {
+                        setDocConfirmModal(null)
+                        try {
+                          let h = token ? { Authorization: `Bearer ${token}` } : {}
+                          let res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
+                          if (res.status === 401) {
+                            const refresh = localStorage.getItem('refresh_token')
+                            if (refresh) {
+                              const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+                              if (refRes.ok) {
+                                const tokens = await refRes.json()
+                                localStorage.setItem('access_token', tokens.access)
+                                h = { Authorization: `Bearer ${tokens.access}` }
+                                res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
+                              }
+                            }
+                          }
+                          if (!res.ok) throw new Error('Modify failed')
+                          showToast('Vous pouvez maintenant téléverser une nouvelle version.', 'success')
+                          loadSubmittedDocsDir()
+                        } catch (e) {
+                          showToast('Erreur lors de la modification.', 'error')
+                        }
+                      }
+                    })
                   }
 
                   const handleUpload = async () => {
@@ -3182,16 +3223,40 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <a href={docFileUrl(doc.file)} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#64748b',textDecoration:'underline'}}>⬇ Télécharger</a>
                             {(Date.now() - new Date(doc.uploaded_at).getTime()) < 2 * 24 * 60 * 60 * 1000 && (
                               <>
-                                <button onClick={() => modifyDocument(doc.id)} style={{background:'rgba(245,158,11,0.1)',border:'none',borderRadius:8,color:'#f59e0b',fontSize:11,padding:'4px 10px',cursor:'pointer'}}>✏️ Modifier</button>
+                                {(doc.status === 'changes_requested' || doc.status === 'rejected') && (
+                                  <button onClick={() => modifyDocument(doc.id)} style={{background:'rgba(245,158,11,0.1)',border:'none',borderRadius:8,color:'#f59e0b',fontSize:11,padding:'4px 10px',cursor:'pointer'}}>✏️ Modifier</button>
+                                )}
                                 <button onClick={() => deleteDocument(doc.id)} style={{background:'rgba(239,68,68,0.1)',border:'none',borderRadius:8,color:'#ef4444',fontSize:11,padding:'4px 10px',cursor:'pointer'}}>🗑 Supprimer</button>
                               </>
                             )}
-                            {(doc.status === 'changes_requested' || doc.status === 'rejected') && (doc.feedback || doc.points_to_update) && (
+                            {(doc.status === 'changes_requested' || doc.status === 'rejected') && (doc.feedback || doc.points_to_update) && (() => {
+                              const isFresh = doc.reviewed_at && (Date.now() - new Date(doc.reviewed_at).getTime()) < 60000
+                              const detailsOpen = openModifDoc === doc.id
+                              return (
                               <>
-                                <button onClick={() => setOpenModifDoc(openModifDoc === doc.id ? null : doc.id)} style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:8,color:'#ef4444',fontSize:11,padding:'4px 12px',cursor:'pointer',whiteSpace:'nowrap'}}>
-                                  {openModifDoc === doc.id ? '▲ Masquer les détails' : doc.status === 'rejected' ? '❌ Voir le motif du refus' : '🔄 Voir les modifications demandées'}
-                                </button>
-                                {openModifDoc === doc.id && (
+                                {(isFresh || detailsOpen) && (
+                                  <button onClick={() => {
+                                    const willOpen = openModifDoc !== doc.id
+                                    setOpenModifDoc(willOpen ? doc.id : null)
+                                    if (willOpen && !modifNotifTimers.current[doc.id+'_close']) {
+                                      modifNotifTimers.current[doc.id+'_close'] = setTimeout(() => setOpenModifDoc(d => d === doc.id ? null : d), 180000)
+                                    }
+                                  }} style={{
+                                    background: isFresh ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)',
+                                    border: isFresh ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(239,68,68,0.2)',
+                                    borderRadius: 8,
+                                    color: isFresh ? '#f87171' : '#ef4444',
+                                    fontSize: 11,
+                                    padding: '4px 12px',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    animation: isFresh ? 'pulse-modif 1s ease-in-out infinite' : 'none',
+                                    transition: 'all .2s',
+                                  }}>
+                                    {detailsOpen ? '▲ Masquer les détails' : doc.status === 'rejected' ? '❌ Voir le motif du refus' : '🔄 Modifications demandées'}
+                                  </button>
+                                )}
+                                {detailsOpen && (
                                   <div style={{width:'100%',padding:'8px 12px',background:'rgba(239,68,68,0.06)',borderRadius:8,border:'1px solid rgba(239,68,68,0.15)',fontSize:11,color:'#ef4444',marginTop:4}}>
                                     {doc.feedback && <><strong>{doc.status === 'rejected' ? 'Motif du refus' : 'Retour de la fédération'}:</strong> {doc.feedback}</>}
                                     {doc.points_to_update && (
@@ -3200,15 +3265,58 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                         {doc.points_to_update.split('\n').filter(p=>p.trim()).map((p,i) => <div key={i} style={{paddingLeft:12}}>• {p}</div>)}
                                       </div>
                                     )}
+                                    <div style={{marginTop:6,fontSize:9,color:'#64748b',textAlign:'right'}}>
+                                      {doc.reviewed_at && <>Demandé le {new Date(doc.reviewed_at).toLocaleString('fr-FR',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</>}
+                                    </div>
                                   </div>
                                 )}
                               </>
-                            )}
+                              )
+                            })()}
                           </div>
                         )
                       })}
                     </div>
                   </div>
+                  {/* ── Modification history ── */}
+                  {submittedDocs.filter(d => d.status === 'changes_requested' || d.status === 'rejected').length > 0 && (
+                    <div style={{marginTop:24,padding:'16px 18px',background:'rgba(30,41,59,0.4)',borderRadius:14,border:'1px solid rgba(255,255,255,0.06)'}}>
+                      <h4 style={{fontSize:13,fontWeight:700,color:'#94a3b8',margin:'0 0 12px 0',display:'flex',alignItems:'center',gap:6}}>
+                        📋 Historique des modifications
+                        <span style={{background:'rgba(239,68,68,0.12)',color:'#ef4444',fontSize:10,fontWeight:700,padding:'1px 8px',borderRadius:8}}>{submittedDocs.filter(d => d.status === 'changes_requested' || d.status === 'rejected').length}</span>
+                      </h4>
+                      <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                        {submittedDocs.filter(d => d.status === 'changes_requested' || d.status === 'rejected').map(doc => {
+                          const reviewed = doc.reviewed_at ? new Date(doc.reviewed_at) : null
+                          return (
+                            <div key={doc.id} style={{padding:'10px 12px',background:'rgba(255,255,255,0.02)',borderRadius:8,border:'1px solid rgba(255,255,255,0.04)',fontSize:11}}>
+                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                                <span style={{fontWeight:600,color:'#e2e8f0'}}>{doc.document_type_name}</span>
+                                <span style={{color:'#64748b',fontSize:10}}>{reviewed ? reviewed.toLocaleString('fr-FR',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}</span>
+                              </div>
+                              <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:4}}>
+                                <span style={{
+                                  fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:8,
+                                  background: doc.status === 'changes_requested' ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.12)',
+                                  color: doc.status === 'changes_requested' ? '#ef4444' : '#ef4444',
+                                }}>
+                                  {doc.status === 'changes_requested' ? 'Modifications demandées' : 'Refusé'}
+                                </span>
+                                <span style={{color:'#64748b',fontSize:9}}>par {doc.reviewed_by_name || 'Fédération'}</span>
+                              </div>
+                              {doc.feedback && <div style={{color:'#94a3b8',marginBottom:2}}><strong>Retour:</strong> {doc.feedback}</div>}
+                              {doc.points_to_update && (
+                                <div style={{color:'#94a3b8'}}>
+                                  <strong>Points à corriger:</strong>
+                                  {doc.points_to_update.split('\n').filter(p=>p.trim()).map((p,i) => <div key={i} style={{paddingLeft:8}}>• {p}</div>)}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                   {/* ── PDF / document preview modal ── */}
                   {previewDoc && (
                     <div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={() => setPreviewDoc(null)}>
@@ -7792,6 +7900,29 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
             <div style={{ display:'flex', gap:'12px', justifyContent:'center', marginTop:'8px' }}>
               <button type="button" onClick={() => setUnassignConfirm(null)} style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:10,color:'#94a3b8',fontSize:13,fontWeight:600,padding:'8px 24px',cursor:'pointer'}}>Annuler</button>
               <button type="button" onClick={async()=>{const c=unassignConfirm;setUnassignConfirm(null);const token=localStorage.getItem('access_token');try{await fetch(API+'/assignments/'+c.assignmentId+'/',{method:'DELETE',headers:{Authorization:'Bearer '+token}});if(c.orphanageId){const r=await fetch(API+'/assignments/?orphanage_id='+c.orphanageId,{headers:{Authorization:'Bearer '+token}});if(r.ok)setOrphanageAssignments(await r.json())}if(c.onAssigned)c.onAssigned()}catch(_){}}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:13,fontWeight:600,padding:'8px 24px',cursor:'pointer'}}>Désassigner</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {docConfirmModal && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.65)', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(4px)' }} onClick={() => setDocConfirmModal(null)}>
+          <div style={{ background:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:16, padding:'32px', maxWidth:'420px', width:'90%', textAlign:'center', display:'flex', flexDirection:'column', gap:'16px', boxShadow:'0 25px 50px rgba(0,0,0,0.4)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ width:56, height:56, borderRadius:'50%', background:'rgba(239,68,68,0.12)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto' }}>
+              <span style={{ fontSize:'28px' }}>🗑️</span>
+            </div>
+            <h3 style={{ margin:0, fontSize:'18px', fontWeight:'700', color:'#f1f5f9' }}>{docConfirmModal.title}</h3>
+            <p style={{ fontSize:'14px', color:'#94a3b8', margin:0, lineHeight:'1.5' }}>{docConfirmModal.message}</p>
+            <div style={{ display:'flex', gap:'12px', justifyContent:'center', marginTop:'8px' }}>
+              <button onClick={() => setDocConfirmModal(null)} style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, color:'#cbd5e1', fontSize:13, fontWeight:600, padding:'10px 28px', cursor:'pointer', transition:'all .15s' }}
+                onMouseOver={e => e.currentTarget.style.background='rgba(255,255,255,0.1)'}
+                onMouseOut={e => e.currentTarget.style.background='rgba(255,255,255,0.06)'}>
+                Annuler
+              </button>
+              <button onClick={() => docConfirmModal.onConfirm()} style={{ background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:10, color:'#f87171', fontSize:13, fontWeight:700, padding:'10px 28px', cursor:'pointer', transition:'all .15s' }}
+                onMouseOver={e => e.currentTarget.style.background='rgba(239,68,68,0.25)'}
+                onMouseOut={e => e.currentTarget.style.background='rgba(239,68,68,0.15)'}>
+                {docConfirmModal.confirmLabel || 'Confirmer'}
+              </button>
             </div>
           </div>
         </div>
