@@ -3094,7 +3094,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           <label style={{fontSize:11,color:'#94a3b8',display:'block',marginBottom:4}}>Type de document</label>
                           <select className="dash-form-input" value={selDocTypeId} onChange={e => { setSelDocTypeId(e.target.value); setDocFile(null); setDocResetKey(k => k + 1); if (docFileRef.current) docFileRef.current.value = '' }} style={{cursor:'pointer'}}>
                             <option value="">Sélectionnez un type...</option>
-                            {docTypes.filter(dt => !submittedDocs.some(s => s.document_type === dt.id && s.status === 'accepted')).map(dt => (
+                            {docTypes.filter(dt => !submittedDocs.some(s => s.document_type === dt.id && (s.status === 'accepted' || s.status === 'pending'))).map(dt => (
                               <option key={dt.id} value={dt.id}>{dt.label}{dt.required ? ' (REQUIS)' : ' (Optionnel)'}</option>
                             ))}
                           </select>
