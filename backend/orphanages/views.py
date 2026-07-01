@@ -115,8 +115,8 @@ def orphanage_document_review(request, orphanage_id, doc_id):
     doc.reviewed_at = timezone.now()
     doc.save(update_fields=["status", "feedback", "points_to_update", "reviewed_by", "reviewed_at"])
 
-    if action in ("request_changes", "reject") and orphanage.director:
-        labels = {"request_changes": "Modifications demandées", "reject": "Refusé"}
+    if action in ("accept", "request_changes", "reject") and orphanage.director:
+        labels = {"accept": "Accepté", "request_changes": "Modifications demandées", "reject": "Refusé"}
         title = f"Document {labels.get(action, action)}"
         content_parts = [f"Le document « {doc.document_type.label} » a été {labels.get(action, action).lower()}."]
         if feedback:

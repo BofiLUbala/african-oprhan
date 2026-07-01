@@ -802,13 +802,24 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
 
   /* ── Fetch notifications from API ── */
   const notifFetchRef = useRef(false)
-  const fetchNotifications = () => {
+  const fetchNotifications = async () => {
     const t = localStorage.getItem('access_token')
     if (!t) return
-    fetch(`${API}/notifications/`, { headers: { Authorization: `Bearer ${t}` } })
-      .then(r => r.ok ? r.json() : [])
-      .then(list => { setNotifications(list) })
-      .catch(() => {})
+    try {
+      let res = await fetch(`${API}/notifications/`, { headers: { Authorization: `Bearer ${t}` } })
+      if (res.status === 401) {
+        const refresh = localStorage.getItem('refresh_token')
+        if (refresh) {
+          const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+          if (refRes.ok) {
+            const tokens = await refRes.json()
+            localStorage.setItem('access_token', tokens.access)
+            res = await fetch(`${API}/notifications/`, { headers: { Authorization: `Bearer ${tokens.access}` } })
+          }
+        }
+      }
+      if (res.ok) setNotifications(await res.json())
+    } catch {}
   }
   useEffect(() => {
     if (notifFetchRef.current) return
@@ -1730,22 +1741,31 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     if (activeKey !== 'documents') return
     if (role !== 'director') return
     docLoadKey.current = seen
-    const loadDocs = () => {
+    const loadDocs = async () => {
       const token = localStorage.getItem('access_token')
       if (!token) return
-      fetch(`${API}/document-types/`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : [])
-        .then(d => setDocTypes(d))
-        .catch(() => {})
-      const myOrp = orphanageRequests.find(o => String(o.director) === String(user.id))
+      const fetchWithAuth = async (url) => {
+        let res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+        if (res.status === 401) {
+          const refresh = localStorage.getItem('refresh_token')
+          if (refresh) {
+            const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+            if (refRes.ok) {
+              const tokens = await refRes.json()
+              localStorage.setItem('access_token', tokens.access)
+              res = await fetch(url, { headers: { Authorization: `Bearer ${tokens.access}` } })
+            }
+          }
+        }
+        return res
+      }
+      fetchWithAuth(`${API}/document-types/`).then(r => r.ok ? r.json() : []).then(d => setDocTypes(d)).catch(() => {})
+      const reqs = orpReqRef.current
+      const myOrp = reqs.find(o => String(o.director) === String(user.id))
       if (myOrp) {
         const loading = seen === `${activeKey}_${role}`
         if (loading) setDocLoading(true)
-        fetch(`${API}/orphanages/${myOrp.id}/documents/`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => r.ok ? r.json() : [])
-          .then(d => setSubmittedDocs(d))
-          .catch(() => {})
-          .finally(() => { if (loading) setDocLoading(false) })
+        fetchWithAuth(`${API}/orphanages/${myOrp.id}/documents/`).then(r => r.ok ? r.json() : []).then(d => setSubmittedDocs(d)).catch(() => {}).finally(() => { if (loading) setDocLoading(false) })
       }
     }
     loadDocs()
@@ -1943,6 +1963,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const modifNotifTimers = useRef({})
   const docFileRef = useRef(null)
   const docLoadKey = useRef('')
+  const orpReqRef = useRef(orphanageRequests)
+  orpReqRef.current = orphanageRequests
   const autoSaveRef = useRef(null)
   useEffect(() => { if(autoSaveRef.current) clearTimeout(autoSaveRef.current); autoSaveRef.current = setTimeout(() => { try { localStorage.setItem('cdo_orp_draft', JSON.stringify(orphanageForm)); } catch(e){} }, 3000); return () => clearTimeout(autoSaveRef.current); }, [orphanageForm])
   useEffect(() => { try { const d = localStorage.getItem('cdo_orp_draft'); const s = localStorage.getItem('cdo_orp_step'); if(d) setOrphanageForm(prev => ({...prev, ...JSON.parse(d)})); if(s) setOrpWizStep(Number(s)); } catch(e){} }, [])
@@ -1988,7 +2010,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
   const orpFileHandler = (key) => (e) => { const file = e.target.files?.[0]; if (file) setOrpFiles(p => ({ ...p, [key]: file })); }
   const orpDragHandler = (key) => ({ onDragOver: e => e.preventDefault(), onDrop: e => { e.preventDefault(); const file = e.dataTransfer.files?.[0]; if (file) setOrpFiles(p => ({ ...p, [key]: file })); } })
-  const directorOrpRec = () => orphanageRequests.find(o => o.director === user.id)
+  const directorOrpRec = () => orphanageRequests.find(o => String(o.director) === String(user.id))
 
   useEffect(() => {
     if ((activeKey === 'orphelinats' || activeKey === 'validationLocale') && role === 'federation') {
@@ -3025,20 +3047,48 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                 : activeKey === 'documents' && role === 'director' ? (() => {
                   const myDocOrp = directorOrpRec()
                   const token = localStorage.getItem('access_token')
-                  const loadDocTypesDir = () => {
-                    fetch(`${API}/document-types/`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-                      .then(r => r.ok ? r.json() : [])
-                      .then(d => setDocTypes(d))
-                      .catch(() => {})
+                  const loadDocTypesDir = async () => {
+                    let h = token ? { Authorization: `Bearer ${token}` } : {}
+                    let res = await fetch(`${API}/document-types/`, { headers: h })
+                    if (res.status === 401) {
+                      const refresh = localStorage.getItem('refresh_token')
+                      if (refresh) {
+                        const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+                        if (refRes.ok) {
+                          const tokens = await refRes.json()
+                          localStorage.setItem('access_token', tokens.access)
+                          h = { Authorization: `Bearer ${tokens.access}` }
+                          res = await fetch(`${API}/document-types/`, { headers: h })
+                        }
+                      }
+                    }
+                    if (res.ok) setDocTypes(await res.json())
                   }
-                  const loadSubmittedDocsDir = () => {
+                  const loadSubmittedDocsDir = async () => {
                     if (!myDocOrp) return
                     setDocLoading(true)
-                    fetch(`${API}/orphanages/${myDocOrp.id}/documents/`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-                      .then(r => { if (!r.ok) throw new Error('Erreur chargement'); return r.json() })
-                      .then(d => { setSubmittedDocs(d); setDocResetKey(k => k + 1) })
-                      .catch(() => showToast('Impossible de charger les documents.', 'error'))
-                      .finally(() => setDocLoading(false))
+                    try {
+                      let h = token ? { Authorization: `Bearer ${token}` } : {}
+                      let res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/`, { headers: h })
+                      if (res.status === 401) {
+                        const refresh = localStorage.getItem('refresh_token')
+                        if (refresh) {
+                          const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+                          if (refRes.ok) {
+                            const tokens = await refRes.json()
+                            localStorage.setItem('access_token', tokens.access)
+                            h = { Authorization: `Bearer ${tokens.access}` }
+                            res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/`, { headers: h })
+                          }
+                        }
+                      }
+                      if (res.ok) { const d = await res.json(); setSubmittedDocs(d); setDocResetKey(k => k + 1) }
+                      else throw new Error('Erreur chargement')
+                    } catch (e) {
+                      showToast('Impossible de charger les documents.', 'error')
+                    } finally {
+                      setDocLoading(false)
+                    }
                   }
 
                   const docFileUrl = (url) => {
