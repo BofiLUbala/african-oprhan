@@ -1736,11 +1736,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
   /* ── Dedicated document data loader + polling (avoids race with main effect) ── */
   useEffect(() => {
-    const seen = `${activeKey}_${role}`
-    if (docLoadKey.current === seen) return
-    if (activeKey !== 'documents') return
-    if (role !== 'director') return
-    docLoadKey.current = seen
+    if (activeKey !== 'documents' || role !== 'director') return
     const loadDocs = async () => {
       const token = localStorage.getItem('access_token')
       if (!token) return
@@ -1763,14 +1759,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       const reqs = orpReqRef.current
       const myOrp = reqs.find(o => String(o.director) === String(user.id))
       if (myOrp) {
-        const loading = seen === `${activeKey}_${role}`
-        if (loading) setDocLoading(true)
-        fetchWithAuth(`${API}/orphanages/${myOrp.id}/documents/`).then(r => r.ok ? r.json() : []).then(d => setSubmittedDocs(d)).catch(() => {}).finally(() => { if (loading) setDocLoading(false) })
+        setDocLoading(true)
+        fetchWithAuth(`${API}/orphanages/${myOrp.id}/documents/`).then(r => r.ok ? r.json() : []).then(d => setSubmittedDocs(d)).catch(() => {}).finally(() => setDocLoading(false))
       }
     }
     loadDocs()
     const poll = setInterval(loadDocs, 15000)
-    return () => clearInterval(poll)
+    return () => { clearInterval(poll) }
   }, [activeKey, role])
 
   useEffect(() => {
@@ -2330,7 +2325,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
               <button
                 key={item.key}
                 className={`dash-nav-btn${item.key === activeKey ? ' active' : ''}`}
-                onClick={() => { setActiveKey(item.key); setSubKey(null); setEditingChild(null); }}
+                onClick={() => { if (item.key === activeKey) savedSubKeys.current[`${activeKey}_${role || ''}`] = undefined; setActiveKey(item.key); setSubKey(null); setEditingChild(null); }}
               >
                 <span className="dash-nav-label" style={{ paddingLeft: '8px' }}>{t('nav_' + item.key.replace(/-/g, '_')) || item.label}</span>
                 {item.key === activeKey && <span className="dash-nav-ind" />}
@@ -7897,7 +7892,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     </div>
                   )
                 })()
-                : (
+                : !subKey ? (
                   <div className="dash-category-cards">
                     {activeKey === 'parametres' && !subKey && (
                       <div className="dash-category-card" onClick={() => setSubKey('Profil')}>
@@ -7921,7 +7916,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       </button>
                     ))}
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           )}
