@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -10,6 +11,12 @@ from .serializers import DocumentTypeSerializer, OrphanageDocumentSerializer, Or
 
 def _can_validate(user):
     return user.is_superuser or user.role in ("federation", "supermaster")
+
+def _notify_federation(title, content, link=""):
+    User = get_user_model()
+    federation_users = User.objects.filter(role="federation", is_active=True)
+    for u in federation_users:
+        Notification.objects.create(user=u, title=title, content=content, link=link)
 
 
 # ── Document Types (managed by federation) ──
@@ -63,8 +70,13 @@ def orphanage_document_list(request, orphanage_id):
             return Response({"error": "Seul le directeur de cet orphelinat peut téléverser des documents."}, status=status.HTTP_403_FORBIDDEN)
         serializer = OrphanageDocumentSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        serializer.save(orphanage=orphanage)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        instance = serializer.save(orphanage=orphanage)
+        _notify_federation(
+            title=f"Nouveau document soumis par {user.full_name}",
+            content=f"Le document « {instance.document_type.label} » a été soumis pour l'orphelinat « {orphanage.name} ».",
+            link="",
+        )
+        return Response(OrphanageDocumentSerializer(instance, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
     if _can_validate(user) or (user.role == "director" and orphanage.director == user):
         docs = OrphanageDocument.objects.filter(orphanage=orphanage).select_related("document_type")
@@ -119,6 +131,41 @@ def orphanage_document_review(request, orphanage_id, doc_id):
         )
 
     return Response(OrphanageDocumentSerializer(doc, context={"request": request}).data)
+
+
+@api_view(["DELETE"])
+def orphanage_document_detail(request, orphanage_id, doc_id):
+    try:
+        orphanage = Orphanage.objects.get(pk=orphanage_id)
+        doc = OrphanageDocument.objects.get(pk=doc_id, orphanage=orphanage)
+    except (Orphanage.DoesNotExist, OrphanageDocument.DoesNotExist):
+        return Response({"error": "Document introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+    user = request.user
+    is_director = user.role == "director" and orphanage.director == user
+    is_federation = _can_validate(user)
+
+    if not (is_director or is_federation):
+        return Response({"error": "Vous n'avez pas le droit de supprimer ce document."}, status=status.HTTP_403_FORBIDDEN)
+
+    if is_director and (timezone.now() - doc.uploaded_at).days >= 2:
+        return Response(
+            {"error": "Délai de suppression expiré. Seul la fédération peut supprimer ce document après 2 jours."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    doc_label = doc.document_type.label
+    orp_name = orphanage.name
+    doc.delete()
+
+    if is_director:
+        _notify_federation(
+            title=f"Document supprimé par {user.full_name}",
+            content=f"Le document « {doc_label} » de l'orphelinat « {orp_name} » a été supprimé par le directeur.",
+            link="",
+        )
+
+    return Response({"status": "supprimé"}, status=status.HTTP_200_OK)
 
 
 @api_view(["GET", "POST"])

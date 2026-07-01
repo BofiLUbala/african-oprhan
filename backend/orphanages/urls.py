@@ -9,4 +9,5 @@ urlpatterns = [
     path("document-types/<int:dt_id>/", views.document_type_detail, name="document-type-detail"),
     path("orphanages/<int:orphanage_id>/documents/", views.orphanage_document_list, name="orphanage-document-list"),
     path("orphanages/<int:orphanage_id>/documents/<int:doc_id>/review/", views.orphanage_document_review, name="orphanage-document-review"),
+    path("orphanages/<int:orphanage_id>/documents/<int:doc_id>/", views.orphanage_document_detail, name="orphanage-document-detail"),
 ]

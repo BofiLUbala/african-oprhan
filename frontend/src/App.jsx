@@ -1031,7 +1031,7 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
                   </div>
                   {notifications.length === 0 && <div style={{padding:'16px',textAlign:'center',fontSize:11,color:'#64748b'}}>Aucune notification</div>}
                   {notifications.slice(0, 20).map(n => (
-                    <div key={n.id} className="hd-dropdown-item" onClick={() => { if (!n.is_read) markNotifRead(n.id) }} style={{opacity:n.is_read?0.5:1,cursor:'pointer'}}>
+                    <div key={n.id} className="hd-dropdown-item" onClick={() => { if (!n.is_read) markNotifRead(n.id); setNotifOpen(false); setActiveKey('documents'); setSubKey(null) }} style={{opacity:n.is_read?0.5:1,cursor:'pointer'}}>
                       <span className="hd-dropdown-icon">{notifIcon(n.title)}</span>
                       <div className="hd-dropdown-body">
                         <div className="hd-dropdown-text" style={{fontWeight:n.is_read?400:600}}>{n.title}</div>
@@ -1922,6 +1922,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [docUploading, setDocUploading] = useState(false)
   const [previewDoc, setPreviewDoc] = useState(null)
   const [docResetKey, setDocResetKey] = useState(0)
+  const [openModifDoc, setOpenModifDoc] = useState(null)
   const docFileRef = useRef(null)
   const docLoadKey = useRef('')
   const autoSaveRef = useRef(null)
@@ -3023,6 +3024,55 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     } catch { return url }
                   }
 
+                  const deleteDocument = async (docId) => {
+                    if (!myDocOrp || !confirm('Supprimer ce document ? Cette action est irréversible.')) return
+                    try {
+                      const h = { ...authHeaders }
+                      let res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
+                      if (res.status === 401) {
+                        const refresh = localStorage.getItem('refresh_token')
+                        if (refresh) {
+                          const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+                          if (refRes.ok) {
+                            const tokens = await refRes.json()
+                            localStorage.setItem('access_token', tokens.access)
+                            h.Authorization = `Bearer ${tokens.access}`
+                            res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
+                          }
+                        }
+                      }
+                      if (!res.ok) throw new Error('Delete failed')
+                      showToast('Document supprimé.', 'success')
+                      loadSubmittedDocsDir()
+                    } catch (e) {
+                      showToast('Erreur lors de la suppression.', 'error')
+                    }
+                  }
+                  const modifyDocument = async (docId) => {
+                    if (!myDocOrp) return
+                    try {
+                      const h = { ...authHeaders }
+                      let res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
+                      if (res.status === 401) {
+                        const refresh = localStorage.getItem('refresh_token')
+                        if (refresh) {
+                          const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
+                          if (refRes.ok) {
+                            const tokens = await refRes.json()
+                            localStorage.setItem('access_token', tokens.access)
+                            h.Authorization = `Bearer ${tokens.access}`
+                            res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
+                          }
+                        }
+                      }
+                      if (!res.ok) throw new Error('Modify failed')
+                      showToast('Vous pouvez maintenant téléverser une nouvelle version.', 'success')
+                      loadSubmittedDocsDir()
+                    } catch (e) {
+                      showToast('Erreur lors de la modification.', 'error')
+                    }
+                  }
+
                   const handleUpload = async () => {
                     if (!selDocTypeId || !docFile || !myDocOrp) return
                     setDocUploading(true)
@@ -3130,16 +3180,29 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <span style={{fontSize:10,fontWeight:700,padding:'3px 10px',borderRadius:12,background:sb.bg,color:sb.color}}>{sb.label}</span>
                             <button onClick={() => setPreviewDoc(docFileUrl(doc.file))} style={{background:'rgba(59,130,246,0.1)',border:'none',borderRadius:8,color:'#60a5fa',fontSize:11,padding:'4px 10px',cursor:'pointer'}}>👁 Voir</button>
                             <a href={docFileUrl(doc.file)} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#64748b',textDecoration:'underline'}}>⬇ Télécharger</a>
+                            {(Date.now() - new Date(doc.uploaded_at).getTime()) < 2 * 24 * 60 * 60 * 1000 && (
+                              <>
+                                <button onClick={() => modifyDocument(doc.id)} style={{background:'rgba(245,158,11,0.1)',border:'none',borderRadius:8,color:'#f59e0b',fontSize:11,padding:'4px 10px',cursor:'pointer'}}>✏️ Modifier</button>
+                                <button onClick={() => deleteDocument(doc.id)} style={{background:'rgba(239,68,68,0.1)',border:'none',borderRadius:8,color:'#ef4444',fontSize:11,padding:'4px 10px',cursor:'pointer'}}>🗑 Supprimer</button>
+                              </>
+                            )}
                             {(doc.status === 'changes_requested' || doc.status === 'rejected') && (doc.feedback || doc.points_to_update) && (
-                              <div style={{width:'100%',marginTop:4,padding:'8px 12px',background:'rgba(239,68,68,0.06)',borderRadius:8,border:'1px solid rgba(239,68,68,0.15)',fontSize:11,color:'#ef4444'}}>
-                                {doc.feedback && <><strong>{doc.status === 'rejected' ? 'Motif du refus' : 'Retour de la fédération'}:</strong> {doc.feedback}</>}
-                                {doc.points_to_update && (
-                                  <div style={{marginTop:doc.feedback?6:0}}>
-                                    <strong>Points à corriger:</strong>
-                                    {doc.points_to_update.split('\n').filter(p=>p.trim()).map((p,i) => <div key={i} style={{paddingLeft:12}}>• {p}</div>)}
+                              <>
+                                <button onClick={() => setOpenModifDoc(openModifDoc === doc.id ? null : doc.id)} style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:8,color:'#ef4444',fontSize:11,padding:'4px 12px',cursor:'pointer',whiteSpace:'nowrap'}}>
+                                  {openModifDoc === doc.id ? '▲ Masquer les détails' : doc.status === 'rejected' ? '❌ Voir le motif du refus' : '🔄 Voir les modifications demandées'}
+                                </button>
+                                {openModifDoc === doc.id && (
+                                  <div style={{width:'100%',padding:'8px 12px',background:'rgba(239,68,68,0.06)',borderRadius:8,border:'1px solid rgba(239,68,68,0.15)',fontSize:11,color:'#ef4444',marginTop:4}}>
+                                    {doc.feedback && <><strong>{doc.status === 'rejected' ? 'Motif du refus' : 'Retour de la fédération'}:</strong> {doc.feedback}</>}
+                                    {doc.points_to_update && (
+                                      <div style={{marginTop:doc.feedback?6:0}}>
+                                        <strong>Points à corriger:</strong>
+                                        {doc.points_to_update.split('\n').filter(p=>p.trim()).map((p,i) => <div key={i} style={{paddingLeft:12}}>• {p}</div>)}
+                                      </div>
+                                    )}
                                   </div>
                                 )}
-                              </div>
+                              </>
                             )}
                           </div>
                         )
