@@ -1819,12 +1819,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       const isSponsorRole = ['sponsor', 'partner'].includes(role)
       const promises = isSponsorRole
         ? [
-            fetch(`${API}/parrainages/enfants-disponibles/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),
-            fetch(`${API}/parrainages/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),
+            fetch(`${API}/parrainages/enfants-disponibles/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => { if (r.status === 401) { onLogout(); return [] } return r.ok ? r.json() : [] }),
+            fetch(`${API}/parrainages/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => { if (r.status === 401) { onLogout(); return [] } return r.ok ? r.json() : [] }),
           ]
         : [
             Promise.resolve([]),
-            fetch(`${API}/parrainages/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),
+            fetch(`${API}/parrainages/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => { if (r.status === 401) { onLogout(); return [] } return r.ok ? r.json() : [] }),
           ]
       Promise.all(promises).then(([available, mine]) => {
         setSponsorableChildren(Array.isArray(available) ? available : [])
@@ -8199,12 +8199,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                   const createSponsorship = async (childId) => {
                     setSponsorshipFormError('')
-                    if (Number(sponsorshipForm.amount) <= 0) { setSponsorshipFormError('Veuillez saisir un montant.'); return }
+                    if (!sponsorshipForm.amount || isNaN(Number(sponsorshipForm.amount)) || Number(sponsorshipForm.amount) <= 0) { setSponsorshipFormError('Veuillez saisir un montant valide.'); return }
                     const res = await fetch(`${API}/parrainages/`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                       body: JSON.stringify({ ...sponsorshipForm, child: childId }),
                     })
+                    if (res.status === 401) { onLogout(); return }
                     if (res.ok) {
                       const created = await res.json()
                       setMySponsored(prev => [created, ...prev])
@@ -8218,18 +8219,18 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   }
 
                   const loadPayments = async (sponsorshipId) => {
-                    const token = localStorage.getItem('access_token')
                     const res = await fetch(`${API}/parrainages/${sponsorshipId}/paiements/`, { headers: { Authorization: `Bearer ${token}` } })
-                    if (res.ok) { setSponsorshipPayments(await res.json()); setSelectedSponsorshipId(sponsorshipId) }
+                    if (!res.ok) { if (res.status === 401) { onLogout() } return }
+                    setSponsorshipPayments(await res.json()); setSelectedSponsorshipId(sponsorshipId)
                   }
 
                   const updateSponsorshipStatus = async (id, newStatus) => {
-                    const token = localStorage.getItem('access_token')
                     const res = await fetch(`${API}/parrainages/${id}/`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                       body: JSON.stringify({ status: newStatus }),
                     })
+                    if (res.status === 401) { onLogout(); return }
                     if (res.ok) {
                       const updated = await res.json()
                       setMySponsored(prev => prev.map(s => s.id === id ? { ...s, status: updated.status, status_label: updated.status_label } : s))
