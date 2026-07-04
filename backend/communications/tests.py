@@ -76,6 +76,14 @@ class ConversationAPITest(TestCase):
         r = self.client.get(f'/api/conversations/{conv.id}/messages/')
         self.assertEqual(r.status_code, 403)
 
+    def test_start_conversation_invalid_participant(self):
+        r = self.client.post('/api/conversations/', {'participant_id': 99999})
+        self.assertEqual(r.status_code, 404)
+
+    def test_start_conversation_missing_participant_id(self):
+        r = self.client.post('/api/conversations/', {})
+        self.assertEqual(r.status_code, 400)
+
     def test_chat_list_excludes_self(self):
         r = self.client.get('/api/users/chat-list/')
         self.assertEqual(r.status_code, 200)
