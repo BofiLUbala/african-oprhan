@@ -1321,6 +1321,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [msgChatUsers, setMsgChatUsers] = useState([])
   const [msgUserSearch, setMsgUserSearch] = useState('')
   const [msgSending, setMsgSending] = useState(false)
+  const messagesEndRef = useRef(null)
+  useEffect(() => {
+    if (activeKey === 'communication') {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [msgMessages, activeKey])
 
   /* ── Navigation state preservation ── */
   const savedSubKeys = useRef({})
@@ -7666,12 +7672,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                   const otherParticipant = (conv) =>
                     (conv.participants || []).find(p => p.id !== myId) || conv.participants?.[0] || { full_name: '?', initials: '?' }
-
-                  const messagesEndRef = React.useRef(null)
-
-                  React.useEffect(() => {
-                    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-                  }, [msgMessages])
 
                   const loadConvMessages = async (conv) => {
                     setMsgActiveConv(conv)
