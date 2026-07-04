@@ -458,6 +458,7 @@ const ROLE_NAV = {
     { label: 'Documents', key: 'documents' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
     { label: 'Demandes', key: 'demandes' },
+    { label: 'Finances', key: 'finances' },
     { label: 'Dons', key: 'dons' },
     { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
@@ -479,6 +480,7 @@ const ROLE_NAV = {
     { label: 'Utilisateurs', key: 'users' },
     { label: 'Orphelinats', key: 'orphelinats' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
+    { label: 'Finances', key: 'finances' },
     { label: 'Rapports', key: 'rapports' },
     { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
@@ -488,6 +490,7 @@ const ROLE_NAV = {
     { label: 'Utilisateurs', key: 'users' },
     { label: 'Orphelinats', key: 'orphelinats' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
+    { label: 'Finances', key: 'finances' },
     { label: 'Validation des donnees', key: 'validationLocale' },
     { label: 'Partenaires', key: 'partenaires' },
     { label: 'Rapports', key: 'rapports' },
@@ -509,6 +512,11 @@ const ROLE_NAV = {
     { label: 'Dons', key: 'dons' },
     { label: 'Parrainages', key: 'parrainages' },
     { label: 'Communication', key: 'communication' },
+    { label: 'Paramètres', key: 'parametres' },
+  ],
+  auditor: [
+    { label: 'Tableau de bord', key: 'dashboard' },
+    { label: 'Finances', key: 'finances' },
     { label: 'Paramètres', key: 'parametres' },
   ],
 }
@@ -554,6 +562,7 @@ const ROLE_PAGES = {
       { id: 'R4', title: 'Publications', subtitle: '18 Publications', count: 18 },
     ]},
     dons: { title: 'Dons', subtitle: 'Suivi des contributions.', categories: [] },
+    finances: { title: 'Finances', subtitle: 'Revenus et dépenses.', categories: [] },
     parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
       { id: 'S4', title: 'Configuration', subtitle: 'Paramètres système', count: 2 },
     ]},
@@ -636,6 +645,7 @@ const ROLE_PAGES = {
       { id: 'A3', title: 'Évaluations', subtitle: '3 En cours', count: 3 },
       { id: 'A4', title: "Demandes d'affectation", subtitle: '2 Nouvelles', count: 2 },
     ]},
+    finances: { title: 'Finances', subtitle: 'Revenus et dépenses.', categories: [] },
     rapports: { title: 'Rapports nationaux', subtitle: "Production et consultation des rapports.", categories: [
       { id: 'R1', title: 'Rapport national', subtitle: 'À générer', count: 1 },
       { id: 'R2', title: 'Rapports régionaux', subtitle: '4 Reçus', count: 4 },
@@ -677,6 +687,7 @@ const ROLE_PAGES = {
       { id: 'N3', title: 'Conventions', subtitle: '8 Signées', count: 8 },
       { id: 'N4', title: "Appels d'offres", subtitle: '2 En cours', count: 2 },
     ]},
+    finances: { title: 'Finances', subtitle: 'Revenus et dépenses.', categories: [] },
     rapports: { title: 'Rapports nationaux', subtitle: "Production des rapports.", categories: [
       { id: 'R1', title: 'Rapport mensuel', subtitle: 'Avril 2026', count: 1 },
       { id: 'R2', title: 'Rapport financier', subtitle: 'Trimestre 2', count: 1 },
@@ -728,6 +739,11 @@ const ROLE_PAGES = {
     dons: { title: 'Dons', subtitle: 'Suivi des contributions.', categories: [] },
     parrainages: { title: 'Parrainages', subtitle: 'Parrainer un enfant.', categories: [] },
     communication: { title: 'Communication', subtitle: 'Messagerie.', categories: [] },
+    parametres: { title: 'Paramètres', subtitle: 'Compte et préférences.', categories: [] },
+  },
+  auditor: {
+    dashboard: { title: 'Tableau de bord', subtitle: "Vue d'ensemble.", categories: [] },
+    finances: { title: 'Finances', subtitle: 'Revenus et dépenses.', categories: [] },
     parametres: { title: 'Paramètres', subtitle: 'Compte et préférences.', categories: [] },
   },
 }
@@ -1667,6 +1683,16 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [donationFormError, setDonationFormError] = useState('')
   const [donationFormSuccess, setDonationFormSuccess] = useState('')
 
+  /* ── Finances state ── */
+  const [incomes, setIncomes] = useState([])
+  const [expenses, setExpenses] = useState([])
+  const [financesLoading, setFinancesLoading] = useState(false)
+  const [financesTab, setFinancesTab] = useState('revenus')
+  const [incomeForm, setIncomeForm] = useState({ source: '', amount: '', orphanage: '' })
+  const [expenseForm, setExpenseForm] = useState({ category: '', amount: '', description: '', orphanage: '' })
+  const [financesFormError, setFinancesFormError] = useState('')
+  const [financesFormSuccess, setFinancesFormSuccess] = useState('')
+
   /* ── Navigation state preservation ── */
   const savedSubKeys = useRef({})
   const prevSection = useRef('')
@@ -1756,6 +1782,18 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
         .then(r => { if (r.status === 401) { onLogout(); return [] } return r.json() })
         .then(data => { setDonations(Array.isArray(data) ? data : []); setDonationsLoading(false) })
         .catch(() => setDonationsLoading(false))
+    }
+    /* ── Load finances ── */
+    if (activeKey === 'finances') {
+      setFinancesLoading(true)
+      Promise.all([
+        fetch(`${API}/revenus/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),
+        fetch(`${API}/depenses/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),
+      ]).then(([rev, dep]) => {
+        setIncomes(Array.isArray(rev) ? rev : [])
+        setExpenses(Array.isArray(dep) ? dep : [])
+        setFinancesLoading(false)
+      }).catch(() => setFinancesLoading(false))
     }
     /* ── Load document types for Federation validation (orphanage docs loaded in separate effect) ── */
     if (activeKey === 'validationLocale' && role === 'federation') {
@@ -8023,6 +8061,97 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             </tbody>
                           </table>
                         </div>
+                      )}
+                    </div>
+                  )
+                })()
+                : activeKey === 'finances' ? (() => {
+                  const token = localStorage.getItem('access_token')
+                  const canWrite = ['director', 'federation', 'supermaster'].includes(role)
+
+                  const submitIncome = async (e) => {
+                    e.preventDefault()
+                    setFinancesFormError('')
+                    if (!incomeForm.source || !incomeForm.amount) { setFinancesFormError('Source et montant requis.'); return }
+                    const res = await fetch(`${API}/revenus/`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                      body: JSON.stringify(incomeForm),
+                    })
+                    if (res.ok) {
+                      const created = await res.json()
+                      setIncomes(prev => [created, ...prev])
+                      setIncomeForm({ source: '', amount: '', orphanage: '' })
+                      setFinancesFormSuccess('Revenu enregistré.')
+                      setTimeout(() => setFinancesFormSuccess(''), 3000)
+                    } else { setFinancesFormError('Erreur lors de l\'enregistrement.') }
+                  }
+
+                  const submitExpense = async (e) => {
+                    e.preventDefault()
+                    setFinancesFormError('')
+                    if (!expenseForm.category || !expenseForm.amount) { setFinancesFormError('Catégorie et montant requis.'); return }
+                    const res = await fetch(`${API}/depenses/`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                      body: JSON.stringify(expenseForm),
+                    })
+                    if (res.ok) {
+                      const created = await res.json()
+                      setExpenses(prev => [created, ...prev])
+                      setExpenseForm({ category: '', amount: '', description: '', orphanage: '' })
+                      setFinancesFormSuccess('Dépense enregistrée.')
+                      setTimeout(() => setFinancesFormSuccess(''), 3000)
+                    } else { setFinancesFormError('Erreur lors de l\'enregistrement.') }
+                  }
+
+                  return (
+                    <div className="dash-section">
+                      <div className="dash-section-header">
+                        <span className="dash-section-title">Finances</span>
+                        <span className="dash-section-sub">Revenus et dépenses</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                        {['revenus', 'depenses'].map(tab => (
+                          <button key={tab} className={`btn btn-sm${financesTab === tab ? ' btn-primary' : ''}`} onClick={() => setFinancesTab(tab)}>
+                            {tab === 'revenus' ? 'Revenus' : 'Dépenses'}
+                          </button>
+                        ))}
+                      </div>
+                      {financesFormError && <div className="dash-error">{financesFormError}</div>}
+                      {financesFormSuccess && <div className="dash-success">{financesFormSuccess}</div>}
+
+                      {financesLoading ? <div className="dash-empty">Chargement...</div> : financesTab === 'revenus' ? (
+                        <>
+                          {canWrite && (
+                            <form onSubmit={submitIncome} style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+                              <input placeholder="Source (Dons, Subventions...)" value={incomeForm.source} onChange={e => setIncomeForm(f => ({ ...f, source: e.target.value }))} className="dash-input" style={{ flex: '2 1 180px' }} />
+                              <input type="number" min="0" step="0.01" placeholder="Montant" value={incomeForm.amount} onChange={e => setIncomeForm(f => ({ ...f, amount: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
+                              <input type="number" placeholder="ID Orphelinat" value={incomeForm.orphanage} onChange={e => setIncomeForm(f => ({ ...f, orphanage: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
+                              <button type="submit" className="btn btn-primary btn-sm">Ajouter</button>
+                            </form>
+                          )}
+                          {incomes.length === 0 ? <div className="dash-empty">Aucun revenu enregistré.</div> : (
+                            <table className="dash-table"><thead><tr><th>Date</th><th>Source</th><th>Montant</th><th>Orphelinat</th></tr></thead>
+                            <tbody>{incomes.map(r => <tr key={r.id}><td>{r.date}</td><td>{r.source}</td><td>{r.amount}</td><td>{r.orphanage_name || '—'}</td></tr>)}</tbody></table>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {canWrite && (
+                            <form onSubmit={submitExpense} style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+                              <input placeholder="Catégorie (Alimentation, Santé...)" value={expenseForm.category} onChange={e => setExpenseForm(f => ({ ...f, category: e.target.value }))} className="dash-input" style={{ flex: '2 1 180px' }} />
+                              <input type="number" min="0" step="0.01" placeholder="Montant" value={expenseForm.amount} onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
+                              <input placeholder="Description (optionnel)" value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} className="dash-input" style={{ flex: '2 1 180px' }} />
+                              <input type="number" placeholder="ID Orphelinat" value={expenseForm.orphanage} onChange={e => setExpenseForm(f => ({ ...f, orphanage: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
+                              <button type="submit" className="btn btn-primary btn-sm">Ajouter</button>
+                            </form>
+                          )}
+                          {expenses.length === 0 ? <div className="dash-empty">Aucune dépense enregistrée.</div> : (
+                            <table className="dash-table"><thead><tr><th>Date</th><th>Catégorie</th><th>Montant</th><th>Description</th><th>Orphelinat</th></tr></thead>
+                            <tbody>{expenses.map(d => <tr key={d.id}><td>{d.date}</td><td>{d.category}</td><td>{d.amount}</td><td>{d.description || '—'}</td><td>{d.orphanage_name || '—'}</td></tr>)}</tbody></table>
+                          )}
+                        </>
                       )}
                     </div>
                   )
