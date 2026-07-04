@@ -12,6 +12,9 @@ from .serializers import DocumentTypeSerializer, OrphanageDocumentSerializer, Or
 def _can_validate(user):
     return user.is_superuser or user.role in ("federation", "supermaster")
 
+def _can_view_orphanages(user):
+    return _can_validate(user) or user.role == "auditor"
+
 def _notify_federation(title, content, link=""):
     User = get_user_model()
     federation_users = User.objects.filter(role="federation", is_active=True)
@@ -188,7 +191,7 @@ def orphanage_list(request):
         user.save(update_fields=["orphanage"])
         return Response(OrphanageSerializer(orphanage).data, status=status.HTTP_201_CREATED)
 
-    if _can_validate(user):
+    if _can_view_orphanages(user):
         queryset = Orphanage.objects.select_related("director").all().order_by("-created_at")
     elif user.role == "director":
         queryset = Orphanage.objects.filter(director=user).select_related("director")

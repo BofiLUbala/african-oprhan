@@ -6,6 +6,11 @@ MATRICE_VISIBILITE = {
                        'DOCUMENTS': 'complet', 'SOCIAL': 'complet', 'SYSTEME': 'complet'},
         'orphelinat': 'propre',
     },
+    'staff': {
+        'categories': {'SANTE': 'complet', 'SCOLARITE': 'complet', 'FAMILLE': 'complet',
+                       'DOCUMENTS': 'complet', 'SOCIAL': 'complet', 'SYSTEME': 'complet'},
+        'orphelinat': 'propre',
+    },
     'ambassador': {
         'categories': {'SANTE': 'lecture', 'SCOLARITE': 'lecture', 'FAMILLE': 'limite',
                        'DOCUMENTS': 'lecture', 'SOCIAL': 'lecture', 'SYSTEME': 'lecture'},
@@ -21,7 +26,17 @@ MATRICE_VISIBILITE = {
                        'DOCUMENTS': 'complet', 'SOCIAL': 'complet', 'SYSTEME': 'complet'},
         'orphelinat': 'tous',
     },
+    'auditor': {
+        'categories': {'SANTE': 'lecture', 'SCOLARITE': 'lecture', 'FAMILLE': 'lecture',
+                       'DOCUMENTS': 'lecture', 'SOCIAL': 'lecture', 'SYSTEME': 'lecture'},
+        'orphelinat': 'tous',
+    },
     'partner': {
+        'categories': {'SANTE': 'non_visible', 'SCOLARITE': 'resume', 'FAMILLE': 'non_visible',
+                       'DOCUMENTS': 'non_visible', 'SOCIAL': 'non_visible', 'SYSTEME': 'non_visible'},
+        'orphelinat': 'aucun',
+    },
+    'sponsor': {
         'categories': {'SANTE': 'non_visible', 'SCOLARITE': 'resume', 'FAMILLE': 'non_visible',
                        'DOCUMENTS': 'non_visible', 'SOCIAL': 'non_visible', 'SYSTEME': 'non_visible'},
         'orphelinat': 'aucun',
@@ -37,8 +52,8 @@ MAPPING_CATEGORIE = {
 }
 
 ROLES_VALIDATION = {'federation', 'supermaster'}
-ROLES_VOIR_CONFIDENTIEL = {'federation', 'supermaster', 'director'}
-ROLES_VOIR_CONSULTATIONS = {'federation', 'supermaster'}
+ROLES_VOIR_CONFIDENTIEL = {'federation', 'supermaster', 'director', 'auditor'}
+ROLES_VOIR_CONSULTATIONS = {'federation', 'supermaster', 'auditor'}
 
 
 def filtrer_historique_par_role(queryset, user, enfant_id=None):
@@ -69,7 +84,7 @@ def filtrer_historique_par_role(queryset, user, enfant_id=None):
         if role != 'federation':
             queryset = queryset.exclude(niveau_sensibilite='RESTREINT')
 
-    if role == 'director':
+    if role in ('director', 'staff'):
         queryset = queryset.filter(child__orphanage__director=user)
     elif role == 'ambassador':
         queryset = queryset.filter(
@@ -86,7 +101,7 @@ class PeutVoirHistorique(BasePermission):
 
 class PeutCreerHistoriqueManuel(BasePermission):
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role == 'director'
+        return request.user.is_authenticated and request.user.role in ('director', 'staff')
 
 
 class PeutValiderHistorique(BasePermission):

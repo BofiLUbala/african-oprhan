@@ -24,6 +24,9 @@ ROLES = [
     ("supermaster", "Super Master"),
     ("partner", "Partenaire"),
     ("director", "Chef d'orphelinat"),
+    ("auditor", "Auditeur"),
+    ("sponsor", "Parrain/Marraine"),
+    ("staff", "Personnel Orphelinat"),
 ]
 
 
