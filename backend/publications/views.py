@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from django.db.models import Q
 
 from .models import Post, PostLike, PostView, Comment, Story, StoryView
 from .serializers import (
@@ -13,10 +14,21 @@ from .serializers import (
 )
 
 
+def visible_post_filter(user):
+    if not user.is_authenticated:
+        return Q(audience="public")
+
+    role = getattr(user, "role", "")
+    role_audience = "federation" if role == "supermaster" else role
+    return Q(audience="public") | Q(audience=role_audience)
+
+
 @api_view(["GET", "POST"])
 def post_list(request):
     if request.method == "GET":
-        posts = Post.objects.filter(status="approved").prefetch_related(
+        posts = Post.objects.filter(status="approved").filter(
+            visible_post_filter(request.user)
+        ).prefetch_related(
             "media", "likes", "comments", "views"
         )
         serializer = PostListSerializer(posts, many=True, context={"request": request})
@@ -38,7 +50,7 @@ def post_detail(request, post_id):
     try:
         post = Post.objects.prefetch_related(
             "media", "likes", "comments__author", "views__user"
-        ).get(pk=post_id)
+        ).filter(visible_post_filter(request.user)).get(pk=post_id)
     except Post.DoesNotExist:
         return Response(
             {"error": "Publication introuvable."},

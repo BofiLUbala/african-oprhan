@@ -3,7 +3,7 @@ import uuid
 from django.core.files.base import ContentFile
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Child, ChildUpdate, ChildHistory, ChildAssignment
+from .models import Child, ChildUpdate, ChildHistory, ChildAssignment, ConsultationHistorique
 
 User = get_user_model()
 
@@ -114,6 +114,11 @@ class ChildHistorySerializer(serializers.ModelSerializer):
     event_type_label = serializers.SerializerMethodField()
     source_module_label = serializers.SerializerMethodField()
 
+    sensibilite_label = serializers.SerializerMethodField()
+    validation_label = serializers.SerializerMethodField()
+    evenement_parent_id = serializers.IntegerField(read_only=True)
+    hash_valide = serializers.SerializerMethodField()
+
     class Meta:
         model = ChildHistory
         fields = [
@@ -124,7 +129,16 @@ class ChildHistorySerializer(serializers.ModelSerializer):
             "priority", "priority_label", "source_module", "source_module_label",
             "status_label",
             "performed_by", "performed_by_name", "performed_role", "department",
-            "attachments", "metadata", "linked_update", "event_date", "created_at",
+            "attachments", "metadata", "linked_update",
+            "niveau_sensibilite", "sensibilite_label",
+            "statut_validation", "validation_label",
+            "hash_precedent", "hash_courant", "hash_valide",
+            "evenement_parent_id", "piece_jointe",
+            "event_date", "created_at",
+        ]
+        read_only_fields = [
+            "hash_precedent", "hash_courant",
+            "niveau_sensibilite", "statut_validation",
         ]
 
     def get_child_name(self, obj):
@@ -149,6 +163,56 @@ class ChildHistorySerializer(serializers.ModelSerializer):
 
     def get_source_module_label(self, obj):
         return dict(ChildHistory.SOURCE_MODULE_CHOICES).get(obj.source_module, obj.source_module)
+
+    def get_sensibilite_label(self, obj):
+        labels = dict(ChildHistory._meta.get_field('niveau_sensibilite').choices)
+        return labels.get(obj.niveau_sensibilite, obj.niveau_sensibilite)
+
+    def get_validation_label(self, obj):
+        labels = dict(ChildHistory._meta.get_field('statut_validation').choices)
+        return labels.get(obj.statut_validation, obj.statut_validation)
+
+    def get_hash_valide(self, obj):
+        if not obj.hash_courant:
+            return None
+        return obj.calculate_hash() == obj.hash_courant
+
+
+class ChildHistoryCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChildHistory
+        fields = [
+            'event_type', 'title', 'description',
+            'old_value', 'new_value', 'reason', 'note',
+        ]
+
+    def validate_event_type(self, value):
+        valid = [c[0] for c in ChildHistory.EVENT_TYPE_CHOICES]
+        if value not in valid:
+            raise serializers.ValidationError(f"Type d'événement invalide. Choisir parmi : {', '.join(valid)}")
+        return value
+
+
+class CorrectionSerializer(serializers.Serializer):
+    raison = serializers.CharField(required=True, min_length=10)
+    nouvelle_valeur = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class ValidationSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=[('valider', 'Valider'), ('rejeter', 'Rejeter')])
+    commentaire = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class ConsultationHistoriqueSerializer(serializers.ModelSerializer):
+    utilisateur_nom = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ConsultationHistorique
+        fields = ['id', 'utilisateur', 'utilisateur_nom', 'enfant', 'horodatage', 'filtre_applique']
+        read_only_fields = ['utilisateur', 'horodatage']
+
+    def get_utilisateur_nom(self, obj):
+        return obj.utilisateur.full_name if obj.utilisateur else ""
 
 
 class ChildAssignmentSerializer(serializers.ModelSerializer):

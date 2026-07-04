@@ -1,5 +1,12 @@
+import hashlib
+import json
+
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.db import models
+from django.utils import timezone
+
+from .constants import CLASSIFICATION_EVENEMENTS, EVENEMENTS_VALIDATION_REQUISE
 
 
 class ChildAssignment(models.Model):
@@ -146,7 +153,34 @@ class ChildUpdate(models.Model):
         return f"{self.title} ({self.child.uid})"
 
 
+class FichierJoint(models.Model):
+    fichier = models.FileField(upload_to="historique/", verbose_name="Fichier")
+    nom = models.CharField(max_length=255, verbose_name="Nom du fichier")
+    taille = models.IntegerField(default=0, verbose_name="Taille (octets)")
+    type_mime = models.CharField(max_length=100, blank=True, default="", verbose_name="Type MIME")
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Téléversé le")
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name="Téléversé par",
+    )
+
+    class Meta:
+        verbose_name = "Fichier joint"
+        verbose_name_plural = "Fichiers joints"
+
+    def __str__(self):
+        return self.nom
+
+
+class ChildHistoryQuerySet(models.QuerySet):
+    def update(self, *args, **kwargs):
+        raise PermissionDenied("Les événements d'historique sont immuables et ne peuvent pas être modifiés via update.")
+
+
 class ChildHistory(models.Model):
+    objects = ChildHistoryQuerySet.as_manager()
     EVENT_TYPE_CHOICES = [
         ("created", "Création"),
         ("updated", "Modification"),
@@ -234,7 +268,7 @@ class ChildHistory(models.Model):
         ("follow_up", "Suivi"),
     ]
 
-    child = models.ForeignKey(Child, on_delete=models.CASCADE, related_name="history", verbose_name="Enfant")
+    child = models.ForeignKey(Child, on_delete=models.SET_NULL, null=True, related_name="history", verbose_name="Enfant")
     event_type = models.CharField(max_length=30, choices=EVENT_TYPE_CHOICES, verbose_name="Type d'événement")
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default="general", verbose_name="Catégorie")
     subcategory = models.CharField(max_length=50, blank=True, default="", verbose_name="Sous-catégorie")
@@ -267,6 +301,39 @@ class ChildHistory(models.Model):
         related_name="history_events",
         verbose_name="Mise à jour liée",
     )
+    niveau_sensibilite = models.CharField(
+        max_length=20,
+        choices=[("PUBLIC", "Public"), ("RESTREINT", "Restreint"), ("CONFIDENTIEL", "Confidentiel")],
+        default="PUBLIC",
+        verbose_name="Niveau de sensibilité",
+    )
+    statut_validation = models.CharField(
+        max_length=20,
+        choices=[
+            ("AUTO_VALIDE", "Auto-validé"), ("EN_ATTENTE", "En attente"),
+            ("VALIDE", "Validé"), ("REJETE", "Rejeté"),
+        ],
+        default="AUTO_VALIDE",
+        verbose_name="Statut de validation",
+    )
+    hash_precedent = models.CharField(max_length=64, null=True, blank=True, verbose_name="Hash précédent")
+    hash_courant = models.CharField(max_length=64, null=True, blank=True, verbose_name="Hash courant")
+    evenement_parent = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="corrections",
+        verbose_name="Événement parent",
+    )
+    piece_jointe = models.ForeignKey(
+        FichierJoint,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Pièce jointe",
+    )
+
     event_date = models.DateTimeField(verbose_name="Date de l'événement")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Créé le")
 
@@ -279,7 +346,80 @@ class ChildHistory(models.Model):
             models.Index(fields=["child", "category"]),
             models.Index(fields=["child", "event_type"]),
             models.Index(fields=["child", "priority"]),
+            models.Index(fields=["child", "statut_validation"]),
+            models.Index(fields=["child", "niveau_sensibilite"]),
+        ]
+        permissions = [
+            ("validate_history", "Peut valider/rejeter des événements d'historique"),
+            ("view_confidential_history", "Peut voir les événements confidentiels"),
+            ("view_consultation_log", "Peut voir le journal des consultations"),
         ]
 
     def __str__(self):
         return f"{self.title} — {self.child} ({self.event_date.strftime('%d/%m/%Y')})"
+
+    def _contenu_a_hacher(self):
+        data = {
+            'enfant_id': self.child_id,
+            'type_evenement': self.event_type,
+            'categorie': self.category,
+            'priorite': self.priority,
+            'horodatage': self.event_date.isoformat() if self.event_date else None,
+            'auteur_id': self.performed_by_id,
+            'auteur_role': self.performed_role,
+            'module_source': self.source_module,
+            'ancienne_valeur': self.old_value,
+            'nouvelle_valeur': self.new_value,
+            'raison': self.reason,
+            'statut_validation': self.statut_validation,
+            'niveau_sensibilite': self.niveau_sensibilite,
+            'hash_precedent': self.hash_precedent,
+        }
+        return json.dumps(data, sort_keys=True, ensure_ascii=False)
+
+    def calculate_hash(self):
+        return hashlib.sha256(self._contenu_a_hacher().encode('utf-8')).hexdigest()
+
+    def save(self, *args, **kwargs):
+        if self.pk and not kwargs.pop('_force', False):
+            raise PermissionDenied("Les événements d'historique sont immuables et ne peuvent pas être modifiés.")
+        if not self.hash_courant:
+            dernier = ChildHistory.objects.filter(child=self.child).exclude(pk=self.pk).order_by('-event_date').first()
+            if dernier and dernier.hash_courant:
+                self.hash_precedent = dernier.hash_courant
+            self.hash_courant = self.calculate_hash()
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if not kwargs.pop('_force', False):
+            raise PermissionDenied("Les événements d'historique sont immuables et ne peuvent pas être supprimés.")
+        super().delete(*args, **kwargs)
+
+
+class ConsultationHistorique(models.Model):
+    utilisateur = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="consultations_historique",
+        verbose_name="Utilisateur",
+    )
+    enfant = models.ForeignKey(
+        Child,
+        on_delete=models.CASCADE,
+        related_name="consultations_historique",
+        verbose_name="Enfant",
+    )
+    horodatage = models.DateTimeField(auto_now_add=True, verbose_name="Horodatage")
+    filtre_applique = models.JSONField(blank=True, default=dict, verbose_name="Filtre appliqué")
+
+    class Meta:
+        verbose_name = "Consultation d'historique"
+        verbose_name_plural = "Consultations d'historique"
+        ordering = ["-horodatage"]
+        indexes = [
+            models.Index(fields=["utilisateur", "-horodatage"]),
+            models.Index(fields=["enfant", "-horodatage"]),
+        ]
+
+    def __str__(self):
+        return f"{self.utilisateur} → {self.enfant} ({self.horodatage.strftime('%d/%m/%Y %H:%M')})"

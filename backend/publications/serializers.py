@@ -38,7 +38,7 @@ class PostListSerializer(serializers.ModelSerializer):
         model = Post
         fields = [
             "id", "author", "author_name", "author_id", "author_avatar",
-            "content", "post_type", "location", "media",
+            "content", "post_type", "audience", "location", "media",
             "likes_count", "comments_count", "views_count", "is_liked",
             "created_at",
         ]
@@ -83,7 +83,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
         model = Post
         fields = [
             "id", "author", "author_name", "author_id", "author_avatar",
-            "content", "post_type", "location", "media",
+            "content", "post_type", "audience", "location", "media",
             "likes_count", "comments_count", "views_count", "is_liked",
             "comments", "viewers", "created_at",
         ]
@@ -127,7 +127,7 @@ class PostCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ["content", "post_type", "location", "media"]
+        fields = ["content", "post_type", "audience", "location", "media"]
 
     def create(self, validated_data):
         media_data = validated_data.pop("media", [])

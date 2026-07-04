@@ -1134,7 +1134,7 @@ function EclatSocialApp({ user, onReturn }) {
   const [esView, setEsView] = useState('home')
   const [esModal, setEsModal] = useState(null) // 'create' | 'detail' | null
   const [esSelectedPost, setEsSelectedPost] = useState(null)
-  const [esNavActive, setEsNavActive] = useState('home')
+  const [esNavActive, setEsNavActive] = useState('public')
 
   const initials = (user.first_name?.[0] || '') + (user.last_name?.[0] || '')
   const hue = user.first_name ? user.first_name.charCodeAt(0) * 37 % 360 : 200
@@ -1160,6 +1160,15 @@ function EclatSocialApp({ user, onReturn }) {
     { author: 'Mike T.', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="16" fill="#34D399"/><text x="16" y="16" dominant-baseline="central" text-anchor="middle" fill="white" font-size="12" font-weight="700">MT</text></svg>')}`, text: 'Super clean! Les animations sont fluides.', time: 'il y a 45min', likes: 3 },
     { author: 'Emma W.', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="16" fill="#A78BFA"/><text x="16" y="16" dominant-baseline="central" text-anchor="middle" fill="white" font-size="12" font-weight="700">EW</text></svg>')}`, text: 'Le pipeline CI/CD est prêt pour ça 💪', time: 'il y a 30min', likes: 2 },
   ]
+
+  const ES_CHANNELS = [
+    { key: 'public', label: 'Public', icon: '🌍', hint: 'Visible par tout le monde' },
+    { key: 'ambassador', label: 'Ambassadeur', icon: '🤝', hint: 'Visible seulement par les ambassadeurs' },
+    { key: 'director', label: "Chef d'orphelinat", icon: '🏠', hint: "Visible seulement par les chefs d'orphelinat" },
+    { key: 'federation', label: 'Chef de confédération', icon: '🏛️', hint: 'Visible seulement par la confédération' },
+  ]
+
+  const activeChannel = ES_CHANNELS.find(channel => channel.key === esNavActive) || ES_CHANNELS[0]
 
   const openPostDetail = (post) => {
     setEsSelectedPost(post)
@@ -1193,11 +1202,11 @@ function EclatSocialApp({ user, onReturn }) {
         </div>
 
         <nav className="es-nav">
-          <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => setEsNavActive('home')}><span className="es-nav-icon">🏠</span> Accueil</button>
-          <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => setEsNavActive('profil')}><span className="es-nav-icon">👤</span> Profil</button>
-          <button className={esNavActive === 'messages' ? 'active' : ''} onClick={() => setEsNavActive('messages')}><span className="es-nav-icon">💬</span> Messages <span className="es-badge">3</span></button>
-          <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => setEsNavActive('notifs')}><span className="es-nav-icon">🔔</span> Notifications</button>
-          <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => setEsNavActive('settings')}><span className="es-nav-icon">⚙️</span> Paramètres</button>
+          {ES_CHANNELS.map(channel => (
+            <button key={channel.key} className={esNavActive === channel.key ? 'active' : ''} onClick={() => setEsNavActive(channel.key)}>
+              <span className="es-nav-icon">{channel.icon}</span> {channel.label}
+            </button>
+          ))}
         </nav>
 
         <div className="es-sidebar-bottom">
@@ -1217,6 +1226,11 @@ function EclatSocialApp({ user, onReturn }) {
         </div>
 
         <div className="es-feed-container">
+          <div style={{ marginBottom: '16px' }}>
+            <h2 style={{ margin: 0, color: '#0F172A', fontSize: '22px', fontWeight: 800 }}>{activeChannel.icon} Canal {activeChannel.label}</h2>
+            <p style={{ margin: '4px 0 0', color: '#64748B', fontSize: '13px' }}>{activeChannel.hint}</p>
+          </div>
+
           {/* STORIES ROW */}
           <div className="es-stories-row">
             {ES_STORIES.map((s, i) => (
@@ -1327,25 +1341,25 @@ function EclatSocialApp({ user, onReturn }) {
 
       {/* MOBILE BOTTOM NAV */}
       <nav className="es-bottom-nav">
-        <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => setEsNavActive('home')}>
-          <span className="es-nav-icon">🏠</span>
-          <span className="es-nav-label">Accueil</span>
+        <button className={esNavActive === 'public' ? 'active' : ''} onClick={() => setEsNavActive('public')}>
+          <span className="es-nav-icon">🌍</span>
+          <span className="es-nav-label">Public</span>
         </button>
-        <button className={esNavActive === 'search' ? 'active' : ''} onClick={() => setEsNavActive('search')}>
-          <span className="es-nav-icon">🔍</span>
-          <span className="es-nav-label">Explorer</span>
+        <button className={esNavActive === 'ambassador' ? 'active' : ''} onClick={() => setEsNavActive('ambassador')}>
+          <span className="es-nav-icon">🤝</span>
+          <span className="es-nav-label">Ambassadeur</span>
         </button>
         <button className="es-nav-publish" onClick={() => setEsModal('create')}>
           <span className="es-nav-icon">+</span>
           <span className="es-nav-label">Publier</span>
         </button>
-        <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => setEsNavActive('notifs')}>
-          <span className="es-nav-icon">🔔</span>
-          <span className="es-nav-label">Notifs</span>
+        <button className={esNavActive === 'director' ? 'active' : ''} onClick={() => setEsNavActive('director')}>
+          <span className="es-nav-icon">🏠</span>
+          <span className="es-nav-label">Orphelinat</span>
         </button>
-        <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => setEsNavActive('profil')}>
-          <span className="es-nav-icon">👤</span>
-          <span className="es-nav-label">Profil</span>
+        <button className={esNavActive === 'federation' ? 'active' : ''} onClick={() => setEsNavActive('federation')}>
+          <span className="es-nav-icon">🏛️</span>
+          <span className="es-nav-label">Confédération</span>
         </button>
       </nav>
 
@@ -1379,10 +1393,11 @@ function EclatSocialApp({ user, onReturn }) {
                   </span>
                   <select 
                     style={{ border: 'none', background: 'transparent', fontSize: '12px', color: '#64748B', outline: 'none', cursor: 'pointer' }}
-                    defaultValue="general"
+                    defaultValue={esNavActive}
                   >
-                    <option value="general">🌍 Général</option>
-                    <option value="child_info">🔒 Information Enfant (Validation Ambassadeur)</option>
+                    {ES_CHANNELS.map(channel => (
+                      <option key={channel.key} value={channel.key}>{channel.icon} {channel.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -6434,8 +6449,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {'\u{23F3}'} {t('proj_expired') || 'Expirés'} ({(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).length})
                           </button>
                         </div>
-                        <div className="dash-category-cards" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-                          {PROJECT_TYPES.map(pt => (
+                        <div className="dash-category-cards" style={{ gridTemplateColumns: role === 'director' ? '1fr 1fr' : '1fr 1fr 1fr' }}>
+                          {PROJECT_TYPES.filter(pt => !(role === 'director' && pt.value === 'federation')).map(pt => (
                             <button key={pt.value} className="dash-category-card" onClick={() => setProjectTypeFilter(pt.value)}>
                               <div className="dash-card-icon-wrap">
                                 <span className="dash-card-icon" style={{ fontSize: '32px' }}>{pt.icon}</span>

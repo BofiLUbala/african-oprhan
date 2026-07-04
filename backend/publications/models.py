@@ -11,8 +11,10 @@ class Post(models.Model):
     ]
 
     AUDIENCE_CHOICES = [
-        ("general", "Général"),
-        ("child_info", "Information Enfant"),
+        ("public", "Public"),
+        ("ambassador", "Ambassadeur"),
+        ("director", "Chef d'orphelinat"),
+        ("federation", "Chef de confederation"),
     ]
     STATUS_CHOICES = [
         ("pending", "En attente"),
@@ -31,7 +33,7 @@ class Post(models.Model):
         max_length=10, choices=POST_TYPES, default="text", verbose_name="Type"
     )
     audience = models.CharField(
-        max_length=20, choices=AUDIENCE_CHOICES, default="general", verbose_name="Audience"
+        max_length=20, choices=AUDIENCE_CHOICES, default="public", verbose_name="Audience"
     )
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default="approved", verbose_name="Statut"
