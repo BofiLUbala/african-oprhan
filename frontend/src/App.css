@@ -5027,3 +5027,20 @@ select.dash-prof-input option { background:#1e293b; color:#e2e8f0; }
   from { opacity: 1; }
   to { opacity: 0; pointer-events: none; }
 }
+
+/* ===== DONATIONS SCREEN ===== */
+.dash-section { padding: 0 0 32px; }
+.dash-section-sub { font-size: 13px; color: #64748b; margin-left: 10px; }
+.dash-card { background: rgba(30,41,59,0.6); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 20px 22px; }
+.btn-sm { padding: 7px 16px; font-size: 13px; }
+.dash-input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #e2e8f0; font-size: 13px; padding: 8px 10px; outline: none; font-family: inherit; }
+.dash-empty { font-size: 14px; color: #64748b; text-align: center; padding: 32px 0; }
+.dash-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
+.dash-table { width: 100%; border-collapse: collapse; font-size: 13px; color: #e2e8f0; }
+.dash-table thead tr { background: rgba(255,255,255,0.04); }
+.dash-table th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: 0.4px; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.dash-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.dash-table tbody tr:last-child td { border-bottom: none; }
+.dash-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+.dash-error { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 10px; }
+.dash-success { background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 10px; }
