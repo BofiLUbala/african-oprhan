@@ -461,6 +461,7 @@ const ROLE_NAV = {
     { label: 'Demandes', key: 'demandes' },
     { label: 'Finances', key: 'finances' },
     { label: 'Dons', key: 'dons' },
+    { label: 'Parrainages', key: 'parrainages' },
     { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
   ],
@@ -564,6 +565,7 @@ const ROLE_PAGES = {
     ]},
     dons: { title: 'Dons', subtitle: 'Suivi des contributions.', categories: [] },
     finances: { title: 'Finances', subtitle: 'Revenus et dépenses.', categories: [] },
+    parrainages: { title: 'Parrainages', subtitle: "Parrainages de l'orphelinat.", categories: [] },
     parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
       { id: 'S4', title: 'Configuration', subtitle: 'Paramètres système', count: 2 },
     ]},
@@ -1694,6 +1696,17 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [financesFormError, setFinancesFormError] = useState('')
   const [financesFormSuccess, setFinancesFormSuccess] = useState('')
 
+  /* ── Parrainages state ── */
+  const [sponsorableChildren, setSponsorableChildren] = useState([])
+  const [mySponsored, setMySponsored] = useState([])
+  const [parrainagesTab, setParrainagesTab] = useState('disponibles')
+  const [parrainagesLoading, setParrainagesLoading] = useState(false)
+  const [sponsorshipForm, setSponsorshipForm] = useState({ child: '', sponsorship_type: 'monthly', amount: '' })
+  const [sponsorshipFormError, setSponsorshipFormError] = useState('')
+  const [sponsorshipFormSuccess, setSponsorshipFormSuccess] = useState('')
+  const [selectedSponsorshipId, setSelectedSponsorshipId] = useState(null)
+  const [sponsorshipPayments, setSponsorshipPayments] = useState([])
+
   /* ── Navigation state preservation ── */
   const savedSubKeys = useRef({})
   const prevSection = useRef('')
@@ -1798,6 +1811,26 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
         setExpenses(Array.isArray(dep) ? dep : [])
         setFinancesLoading(false)
       }).catch(() => setFinancesLoading(false))
+    }
+    /* ── Load parrainages ── */
+    if (activeKey === 'parrainages') {
+      const token = localStorage.getItem('access_token')
+      setParrainagesLoading(true)
+      const isSponsorRole = ['sponsor', 'partner'].includes(role)
+      const promises = isSponsorRole
+        ? [
+            fetch(`${API}/parrainages/enfants-disponibles/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),
+            fetch(`${API}/parrainages/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),
+          ]
+        : [
+            Promise.resolve([]),
+            fetch(`${API}/parrainages/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),
+          ]
+      Promise.all(promises).then(([available, mine]) => {
+        setSponsorableChildren(Array.isArray(available) ? available : [])
+        setMySponsored(Array.isArray(mine) ? mine : [])
+        setParrainagesLoading(false)
+      }).catch(() => setParrainagesLoading(false))
     }
     /* ── Load document types for Federation validation (orphanage docs loaded in separate effect) ── */
     if (activeKey === 'validationLocale' && role === 'federation') {
@@ -8156,6 +8189,140 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <tbody>{expenses.map(d => <tr key={d.id}><td>{d.date}</td><td>{d.category}</td><td>{d.amount}</td><td>{d.description || '—'}</td><td>{d.orphanage_name || '—'}</td></tr>)}</tbody></table>
                           )}
                         </>
+                      )}
+                    </div>
+                  )
+                })()
+                : activeKey === 'parrainages' ? (() => {
+                  const token = localStorage.getItem('access_token')
+                  const isSponsorRole = ['sponsor', 'partner'].includes(role)
+
+                  const createSponsorship = async (childId) => {
+                    setSponsorshipFormError('')
+                    if (Number(sponsorshipForm.amount) <= 0) { setSponsorshipFormError('Veuillez saisir un montant.'); return }
+                    const res = await fetch(`${API}/parrainages/`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ ...sponsorshipForm, child: childId }),
+                    })
+                    if (res.ok) {
+                      const created = await res.json()
+                      setMySponsored(prev => [created, ...prev])
+                      setSponsorableChildren(prev => prev.filter(c => c.id !== childId))
+                      setSponsorshipFormSuccess('Parrainage créé avec succès.')
+                      setTimeout(() => setSponsorshipFormSuccess(''), 3000)
+                    } else {
+                      const err = await res.json().catch(() => ({}))
+                      setSponsorshipFormError(err.detail || err.error || 'Erreur lors de la création.')
+                    }
+                  }
+
+                  const loadPayments = async (sponsorshipId) => {
+                    const token = localStorage.getItem('access_token')
+                    const res = await fetch(`${API}/parrainages/${sponsorshipId}/paiements/`, { headers: { Authorization: `Bearer ${token}` } })
+                    if (res.ok) { setSponsorshipPayments(await res.json()); setSelectedSponsorshipId(sponsorshipId) }
+                  }
+
+                  const updateSponsorshipStatus = async (id, newStatus) => {
+                    const token = localStorage.getItem('access_token')
+                    const res = await fetch(`${API}/parrainages/${id}/`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ status: newStatus }),
+                    })
+                    if (res.ok) {
+                      const updated = await res.json()
+                      setMySponsored(prev => prev.map(s => s.id === id ? { ...s, status: updated.status, status_label: updated.status_label } : s))
+                    }
+                  }
+
+                  return (
+                    <div className="dash-section">
+                      <div className="dash-section-header">
+                        <span className="dash-section-title">Parrainages</span>
+                        <span className="dash-section-sub">{isSponsorRole ? 'Parrainer un enfant à distance' : 'Parrainages de votre orphelinat'}</span>
+                      </div>
+
+                      {sponsorshipFormError && <div className="dash-error">{sponsorshipFormError}</div>}
+                      {sponsorshipFormSuccess && <div className="dash-success">{sponsorshipFormSuccess}</div>}
+
+                      {isSponsorRole && (
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                          {['disponibles', 'mes-parrainages'].map(tab => (
+                            <button key={tab} className={`btn btn-sm${parrainagesTab === tab ? ' btn-primary' : ''}`} onClick={() => setParrainagesTab(tab)}>
+                              {tab === 'disponibles' ? `Enfants disponibles (${sponsorableChildren.length})` : `Mes parrainages (${mySponsored.length})`}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {parrainagesLoading ? <div className="dash-empty">Chargement...</div> : isSponsorRole && parrainagesTab === 'disponibles' ? (
+                        <>
+                          <div style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Montant mensuel :</span>
+                            <input type="number" min="1" step="1" placeholder="ex: 50" value={sponsorshipForm.amount} onChange={e => setSponsorshipForm(f => ({ ...f, amount: e.target.value }))} className="dash-input" style={{ width: 100 }} />
+                            <select value={sponsorshipForm.sponsorship_type} onChange={e => setSponsorshipForm(f => ({ ...f, sponsorship_type: e.target.value }))} className="dash-input" style={{ width: 120 }}>
+                              <option value="monthly">Mensuel</option>
+                              <option value="annual">Annuel</option>
+                            </select>
+                          </div>
+                          {sponsorableChildren.length === 0 ? (
+                            <div className="dash-empty">Aucun enfant disponible pour parrainage.</div>
+                          ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+                              {sponsorableChildren.map(child => (
+                                <div key={child.id} className="dash-card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                  <div style={{ fontWeight: 600 }}>{child.prenom} {child.nom}</div>
+                                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{child.uid}</div>
+                                  {child.date_naissance && <div style={{ fontSize: 12 }}>Né(e) le {new Date(child.date_naissance).toLocaleDateString('fr-FR')}</div>}
+                                  <button className="btn btn-primary btn-sm" style={{ marginTop: 'auto' }} onClick={() => createSponsorship(child.id)} disabled={Number(sponsorshipForm.amount) <= 0}>
+                                    Parrainer
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      ) : isSponsorRole && parrainagesTab === 'mes-parrainages' ? (
+                        mySponsored.length === 0 ? <div className="dash-empty">Vous n'avez pas encore de filleul.</div> : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            {mySponsored.map(s => (
+                              <div key={s.id} className="dash-card">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+                                  <div>
+                                    <div style={{ fontWeight: 600, marginBottom: 4 }}>{s.child_name}</div>
+                                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{s.sponsorship_type_label} — {s.amount} USD · {s.status_label}</div>
+                                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Depuis le {s.start_date}</div>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                    {s.status === 'active' && <button className="btn btn-sm" onClick={() => updateSponsorshipStatus(s.id, 'paused')}>Suspendre</button>}
+                                    {s.status === 'paused' && <button className="btn btn-sm btn-primary" onClick={() => updateSponsorshipStatus(s.id, 'active')}>Reprendre</button>}
+                                    {s.status !== 'cancelled' && <button className="btn btn-sm" style={{ color: '#ef4444' }} onClick={() => updateSponsorshipStatus(s.id, 'cancelled')}>Annuler</button>}
+                                    <button className="btn btn-sm" onClick={() => loadPayments(s.id)}>Historique</button>
+                                  </div>
+                                </div>
+                                {selectedSponsorshipId === s.id && (
+                                  <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Paiements</div>
+                                    {sponsorshipPayments.length === 0 ? <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Aucun paiement.</div> : (
+                                      <table className="dash-table">
+                                        <thead><tr><th>Date</th><th>Montant</th><th>Réf</th></tr></thead>
+                                        <tbody>{sponsorshipPayments.map(p => <tr key={p.id}><td>{new Date(p.date).toLocaleDateString('fr-FR')}</td><td>{p.amount}</td><td>{p.transaction_id || '—'}</td></tr>)}</tbody>
+                                      </table>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )
+                      ) : (
+                        mySponsored.length === 0 ? <div className="dash-empty">Aucun parrainage pour cet orphelinat.</div> : (
+                          <table className="dash-table">
+                            <thead><tr><th>Enfant</th><th>Parrain</th><th>Type</th><th>Montant</th><th>Statut</th><th>Depuis</th></tr></thead>
+                            <tbody>{mySponsored.map(s => <tr key={s.id}><td>{s.child_name}</td><td>{s.sponsor_name}</td><td>{s.sponsorship_type_label}</td><td>{s.amount}</td><td>{s.status_label}</td><td>{s.start_date}</td></tr>)}</tbody>
+                          </table>
+                        )
                       )}
                     </div>
                   )
