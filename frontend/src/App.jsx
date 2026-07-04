@@ -48,6 +48,7 @@ const ROLES = [
   { value: 'partner', label: 'Partenaire' },
   { value: 'director', label: "Chef d'orphelinat" },
   { value: 'federation', label: 'Fédération' },
+  { value: 'auditor', label: 'Auditeur' },
 ]
 
 const CATEGORY_ICONS = ['\u{1F4CB}', '\u{1F4C8}', '\u{26A1}', '\u{1F4C5}', '\u{1F4C4}', '\u{1F3EB}', '\u{1F4E2}', '\u{1F91D}', '\u{1F464}', '\u{1F3E0}']
@@ -87,7 +88,7 @@ export default function App() {
 
   if (user) {
     const roleLower = (user.role || '').toLowerCase()
-    const rolesWithDashboard = ['director', 'ambassador', 'supermaster', 'federation', 'partner']
+    const rolesWithDashboard = ['director', 'ambassador', 'supermaster', 'federation', 'partner', 'auditor']
     if (rolesWithDashboard.includes(roleLower)) {
       return (
         <LangProvider>
@@ -1785,10 +1786,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     }
     /* ── Load finances ── */
     if (activeKey === 'finances') {
+      const token = localStorage.getItem('access_token')
       setFinancesLoading(true)
       Promise.all([
-        fetch(`${API}/revenus/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),
-        fetch(`${API}/depenses/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),
+        fetch(`${API}/revenus/`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => { if (r.status === 401) { onLogout(); return [] } return r.ok ? r.json() : [] }),
+        fetch(`${API}/depenses/`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => { if (r.status === 401) { onLogout(); return [] } return r.ok ? r.json() : [] }),
       ]).then(([rev, dep]) => {
         setIncomes(Array.isArray(rev) ? rev : [])
         setExpenses(Array.isArray(dep) ? dep : [])
@@ -8072,7 +8076,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const submitIncome = async (e) => {
                     e.preventDefault()
                     setFinancesFormError('')
-                    if (!incomeForm.source || !incomeForm.amount) { setFinancesFormError('Source et montant requis.'); return }
+                    if (!incomeForm.source || !incomeForm.amount || Number(incomeForm.amount) <= 0) { setFinancesFormError('Source et montant valide requis.'); return }
                     const res = await fetch(`${API}/revenus/`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -8090,7 +8094,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const submitExpense = async (e) => {
                     e.preventDefault()
                     setFinancesFormError('')
-                    if (!expenseForm.category || !expenseForm.amount) { setFinancesFormError('Catégorie et montant requis.'); return }
+                    if (!expenseForm.category || !expenseForm.amount || Number(expenseForm.amount) <= 0) { setFinancesFormError('Catégorie et montant valide requis.'); return }
                     const res = await fetch(`${API}/depenses/`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
