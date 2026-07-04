@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
+﻿import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { LangProvider, useTranslation } from './i18n'
 import './App.css'
 
@@ -1131,403 +1131,7 @@ function genChildUid(exclude = new Set()) {
   return uid
 }
 
-/* ===== L'ÉCLAT SOCIAL APP ===== */
-const ES_POSTS = [
-  {
-    id: 1,
-    author: "Orphelinat Espoir",
-    avatar: "data:image/svg+xml,..." /* ... */,
-    time: "Il y a 2 heures",
-    text: "Nous venons de recevoir une nouvelle livraison de fournitures scolaires ! Merci à tous nos donateurs.",
-    image: "/images/bg.jpg",
-    likes: 24,
-    comments: 5
-  },
-  {
-    id: 2,
-    author: "Marie Claire",
-    avatar: "data:image/svg+xml,..." /* ... */,
-    time: "Il y a 5 heures",
-    text: "Retour sur notre journée de vaccination. Tout s'est très bien passé.",
-    image: "/images/bg.jpg",
-    likes: 45,
-    comments: 12
-  }
-];
-
-const ES_PENDING_POSTS = [
-  {
-    id: 99,
-    author: "Orphelinat Saint Jean",
-    avatar: "data:image/svg+xml,..." /* ... */,
-    time: "Il y a 30 minutes",
-    text: "Mise à jour médicale pour l'enfant David K. Il a besoin d'une intervention chirurgicale mineure la semaine prochaine. Merci de valider pour informer les partenaires.",
-    image: null,
-    childName: "David K."
-  }
-];
-
-function EclatSocialApp({ user, onReturn }) {
-  const [esView, setEsView] = useState('home')
-  const [esModal, setEsModal] = useState(null) // 'create' | 'detail' | null
-  const [esSelectedPost, setEsSelectedPost] = useState(null)
-  const [esNavActive, setEsNavActive] = useState('public')
-
-  const initials = (user.first_name?.[0] || '') + (user.last_name?.[0] || '')
-  const hue = user.first_name ? user.first_name.charCodeAt(0) * 37 % 360 : 200
-  const avatarSvg = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" rx="20" fill="hsl(${hue},50%,45%)"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700" font-family="system-ui">${initials}</text></svg>`)}`
-  const displayName = user.first_name ? `${user.first_name} ${user.last_name?.[0] || ''}`.trim() : 'DarloK'
-
-  const ES_STORIES = [
-    { name: 'Vous', avatar: avatarSvg, isYou: true, active: false },
-    { name: 'Sarah', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#F472B6"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">SM</text></svg>')}`, active: true },
-    { name: 'Johnson', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#60A5FA"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">JN</text></svg>')}`, active: true },
-    { name: 'Mike', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#34D399"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">MT</text></svg>')}`, active: false },
-    { name: 'Emma', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#A78BFA"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">EW</text></svg>')}`, active: true },
-    { name: 'David', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#FBBF24"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">DK</text></svg>')}`, active: false },
-  ]
-
-  const ES_SUGGESTIONS = [
-    { name: 'Mike T.', role: 'Designer UI', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="#34D399"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">MT</text></svg>')}` },
-    { name: 'Emma W.', role: 'DevOps', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="#A78BFA"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">EW</text></svg>')}` },
-  ]
-
-  const ES_COMMENTS = [
-    { author: 'Sarah M.', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="16" fill="#F472B6"/><text x="16" y="16" dominant-baseline="central" text-anchor="middle" fill="white" font-size="12" font-weight="700">SM</text></svg>')}`, text: 'Magnifique ! Hâte de voir le résultat final 🔥', time: 'il y a 1h', likes: 5 },
-    { author: 'Mike T.', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="16" fill="#34D399"/><text x="16" y="16" dominant-baseline="central" text-anchor="middle" fill="white" font-size="12" font-weight="700">MT</text></svg>')}`, text: 'Super clean! Les animations sont fluides.', time: 'il y a 45min', likes: 3 },
-    { author: 'Emma W.', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="16" fill="#A78BFA"/><text x="16" y="16" dominant-baseline="central" text-anchor="middle" fill="white" font-size="12" font-weight="700">EW</text></svg>')}`, text: 'Le pipeline CI/CD est prêt pour ça 💪', time: 'il y a 30min', likes: 2 },
-  ]
-
-  const ES_CHANNELS = [
-    { key: 'public', label: 'Public', icon: '🌍', hint: 'Visible par tout le monde' },
-    { key: 'ambassador', label: 'Ambassadeur', icon: '🤝', hint: 'Visible seulement par les ambassadeurs' },
-    { key: 'director', label: "Chef d'orphelinat", icon: '🏠', hint: "Visible seulement par les chefs d'orphelinat" },
-    { key: 'federation', label: 'Chef de confédération', icon: '🏛️', hint: 'Visible seulement par la confédération' },
-  ]
-
-  const activeChannel = ES_CHANNELS.find(channel => channel.key === esNavActive) || ES_CHANNELS[0]
-
-  const openPostDetail = (post) => {
-    setEsSelectedPost(post)
-    setEsModal('detail')
-  }
-
-  return (
-    <div className="es-wrapper">
-      {/* LEFT SIDEBAR */}
-      <aside className="es-sidebar">
-        <div className="es-logo-area">
-          <img src="/logo.jpg" alt="Logo Fédération" style={{ height: '32px', borderRadius: '4px' }} />
-        </div>
-
-        <div className="es-sidebar-profile" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#F8FAFC', borderRadius: '12px', marginBottom: '24px' }}>
-          <img src={avatarSvg} alt="" className="es-avatar-sm" />
-          <div>
-            <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '14px' }}>
-              {user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : displayName}
-            </div>
-            <div style={{ fontSize: '12px', color: '#64748B' }}>
-              {user ? (
-                user.role === 'admin' ? 'Administrateur' :
-                user.role === 'federation' ? 'Fédération' :
-                user.role === 'ambassador' ? 'Ambassadeur' :
-                user.role === 'orphanage' ? 'Orphelinat' :
-                user.role === 'partner' ? 'Partenaire' : 'Utilisateur'
-              ) : 'Utilisateur'}
-            </div>
-          </div>
-        </div>
-
-        <nav className="es-nav">
-          {ES_CHANNELS.map(channel => (
-            <button key={channel.key} className={esNavActive === channel.key ? 'active' : ''} onClick={() => setEsNavActive(channel.key)}>
-              <span className="es-nav-icon">{channel.icon}</span> {channel.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="es-sidebar-bottom">
-          <button className="es-return-btn" onClick={onReturn}>← Retourner au dashboard</button>
-        </div>
-      </aside>
-
-      {/* MAIN FEED */}
-      <main className="es-main">
-        {/* Mobile Header */}
-        <div className="es-mobile-header">
-          <img src="/logo.jpg" alt="Logo Fédération" style={{ height: '32px', borderRadius: '4px' }} />
-          <div className="es-header-actions">
-            <button onClick={onReturn} title="Retourner au dashboard">🚪</button>
-            <button onClick={() => setEsModal('create')}>✏️</button>
-          </div>
-        </div>
-
-        <div className="es-feed-container">
-          <div style={{ marginBottom: '16px' }}>
-            <h2 style={{ margin: 0, color: '#0F172A', fontSize: '22px', fontWeight: 800 }}>{activeChannel.icon} Canal {activeChannel.label}</h2>
-            <p style={{ margin: '4px 0 0', color: '#64748B', fontSize: '13px' }}>{activeChannel.hint}</p>
-          </div>
-
-          {/* STORIES ROW */}
-          <div className="es-stories-row">
-            {ES_STORIES.map((s, i) => (
-              <div key={i} className="es-story">
-                <div className={`es-story-avatar${s.active ? ' active' : ''}`}>
-                  <img src={s.avatar} alt={s.name} />
-                  {s.isYou && <span className="es-story-add-icon">+</span>}
-                </div>
-                <span>{s.name}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* QUICK CREATE */}
-          <div className="es-quick-create" onClick={() => setEsModal('create')}>
-            <img src={avatarSvg} alt="" className="es-avatar-sm" />
-            <div className="es-quick-input">Quoi de neuf ?</div>
-            <button className="es-publish-btn" style={{ fontSize: '13px' }}>Publier</button>
-          </div>
-
-          {/* AMBASSADOR VALIDATION SECTION */}
-          {user && user.role === 'ambassador' && (
-            <div style={{ marginBottom: '24px', background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: '12px', padding: '16px' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#92400E', margin: '0 0 12px 0' }}>⚠️ Publications en attente de validation</h3>
-              {ES_PENDING_POSTS.map(post => (
-                <div key={post.id} style={{ background: '#fff', borderRadius: '8px', padding: '12px', border: '1px solid #FDE68A', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <img src={post.avatar} alt="" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
-                    <strong style={{ fontSize: '13px', color: '#1E293B' }}>{post.author}</strong>
-                    <span style={{ fontSize: '11px', color: '#94A3B8' }}>{post.time}</span>
-                  </div>
-                  <p style={{ fontSize: '13px', color: '#475569', margin: '0 0 12px 0' }}>{post.text}</p>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button style={{ background: '#10B981', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }} onClick={() => alert("Publication validée et envoyée au système !")}>✓ Valider</button>
-                    <button style={{ background: '#EF4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }} onClick={() => {
-                      const reason = prompt("Raison du refus :");
-                      if(reason) alert("Refus envoyé au directeur.");
-                    }}>✕ Refuser</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* POSTS */}
-          <div className="es-posts">
-            {ES_POSTS.map(post => (
-              <article key={post.id} className="es-post">
-                <div className="es-post-header">
-                  <img src={post.avatar} alt={post.author} className="es-avatar-sm" />
-                  <div className="es-post-meta">
-                    <span className="es-post-author">{post.author}</span>
-                    <span className="es-author-time">{post.time}</span>
-                  </div>
-                  <button className="es-post-options">⋮</button>
-                </div>
-                <div className="es-post-content" onClick={() => openPostDetail(post)}>
-                  <p>{post.text}</p>
-                  {post.isVideo ? (
-                    <div className="es-video-preview">
-                      <img src={post.image} alt="Video preview" className="es-post-image" />
-                      <span className="es-play-icon">▶</span>
-                      {post.duration && <span className="es-duration">{post.duration}</span>}
-                    </div>
-                  ) : (
-                    <img src={post.image} alt="Post" className="es-post-image" />
-                  )}
-                </div>
-                <div className="es-post-actions-bar">
-                  <button>❤️ {post.likes}</button>
-                  <button>💬 {post.comments}</button>
-                  <button>➦ Partager</button>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </main>
-
-      {/* RIGHT SIDEBAR */}
-      <aside className="es-right-sidebar">
-        <div className="es-search-bar">
-          <span>🔍</span>
-          <input placeholder="Rechercher..." />
-        </div>
-
-        <div className="es-suggestions-widget">
-          <h3>Suggestions</h3>
-          {ES_SUGGESTIONS.map((s, i) => (
-            <div key={i} className="es-suggestion">
-              <img src={s.avatar} alt={s.name} className="es-avatar-sm" />
-              <div className="es-suggestion-info">
-                <span className="es-sugg-name">{s.name}</span>
-                <span className="es-sugg-mutual">{s.role}</span>
-              </div>
-              <button className="es-sugg-add">+</button>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ marginTop: '32px' }}>
-          <h3 style={{ fontSize: '16px', color: '#0F172A', margin: '0 0 16px 0' }}>Tendances</h3>
-          {['#WebDevelopment', '#ReactJS', '#UIUX'].map((tag, i) => (
-            <div key={i} style={{ padding: '8px 0', color: '#2563EB', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>{tag}</div>
-          ))}
-        </div>
-      </aside>
-
-      {/* MOBILE BOTTOM NAV */}
-      <nav className="es-bottom-nav">
-        <button className={esNavActive === 'public' ? 'active' : ''} onClick={() => setEsNavActive('public')}>
-          <span className="es-nav-icon">🌍</span>
-          <span className="es-nav-label">Public</span>
-        </button>
-        <button className={esNavActive === 'ambassador' ? 'active' : ''} onClick={() => setEsNavActive('ambassador')}>
-          <span className="es-nav-icon">🤝</span>
-          <span className="es-nav-label">Ambassadeur</span>
-        </button>
-        <button className="es-nav-publish" onClick={() => setEsModal('create')}>
-          <span className="es-nav-icon">+</span>
-          <span className="es-nav-label">Publier</span>
-        </button>
-        <button className={esNavActive === 'director' ? 'active' : ''} onClick={() => setEsNavActive('director')}>
-          <span className="es-nav-icon">🏠</span>
-          <span className="es-nav-label">Orphelinat</span>
-        </button>
-        <button className={esNavActive === 'federation' ? 'active' : ''} onClick={() => setEsNavActive('federation')}>
-          <span className="es-nav-icon">🏛️</span>
-          <span className="es-nav-label">Confédération</span>
-        </button>
-      </nav>
-
-      {/* CREATE POST MODAL */}
-      {esModal === 'create' && (
-        <div className="es-modal-overlay" onClick={() => setEsModal(null)}>
-          <div className="es-create-modal" onClick={e => e.stopPropagation()}>
-            <div className="es-modal-header">
-              <button className="es-close-btn" onClick={() => setEsModal(null)}>✕</button>
-              <h3>Créer une publication</h3>
-              <button className="es-publish-btn">Publier</button>
-            </div>
-            <div className="es-create-tabs">
-              <button className="active">📷 Image</button>
-              <button>🎬 Vidéo</button>
-              <button>📝 Texte</button>
-            </div>
-            <div className="es-create-media-area">
-              <div className="es-upload-placeholder">
-                <span className="es-upload-icon">📁</span>
-                <p>Glissez vos fichiers ici ou cliquez pour parcourir</p>
-                <span style={{ fontSize: '12px', color: '#94A3B8' }}>JPG, PNG, MP4 · Max 50 Mo</span>
-              </div>
-            </div>
-            <div className="es-create-input-area">
-              <div className="es-post-author-row">
-                <img src={avatarSvg} alt="" className="es-avatar-sm" />
-                <div className="es-author-info">
-                  <span className="es-author-name">
-                    {user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : displayName}
-                  </span>
-                  <select 
-                    style={{ border: 'none', background: 'transparent', fontSize: '12px', color: '#64748B', outline: 'none', cursor: 'pointer' }}
-                    defaultValue={esNavActive}
-                  >
-                    {ES_CHANNELS.map(channel => (
-                      <option key={channel.key} value={channel.key}>{channel.icon} {channel.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <textarea placeholder="Quoi de neuf ?" rows={3}></textarea>
-            </div>
-            <div className="es-create-options">
-              <button>📍 Ajouter un lieu <span>›</span></button>
-              <button>🏷️ Taguer des personnes <span>›</span></button>
-              <button>😊 Humeur / Activité <span>›</span></button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* POST DETAIL MODAL */}
-      {esModal === 'detail' && esSelectedPost && (
-        <div className="es-modal-overlay" onClick={() => { setEsModal(null); setEsSelectedPost(null) }}>
-          <div className="es-post-modal" onClick={e => e.stopPropagation()}>
-            <div className="es-modal-header">
-              <button className="es-back-btn" onClick={() => { setEsModal(null); setEsSelectedPost(null) }}>← Retour</button>
-              <h3>{esSelectedPost.author}</h3>
-              <button className="es-more-btn">⋮</button>
-            </div>
-            <div className="es-modal-content">
-              {/* LEFT: MEDIA */}
-              <div className="es-modal-media">
-                <div className="es-post-header" style={{ padding: '0 0 16px 0' }}>
-                  <img src={esSelectedPost.avatar} alt="" className="es-avatar-sm" />
-                  <div className="es-post-meta">
-                    <span className="es-post-author">{esSelectedPost.author}</span>
-                    <span className="es-author-time">{esSelectedPost.time}</span>
-                  </div>
-                  <button className="es-follow-btn-sm">Suivre</button>
-                </div>
-                <p className="es-post-caption">{esSelectedPost.text}</p>
-                <div className="es-video-container">
-                  <img src={esSelectedPost.image} alt="" className="es-media-img" />
-                  {esSelectedPost.isVideo && <span className="es-play-icon-large">▶</span>}
-                  <span className="es-views-badge">👁️ {esSelectedPost.views} vues</span>
-                </div>
-                <div className="es-post-actions-bar" style={{ borderTop: 'none', padding: '16px 0' }}>
-                  <button>❤️ {esSelectedPost.likes}</button>
-                  <button>💬 {esSelectedPost.comments}</button>
-                  <button>➦ Partager</button>
-                  <button className="es-save-btn">🔖</button>
-                </div>
-                <div className="es-likes-summary">
-                  <div className="es-avatar-stack">
-                    {ES_COMMENTS.slice(0, 3).map((c, i) => (
-                      <img key={i} src={c.avatar} alt="" />
-                    ))}
-                  </div>
-                  <span>Aimé par <b>Sarah M.</b> et <b>{esSelectedPost.likes - 1} autres</b></span>
-                </div>
-              </div>
-
-              {/* RIGHT: COMMENTS */}
-              <div className="es-modal-comments">
-                <div className="es-comments-header">
-                  <h4>Commentaires ({ES_COMMENTS.length})</h4>
-                  <span>Les plus récents ▾</span>
-                </div>
-                <div className="es-comments-list">
-                  {ES_COMMENTS.map((c, i) => (
-                    <div key={i} className="es-comment">
-                      <img src={c.avatar} alt="" className="es-comment-avatar" />
-                      <div>
-                        <div className="es-comment-body">
-                          <span className="es-comment-author">{c.author}</span>
-                          <p>{c.text}</p>
-                        </div>
-                        <div className="es-comment-actions">
-                          <span>{c.time}</span>
-                          <button>❤️ {c.likes}</button>
-                          <button>Répondre</button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="es-comment-input-area">
-                  <img src={avatarSvg} alt="" className="es-comment-avatar" />
-                  <input placeholder="Écrire un commentaire..." />
-                  <button className="es-send-btn">➤</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
+/* ===== MESSAGING (EclatSocialApp removed — replaced by inline IIFE in DashboardShell) ===== */
 
 function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey, setSubKey }) {
   const [registeredChildren, setRegisteredChildren] = useState([])
@@ -1707,6 +1311,17 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [selectedSponsorshipId, setSelectedSponsorshipId] = useState(null)
   const [sponsorshipPayments, setSponsorshipPayments] = useState([])
 
+  /* ── Messaging state ── */
+  const [msgConversations, setMsgConversations] = useState([])
+  const [msgActiveConv, setMsgActiveConv] = useState(null)
+  const [msgMessages, setMsgMessages] = useState([])
+  const [msgInput, setMsgInput] = useState('')
+  const [msgLoading, setMsgLoading] = useState(false)
+  const [msgNewConv, setMsgNewConv] = useState(false)
+  const [msgChatUsers, setMsgChatUsers] = useState([])
+  const [msgUserSearch, setMsgUserSearch] = useState('')
+  const [msgSending, setMsgSending] = useState(false)
+
   /* ── Navigation state preservation ── */
   const savedSubKeys = useRef({})
   const prevSection = useRef('')
@@ -1831,6 +1446,24 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
         setMySponsored(Array.isArray(mine) ? mine : [])
         setParrainagesLoading(false)
       }).catch(() => setParrainagesLoading(false))
+    }
+    /* ── Messaging: load conversations + chat-users + set up polling ── */
+    if (activeKey === 'communication') {
+      const msgToken = localStorage.getItem('access_token')
+      setMsgLoading(true)
+      const refreshConvs = () => {
+        fetch(`${API}/conversations/`, { headers: { Authorization: `Bearer ${msgToken}` } })
+          .then(r => { if (r.status === 401) { onLogout(); return [] } return r.ok ? r.json() : [] })
+          .then(d => { setMsgConversations(Array.isArray(d) ? d : []); setMsgLoading(false) })
+          .catch(() => setMsgLoading(false))
+      }
+      refreshConvs()
+      fetch(`${API}/users/chat-list/`, { headers: { Authorization: `Bearer ${msgToken}` } })
+        .then(r => r.ok ? r.json() : [])
+        .then(d => setMsgChatUsers(Array.isArray(d) ? d : []))
+        .catch(() => {})
+      const pollId = setInterval(refreshConvs, 4000)
+      return () => clearInterval(pollId)
     }
     /* ── Load document types for Federation validation (orphanage docs loaded in separate effect) ── */
     if (activeKey === 'validationLocale' && role === 'federation') {
@@ -2430,10 +2063,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     } finally {
       setOrphanageLoading(false)
     }
-  }
-
-  if (activeKey === 'communication') {
-    return <EclatSocialApp user={user} onReturn={() => { setActiveKey('dashboard'); setSubKey(null) }} />
   }
 
   return (
@@ -8012,6 +7641,210 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )
+                })()
+                : activeKey === 'communication' ? (() => {
+                  const token = localStorage.getItem('access_token')
+                  const myId = user?.id
+
+                  const avatarColor = (str) => {
+                    let h = 0
+                    for (let i = 0; i < (str || '').length; i++) h = (h * 37 + str.charCodeAt(i)) % 360
+                    return `hsl(${h},50%,45%)`
+                  }
+
+                  const msgTimeAgo = (iso) => {
+                    if (!iso) return ''
+                    const diff = (Date.now() - new Date(iso)) / 1000
+                    if (diff < 60) return "à l'instant"
+                    if (diff < 3600) return `il y a ${Math.floor(diff / 60)}min`
+                    if (diff < 86400) return `il y a ${Math.floor(diff / 3600)}h`
+                    const d = new Date(iso)
+                    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`
+                  }
+
+                  const otherParticipant = (conv) =>
+                    (conv.participants || []).find(p => p.id !== myId) || conv.participants?.[0] || { full_name: '?', initials: '?' }
+
+                  const messagesEndRef = React.useRef(null)
+
+                  React.useEffect(() => {
+                    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+                  }, [msgMessages])
+
+                  const loadConvMessages = async (conv) => {
+                    setMsgActiveConv(conv)
+                    setMsgMessages([])
+                    const res = await fetch(`${API}/conversations/${conv.id}/messages/`, { headers: { Authorization: `Bearer ${token}` } })
+                    if (res.status === 401) { onLogout(); return }
+                    if (res.ok) {
+                      const data = await res.json()
+                      setMsgMessages(data)
+                    }
+                    // mark read
+                    fetch(`${API}/conversations/${conv.id}/read/`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+                    setMsgConversations(prev => prev.map(c => c.id === conv.id ? { ...c, unread_count: 0 } : c))
+                  }
+
+                  const sendMessage = async () => {
+                    const text = msgInput.trim()
+                    if (!text || msgSending || !msgActiveConv) return
+                    setMsgSending(true)
+                    const optimistic = { id: `tmp-${Date.now()}`, conversation: msgActiveConv.id, sender: { id: myId, full_name: user?.first_name || 'Vous', initials: ((user?.first_name||'')[0]+(user?.last_name||'')[0]).toUpperCase()||'?' }, content: text, is_read: false, created_at: new Date().toISOString(), _optimistic: true }
+                    setMsgMessages(prev => [...prev, optimistic])
+                    setMsgInput('')
+                    const res = await fetch(`${API}/conversations/${msgActiveConv.id}/messages/`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ content: text }),
+                    })
+                    setMsgSending(false)
+                    if (res.status === 401) { onLogout(); return }
+                    if (res.ok) {
+                      const created = await res.json()
+                      setMsgMessages(prev => prev.map(m => m._optimistic ? created : m))
+                      setMsgConversations(prev => {
+                        const updated = prev.map(c => c.id === msgActiveConv.id ? { ...c, last_message: { content: created.content, created_at: created.created_at, sender_id: myId }, updated_at: created.created_at } : c)
+                        return updated.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+                      })
+                    } else {
+                      setMsgMessages(prev => prev.filter(m => !m._optimistic))
+                    }
+                  }
+
+                  const startConversation = async (chatUserId) => {
+                    const res = await fetch(`${API}/conversations/`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ participant_id: chatUserId }),
+                    })
+                    if (res.status === 401) { onLogout(); return }
+                    if (res.ok || res.status === 201 || res.status === 200) {
+                      const conv = await res.json()
+                      setMsgConversations(prev => {
+                        const exists = prev.find(c => c.id === conv.id)
+                        if (exists) return prev
+                        return [conv, ...prev]
+                      })
+                      setMsgNewConv(false)
+                      setMsgUserSearch('')
+                      loadConvMessages(conv)
+                    }
+                  }
+
+                  const filteredUsers = msgChatUsers.filter(u =>
+                    u.full_name.toLowerCase().includes(msgUserSearch.toLowerCase())
+                  )
+
+                  return (
+                    <div className="msg-root">
+                      {/* LEFT SIDEBAR */}
+                      <div className="msg-sidebar">
+                        <div className="msg-header">
+                          <h2>Messages</h2>
+                          <button className="msg-new-btn" onClick={() => setMsgNewConv(v => !v)} title="Nouvelle conversation">
+                            {msgNewConv ? '×' : '+'}
+                          </button>
+                        </div>
+
+                        {msgNewConv && (
+                          <div className="msg-new-conv-panel">
+                            <input
+                              placeholder="Rechercher un utilisateur…"
+                              value={msgUserSearch}
+                              onChange={e => setMsgUserSearch(e.target.value)}
+                              autoFocus
+                            />
+                            <div className="msg-user-pick-list">
+                              {filteredUsers.length === 0 && <div style={{ padding: '8px', color: '#94A3B8', fontSize: '13px' }}>Aucun utilisateur trouvé</div>}
+                              {filteredUsers.map(u => (
+                                <div key={u.id} className="msg-user-pick-item" onClick={() => startConversation(u.id)}>
+                                  <div className="msg-avatar" style={{ width: 32, height: 32, fontSize: 12, background: avatarColor(u.full_name) }}>{u.initials}</div>
+                                  <span style={{ fontSize: '14px', color: '#0F172A' }}>{u.full_name}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="msg-conv-list">
+                          {msgLoading && <div style={{ padding: '24px', textAlign: 'center', color: '#94A3B8' }}>Chargement…</div>}
+                          {!msgLoading && msgConversations.length === 0 && (
+                            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94A3B8', fontSize: '14px' }}>Aucune conversation</div>
+                          )}
+                          {msgConversations.map(conv => {
+                            const other = otherParticipant(conv)
+                            const isActive = msgActiveConv?.id === conv.id
+                            const hasUnread = conv.unread_count > 0
+                            return (
+                              <div key={conv.id} className={`msg-conv-item${isActive ? ' active' : ''}`} onClick={() => loadConvMessages(conv)}>
+                                <div className="msg-avatar" style={{ background: avatarColor(other.full_name) }}>{other.initials}</div>
+                                <div className="msg-conv-info">
+                                  <div className={`msg-conv-name${hasUnread ? ' unread' : ''}`}>{other.full_name}</div>
+                                  <div className="msg-conv-preview">{conv.last_message?.content?.slice(0, 40) || 'Aucun message'}</div>
+                                </div>
+                                <div className="msg-conv-meta">
+                                  <span className="msg-conv-time">{msgTimeAgo(conv.last_message?.created_at || conv.updated_at)}</span>
+                                  {hasUnread && <span className="msg-unread-badge">{conv.unread_count}</span>}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* RIGHT THREAD */}
+                      <div className="msg-thread">
+                        {!msgActiveConv ? (
+                          <div className="msg-empty-thread">Sélectionnez une conversation pour commencer</div>
+                        ) : (
+                          <>
+                            <div className="msg-thread-header">
+                              <div className="msg-avatar" style={{ width: 36, height: 36, fontSize: 13, background: avatarColor(otherParticipant(msgActiveConv).full_name) }}>
+                                {otherParticipant(msgActiveConv).initials}
+                              </div>
+                              <div className="msg-conv-name">{otherParticipant(msgActiveConv).full_name}</div>
+                            </div>
+
+                            <div className="msg-messages">
+                              {msgMessages.map((m, i) => {
+                                const isMine = m.sender?.id === myId
+                                return (
+                                  <div key={m.id || i} className={`msg-bubble-row${isMine ? ' mine' : ''}`}>
+                                    {!isMine && (
+                                      <div className="msg-avatar" style={{ width: 28, height: 28, fontSize: 10, flexShrink: 0, background: avatarColor(m.sender?.full_name || '') }}>
+                                        {m.sender?.initials}
+                                      </div>
+                                    )}
+                                    <div>
+                                      <div className={`msg-bubble${isMine ? ' mine' : ' theirs'}`} style={m._optimistic ? { opacity: 0.7 } : {}}>
+                                        {m.content}
+                                      </div>
+                                      <div className="msg-bubble-time">{msgTimeAgo(m.created_at)}</div>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                              <div ref={messagesEndRef} />
+                            </div>
+
+                            <div className="msg-compose">
+                              <textarea
+                                rows={1}
+                                placeholder="Écrire un message…"
+                                value={msgInput}
+                                onChange={e => setMsgInput(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+                                style={{ overflowY: 'auto' }}
+                              />
+                              <button className="msg-send-btn" onClick={sendMessage} disabled={!msgInput.trim() || msgSending} title="Envoyer">
+                                ➤
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )
                 })()
