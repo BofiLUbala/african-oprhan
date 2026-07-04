@@ -8022,8 +8022,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const submitDonation = async (e) => {
                     e.preventDefault()
                     setDonationFormError('')
-                    if (!donationForm.amount || !donationForm.orphanage) {
-                      setDonationFormError('Montant et orphelinat requis.')
+                    if (!donationForm.amount || isNaN(Number(donationForm.amount)) || Number(donationForm.amount) <= 0 || !donationForm.orphanage) {
+                      setDonationFormError('Montant valide et orphelinat requis.')
                       return
                     }
                     const res = await fetch(`${API}/dons/`, {
@@ -8031,6 +8031,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                       body: JSON.stringify(donationForm),
                     })
+                    if (res.status === 401) { onLogout(); return }
                     if (res.ok) {
                       const created = await res.json()
                       setDonations(prev => [created, ...prev])
@@ -8109,12 +8110,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const submitIncome = async (e) => {
                     e.preventDefault()
                     setFinancesFormError('')
-                    if (!incomeForm.source || !incomeForm.amount || Number(incomeForm.amount) <= 0) { setFinancesFormError('Source et montant valide requis.'); return }
+                    if (!incomeForm.source || !incomeForm.amount || isNaN(Number(incomeForm.amount)) || Number(incomeForm.amount) <= 0) { setFinancesFormError('Source et montant valide requis.'); return }
                     const res = await fetch(`${API}/revenus/`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                       body: JSON.stringify(incomeForm),
                     })
+                    if (res.status === 401) { onLogout(); return }
                     if (res.ok) {
                       const created = await res.json()
                       setIncomes(prev => [created, ...prev])
@@ -8127,12 +8129,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const submitExpense = async (e) => {
                     e.preventDefault()
                     setFinancesFormError('')
-                    if (!expenseForm.category || !expenseForm.amount || Number(expenseForm.amount) <= 0) { setFinancesFormError('Catégorie et montant valide requis.'); return }
+                    if (!expenseForm.category || !expenseForm.amount || isNaN(Number(expenseForm.amount)) || Number(expenseForm.amount) <= 0) { setFinancesFormError('Catégorie et montant valide requis.'); return }
                     const res = await fetch(`${API}/depenses/`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                       body: JSON.stringify(expenseForm),
                     })
+                    if (res.status === 401) { onLogout(); return }
                     if (res.ok) {
                       const created = await res.json()
                       setExpenses(prev => [created, ...prev])
