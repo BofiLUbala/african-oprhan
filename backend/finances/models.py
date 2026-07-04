@@ -7,6 +7,11 @@ class Donation(models.Model):
         ("materiel", "Matériel"),
         ("service", "Service"),
     ]
+    STATUS_CHOICES = [
+        ("pending", "En attente"),
+        ("completed", "Complété"),
+        ("failed", "Échoué"),
+    ]
 
     donator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -21,6 +26,7 @@ class Donation(models.Model):
     currency = models.CharField(max_length=10, default="USD", verbose_name="Devise")
     description = models.TextField(blank=True, verbose_name="Description (matériel/service)")
     transaction_id = models.CharField(max_length=255, blank=True, verbose_name="Numéro de transaction")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="completed", verbose_name="Statut")
     orphanage = models.ForeignKey(
         "orphanages.Orphanage",
         on_delete=models.SET_NULL,
