@@ -16,6 +16,9 @@ PAYMENT_WRITER_ROLES = ("director", "federation", "supermaster")
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def sponsorable_children_list(request):
+    user = request.user
+    if user.role not in SPONSOR_ROLES:
+        return Response({"error": "Permission refusée."}, status=status.HTTP_403_FORBIDDEN)
     sponsored_ids = Sponsorship.objects.filter(status="active").values_list("child_id", flat=True)
     qs = Child.objects.exclude(id__in=sponsored_ids)
     return Response(ChildSerializer(qs, many=True).data)

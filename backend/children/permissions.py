@@ -84,8 +84,10 @@ def filtrer_historique_par_role(queryset, user, enfant_id=None):
         if role != 'federation':
             queryset = queryset.exclude(niveau_sensibilite='RESTREINT')
 
-    if role in ('director', 'staff'):
+    if role == 'director':
         queryset = queryset.filter(child__orphanage__director=user)
+    elif role == 'staff':
+        queryset = queryset.filter(child__orphanage_id=user.orphanage_id)
     elif role == 'ambassador':
         queryset = queryset.filter(
             child__assignments__ambassador=user,
