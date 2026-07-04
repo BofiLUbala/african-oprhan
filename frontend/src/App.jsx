@@ -504,6 +504,13 @@ const ROLE_NAV = {
     { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
   ],
+  sponsor: [
+    { label: 'Tableau de bord', key: 'dashboard' },
+    { label: 'Dons', key: 'dons' },
+    { label: 'Parrainages', key: 'parrainages' },
+    { label: 'Communication', key: 'communication' },
+    { label: 'Paramètres', key: 'parametres' },
+  ],
 }
 
 const ROLE_PAGES = {
@@ -715,6 +722,13 @@ const ROLE_PAGES = {
     parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
       { id: 'S4', title: 'Configuration', subtitle: 'Préférences', count: 2 },
     ]},
+  },
+  sponsor: {
+    dashboard: { title: 'Tableau de bord', subtitle: "Vue d'ensemble.", categories: [] },
+    dons: { title: 'Dons', subtitle: 'Suivi des contributions.', categories: [] },
+    parrainages: { title: 'Parrainages', subtitle: 'Parrainer un enfant.', categories: [] },
+    communication: { title: 'Communication', subtitle: 'Messagerie.', categories: [] },
+    parametres: { title: 'Paramètres', subtitle: 'Compte et préférences.', categories: [] },
   },
 }
 
