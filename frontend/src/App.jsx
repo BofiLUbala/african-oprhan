@@ -458,6 +458,7 @@ const ROLE_NAV = {
     { label: 'Documents', key: 'documents' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
     { label: 'Demandes', key: 'demandes' },
+    { label: 'Dons', key: 'dons' },
     { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
   ],
@@ -498,6 +499,7 @@ const ROLE_NAV = {
     { label: 'Besoins', key: 'besoins' },
     { label: 'Projets', key: 'projets' },
     { label: 'Parrainages', key: 'parrainages' },
+    { label: 'Dons', key: 'dons' },
     { label: 'Rapports', key: 'rapports' },
     { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
@@ -544,6 +546,7 @@ const ROLE_PAGES = {
       { id: 'R3', title: 'État des dons', subtitle: '45 Dons', count: 45 },
       { id: 'R4', title: 'Publications', subtitle: '18 Publications', count: 18 },
     ]},
+    dons: { title: 'Dons', subtitle: 'Suivi des contributions.', categories: [] },
     parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
       { id: 'S4', title: 'Configuration', subtitle: 'Paramètres système', count: 2 },
     ]},
@@ -702,6 +705,7 @@ const ROLE_PAGES = {
       { id: 'F3', title: 'Échanges reçus', subtitle: '6 Messages', count: 6 },
       { id: 'F4', title: "Photos et rapports", subtitle: '9 Documents', count: 9 },
     ]},
+    dons: { title: 'Dons', subtitle: 'Suivi des contributions.', categories: [] },
     rapports: { title: 'Rapports et documents', subtitle: 'Télécharger les rapports.', categories: [
       { id: 'R1', title: "Rapports d'impact", subtitle: '8 Documents', count: 8 },
       { id: 'R2', title: "Rapports financiers", subtitle: '4 Documents', count: 4 },
@@ -1642,6 +1646,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [dirAmbLoading, setDirAmbLoading] = useState(false)
   const [dirSelectedAmb, setDirSelectedAmb] = useState(null)
 
+  /* ── Donations state ── */
+  const [donations, setDonations] = useState([])
+  const [donationsLoading, setDonationsLoading] = useState(false)
+  const [donationForm, setDonationForm] = useState({ donation_type: 'financier', amount: '', currency: 'USD', orphanage: '' })
+  const [donationFormError, setDonationFormError] = useState('')
+  const [donationFormSuccess, setDonationFormSuccess] = useState('')
+
   /* ── Navigation state preservation ── */
   const savedSubKeys = useRef({})
   const prevSection = useRef('')
@@ -1723,6 +1734,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
           .catch(() => {})
           .finally(() => setDirAmbLoading(false))
       }
+    }
+    /* ── Load donations ── */
+    if (activeKey === 'dons') {
+      setDonationsLoading(true)
+      fetch(`${API}/dons/`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => { if (r.status === 401) { onLogout(); return [] } return r.json() })
+        .then(data => { setDonations(Array.isArray(data) ? data : []); setDonationsLoading(false) })
+        .catch(() => setDonationsLoading(false))
     }
     /* ── Load document types for Federation validation (orphanage docs loaded in separate effect) ── */
     if (activeKey === 'validationLocale' && role === 'federation') {
@@ -7904,6 +7923,93 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )
+                })()
+                : activeKey === 'dons' ? (() => {
+                  const token = localStorage.getItem('access_token')
+                  const canCreate = ['sponsor', 'partner', 'ambassador'].includes(role)
+
+                  const submitDonation = async (e) => {
+                    e.preventDefault()
+                    setDonationFormError('')
+                    if (!donationForm.amount || !donationForm.orphanage) {
+                      setDonationFormError('Montant et orphelinat requis.')
+                      return
+                    }
+                    const res = await fetch(`${API}/dons/`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                      body: JSON.stringify(donationForm),
+                    })
+                    if (res.ok) {
+                      const created = await res.json()
+                      setDonations(prev => [created, ...prev])
+                      setDonationForm({ donation_type: 'financier', amount: '', currency: 'USD', orphanage: '' })
+                      setDonationFormSuccess('Don enregistré avec succès.')
+                      setTimeout(() => setDonationFormSuccess(''), 3000)
+                    } else {
+                      const err = await res.json().catch(() => ({}))
+                      setDonationFormError(err.detail || "Erreur lors de l'enregistrement.")
+                    }
+                  }
+
+                  return (
+                    <div className="dash-section">
+                      <div className="dash-section-header">
+                        <span className="dash-section-title">Dons</span>
+                        <span className="dash-section-sub">Suivi des contributions</span>
+                      </div>
+
+                      {canCreate && (
+                        <div className="dash-card" style={{ marginBottom: 24 }}>
+                          <div className="dash-card-title" style={{ marginBottom: 12 }}>Enregistrer un don</div>
+                          {donationFormError && <div className="dash-error">{donationFormError}</div>}
+                          {donationFormSuccess && <div className="dash-success">{donationFormSuccess}</div>}
+                          <form onSubmit={submitDonation} style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                            <select value={donationForm.donation_type} onChange={e => setDonationForm(f => ({ ...f, donation_type: e.target.value }))} className="dash-input" style={{ flex: '1 1 140px' }}>
+                              <option value="financier">Financier</option>
+                              <option value="materiel">Matériel</option>
+                              <option value="service">Service</option>
+                            </select>
+                            <input type="number" min="0" step="0.01" placeholder="Montant" value={donationForm.amount} onChange={e => setDonationForm(f => ({ ...f, amount: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
+                            <select value={donationForm.currency} onChange={e => setDonationForm(f => ({ ...f, currency: e.target.value }))} className="dash-input" style={{ flex: '0 0 90px' }}>
+                              <option value="USD">USD</option>
+                              <option value="EUR">EUR</option>
+                              <option value="CDF">CDF</option>
+                              <option value="XAF">XAF</option>
+                            </select>
+                            <input type="number" placeholder="ID Orphelinat" value={donationForm.orphanage} onChange={e => setDonationForm(f => ({ ...f, orphanage: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
+                            <button type="submit" className="btn btn-primary btn-sm">Enregistrer</button>
+                          </form>
+                        </div>
+                      )}
+
+                      {donationsLoading ? (
+                        <div className="dash-empty">Chargement...</div>
+                      ) : donations.length === 0 ? (
+                        <div className="dash-empty">Aucun don trouvé.</div>
+                      ) : (
+                        <div className="dash-table-wrap">
+                          <table className="dash-table">
+                            <thead>
+                              <tr><th>Date</th><th>Donateur</th><th>Type</th><th>Montant</th><th>Statut</th><th>Orphelinat</th></tr>
+                            </thead>
+                            <tbody>
+                              {donations.map(d => (
+                                <tr key={d.id}>
+                                  <td>{new Date(d.date).toLocaleDateString('fr-FR')}</td>
+                                  <td>{d.donator_name || '—'}</td>
+                                  <td>{d.donation_type_label}</td>
+                                  <td>{d.amount} {d.currency}</td>
+                                  <td>{d.status_label}</td>
+                                  <td>{d.orphanage_name || '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
                   )
                 })()
