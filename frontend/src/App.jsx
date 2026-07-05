@@ -91,12 +91,14 @@ export default function App() {
     const rolesWithDashboard = ['director', 'ambassador', 'supermaster', 'federation', 'partner', 'auditor']
     if (rolesWithDashboard.includes(roleLower)) {
       return (
-        <LangProvider>
-          <div className="app">
-            <DashboardHeader user={user} roleLower={roleLower} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} activeKey={activeKey} subKey={subKey} setActiveKey={setActiveKey} setSubKey={setSubKey} />
-            <main><DashboardShell user={user} role={roleLower} onLogout={logout} activeKey={activeKey} setActiveKey={setActiveKey} subKey={subKey} setSubKey={setSubKey} /></main>
-          </div>
-        </LangProvider>
+        <ToastProvider>
+          <LangProvider>
+            <div className="app">
+              <DashboardHeader user={user} roleLower={roleLower} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} activeKey={activeKey} subKey={subKey} setActiveKey={setActiveKey} setSubKey={setSubKey} />
+              <main><DashboardShell user={user} role={roleLower} onLogout={logout} activeKey={activeKey} setActiveKey={setActiveKey} subKey={subKey} setSubKey={setSubKey} /></main>
+            </div>
+          </LangProvider>
+        </ToastProvider>
       )
     }
   }
@@ -1197,6 +1199,30 @@ function DonutChart({ data }) {
   )
 }
 
+const ToastContext = React.createContext(null)
+function useToast() { return React.useContext(ToastContext) }
+function ToastProvider({ children }) {
+  const [toasts, setToasts] = React.useState([])
+  const addToast = React.useCallback((message, type) => {
+    const id = Date.now() + Math.random()
+    setToasts(prev => [...prev, { id, message, type: type || 'success' }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
+  }, [])
+  return (
+    <ToastContext.Provider value={addToast}>
+      {children}
+      <div className="toast-container">
+        {toasts.map(t => (
+          <div key={t.id} className={`toast toast-${t.type}`}>
+            <span className="toast-icon">{t.type === 'success' ? '✓' : '✕'}</span>
+            <span className="toast-msg">{t.message}</span>
+          </div>
+        ))}
+      </div>
+    </ToastContext.Provider>
+  )
+}
+
 function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey, setSubKey }) {
   const [registeredChildren, setRegisteredChildren] = useState([])
   const [selectedRegChild, setSelectedRegChild] = useState(null)
@@ -1352,7 +1378,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [donationsLoading, setDonationsLoading] = useState(false)
   const [donationForm, setDonationForm] = useState({ donation_type: 'financier', amount: '', currency: 'USD', orphanage: '' })
   const [donationFormError, setDonationFormError] = useState('')
-  const [donationFormSuccess, setDonationFormSuccess] = useState('')
 
   /* ── Finances state ── */
   const [incomes, setIncomes] = useState([])
@@ -1362,7 +1387,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [incomeForm, setIncomeForm] = useState({ source: '', amount: '', orphanage: '' })
   const [expenseForm, setExpenseForm] = useState({ category: '', amount: '', description: '', orphanage: '' })
   const [financesFormError, setFinancesFormError] = useState('')
-  const [financesFormSuccess, setFinancesFormSuccess] = useState('')
 
   /* ── Parrainages state ── */
   const [sponsorableChildren, setSponsorableChildren] = useState([])
@@ -1371,7 +1395,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [parrainagesLoading, setParrainagesLoading] = useState(false)
   const [sponsorshipForm, setSponsorshipForm] = useState({ child: '', sponsorship_type: 'monthly', amount: '' })
   const [sponsorshipFormError, setSponsorshipFormError] = useState('')
-  const [sponsorshipFormSuccess, setSponsorshipFormSuccess] = useState('')
+  const toast = useToast()
   const [selectedSponsorshipId, setSelectedSponsorshipId] = useState(null)
   const [sponsorshipPayments, setSponsorshipPayments] = useState([])
 
@@ -7993,11 +8017,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       const created = await res.json()
                       setDonations(prev => [created, ...prev])
                       setDonationForm({ donation_type: 'financier', amount: '', currency: 'USD', orphanage: '' })
-                      setDonationFormSuccess('Don enregistré avec succès.')
-                      setTimeout(() => setDonationFormSuccess(''), 3000)
+                      toast('Don enregistré avec succès.', 'success')
                     } else {
                       const err = await res.json().catch(() => ({}))
-                      setDonationFormError(err.detail || "Erreur lors de l'enregistrement.")
+                      toast(err.detail || "Erreur lors de l'enregistrement.", 'error')
                     }
                   }
 
@@ -8012,7 +8035,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <div className="dash-card" style={{ marginBottom: 24 }}>
                           <div className="dash-card-title" style={{ marginBottom: 12 }}>Enregistrer un don</div>
                           {donationFormError && <div className="dash-error">{donationFormError}</div>}
-                          {donationFormSuccess && <div className="dash-success">{donationFormSuccess}</div>}
                           <form onSubmit={submitDonation} style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                             <select value={donationForm.donation_type} onChange={e => setDonationForm(f => ({ ...f, donation_type: e.target.value }))} className="dash-input" style={{ flex: '1 1 140px' }}>
                               <option value="financier">Financier</option>
@@ -8078,9 +8100,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       const created = await res.json()
                       setIncomes(prev => [created, ...prev])
                       setIncomeForm({ source: '', amount: '', orphanage: '' })
-                      setFinancesFormSuccess('Revenu enregistré.')
-                      setTimeout(() => setFinancesFormSuccess(''), 3000)
-                    } else { setFinancesFormError('Erreur lors de l\'enregistrement.') }
+                      toast('Revenu enregistré.', 'success')
+                    } else { toast('Erreur lors de l\'enregistrement.', 'error') }
                   }
 
                   const submitExpense = async (e) => {
@@ -8097,9 +8118,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       const created = await res.json()
                       setExpenses(prev => [created, ...prev])
                       setExpenseForm({ category: '', amount: '', description: '', orphanage: '' })
-                      setFinancesFormSuccess('Dépense enregistrée.')
-                      setTimeout(() => setFinancesFormSuccess(''), 3000)
-                    } else { setFinancesFormError('Erreur lors de l\'enregistrement.') }
+                      toast('Dépense enregistrée.', 'success')
+                    } else { toast('Erreur lors de l\'enregistrement.', 'error') }
                   }
 
                   return (
@@ -8116,7 +8136,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         ))}
                       </div>
                       {financesFormError && <div className="dash-error">{financesFormError}</div>}
-                      {financesFormSuccess && <div className="dash-success">{financesFormSuccess}</div>}
 
                       {financesLoading ? <div className="dash-empty">Chargement...</div> : financesTab === 'revenus' ? (
                         <>
@@ -8170,11 +8189,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       const created = await res.json()
                       setMySponsored(prev => [created, ...prev])
                       setSponsorableChildren(prev => prev.filter(c => c.id !== childId))
-                      setSponsorshipFormSuccess('Parrainage créé avec succès.')
-                      setTimeout(() => setSponsorshipFormSuccess(''), 3000)
+                      toast('Parrainage créé avec succès.', 'success')
                     } else {
                       const err = await res.json().catch(() => ({}))
-                      setSponsorshipFormError(err.detail || err.error || 'Erreur lors de la création.')
+                      toast(err.detail || err.error || 'Erreur lors de la création.', 'error')
                     }
                   }
 
@@ -8205,7 +8223,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       </div>
 
                       {sponsorshipFormError && <div className="dash-error">{sponsorshipFormError}</div>}
-                      {sponsorshipFormSuccess && <div className="dash-success">{sponsorshipFormSuccess}</div>}
 
                       {isSponsorRole && (
                         <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>

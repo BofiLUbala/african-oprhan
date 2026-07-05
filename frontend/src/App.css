@@ -5103,3 +5103,12 @@ select.dash-prof-input option { background:#1e293b; color:#e2e8f0; }
 .rpt-kpi-label { flex: 1; font-size: 12px; font-weight: 600; color: var(--text-body); text-transform: uppercase; letter-spacing: .04em; opacity: 0.75; }
 .rpt-kpi-value { font-size: 20px; font-weight: 800; min-width: 48px; text-align: right; }
 .rpt-kpi-sub { font-size: 11px; color: var(--text-muted); min-width: 70px; }
+
+/* ===== TOAST NOTIFICATIONS ===== */
+.toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+.toast { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 10px; font-size: 14px; font-weight: 500; min-width: 260px; max-width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); animation: toastSlideIn .25s ease; pointer-events: auto; }
+@keyframes toastSlideIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.toast-success { background: #16a34a; color: #fff; }
+.toast-error { background: #dc2626; color: #fff; }
+.toast-icon { font-size: 16px; font-weight: 700; flex-shrink: 0; }
+.toast-msg { flex: 1; line-height: 1.4; }
