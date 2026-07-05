@@ -90,6 +90,11 @@ export default function CommunicationScreen({ user }) {
     return () => clearInterval(pollRef.current)
   }, [view, activeConv, fetchMessages])
 
+  // Load chat users when entering newconv view
+  useEffect(() => {
+    if (view === 'newconv') loadChatUsers()
+  }, [view])
+
   const openThread = (conv) => {
     setActiveConv(conv)
     setMessages([])
@@ -163,7 +168,7 @@ export default function CommunicationScreen({ user }) {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Nouvelle conversation</Text>
         </View>
-        <ScrollView onLayout={loadChatUsers} contentContainerStyle={{ padding: 16 }}>
+        <ScrollView contentContainerStyle={{ padding: 16 }}>
           {chatUsers.length === 0 && (
             <Text style={styles.emptyText}>Chargement des utilisateurs...</Text>
           )}

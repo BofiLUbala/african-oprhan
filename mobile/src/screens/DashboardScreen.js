@@ -10,7 +10,6 @@ const CARD_GAP = 12
 const CARD_WIDTH = (SCREEN_WIDTH - 48 - CARD_GAP) / 2
 
 export default function DashboardScreen({ user, role, onNavigate }) {
-  const statCards = liveKpis || ROLE_STATS[role] || ROLE_STATS.director
   const navItems = ROLE_NAV[role] || ROLE_NAV.director
   const page = (ROLE_PAGES[role] || ROLE_PAGES.director).dashboard
 
@@ -24,6 +23,7 @@ export default function DashboardScreen({ user, role, onNavigate }) {
 
   const [isOpen, setIsOpen] = useState(false)
   const [liveKpis, setLiveKpis] = useState(null)
+  const statCards = liveKpis || ROLE_STATS[role] || ROLE_STATS.director
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH * 0.5)).current
 
   useEffect(() => {
