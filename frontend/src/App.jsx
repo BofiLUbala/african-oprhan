@@ -860,11 +860,8 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
 
     if (!allChildren.current.length) {
       setSearchLoading(true)
-      const token = localStorage.getItem('access_token')
-      fetch(`${API}/enfants/`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      })
-        .then(r => r.ok ? r.json() : [])
+      apiFetch(`${API}/enfants/`, {}, onLogout)
+        .then(r => r && r.ok ? r.json() : [])
         .then(data => {
           const list = Array.isArray(data) ? data : data.results || []
           allChildren.current = list
@@ -930,22 +927,18 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
   }
 
   const markNotifRead = (nid) => {
-    const t = localStorage.getItem('access_token')
-    if (!t) return
-    fetch(`${API}/notifications/`, {
+    apiFetch(`${API}/notifications/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: nid }),
-    }).then(() => { setNotifications(prev => prev.map(n => n.id === nid ? { ...n, is_read: true } : n)) }).catch(() => {})
+    }, onLogout).then(() => { setNotifications(prev => prev.map(n => n.id === nid ? { ...n, is_read: true } : n)) }).catch(() => {})
   }
   const markAllRead = () => {
-    const t = localStorage.getItem('access_token')
-    if (!t) return
-    fetch(`${API}/notifications/`, {
+    apiFetch(`${API}/notifications/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mark_read: true }),
-    }).then(() => { setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))) }).catch(() => {})
+    }, onLogout).then(() => { setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))) }).catch(() => {})
   }
 
   const notifCount = notifications.filter(n => !n.is_read).length
@@ -1661,20 +1654,18 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }, [activeKey, role])
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
-    if (!token) return
     if (activeKey === 'validationLocale' && role === 'ambassador') {
       setAmbLoading(true)
-      fetch(`${API}/assignments/by-orphanage/`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : [])
+      apiFetch(`${API}/assignments/by-orphanage/`, {}, onLogout)
+        .then(r => r && r.ok ? r.json() : [])
         .then(d => setAmbAssignments(d))
         .catch(() => {})
         .finally(() => setAmbLoading(false))
     }
     if (activeKey === 'multiOrphelinats' && role === 'ambassador') {
       setAmbLoading(true)
-      fetch(`${API}/assignments/by-orphanage/`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : [])
+      apiFetch(`${API}/assignments/by-orphanage/`, {}, onLogout)
+        .then(r => r && r.ok ? r.json() : [])
         .then(d => setAmbAssignments(d))
         .catch(() => {})
         .finally(() => setAmbLoading(false))
@@ -1682,12 +1673,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     if (activeKey === 'ambassadeurs' && (role === 'federation' || role === 'supermaster')) {
       setFedLoadingData(true)
       Promise.all([
-        fetch(`${API}/enfants/`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/assignments/`, { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch(`${API}/enfants/`, {}, onLogout),
+        apiFetch(`${API}/assignments/`, {}, onLogout),
       ])
         .then(async ([cRes, aRes]) => {
-          if (cRes.ok) setFedAllChildren(await cRes.json())
-          if (aRes.ok) setFedAllAssignments(await aRes.json())
+          if (cRes && cRes.ok) setFedAllChildren(await cRes.json())
+          if (aRes && aRes.ok) setFedAllAssignments(await aRes.json())
         })
         .catch(() => {})
         .finally(() => setFedLoadingData(false))
@@ -1697,13 +1688,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       setOrpAssignAmb('')
       setLoadingOrpDetails(true)
       Promise.all([
-        fetch(`${API}/enfants/?orphanage_id=${subKey}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/assignments/`, { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch(`${API}/enfants/?orphanage_id=${subKey}`, {}, onLogout),
+        apiFetch(`${API}/assignments/`, {}, onLogout),
       ])
         .then(async ([cRes, aRes]) => {
-          const children = cRes.ok ? await cRes.json() : []
-          if (cRes.ok) setOrphanageChildren(children)
-          if (aRes.ok) {
+          const children = cRes && cRes.ok ? await cRes.json() : []
+          if (cRes && cRes.ok) setOrphanageChildren(children)
+          if (aRes && aRes.ok) {
             const allAssignments = await aRes.json()
             const childIds = new Set(children.map(c => c.id))
             setOrphanageAssignments(allAssignments.filter(a => childIds.has(a.child)))
@@ -1716,8 +1707,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       const myOrp = orphanageRequests.find(o => String(o.director) === String(user.id))
       if (myOrp) {
         setDirAmbLoading(true)
-        fetch(`${API}/assignments/?orphanage_id=${myOrp.id}`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => r.ok ? r.json() : [])
+        apiFetch(`${API}/assignments/?orphanage_id=${myOrp.id}`, {}, onLogout)
+          .then(r => r && r.ok ? r.json() : [])
           .then(d => setDirAmbAssignments(d))
           .catch(() => {})
           .finally(() => setDirAmbLoading(false))
@@ -1725,22 +1716,22 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     }
     /* ── Load document types for Federation validation (orphanage docs loaded in separate effect) ── */
     if (activeKey === 'validationLocale' && role === 'federation') {
-      fetch(`${API}/document-types/`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : [])
+      apiFetch(`${API}/document-types/`, {}, onLogout)
+        .then(r => r && r.ok ? r.json() : [])
         .then(d => setFedDocTypes(d))
         .catch(() => {})
     }
     /* ── Load document types + submitted docs for Director documents ── */
     if (activeKey === 'documents' && role === 'director') {
-      fetch(`${API}/document-types/`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : [])
+      apiFetch(`${API}/document-types/`, {}, onLogout)
+        .then(r => r && r.ok ? r.json() : [])
         .then(d => setDocTypes(d))
         .catch(() => {})
       const myDocOrp = orphanageRequests.find(o => String(o.director) === String(user.id))
       if (myDocOrp) {
         setDocLoading(true)
-        fetch(`${API}/orphanages/${myDocOrp.id}/documents/`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => r.ok ? r.json() : [])
+        apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/`, {}, onLogout)
+          .then(r => r && r.ok ? r.json() : [])
           .then(d => setSubmittedDocs(d))
           .catch(() => {})
           .finally(() => setDocLoading(false))
@@ -1752,29 +1743,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   useEffect(() => {
     if (activeKey !== 'documents' || role !== 'director') return
     const loadDocs = async () => {
-      const token = localStorage.getItem('access_token')
-      if (!token) return
-      const fetchWithAuth = async (url) => {
-        let res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-        if (res.status === 401) {
-          const refresh = localStorage.getItem('refresh_token')
-          if (refresh) {
-            const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-            if (refRes.ok) {
-              const tokens = await refRes.json()
-              localStorage.setItem('access_token', tokens.access)
-              res = await fetch(url, { headers: { Authorization: `Bearer ${tokens.access}` } })
-            }
-          }
-        }
-        return res
-      }
-      fetchWithAuth(`${API}/document-types/`).then(r => r.ok ? r.json() : []).then(d => setDocTypes(d)).catch(() => {})
+      apiFetch(`${API}/document-types/`, {}, onLogout).then(r => r && r.ok ? r.json() : []).then(d => setDocTypes(d)).catch(() => {})
       const reqs = orpReqRef.current
       const myOrp = reqs.find(o => String(o.director) === String(user.id))
       if (myOrp) {
         setDocLoading(true)
-        fetchWithAuth(`${API}/orphanages/${myOrp.id}/documents/`).then(r => r.ok ? r.json() : []).then(d => setSubmittedDocs(d)).catch(() => {}).finally(() => setDocLoading(false))
+        apiFetch(`${API}/orphanages/${myOrp.id}/documents/`, {}, onLogout).then(r => r && r.ok ? r.json() : []).then(d => setSubmittedDocs(d)).catch(() => {}).finally(() => setDocLoading(false))
       }
     }
     loadDocs()
@@ -1902,15 +1876,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   useEffect(() => {
     if (activeKey !== 'validationLocale' || role !== 'federation') return
     if (orphanageRequests.length === 0) return
-    const token = localStorage.getItem('access_token')
-    if (!token) return
-    fetch(`${API}/document-types/`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : [])
+    apiFetch(`${API}/document-types/`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : [])
       .then(d => setFedDocTypes(d))
       .catch(() => {})
     orphanageRequests.forEach(o => {
-      fetch(`${API}/orphanages/${o.id}/documents/`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : [])
+      apiFetch(`${API}/orphanages/${o.id}/documents/`, {}, onLogout)
+        .then(r => r && r.ok ? r.json() : [])
         .then(d => setFedOrpDocuments(p => ({ ...p, [o.id]: d })))
         .catch(() => {})
     })
@@ -1982,13 +1954,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [assigningId, setAssigningId] = useState(null)
 
   const fetchAmbassadors = async () => {
-    const token = localStorage.getItem('access_token')
-    if (!token) return
     try {
-      const res = await fetch(`${API}/auth/users/?role=ambassador`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
+      const res = await apiFetch(`${API}/auth/users/?role=ambassador`, {}, onLogout)
+      if (res && res.ok) {
         const data = await res.json()
         setAmbassadorsList(Array.isArray(data) ? data : [])
       }
@@ -1996,15 +1964,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }
 
   const handleAssignAmbassador = async (orphanageId, ambassadorId) => {
-    const token = localStorage.getItem('access_token')
-    if (!token) return
     setOrphanageLoading(true)
     try {
-      const res = await fetch(`${API}/orphanages/${orphanageId}/assign-ambassador/`, {
+      const res = await apiFetch(`${API}/orphanages/${orphanageId}/assign-ambassador/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ambassador_id: ambassadorId }),
-      })
+      }, onLogout)
+      if (!res) return
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Erreur d'assignation")
       showToast("Ambassadeur assigné avec succès.", 'success')
@@ -2072,14 +2039,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }, [childSearchQuery])
 
   const deleteChild = async (child) => {
-    let token = localStorage.getItem('access_token')
-    if (!token) return
     try {
-      const res = await fetch(`${API}/enfants/${child.id}/`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
+      const res = await apiFetch(`${API}/enfants/${child.id}/`, { method: 'DELETE' }, onLogout)
+      if (res && res.ok) {
         setRegisteredChildren(prev => prev.filter(c => c.id !== child.id))
         setSelectedRegChild(null)
       }
@@ -2240,11 +2202,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     if (activeKey !== 'projets' && activeKey !== 'dashboard') return
     if (projects.length > 0) return
     setProjectLoading(true)
-    const token = localStorage.getItem('access_token')
-    fetch(`${API}/projets/`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {}
-    })
-      .then(r => r.ok ? r.json() : null)
+    apiFetch(`${API}/projets/`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : null)
       .then(data => {
         const list = Array.isArray(data) ? data : data?.results || MOCK_PROJECTS
         setProjects(list)
@@ -2255,13 +2214,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }, [activeKey])
 
   const loadOrphanages = async () => {
-    const token = localStorage.getItem('access_token')
-    if (!token) return
     setOrphanageLoading(true)
     try {
-      const res = await fetch(`${API}/orphanages/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await apiFetch(`${API}/orphanages/`, {}, onLogout)
+      if (!res) return
       const data = await res.json()
       if (res.ok) setOrphanageRequests(Array.isArray(data) ? data : [])
     } catch {
@@ -2278,7 +2234,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
   const submitOrphanage = async () => {
     if (!orphanageForm.name.trim()) { showToast("Nom de l'orphelinat requis.", 'error'); return }
-    const token = localStorage.getItem('access_token')
     setOrphanageLoading(true)
     try {
       const fd = new FormData()
@@ -2289,11 +2244,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       Object.entries(orpFiles).forEach(([k, file]) => {
         if (file) fd.append(k, file)
       })
-      const res = await fetch(`${API}/orphanages/`, {
+      const res = await apiFetch(`${API}/orphanages/`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: fd,
-      })
+      }, onLogout)
+      if (!res) return
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Envoi impossible")
       localStorage.setItem('cdo_orphanage_name', data.name)
@@ -2308,14 +2263,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }
 
   const validateOrphanage = async (id, action, note) => {
-    const token = localStorage.getItem('access_token')
     setOrphanageLoading(true)
     try {
-      const res = await fetch(`${API}/orphanages/${id}/validate/`, {
+      const res = await apiFetch(`${API}/orphanages/${id}/validate/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, validation_note: note ?? orphanageNote }),
-      })
+      }, onLogout)
+      if (!res) return
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Validation impossible')
       const msgs = { approve:'Orphelinat validé par la fédération.', reject:'Dossier rejeté.' }
@@ -2588,19 +2543,16 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   )
                 })()
                 : activeKey === 'validationLocale' && role === 'federation' ? (() => {
-                  const token = localStorage.getItem('access_token')
-                  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {}
-
                   const loadFedDocTypes = () => {
-                    fetch(`${API}/document-types/`, { headers: authHeaders })
-                      .then(r => r.ok ? r.json() : [])
+                    apiFetch(`${API}/document-types/`, {}, onLogout)
+                      .then(r => r && r.ok ? r.json() : [])
                       .then(d => setFedDocTypes(d))
                       .catch(() => {})
                   }
                   const loadOrpDocuments = (orpId) => {
                     if (!orpId) return
-                    fetch(`${API}/orphanages/${orpId}/documents/`, { headers: authHeaders })
-                      .then(r => r.ok ? r.json() : [])
+                    apiFetch(`${API}/orphanages/${orpId}/documents/`, {}, onLogout)
+                      .then(r => r && r.ok ? r.json() : [])
                       .then(d => setFedOrpDocuments(p => ({ ...p, [orpId]: d })))
                       .catch(() => {})
                   }
@@ -2609,25 +2561,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     const points_to_update = fedDocPoints[`${orpId}_${docId}`] || ''
                     setFedDocReviewLoading(true)
                     try {
-                      const headers = { 'Content-Type': 'application/json', ...authHeaders }
                       const body = JSON.stringify({ action, feedback, points_to_update })
-                      let res = await fetch(`${API}/orphanages/${orpId}/documents/${docId}/review/`, {
-                        method: 'POST', headers, body,
-                      })
-                      if (res.status === 401) {
-                        const refresh = localStorage.getItem('refresh_token')
-                        if (refresh) {
-                          const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                          if (refRes.ok) {
-                            const tokens = await refRes.json()
-                            localStorage.setItem('access_token', tokens.access)
-                            headers.Authorization = `Bearer ${tokens.access}`
-                            res = await fetch(`${API}/orphanages/${orpId}/documents/${docId}/review/`, {
-                              method: 'POST', headers, body,
-                            })
-                          }
-                        }
-                      }
+                      const res = await apiFetch(`${API}/orphanages/${orpId}/documents/${docId}/review/`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+                      }, onLogout)
+                      if (!res) return
                       if (!res.ok) throw new Error('Review failed')
                       const labels = { accept:'Accepté', request_changes:'Modifications demandées', reject:'Refusé' }
                       showToast(`Document ${labels[action] || action} avec succès.`, 'success')
@@ -2645,12 +2583,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     if (!fedDocTypeKey.trim() || !fedDocTypeName.trim()) { showToast('Clé et libellé requis.', 'error'); return }
                     setFedSavingDocType(true)
                     try {
-                      const res = await fetch(`${API}/document-types/`, {
+                      const res = await apiFetch(`${API}/document-types/`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', ...authHeaders },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ key: fedDocTypeKey.trim(), label: fedDocTypeName.trim(), required: fedDocTypeRequired, order: fedDocTypes.length + 1 }),
-                      })
-                      if (!res.ok) throw new Error('Failed')
+                      }, onLogout)
+                      if (!res || !res.ok) throw new Error('Failed')
                       showToast('Type de document ajouté.', 'success')
                       setFedDocTypeKey(''); setFedDocTypeName(''); setFedDocTypeRequired(true)
                       loadFedDocTypes()
@@ -2668,8 +2606,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       onConfirm: async () => {
                         setDocConfirmModal(null)
                         try {
-                          const res = await fetch(`${API}/document-types/${id}/`, { method: 'DELETE', headers: authHeaders })
-                          if (!res.ok) throw new Error('Failed')
+                          const res = await apiFetch(`${API}/document-types/${id}/`, { method: 'DELETE' }, onLogout)
+                          if (!res || !res.ok) throw new Error('Failed')
                           showToast('Type de document supprimé.', 'success')
                           loadFedDocTypes()
                         } catch (e) {
@@ -2680,12 +2618,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   }
                   const toggleDocTypeRequired = async (dt) => {
                     try {
-                      const res = await fetch(`${API}/document-types/${dt.id}/`, {
+                      const res = await apiFetch(`${API}/document-types/${dt.id}/`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', ...authHeaders },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ required: !dt.required }),
-                      })
-                      if (!res.ok) throw new Error('Failed')
+                      }, onLogout)
+                      if (!res || !res.ok) throw new Error('Failed')
                       loadFedDocTypes()
                     } catch (e) {
                       showToast('Erreur lors de la mise à jour.', 'error')
@@ -3061,42 +2999,16 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   );})()
                 : activeKey === 'documents' && role === 'director' ? (() => {
                   const myDocOrp = directorOrpRec()
-                  const token = localStorage.getItem('access_token')
                   const loadDocTypesDir = async () => {
-                    let h = token ? { Authorization: `Bearer ${token}` } : {}
-                    let res = await fetch(`${API}/document-types/`, { headers: h })
-                    if (res.status === 401) {
-                      const refresh = localStorage.getItem('refresh_token')
-                      if (refresh) {
-                        const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                        if (refRes.ok) {
-                          const tokens = await refRes.json()
-                          localStorage.setItem('access_token', tokens.access)
-                          h = { Authorization: `Bearer ${tokens.access}` }
-                          res = await fetch(`${API}/document-types/`, { headers: h })
-                        }
-                      }
-                    }
-                    if (res.ok) setDocTypes(await res.json())
+                    const res = await apiFetch(`${API}/document-types/`, {}, onLogout)
+                    if (res && res.ok) setDocTypes(await res.json())
                   }
                   const loadSubmittedDocsDir = async () => {
                     if (!myDocOrp) return
                     setDocLoading(true)
                     try {
-                      let h = token ? { Authorization: `Bearer ${token}` } : {}
-                      let res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/`, { headers: h })
-                      if (res.status === 401) {
-                        const refresh = localStorage.getItem('refresh_token')
-                        if (refresh) {
-                          const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                          if (refRes.ok) {
-                            const tokens = await refRes.json()
-                            localStorage.setItem('access_token', tokens.access)
-                            h = { Authorization: `Bearer ${tokens.access}` }
-                            res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/`, { headers: h })
-                          }
-                        }
-                      }
+                      const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/`, {}, onLogout)
+                      if (!res) return
                       if (res.ok) { const d = await res.json(); setSubmittedDocs(d); setDocResetKey(k => k + 1) }
                       else throw new Error('Erreur chargement')
                     } catch (e) {
@@ -3123,21 +3035,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       onConfirm: async () => {
                         setDocConfirmModal(null)
                         try {
-                          let h = token ? { Authorization: `Bearer ${token}` } : {}
-                          let res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
-                          if (res.status === 401) {
-                            const refresh = localStorage.getItem('refresh_token')
-                            if (refresh) {
-                              const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                              if (refRes.ok) {
-                                const tokens = await refRes.json()
-                                localStorage.setItem('access_token', tokens.access)
-                                h = { Authorization: `Bearer ${tokens.access}` }
-                                res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
-                              }
-                            }
-                          }
-                          if (!res.ok) throw new Error('Delete failed')
+                          const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE' }, onLogout)
+                          if (!res || !res.ok) throw new Error('Delete failed')
                           showToast('Document supprimé.', 'success')
                           loadSubmittedDocsDir()
                         } catch (e) {
@@ -3155,21 +3054,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       onConfirm: async () => {
                         setDocConfirmModal(null)
                         try {
-                          let h = token ? { Authorization: `Bearer ${token}` } : {}
-                          let res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
-                          if (res.status === 401) {
-                            const refresh = localStorage.getItem('refresh_token')
-                            if (refresh) {
-                              const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                              if (refRes.ok) {
-                                const tokens = await refRes.json()
-                                localStorage.setItem('access_token', tokens.access)
-                                h = { Authorization: `Bearer ${tokens.access}` }
-                                res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
-                              }
-                            }
-                          }
-                          if (!res.ok) throw new Error('Modify failed')
+                          const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE' }, onLogout)
+                          if (!res || !res.ok) throw new Error('Modify failed')
                           showToast('Vous pouvez maintenant téléverser une nouvelle version.', 'success')
                           loadSubmittedDocsDir()
                         } catch (e) {
@@ -3186,12 +3072,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       const fd = new FormData()
                       fd.append('document_type', selDocTypeId)
                       fd.append('file', docFile)
-                      const res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/`, {
+                      const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/`, {
                         method: 'POST',
-                        headers: token ? { Authorization: `Bearer ${token}` } : {},
                         body: fd,
-                      })
-                      if (!res.ok) throw new Error('Upload failed')
+                      }, onLogout)
+                      if (!res || !res.ok) throw new Error('Upload failed')
                       showToast('Document téléversé avec succès. En attente de validation par la fédération.', 'success')
                       setDocFile(null)
                       setSelDocTypeId('')
@@ -3757,9 +3642,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               let url = `${API}/enfants/`
                               let method = 'POST'
                               if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
-                              let token = localStorage.getItem('access_token')
-                              if (!token) { if (btn) btn.classList.remove('dash-prof-btn-loading'); alert('Session expirée'); return }
-
                               const dataToFile = (dataurl, name) => {
                                 const arr = dataurl.split(',')
                                 const mime = arr[0].match(/:(.*?);/)[1]
@@ -3784,7 +3666,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 fd.append('photo', dataToFile(photoData, 'photo.jpg'))
                                 fd.append('extra_data', JSON.stringify(editingChild ? editingChild.extra_data || {} : {}))
                                 body = fd
-                                headers = { Authorization: `Bearer ${token}` }
+                                headers = {}
                               } else {
                                 body = JSON.stringify({
                                   ...(uid ? { uid } : {}),
@@ -3796,21 +3678,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   ...(adresse ? { adresse } : {}),
                                   extra_data: editingChild ? editingChild.extra_data || {} : {},
                                 })
-                                headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+                                headers = { 'Content-Type': 'application/json' }
                               }
 
                               try {
-                                let res = await fetch(url, { method, headers, body })
-                                if (res.status === 401) {
-                                  const refresh = localStorage.getItem('refresh_token')
-                                  if (!refresh) throw new Error('Session expirée')
-                                  const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                                  if (!refRes.ok) throw new Error('Session expirée')
-                                  const tokens = await refRes.json()
-                                  localStorage.setItem('access_token', tokens.access)
-                                  headers.Authorization = `Bearer ${tokens.access}`
-                                  res = await fetch(url, { method, headers, body })
-                                }
+                                const res = await apiFetch(url, { method, headers, body }, onLogout)
+                                if (!res) return
                                 if (!res.ok) {
                                   const errData = await res.json().catch(() => ({}))
                                   const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'
@@ -3829,8 +3702,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     ? (() => { const f = new FormData(); f.append('uid', uidRef.current); for (const [k,v] of body.entries()) if (k !== 'uid') f.append(k,v); return f })()
                                     : { ...JSON.parse(body), uid: uidRef.current }
                                   try {
-                                    let retry = await fetch(`${API}/enfants/`, { method: 'POST', headers: hasPhoto ? { Authorization: `Bearer ${localStorage.getItem('access_token')}` } : { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` }, body: newBody })
-                                    if (retry.ok) {
+                                    const retry = await apiFetch(`${API}/enfants/`, { method: 'POST', headers: hasPhoto ? {} : { 'Content-Type': 'application/json' }, body: newBody }, onLogout)
+                                    if (retry && retry.ok) {
                                       const saved = await retry.json()
                                       setRegisteredChildren(prev => [...prev, saved])
                                       if (btn) btn.classList.remove('dash-prof-btn-loading')
@@ -3960,19 +3833,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           let url = `${API}/enfants/`
                           let method = 'POST'
                           if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
-                          let token = localStorage.getItem('access_token')
-                          if (!token) { if (btn) btn.classList.remove('dash-fam-btn-loading'); alert('Session expirée'); return }
                           try {
-                            let res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) })
-                            if (res.status === 401) {
-                              const refresh = localStorage.getItem('refresh_token')
-                              if (!refresh) throw new Error('Session expirée')
-                              const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                              if (!refRes.ok) throw new Error('Session expirée')
-                              const tokens = await refRes.json()
-                              localStorage.setItem('access_token', tokens.access)
-                              res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokens.access}` }, body: JSON.stringify(body) })
-                            }
+                            const res = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, onLogout)
+                            if (!res) return
                             if (!res.ok) { const errData = await res.json().catch(() => ({})); const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'; throw new Error(errMsg) }
                             const saved = await res.json()
                             setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
@@ -3982,8 +3845,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             if (method === 'POST' && e.message?.includes('dupliquée')) {
                               uidRef.current = genChildUid(); body.uid = uidRef.current
                               try {
-                                let retry = await fetch(`${API}/enfants/`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` }, body: JSON.stringify(body) })
-                                if (retry.ok) { const saved = await retry.json(); setRegisteredChildren(prev => [...prev, saved]); if (btn) btn.classList.remove('dash-fam-btn-loading'); setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null); setEditingChild(saved); migratePhoto(uidRef.current, saved.uid); uidRef.current = saved.uid; return }
+                                const retry = await apiFetch(`${API}/enfants/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, onLogout)
+                                if (retry && retry.ok) { const saved = await retry.json(); setRegisteredChildren(prev => [...prev, saved]); if (btn) btn.classList.remove('dash-fam-btn-loading'); setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null); setEditingChild(saved); migratePhoto(uidRef.current, saved.uid); uidRef.current = saved.uid; return }
                               } catch (_) {}
                             }
                             if (btn) btn.classList.remove('dash-fam-btn-loading')
@@ -4065,23 +3928,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           if (val) docs[f.label] = val
                         })
                         const extra_data = editingChild ? { ...editingChild.extra_data, documents: docs } : { documents: docs }
-                        const token = localStorage.getItem('access_token')
-                        if (!token) { if (btn) btn.classList.remove('dash-docs-btn-loading'); alert('Session expirée'); return }
                         try {
                           let url = `${API}/enfants/`
                           let method = 'POST'
                           if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
                           const body = JSON.stringify({ uid, extra_data })
-                          let res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body })
-                          if (res.status === 401) {
-                            const refresh = localStorage.getItem('refresh_token')
-                            if (!refresh) throw new Error('Session expirée')
-                            const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                            if (!refRes.ok) throw new Error('Session expirée')
-                            const tokens = await refRes.json()
-                            localStorage.setItem('access_token', tokens.access)
-                            res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokens.access}` }, body })
-                          }
+                          const res = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body }, onLogout)
+                          if (!res) return
                           if (!res.ok) throw new Error('Erreur')
                           const saved = await res.json()
                           setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
@@ -4415,9 +4268,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               const extra_data = { ...(editingChild?.extra_data || {}), medical }
                               const photoDataUrl = localStorage.getItem('cdo_child_photo_' + uid)
                               try {
-                                let token = localStorage.getItem('access_token')
-                                if (!token) { alert('Session expirée'); setSavingHealth(false); return }
-
                                 const buildBody = () => {
                                   const nom = editingChild?.nom || ''
                                   const prenom = editingChild?.prenom || ''
@@ -4442,20 +4292,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                                 const send = async () => {
                                   const { body, headers: eh } = buildBody()
-                                  const hdrs = { Authorization: `Bearer ${token}`, ...eh }
-                                  let res = await fetch(url, { method, headers: hdrs, body })
-                                  if (res.status === 401) {
-                                    const refresh = localStorage.getItem('refresh_token')
-                                    if (!refresh) throw new Error('Session expirée')
-                                    const rr = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                                    if (!rr.ok) throw new Error('Session expirée')
-                                    const t2 = await rr.json(); localStorage.setItem('access_token', t2.access); hdrs.Authorization = `Bearer ${t2.access}`
-                                    res = await fetch(url, { method, headers: hdrs, body })
-                                  }
+                                  const res = await apiFetch(url, { method, headers: eh, body }, onLogout)
+                                  if (!res) return null
                                   if (!res.ok) { const ed = await res.json().catch(()=>({})); throw new Error(ed.error || Object.values(ed).flat().join(' ') || 'Erreur') }
                                   return res.json()
                                 }
                                 const saved = await send()
+                                if (!saved) return
                                 setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
                                 setEditingChild(saved)
                                 setSavingHealth(false)
@@ -4759,8 +4602,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               const extra_data = { ...(editingChild?.extra_data || {}), education }
                               const photoDataUrl = localStorage.getItem('cdo_child_photo_' + uid)
                               try {
-                                let token = localStorage.getItem('access_token')
-                                if (!token) { alert('Session expirée'); setSavingEdu(false); return }
                                 const buildBody = () => {
                                   const nom = editingChild?.nom || ''
                                   const prenom = editingChild?.prenom || ''
@@ -4783,20 +4624,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
                                 const send = async () => {
                                   const { body, headers: eh } = buildBody()
-                                  const hdrs = { Authorization: `Bearer ${token}`, ...eh }
-                                  let res = await fetch(url, { method, headers: hdrs, body })
-                                  if (res.status === 401) {
-                                    const refresh = localStorage.getItem('refresh_token')
-                                    if (!refresh) throw new Error('Session expirée')
-                                    const rr = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                                    if (!rr.ok) throw new Error('Session expirée')
-                                    const t2 = await rr.json(); localStorage.setItem('access_token', t2.access); hdrs.Authorization = `Bearer ${t2.access}`
-                                    res = await fetch(url, { method, headers: hdrs, body })
-                                  }
+                                  const res = await apiFetch(url, { method, headers: eh, body }, onLogout)
+                                  if (!res) return null
                                   if (!res.ok) { const ed = await res.json().catch(()=>({})); throw new Error(ed.error || Object.values(ed).flat().join(' ') || 'Erreur') }
                                   return res.json()
                                 }
                                 const saved = await send()
+                                if (!saved) return
                                 setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
                                 setEditingChild(saved)
                                 setSavingEdu(false)
@@ -4938,22 +4772,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             method = 'PUT'
                           }
 
-                          let token = localStorage.getItem('access_token')
-                          if (!token) { alert('Session expirée'); return }
                           const send = async () => {
                             const { body, headers: extraHeaders } = buildBody()
-                            const allHeaders = { Authorization: `Bearer ${token}`, ...extraHeaders }
-                            let res = await fetch(url, { method, headers: allHeaders, body })
-                            if (res.status === 401) {
-                              const refresh = localStorage.getItem('refresh_token')
-                              if (!refresh) throw new Error('Session expirée')
-                              const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                              if (!refRes.ok) throw new Error('Session expirée')
-                              const tokens = await refRes.json()
-                              localStorage.setItem('access_token', tokens.access)
-                              allHeaders.Authorization = `Bearer ${tokens.access}`
-                              res = await fetch(url, { method, headers: allHeaders, body })
-                            }
+                            const res = await apiFetch(url, { method, headers: extraHeaders, body }, onLogout)
+                            if (!res) return null
                             if (!res.ok) {
                               const errData = await res.json().catch(() => ({}))
                               const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'
@@ -4963,6 +4785,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           }
                           try {
                             const saved = await send()
+                            if (!saved) return
                             setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
                             setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null)
                             setEditingChild(saved)
@@ -4972,10 +4795,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               uidRef.current = genChildUid()
                               try {
                                 const { body, headers: extraHeaders } = buildBody()
-                                const allHeaders2 = { Authorization: `Bearer ${localStorage.getItem('access_token')}`, ...extraHeaders }
                                 const retryBody = typeof body === 'string' ? JSON.stringify({ ...JSON.parse(body), uid: uidRef.current }) : (() => { const f = new FormData(); f.append('uid', uidRef.current); for (const [k,v] of body.entries()) if (k !== 'uid') f.append(k,v); return f })()
-                                const retryRes = await fetch(`${API}/enfants/`, { method: 'POST', headers: allHeaders2, body: retryBody })
-                                if (retryRes.ok) {
+                                const retryRes = await apiFetch(`${API}/enfants/`, { method: 'POST', headers: extraHeaders, body: retryBody }, onLogout)
+                                if (retryRes && retryRes.ok) {
                                   const saved = await retryRes.json()
                                   setRegisteredChildren(prev => [...prev, saved])
                                   setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null)
@@ -5389,11 +5211,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     </div>
                                     <button className="uc-btn-primary uc-btn-save" onClick={async () => {
                                       setUcSaving(true)
-                                      const token = localStorage.getItem('access_token')
                                       const body = JSON.stringify({ category: ucCategory, update_type: ucType, title: ucTitle, description: ucDescription, previous_value: ucPrevValue, new_value: ucNewValue, reason: ucReason, attachments: ucFiles.map(f => f.name) })
                                       try {
-                                        const res = await fetch(`${API}/enfants/${selectedRegChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }, body })
-                                        if (res.ok) { setUcSaving(false); setUcSuccess(true); setUcStep(4) }
+                                        const res = await apiFetch(`${API}/enfants/${selectedRegChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body }, onLogout)
+                                        if (res && res.ok) { setUcSaving(false); setUcSuccess(true); setUcStep(4) }
                                         else throw new Error()
                                       } catch {
                                         const updates = JSON.parse(localStorage.getItem('cdo_updates_' + selectedRegChild.uid) || '[]')
@@ -5906,10 +5727,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     const notes = [...(selectedRegChild.extra_data?.notes || []), { text, author: user.first_name + ' ' + user.last_name, time: new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) }]
                                     const extra_data = { ...(selectedRegChild.extra_data || {}), notes }
                                     const uid = selectedRegChild.uid
-                                    const token = localStorage.getItem('access_token')
-                                    if (!token) return
-                                    fetch(`${API}/enfants/${selectedRegChild.id}/`, { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ extra_data }) })
-                                      .then(r => r.ok ? r.json() : null)
+                                    apiFetch(`${API}/enfants/${selectedRegChild.id}/`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ extra_data }) }, onLogout)
+                                      .then(r => r && r.ok ? r.json() : null)
                                       .then(saved => { if (saved) { setSelectedRegChild(saved); setRegisteredChildren(prev => prev.map(c => c.id === saved.id ? saved : c)); document.getElementById('pd-note-input').value = '' } })
                                       .catch(() => {})
                                   }}>{t('pd_save_note') || 'Enregistrer'}</button>
@@ -6194,13 +6013,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               )}
                               {role === 'partner' && selectedProject.status === 'open' && (
                                 <button className="dash-form-save" onClick={async () => {
-                                  const token = localStorage.getItem('access_token')
-                                  if (!token) { alert(t('proj_login_required') || 'Connectez-vous pour postuler'); return }
                                   try {
-                                    const res = await fetch(`${API}/projets/${selectedProject.id}/apply/`, {
-                                      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                    const res = await apiFetch(`${API}/projets/${selectedProject.id}/apply/`, {
+                                      method: 'POST', headers: { 'Content-Type': 'application/json' },
                                       body: JSON.stringify({ message: '' }),
-                                    })
+                                    }, onLogout)
+                                    if (!res) return
                                     if (res.ok) alert(t('proj_applied') || 'Candidature envoyée avec succès !')
                                     else throw new Error()
                                   } catch { alert(t('proj_error') || 'Erreur lors de la candidature') }
@@ -6394,7 +6212,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               if (!title) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_title_required') || 'Veuillez entrer un titre'); return }
                               if (!desc) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_desc_required') || 'Veuillez entrer une description'); return }
                               if (!startDate || !endDate) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_start_end_required') || 'Veuillez sélectionner les dates de début et de fin'); return }
-                              const token = localStorage.getItem('access_token')
                               const body = new FormData()
                               body.append('type', projectTypeFilter)
                               body.append('title', title)
@@ -6404,11 +6221,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               body.append('end_date', endDate)
                               if (pdfFile && pdfFile.type === 'application/pdf') body.append('pdf_file', pdfFile)
                               try {
-                                const res = await fetch(`${API}/projets/`, {
+                                const res = await apiFetch(`${API}/projets/`, {
                                   method: 'POST',
-                                  headers: token ? { Authorization: `Bearer ${token}` } : {},
                                   body,
-                                })
+                                }, onLogout)
+                                if (!res) return
                                 if (!res.ok) { const e = await res.json().catch(() => ({ error: 'Erreur' })); throw new Error(e.error || 'Erreur') }
                                 const saved = await res.json()
                                 setOngoingProjects(prev => [saved, ...prev])
@@ -6665,8 +6482,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 </div>
                                 <select className="uc2-status-select" value={updateChild.status} onChange={e => {
                                   const newStatus = e.target.value
-                                  const token = localStorage.getItem('access_token')
-                                  fetch(`${API}/enfants/${updateChild.id}/`, { method:'PUT', headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }, body:JSON.stringify({ status: newStatus }) }).catch(() => {})
+                                  apiFetch(`${API}/enfants/${updateChild.id}/`, { method:'PUT', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ status: newStatus }) }, onLogout).catch(() => {})
                                   setUpdateChild(prev => ({ ...prev, status: newStatus }))
                                 }}>
                                   {['active','sick','hospitalized','healthy','enrolled','dropped_out','with_guardian','missing','at_risk','reunified','adopted','transferred','exited','deceased'].map(s => (
@@ -6785,11 +6601,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       for (const rf of requiredFields) { if (!uc2FormData[rf.key]?.trim()) { alert(rf.label + ' ' + (t('form_required')||'est requis')); return } }
                                       if (!uc2Reason.trim()) { alert(t('uc_required')||'Motif requis'); return }
                                       setUc2Saving(true)
-                                      const token = localStorage.getItem('access_token')
                                       const payload = { category: uc2Category, update_type: uc2Type, title: (t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' '))+' - '+updateChild.prenom+' '+updateChild.nom, description: JSON.stringify(uc2FormData), previous_value: '', new_value: JSON.stringify(uc2FormData), reason: uc2Reason+' | Priorité: '+uc2Priority+(uc2Comment ? ' | '+uc2Comment : ''), attachments: uc2Files.map(f => f.name) }
                                       try {
-                                        const res = await fetch(`${API}/enfants/${updateChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }, body:JSON.stringify(payload) })
-                                        if (res.ok) { setUc2Saving(false); setUc2Success(true) }
+                                        const res = await apiFetch(`${API}/enfants/${updateChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(payload) }, onLogout)
+                                        if (res && res.ok) { setUc2Saving(false); setUc2Success(true) }
                                         else throw new Error()
                                       } catch {
                                         const updates = JSON.parse(localStorage.getItem('cdo_updates_'+updateChild.uid)||'[]')
@@ -7814,13 +7629,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 assignments={fedAllAssignments}
                                 setUnassignConfirm={setUnassignConfirm}
                                 onAssigned={() => {
-                                  const token = localStorage.getItem('access_token')
                                   Promise.all([
-                                    fetch(`${API}/enfants/`, { headers: { Authorization: `Bearer ${token}` } }),
-                                    fetch(`${API}/assignments/`, { headers: { Authorization: `Bearer ${token}` } })
+                                    apiFetch(`${API}/enfants/`, {}, onLogout),
+                                    apiFetch(`${API}/assignments/`, {}, onLogout),
                                   ]).then(async ([cRes, aRes]) => {
-                                    if (cRes.ok) setFedAllChildren(await cRes.json())
-          if (aRes.ok) setFedAllAssignments(await aRes.json())
+                                    if (cRes && cRes.ok) setFedAllChildren(await cRes.json())
+                                    if (aRes && aRes.ok) setFedAllAssignments(await aRes.json())
                                   }).catch(() => {})
                                 }}
                               />
@@ -7964,7 +7778,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
             <p style={{ fontSize:'13px', color:'#94a3b8', margin:0 }}>Retirer l'assignation de <strong style={{color:'#f59e0b'}}>{unassignConfirm.childName}</strong> ?</p>
             <div style={{ display:'flex', gap:'12px', justifyContent:'center', marginTop:'8px' }}>
               <button type="button" onClick={() => setUnassignConfirm(null)} style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:10,color:'#94a3b8',fontSize:13,fontWeight:600,padding:'8px 24px',cursor:'pointer'}}>Annuler</button>
-              <button type="button" onClick={async()=>{const c=unassignConfirm;setUnassignConfirm(null);const token=localStorage.getItem('access_token');try{await fetch(API+'/assignments/'+c.assignmentId+'/',{method:'DELETE',headers:{Authorization:'Bearer '+token}});if(c.orphanageId){const r=await fetch(API+'/assignments/?orphanage_id='+c.orphanageId,{headers:{Authorization:'Bearer '+token}});if(r.ok)setOrphanageAssignments(await r.json())}if(c.onAssigned)c.onAssigned()}catch(_){}}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:13,fontWeight:600,padding:'8px 24px',cursor:'pointer'}}>Désassigner</button>
+              <button type="button" onClick={async()=>{const c=unassignConfirm;setUnassignConfirm(null);try{await apiFetch(API+'/assignments/'+c.assignmentId+'/',{method:'DELETE'},onLogout);if(c.orphanageId){const r=await apiFetch(API+'/assignments/?orphanage_id='+c.orphanageId,{},onLogout);if(r&&r.ok)setOrphanageAssignments(await r.json())}if(c.onAssigned)c.onAssigned()}catch(_){}}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:13,fontWeight:600,padding:'8px 24px',cursor:'pointer'}}>Désassigner</button>
             </div>
           </div>
         </div>
@@ -8018,13 +7832,13 @@ function ChildAssignmentForm({ API, ambassadors, children, assignments, onAssign
     }
     setLoading(true)
     setMsg('')
-    const token = localStorage.getItem('access_token')
     try {
-      const res = await fetch(`${API}/assignments/bulk/`, {
+      const res = await apiFetch(`${API}/assignments/bulk/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ child_ids: selChildren, ambassador_id: Number(selectedAmbassador), note }),
-      })
+      }, null)
+      if (!res) return
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Erreur d'assignation")
       setMsg(`✅ ${data.results.length} enfant(s) assigné(s) avec succès.`)
