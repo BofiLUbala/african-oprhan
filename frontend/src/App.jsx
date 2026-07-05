@@ -8036,7 +8036,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                         body: JSON.stringify(donationForm),
                       })
-                      if (res.status === 401) { onLogout(); return }
+                      if (res.status === 401) { setDonationSubmitting(false); onLogout(); return }
                       if (res.ok) {
                         const created = await res.json()
                         setDonations(prev => [created, ...prev])
@@ -8124,7 +8124,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                         body: JSON.stringify(incomeForm),
                       })
-                      if (res.status === 401) { onLogout(); return }
+                      if (res.status === 401) { setFinancesSubmitting(false); onLogout(); return }
                       if (res.ok) {
                         setIncomes(prev => [await res.json(), ...prev])
                         setIncomeForm({ source: '', amount: '', orphanage: '' })
@@ -8146,7 +8146,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                         body: JSON.stringify(expenseForm),
                       })
-                      if (res.status === 401) { onLogout(); return }
+                      if (res.status === 401) { setFinancesSubmitting(false); onLogout(); return }
                       if (res.ok) {
                         setExpenses(prev => [await res.json(), ...prev])
                         setExpenseForm({ category: '', amount: '', description: '', orphanage: '' })
@@ -8221,7 +8221,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                         body: JSON.stringify({ ...sponsorshipForm, child: childId }),
                       })
-                      if (res.status === 401) { onLogout(); return }
+                      if (res.status === 401) { setSponsorshipSubmitting(false); onLogout(); return }
                       if (res.ok) {
                         const created = await res.json()
                         setMySponsored(prev => [created, ...prev])
