@@ -931,14 +931,14 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: nid }),
-    }, onLogout).then(() => { setNotifications(prev => prev.map(n => n.id === nid ? { ...n, is_read: true } : n)) }).catch(() => {})
+    }, onLogout).then(r => { if (r) setNotifications(prev => prev.map(n => n.id === nid ? { ...n, is_read: true } : n)) }).catch(() => {})
   }
   const markAllRead = () => {
     apiFetch(`${API}/notifications/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mark_read: true }),
-    }, onLogout).then(() => { setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))) }).catch(() => {})
+    }, onLogout).then(r => { if (r) setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))) }).catch(() => {})
   }
 
   const notifCount = notifications.filter(n => !n.is_read).length
@@ -2036,7 +2036,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       } catch {}
     }, 350)
     return () => clearTimeout(t)
-  }, [childSearchQuery])
+  }, [childSearchQuery, onLogout])
 
   const deleteChild = async (child) => {
     try {
@@ -7833,6 +7833,7 @@ function ChildAssignmentForm({ API, ambassadors, children, assignments, onAssign
     setLoading(true)
     setMsg('')
     try {
+      // onLogout not available in this nested component — 401 returns null and bails silently
       const res = await apiFetch(`${API}/assignments/bulk/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
