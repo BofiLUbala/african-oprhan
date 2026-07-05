@@ -4,6 +4,32 @@ import './App.css'
 
 const API = 'http://localhost:8000/api'
 
+async function apiFetch(url, options = {}, onLogout = null) {
+  const access = localStorage.getItem('access_token')
+  const headers = { ...(options.headers || {}), Authorization: `Bearer ${access}` }
+  let res = await fetch(url, { ...options, headers })
+  if (res.status === 401) {
+    const refresh = localStorage.getItem('refresh_token')
+    if (refresh) {
+      const refRes = await fetch(`${API}/token/refresh/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh }),
+      })
+      if (refRes.ok) {
+        const tokens = await refRes.json()
+        localStorage.setItem('access_token', tokens.access)
+        const retryHeaders = { ...(options.headers || {}), Authorization: `Bearer ${tokens.access}` }
+        res = await fetch(url, { ...options, headers: retryHeaders })
+        return res
+      }
+    }
+    if (onLogout) onLogout()
+    return null
+  }
+  return res
+}
+
 const AFRICAN_COUNTRIES = [
   { code: "AO", name: "Angola" }, { code: "BJ", name: "Bénin" }, { code: "BW", name: "Botswana" },
   { code: "BF", name: "Burkina Faso" }, { code: "BI", name: "Burundi" }, { code: "CM", name: "Cameroun" },
@@ -803,22 +829,9 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
   /* ── Fetch notifications from API ── */
   const notifFetchRef = useRef(false)
   const fetchNotifications = async () => {
-    const t = localStorage.getItem('access_token')
-    if (!t) return
     try {
-      let res = await fetch(`${API}/notifications/`, { headers: { Authorization: `Bearer ${t}` } })
-      if (res.status === 401) {
-        const refresh = localStorage.getItem('refresh_token')
-        if (refresh) {
-          const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-          if (refRes.ok) {
-            const tokens = await refRes.json()
-            localStorage.setItem('access_token', tokens.access)
-            res = await fetch(`${API}/notifications/`, { headers: { Authorization: `Bearer ${tokens.access}` } })
-          }
-        }
-      }
-      if (res.ok) setNotifications(await res.json())
+      const res = await apiFetch(`${API}/notifications/`)
+      if (res && res.ok) setNotifications(await res.json())
     } catch {}
   }
   useEffect(() => {
@@ -1738,29 +1751,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   useEffect(() => {
     if (activeKey !== 'documents' || role !== 'director') return
     const loadDocs = async () => {
-      const token = localStorage.getItem('access_token')
-      if (!token) return
-      const fetchWithAuth = async (url) => {
-        let res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-        if (res.status === 401) {
-          const refresh = localStorage.getItem('refresh_token')
-          if (refresh) {
-            const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-            if (refRes.ok) {
-              const tokens = await refRes.json()
-              localStorage.setItem('access_token', tokens.access)
-              res = await fetch(url, { headers: { Authorization: `Bearer ${tokens.access}` } })
-            }
-          }
-        }
-        return res
-      }
-      fetchWithAuth(`${API}/document-types/`).then(r => r.ok ? r.json() : []).then(d => setDocTypes(d)).catch(() => {})
+      apiFetch(`${API}/document-types/`).then(r => r && r.ok ? r.json() : []).then(d => setDocTypes(d)).catch(() => {})
       const reqs = orpReqRef.current
       const myOrp = reqs.find(o => String(o.director) === String(user.id))
       if (myOrp) {
         setDocLoading(true)
-        fetchWithAuth(`${API}/orphanages/${myOrp.id}/documents/`).then(r => r.ok ? r.json() : []).then(d => setSubmittedDocs(d)).catch(() => {}).finally(() => setDocLoading(false))
+        apiFetch(`${API}/orphanages/${myOrp.id}/documents/`).then(r => r && r.ok ? r.json() : []).then(d => setSubmittedDocs(d)).catch(() => {}).finally(() => setDocLoading(false))
       }
     }
     loadDocs()
@@ -2589,25 +2585,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     const points_to_update = fedDocPoints[`${orpId}_${docId}`] || ''
                     setFedDocReviewLoading(true)
                     try {
-                      const headers = { 'Content-Type': 'application/json', ...authHeaders }
                       const body = JSON.stringify({ action, feedback, points_to_update })
-                      let res = await fetch(`${API}/orphanages/${orpId}/documents/${docId}/review/`, {
-                        method: 'POST', headers, body,
-                      })
-                      if (res.status === 401) {
-                        const refresh = localStorage.getItem('refresh_token')
-                        if (refresh) {
-                          const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                          if (refRes.ok) {
-                            const tokens = await refRes.json()
-                            localStorage.setItem('access_token', tokens.access)
-                            headers.Authorization = `Bearer ${tokens.access}`
-                            res = await fetch(`${API}/orphanages/${orpId}/documents/${docId}/review/`, {
-                              method: 'POST', headers, body,
-                            })
-                          }
-                        }
-                      }
+                      const res = await apiFetch(`${API}/orphanages/${orpId}/documents/${docId}/review/`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+                      }, onLogout)
+                      if (!res) return
                       if (!res.ok) throw new Error('Review failed')
                       const labels = { accept:'Accepté', request_changes:'Modifications demandées', reject:'Refusé' }
                       showToast(`Document ${labels[action] || action} avec succès.`, 'success')
@@ -3043,41 +3025,15 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const myDocOrp = directorOrpRec()
                   const token = localStorage.getItem('access_token')
                   const loadDocTypesDir = async () => {
-                    let h = token ? { Authorization: `Bearer ${token}` } : {}
-                    let res = await fetch(`${API}/document-types/`, { headers: h })
-                    if (res.status === 401) {
-                      const refresh = localStorage.getItem('refresh_token')
-                      if (refresh) {
-                        const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                        if (refRes.ok) {
-                          const tokens = await refRes.json()
-                          localStorage.setItem('access_token', tokens.access)
-                          h = { Authorization: `Bearer ${tokens.access}` }
-                          res = await fetch(`${API}/document-types/`, { headers: h })
-                        }
-                      }
-                    }
-                    if (res.ok) setDocTypes(await res.json())
+                    const res = await apiFetch(`${API}/document-types/`)
+                    if (res && res.ok) setDocTypes(await res.json())
                   }
                   const loadSubmittedDocsDir = async () => {
                     if (!myDocOrp) return
                     setDocLoading(true)
                     try {
-                      let h = token ? { Authorization: `Bearer ${token}` } : {}
-                      let res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/`, { headers: h })
-                      if (res.status === 401) {
-                        const refresh = localStorage.getItem('refresh_token')
-                        if (refresh) {
-                          const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                          if (refRes.ok) {
-                            const tokens = await refRes.json()
-                            localStorage.setItem('access_token', tokens.access)
-                            h = { Authorization: `Bearer ${tokens.access}` }
-                            res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/`, { headers: h })
-                          }
-                        }
-                      }
-                      if (res.ok) { const d = await res.json(); setSubmittedDocs(d); setDocResetKey(k => k + 1) }
+                      const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/`)
+                      if (res && res.ok) { const d = await res.json(); setSubmittedDocs(d); setDocResetKey(k => k + 1) }
                       else throw new Error('Erreur chargement')
                     } catch (e) {
                       showToast('Impossible de charger les documents.', 'error')
@@ -3103,20 +3059,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       onConfirm: async () => {
                         setDocConfirmModal(null)
                         try {
-                          let h = token ? { Authorization: `Bearer ${token}` } : {}
-                          let res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
-                          if (res.status === 401) {
-                            const refresh = localStorage.getItem('refresh_token')
-                            if (refresh) {
-                              const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                              if (refRes.ok) {
-                                const tokens = await refRes.json()
-                                localStorage.setItem('access_token', tokens.access)
-                                h = { Authorization: `Bearer ${tokens.access}` }
-                                res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
-                              }
-                            }
-                          }
+                          const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE' })
+                          if (!res) return
                           if (!res.ok) throw new Error('Delete failed')
                           showToast('Document supprimé.', 'success')
                           loadSubmittedDocsDir()
@@ -3135,20 +3079,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       onConfirm: async () => {
                         setDocConfirmModal(null)
                         try {
-                          let h = token ? { Authorization: `Bearer ${token}` } : {}
-                          let res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
-                          if (res.status === 401) {
-                            const refresh = localStorage.getItem('refresh_token')
-                            if (refresh) {
-                              const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                              if (refRes.ok) {
-                                const tokens = await refRes.json()
-                                localStorage.setItem('access_token', tokens.access)
-                                h = { Authorization: `Bearer ${tokens.access}` }
-                                res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE', headers: h })
-                              }
-                            }
-                          }
+                          const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE' })
+                          if (!res) return
                           if (!res.ok) throw new Error('Modify failed')
                           showToast('Vous pouvez maintenant téléverser une nouvelle version.', 'success')
                           loadSubmittedDocsDir()
@@ -3780,17 +3712,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               }
 
                               try {
-                                let res = await fetch(url, { method, headers, body })
-                                if (res.status === 401) {
-                                  const refresh = localStorage.getItem('refresh_token')
-                                  if (!refresh) throw new Error('Session expirée')
-                                  const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                                  if (!refRes.ok) throw new Error('Session expirée')
-                                  const tokens = await refRes.json()
-                                  localStorage.setItem('access_token', tokens.access)
-                                  headers.Authorization = `Bearer ${tokens.access}`
-                                  res = await fetch(url, { method, headers, body })
-                                }
+                                const res = await apiFetch(url, { method, headers, body })
+                                if (!res) throw new Error('Session expirée')
                                 if (!res.ok) {
                                   const errData = await res.json().catch(() => ({}))
                                   const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'
@@ -3940,19 +3863,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           let url = `${API}/enfants/`
                           let method = 'POST'
                           if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
-                          let token = localStorage.getItem('access_token')
-                          if (!token) { if (btn) btn.classList.remove('dash-fam-btn-loading'); alert('Session expirée'); return }
                           try {
-                            let res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) })
-                            if (res.status === 401) {
-                              const refresh = localStorage.getItem('refresh_token')
-                              if (!refresh) throw new Error('Session expirée')
-                              const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                              if (!refRes.ok) throw new Error('Session expirée')
-                              const tokens = await refRes.json()
-                              localStorage.setItem('access_token', tokens.access)
-                              res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokens.access}` }, body: JSON.stringify(body) })
-                            }
+                            const res = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                            if (!res) throw new Error('Session expirée')
                             if (!res.ok) { const errData = await res.json().catch(() => ({})); const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'; throw new Error(errMsg) }
                             const saved = await res.json()
                             setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
@@ -4045,23 +3958,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           if (val) docs[f.label] = val
                         })
                         const extra_data = editingChild ? { ...editingChild.extra_data, documents: docs } : { documents: docs }
-                        const token = localStorage.getItem('access_token')
-                        if (!token) { if (btn) btn.classList.remove('dash-docs-btn-loading'); alert('Session expirée'); return }
                         try {
                           let url = `${API}/enfants/`
                           let method = 'POST'
                           if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
                           const body = JSON.stringify({ uid, extra_data })
-                          let res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body })
-                          if (res.status === 401) {
-                            const refresh = localStorage.getItem('refresh_token')
-                            if (!refresh) throw new Error('Session expirée')
-                            const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                            if (!refRes.ok) throw new Error('Session expirée')
-                            const tokens = await refRes.json()
-                            localStorage.setItem('access_token', tokens.access)
-                            res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokens.access}` }, body })
-                          }
+                          const res = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body })
+                          if (!res) throw new Error('Session expirée')
                           if (!res.ok) throw new Error('Erreur')
                           const saved = await res.json()
                           setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
@@ -4422,16 +4325,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                                 const send = async () => {
                                   const { body, headers: eh } = buildBody()
-                                  const hdrs = { Authorization: `Bearer ${token}`, ...eh }
-                                  let res = await fetch(url, { method, headers: hdrs, body })
-                                  if (res.status === 401) {
-                                    const refresh = localStorage.getItem('refresh_token')
-                                    if (!refresh) throw new Error('Session expirée')
-                                    const rr = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                                    if (!rr.ok) throw new Error('Session expirée')
-                                    const t2 = await rr.json(); localStorage.setItem('access_token', t2.access); hdrs.Authorization = `Bearer ${t2.access}`
-                                    res = await fetch(url, { method, headers: hdrs, body })
-                                  }
+                                  const res = await apiFetch(url, { method, headers: eh, body })
+                                  if (!res) throw new Error('Session expirée')
                                   if (!res.ok) { const ed = await res.json().catch(()=>({})); throw new Error(ed.error || Object.values(ed).flat().join(' ') || 'Erreur') }
                                   return res.json()
                                 }
@@ -4763,16 +4658,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
                                 const send = async () => {
                                   const { body, headers: eh } = buildBody()
-                                  const hdrs = { Authorization: `Bearer ${token}`, ...eh }
-                                  let res = await fetch(url, { method, headers: hdrs, body })
-                                  if (res.status === 401) {
-                                    const refresh = localStorage.getItem('refresh_token')
-                                    if (!refresh) throw new Error('Session expirée')
-                                    const rr = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                                    if (!rr.ok) throw new Error('Session expirée')
-                                    const t2 = await rr.json(); localStorage.setItem('access_token', t2.access); hdrs.Authorization = `Bearer ${t2.access}`
-                                    res = await fetch(url, { method, headers: hdrs, body })
-                                  }
+                                  const res = await apiFetch(url, { method, headers: eh, body })
+                                  if (!res) throw new Error('Session expirée')
                                   if (!res.ok) { const ed = await res.json().catch(()=>({})); throw new Error(ed.error || Object.values(ed).flat().join(' ') || 'Erreur') }
                                   return res.json()
                                 }
@@ -4918,22 +4805,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             method = 'PUT'
                           }
 
-                          let token = localStorage.getItem('access_token')
-                          if (!token) { alert('Session expirée'); return }
                           const send = async () => {
                             const { body, headers: extraHeaders } = buildBody()
-                            const allHeaders = { Authorization: `Bearer ${token}`, ...extraHeaders }
-                            let res = await fetch(url, { method, headers: allHeaders, body })
-                            if (res.status === 401) {
-                              const refresh = localStorage.getItem('refresh_token')
-                              if (!refresh) throw new Error('Session expirée')
-                              const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-                              if (!refRes.ok) throw new Error('Session expirée')
-                              const tokens = await refRes.json()
-                              localStorage.setItem('access_token', tokens.access)
-                              allHeaders.Authorization = `Bearer ${tokens.access}`
-                              res = await fetch(url, { method, headers: allHeaders, body })
-                            }
+                            const res = await apiFetch(url, { method, headers: extraHeaders, body })
+                            if (!res) throw new Error('Session expirée')
                             if (!res.ok) {
                               const errData = await res.json().catch(() => ({}))
                               const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'
