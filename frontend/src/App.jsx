@@ -4,6 +4,33 @@ import './App.css'
 
 const API = 'http://localhost:8000/api'
 
+async function apiFetch(url, options = {}, onLogout) {
+  const token = localStorage.getItem('access_token')
+  const headers = { ...(options.headers || {}) }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  let res = await fetch(url, { ...options, headers })
+  if (res.status === 401) {
+    const refresh = localStorage.getItem('refresh_token')
+    if (refresh) {
+      const refRes = await fetch(`${API}/token/refresh/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh }),
+      })
+      if (refRes.ok) {
+        const tokens = await refRes.json()
+        localStorage.setItem('access_token', tokens.access)
+        headers['Authorization'] = `Bearer ${tokens.access}`
+        res = await fetch(url, { ...options, headers })
+        if (res.status !== 401) return res
+      }
+    }
+    if (onLogout) onLogout()
+    return null
+  }
+  return res
+}
+
 const AFRICAN_COUNTRIES = [
   { code: "AO", name: "Angola" }, { code: "BJ", name: "Bénin" }, { code: "BW", name: "Botswana" },
   { code: "BF", name: "Burkina Faso" }, { code: "BI", name: "Burundi" }, { code: "CM", name: "Cameroun" },
@@ -803,22 +830,9 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
   /* ── Fetch notifications from API ── */
   const notifFetchRef = useRef(false)
   const fetchNotifications = async () => {
-    const t = localStorage.getItem('access_token')
-    if (!t) return
     try {
-      let res = await fetch(`${API}/notifications/`, { headers: { Authorization: `Bearer ${t}` } })
-      if (res.status === 401) {
-        const refresh = localStorage.getItem('refresh_token')
-        if (refresh) {
-          const refRes = await fetch(`${API}/token/refresh/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh }) })
-          if (refRes.ok) {
-            const tokens = await refRes.json()
-            localStorage.setItem('access_token', tokens.access)
-            res = await fetch(`${API}/notifications/`, { headers: { Authorization: `Bearer ${tokens.access}` } })
-          }
-        }
-      }
-      if (res.ok) setNotifications(await res.json())
+      const res = await apiFetch(`${API}/notifications/`, {}, onLogout)
+      if (res && res.ok) setNotifications(await res.json())
     } catch {}
   }
   useEffect(() => {
@@ -2034,22 +2048,28 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
   useEffect(() => {
     const fetchChildren = async () => {
-      let token = localStorage.getItem('access_token')
-      if (!token) return
       try {
-        const res = await fetch(`${API}/enfants/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setRegisteredChildren(data)
-        }
+        const res = await apiFetch(`${API}/enfants/`, {}, onLogout)
+        if (res && res.ok) setRegisteredChildren(await res.json())
       } catch (err) {
         console.error('Failed to fetch children:', err)
       }
     }
     fetchChildren()
   }, [activeKey])
+
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      const url = childSearchQuery.trim()
+        ? `${API}/enfants/?search=${encodeURIComponent(childSearchQuery.trim())}`
+        : `${API}/enfants/`
+      try {
+        const res = await apiFetch(url, {}, onLogout)
+        if (res && res.ok) setRegisteredChildren(await res.json())
+      } catch {}
+    }, 350)
+    return () => clearTimeout(t)
+  }, [childSearchQuery])
 
   const deleteChild = async (child) => {
     let token = localStorage.getItem('access_token')

@@ -78,6 +78,13 @@ def child_list(request):
             ).select_related("orphanage").order_by("-created_at")
         else:
             enfants = Child.objects.filter(created_by=user).order_by("-created_at")
+        search = request.query_params.get('search', '').strip()
+        if search:
+            enfants = enfants.filter(
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search) |
+                Q(uid__icontains=search)
+            )
         serializer = ChildSerializer(enfants, many=True)
         return Response(serializer.data)
 
