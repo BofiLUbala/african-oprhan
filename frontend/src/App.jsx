@@ -1136,6 +1136,16 @@ function genChildUid(exclude = new Set()) {
 /* ===== MESSAGING (EclatSocialApp removed — replaced by inline IIFE in DashboardShell) ===== */
 
 /* ===== SVG CHART HELPERS ===== */
+function EmptyState({ icon, title, sub }) {
+  return (
+    <div className="empty-state">
+      <div className="empty-state-icon">{icon || '📭'}</div>
+      <div className="empty-state-title">{title || 'Aucun élément'}</div>
+      {sub && <div className="empty-state-sub">{sub}</div>}
+    </div>
+  )
+}
+
 function BarChart({ data, valueKey, labelKey, color, unit }) {
   const u = unit || ''
   const values = data.map(d => d[valueKey] || 0)
@@ -7871,28 +7881,37 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         )}
 
                         <div className="msg-conv-list">
-                          {msgLoading && <div style={{ padding: '24px', textAlign: 'center', color: '#94A3B8' }}>Chargement…</div>}
-                          {!msgLoading && msgConversations.length === 0 && (
-                            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94A3B8', fontSize: '14px' }}>Aucune conversation</div>
-                          )}
-                          {msgConversations.map(conv => {
-                            const other = otherParticipant(conv)
-                            const isActive = msgActiveConv?.id === conv.id
-                            const hasUnread = conv.unread_count > 0
-                            return (
-                              <div key={conv.id} className={`msg-conv-item${isActive ? ' active' : ''}`} onClick={() => loadConvMessages(conv)}>
-                                <div className="msg-avatar" style={{ background: avatarColor(other.full_name) }}>{other.initials}</div>
-                                <div className="msg-conv-info">
-                                  <div className={`msg-conv-name${hasUnread ? ' unread' : ''}`}>{other.full_name}</div>
-                                  <div className="msg-conv-preview">{conv.last_message?.content?.slice(0, 40) || 'Aucun message'}</div>
+                          {msgLoading
+                            ? [1,2,3].map(i => (
+                                <div key={i} className="msg-conv-item" style={{ pointerEvents:'none' }}>
+                                  <div className="msg-avatar" style={{ background: 'var(--border-card)' }} />
+                                  <div className="msg-conv-info">
+                                    <div className="skel-line" style={{ width: '60%', marginBottom: 6 }} />
+                                    <div className="skel-line" style={{ width: '80%' }} />
+                                  </div>
                                 </div>
-                                <div className="msg-conv-meta">
-                                  <span className="msg-conv-time">{msgTimeAgo(conv.last_message?.created_at || conv.updated_at)}</span>
-                                  {hasUnread && <span className="msg-unread-badge">{conv.unread_count}</span>}
-                                </div>
-                              </div>
-                            )
-                          })}
+                              ))
+                            : msgConversations.length === 0
+                              ? <EmptyState icon="💬" title="Aucune conversation" sub="Commencez une nouvelle conversation." />
+                              : msgConversations.map(conv => {
+                                  const other = otherParticipant(conv)
+                                  const isActive = msgActiveConv?.id === conv.id
+                                  const hasUnread = conv.unread_count > 0
+                                  return (
+                                    <div key={conv.id} className={`msg-conv-item${isActive ? ' active' : ''}`} onClick={() => loadConvMessages(conv)}>
+                                      <div className="msg-avatar" style={{ background: avatarColor(other.full_name) }}>{other.initials}</div>
+                                      <div className="msg-conv-info">
+                                        <div className={`msg-conv-name${hasUnread ? ' unread' : ''}`}>{other.full_name}</div>
+                                        <div className="msg-conv-preview">{conv.last_message?.content?.slice(0, 40) || 'Aucun message'}</div>
+                                      </div>
+                                      <div className="msg-conv-meta">
+                                        <span className="msg-conv-time">{msgTimeAgo(conv.last_message?.created_at || conv.updated_at)}</span>
+                                        {hasUnread && <span className="msg-unread-badge">{conv.unread_count}</span>}
+                                      </div>
+                                    </div>
+                                  )
+                                })
+                          }
                         </div>
                       </div>
 
@@ -8057,7 +8076,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       {donationsLoading ? (
                         <div className="dash-empty">Chargement...</div>
                       ) : donations.length === 0 ? (
-                        <div className="dash-empty">Aucun don trouvé.</div>
+                        <EmptyState icon="💝" title="Aucun don enregistré" sub="Les dons apparaîtront ici une fois soumis." />
                       ) : (
                         <div className="dash-table-wrap">
                           <table className="dash-table">
@@ -8147,7 +8166,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <button type="submit" className="btn btn-primary btn-sm">Ajouter</button>
                             </form>
                           )}
-                          {incomes.length === 0 ? <div className="dash-empty">Aucun revenu enregistré.</div> : (
+                          {incomes.length === 0 ? <EmptyState icon="💰" title="Aucun revenu enregistré" sub="Les revenus apparaîtront ici." /> : (
                             <table className="dash-table"><thead><tr><th>Date</th><th>Source</th><th>Montant</th><th>Orphelinat</th></tr></thead>
                             <tbody>{incomes.map(r => <tr key={r.id}><td>{r.date}</td><td>{r.source}</td><td>{r.amount}</td><td>{r.orphanage_name || '—'}</td></tr>)}</tbody></table>
                           )}
@@ -8163,7 +8182,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <button type="submit" className="btn btn-primary btn-sm">Ajouter</button>
                             </form>
                           )}
-                          {expenses.length === 0 ? <div className="dash-empty">Aucune dépense enregistrée.</div> : (
+                          {expenses.length === 0 ? <EmptyState icon="📊" title="Aucune dépense enregistrée" sub="Les dépenses apparaîtront ici." /> : (
                             <table className="dash-table"><thead><tr><th>Date</th><th>Catégorie</th><th>Montant</th><th>Description</th><th>Orphelinat</th></tr></thead>
                             <tbody>{expenses.map(d => <tr key={d.id}><td>{d.date}</td><td>{d.category}</td><td>{d.amount}</td><td>{d.description || '—'}</td><td>{d.orphanage_name || '—'}</td></tr>)}</tbody></table>
                           )}
@@ -8262,7 +8281,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           )}
                         </>
                       ) : isSponsorRole && parrainagesTab === 'mes-parrainages' ? (
-                        mySponsored.length === 0 ? <div className="dash-empty">Vous n'avez pas encore de filleul.</div> : (
+                        mySponsored.length === 0 ? <EmptyState icon="🤝" title="Aucun parrainage" sub="Les parrainages actifs apparaîtront ici." /> : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             {mySponsored.map(s => (
                               <div key={s.id} className="dash-card">
@@ -8295,7 +8314,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           </div>
                         )
                       ) : (
-                        mySponsored.length === 0 ? <div className="dash-empty">Aucun parrainage pour cet orphelinat.</div> : (
+                        mySponsored.length === 0 ? <EmptyState icon="🤝" title="Aucun parrainage" sub="Les parrainages pour cet orphelinat apparaîtront ici." /> : (
                           <table className="dash-table">
                             <thead><tr><th>Enfant</th><th>Parrain</th><th>Type</th><th>Montant</th><th>Statut</th><th>Depuis</th></tr></thead>
                             <tbody>{mySponsored.map(s => <tr key={s.id}><td>{s.child_name}</td><td>{s.sponsor_name}</td><td>{s.sponsorship_type_label}</td><td>{s.amount}</td><td>{s.status_label}</td><td>{s.start_date}</td></tr>)}</tbody>

@@ -5112,3 +5112,14 @@ select.dash-prof-input option { background:#1e293b; color:#e2e8f0; }
 .toast-error { background: #dc2626; color: #fff; }
 .toast-icon { font-size: 16px; font-weight: 700; flex-shrink: 0; }
 .toast-msg { flex: 1; line-height: 1.4; }
+
+/* ===== EMPTY STATES ===== */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; text-align: center; }
+.empty-state-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.6; }
+.empty-state-title { font-size: 15px; font-weight: 600; color: var(--text-body); margin-bottom: 6px; }
+.empty-state-sub { font-size: 13px; color: var(--text-muted); max-width: 280px; line-height: 1.5; }
+
+/* ===== SKELETON LOADER ===== */
+.skel-line { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--border-card) 25%, rgba(255,255,255,0.05) 50%, var(--border-card) 75%); background-size: 200% 100%; animation: skelShimmer 1.4s infinite; }
+@keyframes skelShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.skel-card { padding: 16px; border-radius: 10px; background: var(--bg-card); border: 1px solid var(--border-card); display: flex; flex-direction: column; gap: 10px; }
