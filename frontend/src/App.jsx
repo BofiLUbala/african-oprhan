@@ -91,12 +91,14 @@ export default function App() {
     const rolesWithDashboard = ['director', 'ambassador', 'supermaster', 'federation', 'partner', 'auditor']
     if (rolesWithDashboard.includes(roleLower)) {
       return (
-        <LangProvider>
-          <div className="app">
-            <DashboardHeader user={user} roleLower={roleLower} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} activeKey={activeKey} subKey={subKey} setActiveKey={setActiveKey} setSubKey={setSubKey} />
-            <main><DashboardShell user={user} role={roleLower} onLogout={logout} activeKey={activeKey} setActiveKey={setActiveKey} subKey={subKey} setSubKey={setSubKey} /></main>
-          </div>
-        </LangProvider>
+        <ToastProvider>
+          <LangProvider>
+            <div className="app">
+              <DashboardHeader user={user} roleLower={roleLower} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} activeKey={activeKey} subKey={subKey} setActiveKey={setActiveKey} setSubKey={setSubKey} />
+              <main><DashboardShell user={user} role={roleLower} onLogout={logout} activeKey={activeKey} setActiveKey={setActiveKey} subKey={subKey} setSubKey={setSubKey} /></main>
+            </div>
+          </LangProvider>
+        </ToastProvider>
       )
     }
   }
@@ -1134,6 +1136,16 @@ function genChildUid(exclude = new Set()) {
 /* ===== MESSAGING (EclatSocialApp removed — replaced by inline IIFE in DashboardShell) ===== */
 
 /* ===== SVG CHART HELPERS ===== */
+function EmptyState({ icon, title, sub }) {
+  return (
+    <div className="empty-state">
+      <div className="empty-state-icon">{icon || '📭'}</div>
+      <div className="empty-state-title">{title || 'Aucun élément'}</div>
+      {sub && <div className="empty-state-sub">{sub}</div>}
+    </div>
+  )
+}
+
 function BarChart({ data, valueKey, labelKey, color, unit }) {
   const u = unit || ''
   const values = data.map(d => d[valueKey] || 0)
@@ -1148,12 +1160,12 @@ function BarChart({ data, valueKey, labelKey, color, unit }) {
         return (
           <g key={i}>
             <rect x={x} y={y} width={BAR_W} height={barH} fill={color} rx={3} opacity={0.85} />
-            <text x={x + BAR_W / 2} y={H + 14} textAnchor="middle" fontSize={10} fill="#64748B">{d[labelKey]}</text>
+            <text x={x + BAR_W / 2} y={H + 14} textAnchor="middle" fontSize={10} fill="var(--text-muted)">{d[labelKey]}</text>
             {d[valueKey] > 0 && <text x={x + BAR_W / 2} y={y - 4} textAnchor="middle" fontSize={9} fill={color}>{u}{d[valueKey]}</text>}
           </g>
         )
       })}
-      <line x1={0} y1={H} x2={W} y2={H} stroke="#E2E8F0" strokeWidth={1} />
+      <line x1={0} y1={H} x2={W} y2={H} stroke="var(--border-card)" strokeWidth={1} />
     </svg>
   )
 }
@@ -1183,17 +1195,41 @@ function DonutChart({ data }) {
         {arcs.map((a, i) => (
           <path key={i} d={arcPath(a.start, a.angle, R)} fill="none" stroke={a.color} strokeWidth={STROKE} strokeLinecap="butt" />
         ))}
-        <text x={CX} y={CY} textAnchor="middle" dominantBaseline="central" fontSize={16} fontWeight={700} fill="#0F172A">{total}</text>
+        <text x={CX} y={CY} textAnchor="middle" dominantBaseline="central" fontSize={16} fontWeight={700} fill="var(--text-body)">{total}</text>
       </svg>
       <div>
         {data.map((d, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
             <span style={{ width: 10, height: 10, borderRadius: '50%', background: d.color, display: 'inline-block' }} />
-            <span style={{ fontSize: 12, color: '#374151' }}>{d.label}: <strong>{d.value}</strong></span>
+            <span style={{ fontSize: 12, color: 'var(--text-body)' }}>{d.label}: <strong>{d.value}</strong></span>
           </div>
         ))}
       </div>
     </div>
+  )
+}
+
+const ToastContext = React.createContext(null)
+function useToast() { return React.useContext(ToastContext) }
+function ToastProvider({ children }) {
+  const [toasts, setToasts] = React.useState([])
+  const addToast = React.useCallback((message, type) => {
+    const id = Date.now() + Math.random()
+    setToasts(prev => [...prev, { id, message, type: type || 'success' }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
+  }, [])
+  return (
+    <ToastContext.Provider value={addToast}>
+      {children}
+      <div className="toast-container">
+        {toasts.map(t => (
+          <div key={t.id} className={`toast toast-${t.type}`}>
+            <span className="toast-icon">{t.type === 'success' ? '✓' : '✕'}</span>
+            <span className="toast-msg">{t.message}</span>
+          </div>
+        ))}
+      </div>
+    </ToastContext.Provider>
   )
 }
 
@@ -1352,7 +1388,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [donationsLoading, setDonationsLoading] = useState(false)
   const [donationForm, setDonationForm] = useState({ donation_type: 'financier', amount: '', currency: 'USD', orphanage: '' })
   const [donationFormError, setDonationFormError] = useState('')
-  const [donationFormSuccess, setDonationFormSuccess] = useState('')
 
   /* ── Finances state ── */
   const [incomes, setIncomes] = useState([])
@@ -1362,7 +1397,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [incomeForm, setIncomeForm] = useState({ source: '', amount: '', orphanage: '' })
   const [expenseForm, setExpenseForm] = useState({ category: '', amount: '', description: '', orphanage: '' })
   const [financesFormError, setFinancesFormError] = useState('')
-  const [financesFormSuccess, setFinancesFormSuccess] = useState('')
 
   /* ── Parrainages state ── */
   const [sponsorableChildren, setSponsorableChildren] = useState([])
@@ -1371,7 +1405,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [parrainagesLoading, setParrainagesLoading] = useState(false)
   const [sponsorshipForm, setSponsorshipForm] = useState({ child: '', sponsorship_type: 'monthly', amount: '' })
   const [sponsorshipFormError, setSponsorshipFormError] = useState('')
-  const [sponsorshipFormSuccess, setSponsorshipFormSuccess] = useState('')
+  const [donationSubmitting, setDonationSubmitting] = useState(false)
+  const [financesSubmitting, setFinancesSubmitting] = useState(false)
+  const [sponsorshipSubmitting, setSponsorshipSubmitting] = useState(false)
+  const toast = useToast()
   const [selectedSponsorshipId, setSelectedSponsorshipId] = useState(null)
   const [sponsorshipPayments, setSponsorshipPayments] = useState([])
 
@@ -7847,28 +7884,37 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         )}
 
                         <div className="msg-conv-list">
-                          {msgLoading && <div style={{ padding: '24px', textAlign: 'center', color: '#94A3B8' }}>Chargement…</div>}
-                          {!msgLoading && msgConversations.length === 0 && (
-                            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94A3B8', fontSize: '14px' }}>Aucune conversation</div>
-                          )}
-                          {msgConversations.map(conv => {
-                            const other = otherParticipant(conv)
-                            const isActive = msgActiveConv?.id === conv.id
-                            const hasUnread = conv.unread_count > 0
-                            return (
-                              <div key={conv.id} className={`msg-conv-item${isActive ? ' active' : ''}`} onClick={() => loadConvMessages(conv)}>
-                                <div className="msg-avatar" style={{ background: avatarColor(other.full_name) }}>{other.initials}</div>
-                                <div className="msg-conv-info">
-                                  <div className={`msg-conv-name${hasUnread ? ' unread' : ''}`}>{other.full_name}</div>
-                                  <div className="msg-conv-preview">{conv.last_message?.content?.slice(0, 40) || 'Aucun message'}</div>
+                          {msgLoading
+                            ? [1,2,3].map(i => (
+                                <div key={i} className="msg-conv-item" style={{ pointerEvents:'none' }}>
+                                  <div className="msg-avatar" style={{ background: 'var(--border-card)' }} />
+                                  <div className="msg-conv-info">
+                                    <div className="skel-line" style={{ width: '60%', marginBottom: 6 }} />
+                                    <div className="skel-line" style={{ width: '80%' }} />
+                                  </div>
                                 </div>
-                                <div className="msg-conv-meta">
-                                  <span className="msg-conv-time">{msgTimeAgo(conv.last_message?.created_at || conv.updated_at)}</span>
-                                  {hasUnread && <span className="msg-unread-badge">{conv.unread_count}</span>}
-                                </div>
-                              </div>
-                            )
-                          })}
+                              ))
+                            : msgConversations.length === 0
+                              ? <EmptyState icon="💬" title="Aucune conversation" sub="Commencez une nouvelle conversation." />
+                              : msgConversations.map(conv => {
+                                  const other = otherParticipant(conv)
+                                  const isActive = msgActiveConv?.id === conv.id
+                                  const hasUnread = conv.unread_count > 0
+                                  return (
+                                    <div key={conv.id} className={`msg-conv-item${isActive ? ' active' : ''}`} onClick={() => loadConvMessages(conv)}>
+                                      <div className="msg-avatar" style={{ background: avatarColor(other.full_name) }}>{other.initials}</div>
+                                      <div className="msg-conv-info">
+                                        <div className={`msg-conv-name${hasUnread ? ' unread' : ''}`}>{other.full_name}</div>
+                                        <div className="msg-conv-preview">{conv.last_message?.content?.slice(0, 40) || 'Aucun message'}</div>
+                                      </div>
+                                      <div className="msg-conv-meta">
+                                        <span className="msg-conv-time">{msgTimeAgo(conv.last_message?.created_at || conv.updated_at)}</span>
+                                        {hasUnread && <span className="msg-unread-badge">{conv.unread_count}</span>}
+                                      </div>
+                                    </div>
+                                  )
+                                })
+                          }
                         </div>
                       </div>
 
@@ -7983,21 +8029,25 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       setDonationFormError('Montant valide et orphelinat requis.')
                       return
                     }
-                    const res = await fetch(`${API}/dons/`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                      body: JSON.stringify(donationForm),
-                    })
-                    if (res.status === 401) { onLogout(); return }
-                    if (res.ok) {
-                      const created = await res.json()
-                      setDonations(prev => [created, ...prev])
-                      setDonationForm({ donation_type: 'financier', amount: '', currency: 'USD', orphanage: '' })
-                      setDonationFormSuccess('Don enregistré avec succès.')
-                      setTimeout(() => setDonationFormSuccess(''), 3000)
-                    } else {
-                      const err = await res.json().catch(() => ({}))
-                      setDonationFormError(err.detail || "Erreur lors de l'enregistrement.")
+                    setDonationSubmitting(true)
+                    try {
+                      const res = await fetch(`${API}/dons/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify(donationForm),
+                      })
+                      if (res.status === 401) { setDonationSubmitting(false); onLogout(); return }
+                      if (res.ok) {
+                        const created = await res.json()
+                        setDonations(prev => [created, ...prev])
+                        setDonationForm({ donation_type: 'financier', amount: '', currency: 'USD', orphanage: '' })
+                        toast('Don enregistré avec succès.', 'success')
+                      } else {
+                        const err = await res.json().catch(() => ({}))
+                        toast(err.detail || "Erreur lors de l'enregistrement.", 'error')
+                      }
+                    } finally {
+                      setDonationSubmitting(false)
                     }
                   }
 
@@ -8012,7 +8062,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <div className="dash-card" style={{ marginBottom: 24 }}>
                           <div className="dash-card-title" style={{ marginBottom: 12 }}>Enregistrer un don</div>
                           {donationFormError && <div className="dash-error">{donationFormError}</div>}
-                          {donationFormSuccess && <div className="dash-success">{donationFormSuccess}</div>}
                           <form onSubmit={submitDonation} style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                             <select value={donationForm.donation_type} onChange={e => setDonationForm(f => ({ ...f, donation_type: e.target.value }))} className="dash-input" style={{ flex: '1 1 140px' }}>
                               <option value="financier">Financier</option>
@@ -8027,7 +8076,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <option value="XAF">XAF</option>
                             </select>
                             <input type="number" placeholder="ID Orphelinat" value={donationForm.orphanage} onChange={e => setDonationForm(f => ({ ...f, orphanage: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
-                            <button type="submit" className="btn btn-primary btn-sm">Enregistrer</button>
+                            <button type="submit" className="btn btn-primary btn-sm" disabled={donationSubmitting}>{donationSubmitting && <span className="btn-spinner" />}Enregistrer</button>
                           </form>
                         </div>
                       )}
@@ -8035,7 +8084,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       {donationsLoading ? (
                         <div className="dash-empty">Chargement...</div>
                       ) : donations.length === 0 ? (
-                        <div className="dash-empty">Aucun don trouvé.</div>
+                        <EmptyState icon="💝" title="Aucun don enregistré" sub="Les dons apparaîtront ici une fois soumis." />
                       ) : (
                         <div className="dash-table-wrap">
                           <table className="dash-table">
@@ -8068,38 +8117,44 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     e.preventDefault()
                     setFinancesFormError('')
                     if (!incomeForm.source || !incomeForm.amount || isNaN(Number(incomeForm.amount)) || Number(incomeForm.amount) <= 0) { setFinancesFormError('Source et montant valide requis.'); return }
-                    const res = await fetch(`${API}/revenus/`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                      body: JSON.stringify(incomeForm),
-                    })
-                    if (res.status === 401) { onLogout(); return }
-                    if (res.ok) {
-                      const created = await res.json()
-                      setIncomes(prev => [created, ...prev])
-                      setIncomeForm({ source: '', amount: '', orphanage: '' })
-                      setFinancesFormSuccess('Revenu enregistré.')
-                      setTimeout(() => setFinancesFormSuccess(''), 3000)
-                    } else { setFinancesFormError('Erreur lors de l\'enregistrement.') }
+                    setFinancesSubmitting(true)
+                    try {
+                      const res = await fetch(`${API}/revenus/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify(incomeForm),
+                      })
+                      if (res.status === 401) { setFinancesSubmitting(false); onLogout(); return }
+                      if (res.ok) {
+                        setIncomes(prev => [await res.json(), ...prev])
+                        setIncomeForm({ source: '', amount: '', orphanage: '' })
+                        toast('Revenu enregistré.', 'success')
+                      } else { toast('Erreur lors de l\'enregistrement.', 'error') }
+                    } finally {
+                      setFinancesSubmitting(false)
+                    }
                   }
 
                   const submitExpense = async (e) => {
                     e.preventDefault()
                     setFinancesFormError('')
                     if (!expenseForm.category || !expenseForm.amount || isNaN(Number(expenseForm.amount)) || Number(expenseForm.amount) <= 0) { setFinancesFormError('Catégorie et montant valide requis.'); return }
-                    const res = await fetch(`${API}/depenses/`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                      body: JSON.stringify(expenseForm),
-                    })
-                    if (res.status === 401) { onLogout(); return }
-                    if (res.ok) {
-                      const created = await res.json()
-                      setExpenses(prev => [created, ...prev])
-                      setExpenseForm({ category: '', amount: '', description: '', orphanage: '' })
-                      setFinancesFormSuccess('Dépense enregistrée.')
-                      setTimeout(() => setFinancesFormSuccess(''), 3000)
-                    } else { setFinancesFormError('Erreur lors de l\'enregistrement.') }
+                    setFinancesSubmitting(true)
+                    try {
+                      const res = await fetch(`${API}/depenses/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify(expenseForm),
+                      })
+                      if (res.status === 401) { setFinancesSubmitting(false); onLogout(); return }
+                      if (res.ok) {
+                        setExpenses(prev => [await res.json(), ...prev])
+                        setExpenseForm({ category: '', amount: '', description: '', orphanage: '' })
+                        toast('Dépense enregistrée.', 'success')
+                      } else { toast('Erreur lors de l\'enregistrement.', 'error') }
+                    } finally {
+                      setFinancesSubmitting(false)
+                    }
                   }
 
                   return (
@@ -8116,7 +8171,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         ))}
                       </div>
                       {financesFormError && <div className="dash-error">{financesFormError}</div>}
-                      {financesFormSuccess && <div className="dash-success">{financesFormSuccess}</div>}
 
                       {financesLoading ? <div className="dash-empty">Chargement...</div> : financesTab === 'revenus' ? (
                         <>
@@ -8125,10 +8179,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <input placeholder="Source (Dons, Subventions...)" value={incomeForm.source} onChange={e => setIncomeForm(f => ({ ...f, source: e.target.value }))} className="dash-input" style={{ flex: '2 1 180px' }} />
                               <input type="number" min="0" step="0.01" placeholder="Montant" value={incomeForm.amount} onChange={e => setIncomeForm(f => ({ ...f, amount: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
                               <input type="number" placeholder="ID Orphelinat" value={incomeForm.orphanage} onChange={e => setIncomeForm(f => ({ ...f, orphanage: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
-                              <button type="submit" className="btn btn-primary btn-sm">Ajouter</button>
+                              <button type="submit" className="btn btn-primary btn-sm" disabled={financesSubmitting}>{financesSubmitting && <span className="btn-spinner" />}Ajouter</button>
                             </form>
                           )}
-                          {incomes.length === 0 ? <div className="dash-empty">Aucun revenu enregistré.</div> : (
+                          {incomes.length === 0 ? <EmptyState icon="💰" title="Aucun revenu enregistré" sub="Les revenus apparaîtront ici." /> : (
                             <table className="dash-table"><thead><tr><th>Date</th><th>Source</th><th>Montant</th><th>Orphelinat</th></tr></thead>
                             <tbody>{incomes.map(r => <tr key={r.id}><td>{r.date}</td><td>{r.source}</td><td>{r.amount}</td><td>{r.orphanage_name || '—'}</td></tr>)}</tbody></table>
                           )}
@@ -8141,10 +8195,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <input type="number" min="0" step="0.01" placeholder="Montant" value={expenseForm.amount} onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
                               <input placeholder="Description (optionnel)" value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} className="dash-input" style={{ flex: '2 1 180px' }} />
                               <input type="number" placeholder="ID Orphelinat" value={expenseForm.orphanage} onChange={e => setExpenseForm(f => ({ ...f, orphanage: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
-                              <button type="submit" className="btn btn-primary btn-sm">Ajouter</button>
+                              <button type="submit" className="btn btn-primary btn-sm" disabled={financesSubmitting}>{financesSubmitting && <span className="btn-spinner" />}Ajouter</button>
                             </form>
                           )}
-                          {expenses.length === 0 ? <div className="dash-empty">Aucune dépense enregistrée.</div> : (
+                          {expenses.length === 0 ? <EmptyState icon="📊" title="Aucune dépense enregistrée" sub="Les dépenses apparaîtront ici." /> : (
                             <table className="dash-table"><thead><tr><th>Date</th><th>Catégorie</th><th>Montant</th><th>Description</th><th>Orphelinat</th></tr></thead>
                             <tbody>{expenses.map(d => <tr key={d.id}><td>{d.date}</td><td>{d.category}</td><td>{d.amount}</td><td>{d.description || '—'}</td><td>{d.orphanage_name || '—'}</td></tr>)}</tbody></table>
                           )}
@@ -8160,21 +8214,25 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const createSponsorship = async (childId) => {
                     setSponsorshipFormError('')
                     if (!sponsorshipForm.amount || isNaN(Number(sponsorshipForm.amount)) || Number(sponsorshipForm.amount) <= 0) { setSponsorshipFormError('Veuillez saisir un montant valide.'); return }
-                    const res = await fetch(`${API}/parrainages/`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                      body: JSON.stringify({ ...sponsorshipForm, child: childId }),
-                    })
-                    if (res.status === 401) { onLogout(); return }
-                    if (res.ok) {
-                      const created = await res.json()
-                      setMySponsored(prev => [created, ...prev])
-                      setSponsorableChildren(prev => prev.filter(c => c.id !== childId))
-                      setSponsorshipFormSuccess('Parrainage créé avec succès.')
-                      setTimeout(() => setSponsorshipFormSuccess(''), 3000)
-                    } else {
-                      const err = await res.json().catch(() => ({}))
-                      setSponsorshipFormError(err.detail || err.error || 'Erreur lors de la création.')
+                    setSponsorshipSubmitting(true)
+                    try {
+                      const res = await fetch(`${API}/parrainages/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ ...sponsorshipForm, child: childId }),
+                      })
+                      if (res.status === 401) { setSponsorshipSubmitting(false); onLogout(); return }
+                      if (res.ok) {
+                        const created = await res.json()
+                        setMySponsored(prev => [created, ...prev])
+                        setSponsorableChildren(prev => prev.filter(c => c.id !== childId))
+                        toast('Parrainage créé avec succès.', 'success')
+                      } else {
+                        const err = await res.json().catch(() => ({}))
+                        toast(err.detail || err.error || 'Erreur lors de la création.', 'error')
+                      }
+                    } finally {
+                      setSponsorshipSubmitting(false)
                     }
                   }
 
@@ -8205,7 +8263,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       </div>
 
                       {sponsorshipFormError && <div className="dash-error">{sponsorshipFormError}</div>}
-                      {sponsorshipFormSuccess && <div className="dash-success">{sponsorshipFormSuccess}</div>}
 
                       {isSponsorRole && (
                         <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
@@ -8236,16 +8293,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <div style={{ fontWeight: 600 }}>{child.prenom} {child.nom}</div>
                                   <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{child.uid}</div>
                                   {child.date_naissance && <div style={{ fontSize: 12 }}>Né(e) le {new Date(child.date_naissance).toLocaleDateString('fr-FR')}</div>}
-                                  <button className="btn btn-primary btn-sm" style={{ marginTop: 'auto' }} onClick={() => createSponsorship(child.id)} disabled={Number(sponsorshipForm.amount) <= 0}>
-                                    Parrainer
-                                  </button>
+                                  <button className="btn btn-primary btn-sm" style={{ marginTop: 'auto' }} onClick={() => createSponsorship(child.id)} disabled={Number(sponsorshipForm.amount) <= 0 || sponsorshipSubmitting}>{sponsorshipSubmitting && <span className="btn-spinner" />}Parrainer</button>
                                 </div>
                               ))}
                             </div>
                           )}
                         </>
                       ) : isSponsorRole && parrainagesTab === 'mes-parrainages' ? (
-                        mySponsored.length === 0 ? <div className="dash-empty">Vous n'avez pas encore de filleul.</div> : (
+                        mySponsored.length === 0 ? <EmptyState icon="🤝" title="Aucun parrainage" sub="Les parrainages actifs apparaîtront ici." /> : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             {mySponsored.map(s => (
                               <div key={s.id} className="dash-card">
@@ -8278,7 +8333,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           </div>
                         )
                       ) : (
-                        mySponsored.length === 0 ? <div className="dash-empty">Aucun parrainage pour cet orphelinat.</div> : (
+                        mySponsored.length === 0 ? <EmptyState icon="🤝" title="Aucun parrainage" sub="Les parrainages pour cet orphelinat apparaîtront ici." /> : (
                           <table className="dash-table">
                             <thead><tr><th>Enfant</th><th>Parrain</th><th>Type</th><th>Montant</th><th>Statut</th><th>Depuis</th></tr></thead>
                             <tbody>{mySponsored.map(s => <tr key={s.id}><td>{s.child_name}</td><td>{s.sponsor_name}</td><td>{s.sponsorship_type_label}</td><td>{s.amount}</td><td>{s.status_label}</td><td>{s.start_date}</td></tr>)}</tbody>
