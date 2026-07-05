@@ -1405,6 +1405,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [parrainagesLoading, setParrainagesLoading] = useState(false)
   const [sponsorshipForm, setSponsorshipForm] = useState({ child: '', sponsorship_type: 'monthly', amount: '' })
   const [sponsorshipFormError, setSponsorshipFormError] = useState('')
+  const [donationSubmitting, setDonationSubmitting] = useState(false)
+  const [financesSubmitting, setFinancesSubmitting] = useState(false)
+  const [sponsorshipSubmitting, setSponsorshipSubmitting] = useState(false)
   const toast = useToast()
   const [selectedSponsorshipId, setSelectedSponsorshipId] = useState(null)
   const [sponsorshipPayments, setSponsorshipPayments] = useState([])
@@ -8026,20 +8029,25 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       setDonationFormError('Montant valide et orphelinat requis.')
                       return
                     }
-                    const res = await fetch(`${API}/dons/`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                      body: JSON.stringify(donationForm),
-                    })
-                    if (res.status === 401) { onLogout(); return }
-                    if (res.ok) {
-                      const created = await res.json()
-                      setDonations(prev => [created, ...prev])
-                      setDonationForm({ donation_type: 'financier', amount: '', currency: 'USD', orphanage: '' })
-                      toast('Don enregistré avec succès.', 'success')
-                    } else {
-                      const err = await res.json().catch(() => ({}))
-                      toast(err.detail || "Erreur lors de l'enregistrement.", 'error')
+                    setDonationSubmitting(true)
+                    try {
+                      const res = await fetch(`${API}/dons/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify(donationForm),
+                      })
+                      if (res.status === 401) { onLogout(); return }
+                      if (res.ok) {
+                        const created = await res.json()
+                        setDonations(prev => [created, ...prev])
+                        setDonationForm({ donation_type: 'financier', amount: '', currency: 'USD', orphanage: '' })
+                        toast('Don enregistré avec succès.', 'success')
+                      } else {
+                        const err = await res.json().catch(() => ({}))
+                        toast(err.detail || "Erreur lors de l'enregistrement.", 'error')
+                      }
+                    } finally {
+                      setDonationSubmitting(false)
                     }
                   }
 
@@ -8068,7 +8076,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <option value="XAF">XAF</option>
                             </select>
                             <input type="number" placeholder="ID Orphelinat" value={donationForm.orphanage} onChange={e => setDonationForm(f => ({ ...f, orphanage: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
-                            <button type="submit" className="btn btn-primary btn-sm">Enregistrer</button>
+                            <button type="submit" className="btn btn-primary btn-sm" disabled={donationSubmitting}>{donationSubmitting && <span className="btn-spinner" />}Enregistrer</button>
                           </form>
                         </div>
                       )}
@@ -8109,36 +8117,44 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     e.preventDefault()
                     setFinancesFormError('')
                     if (!incomeForm.source || !incomeForm.amount || isNaN(Number(incomeForm.amount)) || Number(incomeForm.amount) <= 0) { setFinancesFormError('Source et montant valide requis.'); return }
-                    const res = await fetch(`${API}/revenus/`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                      body: JSON.stringify(incomeForm),
-                    })
-                    if (res.status === 401) { onLogout(); return }
-                    if (res.ok) {
-                      const created = await res.json()
-                      setIncomes(prev => [created, ...prev])
-                      setIncomeForm({ source: '', amount: '', orphanage: '' })
-                      toast('Revenu enregistré.', 'success')
-                    } else { toast('Erreur lors de l\'enregistrement.', 'error') }
+                    setFinancesSubmitting(true)
+                    try {
+                      const res = await fetch(`${API}/revenus/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify(incomeForm),
+                      })
+                      if (res.status === 401) { onLogout(); return }
+                      if (res.ok) {
+                        setIncomes(prev => [await res.json(), ...prev])
+                        setIncomeForm({ source: '', amount: '', orphanage: '' })
+                        toast('Revenu enregistré.', 'success')
+                      } else { toast('Erreur lors de l\'enregistrement.', 'error') }
+                    } finally {
+                      setFinancesSubmitting(false)
+                    }
                   }
 
                   const submitExpense = async (e) => {
                     e.preventDefault()
                     setFinancesFormError('')
                     if (!expenseForm.category || !expenseForm.amount || isNaN(Number(expenseForm.amount)) || Number(expenseForm.amount) <= 0) { setFinancesFormError('Catégorie et montant valide requis.'); return }
-                    const res = await fetch(`${API}/depenses/`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                      body: JSON.stringify(expenseForm),
-                    })
-                    if (res.status === 401) { onLogout(); return }
-                    if (res.ok) {
-                      const created = await res.json()
-                      setExpenses(prev => [created, ...prev])
-                      setExpenseForm({ category: '', amount: '', description: '', orphanage: '' })
-                      toast('Dépense enregistrée.', 'success')
-                    } else { toast('Erreur lors de l\'enregistrement.', 'error') }
+                    setFinancesSubmitting(true)
+                    try {
+                      const res = await fetch(`${API}/depenses/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify(expenseForm),
+                      })
+                      if (res.status === 401) { onLogout(); return }
+                      if (res.ok) {
+                        setExpenses(prev => [await res.json(), ...prev])
+                        setExpenseForm({ category: '', amount: '', description: '', orphanage: '' })
+                        toast('Dépense enregistrée.', 'success')
+                      } else { toast('Erreur lors de l\'enregistrement.', 'error') }
+                    } finally {
+                      setFinancesSubmitting(false)
+                    }
                   }
 
                   return (
@@ -8163,7 +8179,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <input placeholder="Source (Dons, Subventions...)" value={incomeForm.source} onChange={e => setIncomeForm(f => ({ ...f, source: e.target.value }))} className="dash-input" style={{ flex: '2 1 180px' }} />
                               <input type="number" min="0" step="0.01" placeholder="Montant" value={incomeForm.amount} onChange={e => setIncomeForm(f => ({ ...f, amount: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
                               <input type="number" placeholder="ID Orphelinat" value={incomeForm.orphanage} onChange={e => setIncomeForm(f => ({ ...f, orphanage: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
-                              <button type="submit" className="btn btn-primary btn-sm">Ajouter</button>
+                              <button type="submit" className="btn btn-primary btn-sm" disabled={financesSubmitting}>{financesSubmitting && <span className="btn-spinner" />}Ajouter</button>
                             </form>
                           )}
                           {incomes.length === 0 ? <EmptyState icon="💰" title="Aucun revenu enregistré" sub="Les revenus apparaîtront ici." /> : (
@@ -8179,7 +8195,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <input type="number" min="0" step="0.01" placeholder="Montant" value={expenseForm.amount} onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
                               <input placeholder="Description (optionnel)" value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} className="dash-input" style={{ flex: '2 1 180px' }} />
                               <input type="number" placeholder="ID Orphelinat" value={expenseForm.orphanage} onChange={e => setExpenseForm(f => ({ ...f, orphanage: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
-                              <button type="submit" className="btn btn-primary btn-sm">Ajouter</button>
+                              <button type="submit" className="btn btn-primary btn-sm" disabled={financesSubmitting}>{financesSubmitting && <span className="btn-spinner" />}Ajouter</button>
                             </form>
                           )}
                           {expenses.length === 0 ? <EmptyState icon="📊" title="Aucune dépense enregistrée" sub="Les dépenses apparaîtront ici." /> : (
@@ -8198,20 +8214,25 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const createSponsorship = async (childId) => {
                     setSponsorshipFormError('')
                     if (!sponsorshipForm.amount || isNaN(Number(sponsorshipForm.amount)) || Number(sponsorshipForm.amount) <= 0) { setSponsorshipFormError('Veuillez saisir un montant valide.'); return }
-                    const res = await fetch(`${API}/parrainages/`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                      body: JSON.stringify({ ...sponsorshipForm, child: childId }),
-                    })
-                    if (res.status === 401) { onLogout(); return }
-                    if (res.ok) {
-                      const created = await res.json()
-                      setMySponsored(prev => [created, ...prev])
-                      setSponsorableChildren(prev => prev.filter(c => c.id !== childId))
-                      toast('Parrainage créé avec succès.', 'success')
-                    } else {
-                      const err = await res.json().catch(() => ({}))
-                      toast(err.detail || err.error || 'Erreur lors de la création.', 'error')
+                    setSponsorshipSubmitting(true)
+                    try {
+                      const res = await fetch(`${API}/parrainages/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ ...sponsorshipForm, child: childId }),
+                      })
+                      if (res.status === 401) { onLogout(); return }
+                      if (res.ok) {
+                        const created = await res.json()
+                        setMySponsored(prev => [created, ...prev])
+                        setSponsorableChildren(prev => prev.filter(c => c.id !== childId))
+                        toast('Parrainage créé avec succès.', 'success')
+                      } else {
+                        const err = await res.json().catch(() => ({}))
+                        toast(err.detail || err.error || 'Erreur lors de la création.', 'error')
+                      }
+                    } finally {
+                      setSponsorshipSubmitting(false)
                     }
                   }
 
@@ -8272,9 +8293,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <div style={{ fontWeight: 600 }}>{child.prenom} {child.nom}</div>
                                   <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{child.uid}</div>
                                   {child.date_naissance && <div style={{ fontSize: 12 }}>Né(e) le {new Date(child.date_naissance).toLocaleDateString('fr-FR')}</div>}
-                                  <button className="btn btn-primary btn-sm" style={{ marginTop: 'auto' }} onClick={() => createSponsorship(child.id)} disabled={Number(sponsorshipForm.amount) <= 0}>
-                                    Parrainer
-                                  </button>
+                                  <button className="btn btn-primary btn-sm" style={{ marginTop: 'auto' }} onClick={() => createSponsorship(child.id)} disabled={Number(sponsorshipForm.amount) <= 0 || sponsorshipSubmitting}>{sponsorshipSubmitting && <span className="btn-spinner" />}Parrainer</button>
                                 </div>
                               ))}
                             </div>
