@@ -7957,7 +7957,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       </button>
                     ))}
                   </div>
-                ) : null}
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚧</div>
+                    <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-heading,#e2e8f0)', margin: '0 0 8px' }}>{subKey}</h3>
+                    <p style={{ fontSize: '14px', color: 'var(--text-muted,#94a3b8)', margin: '0 0 20px' }}>Cette fonctionnalité est en cours de développement.</p>
+                    <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'←'} Retour</button>
+                  </div>
+                )}
               </div>
             </div>
           )}
