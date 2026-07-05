@@ -1148,12 +1148,12 @@ function BarChart({ data, valueKey, labelKey, color, unit }) {
         return (
           <g key={i}>
             <rect x={x} y={y} width={BAR_W} height={barH} fill={color} rx={3} opacity={0.85} />
-            <text x={x + BAR_W / 2} y={H + 14} textAnchor="middle" fontSize={10} fill="#64748B">{d[labelKey]}</text>
+            <text x={x + BAR_W / 2} y={H + 14} textAnchor="middle" fontSize={10} fill="var(--text-muted)">{d[labelKey]}</text>
             {d[valueKey] > 0 && <text x={x + BAR_W / 2} y={y - 4} textAnchor="middle" fontSize={9} fill={color}>{u}{d[valueKey]}</text>}
           </g>
         )
       })}
-      <line x1={0} y1={H} x2={W} y2={H} stroke="#E2E8F0" strokeWidth={1} />
+      <line x1={0} y1={H} x2={W} y2={H} stroke="var(--border-card)" strokeWidth={1} />
     </svg>
   )
 }
@@ -1183,13 +1183,13 @@ function DonutChart({ data }) {
         {arcs.map((a, i) => (
           <path key={i} d={arcPath(a.start, a.angle, R)} fill="none" stroke={a.color} strokeWidth={STROKE} strokeLinecap="butt" />
         ))}
-        <text x={CX} y={CY} textAnchor="middle" dominantBaseline="central" fontSize={16} fontWeight={700} fill="#0F172A">{total}</text>
+        <text x={CX} y={CY} textAnchor="middle" dominantBaseline="central" fontSize={16} fontWeight={700} fill="var(--text-body)">{total}</text>
       </svg>
       <div>
         {data.map((d, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
             <span style={{ width: 10, height: 10, borderRadius: '50%', background: d.color, display: 'inline-block' }} />
-            <span style={{ fontSize: 12, color: '#374151' }}>{d.label}: <strong>{d.value}</strong></span>
+            <span style={{ fontSize: 12, color: 'var(--text-body)' }}>{d.label}: <strong>{d.value}</strong></span>
           </div>
         ))}
       </div>
