@@ -830,6 +830,7 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
   const notifFetchRef = useRef(false)
   const fetchNotifications = async () => {
     try {
+      // onLogout not available here — poll failure is non-critical, session will expire naturally
       const res = await apiFetch(`${API}/notifications/`)
       if (res && res.ok) setNotifications(await res.json())
     } catch {}
@@ -1751,12 +1752,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   useEffect(() => {
     if (activeKey !== 'documents' || role !== 'director') return
     const loadDocs = async () => {
-      apiFetch(`${API}/document-types/`).then(r => r && r.ok ? r.json() : []).then(d => setDocTypes(d)).catch(() => {})
+      apiFetch(`${API}/document-types/`, {}, onLogout).then(r => r && r.ok ? r.json() : []).then(d => setDocTypes(d)).catch(() => {})
       const reqs = orpReqRef.current
       const myOrp = reqs.find(o => String(o.director) === String(user.id))
       if (myOrp) {
         setDocLoading(true)
-        apiFetch(`${API}/orphanages/${myOrp.id}/documents/`).then(r => r && r.ok ? r.json() : []).then(d => setSubmittedDocs(d)).catch(() => {}).finally(() => setDocLoading(false))
+        apiFetch(`${API}/orphanages/${myOrp.id}/documents/`, {}, onLogout).then(r => r && r.ok ? r.json() : []).then(d => setSubmittedDocs(d)).catch(() => {}).finally(() => setDocLoading(false))
       }
     }
     loadDocs()
@@ -3025,14 +3026,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const myDocOrp = directorOrpRec()
                   const token = localStorage.getItem('access_token')
                   const loadDocTypesDir = async () => {
-                    const res = await apiFetch(`${API}/document-types/`)
+                    const res = await apiFetch(`${API}/document-types/`, {}, onLogout)
                     if (res && res.ok) setDocTypes(await res.json())
                   }
                   const loadSubmittedDocsDir = async () => {
                     if (!myDocOrp) return
                     setDocLoading(true)
                     try {
-                      const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/`)
+                      const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/`, {}, onLogout)
                       if (res && res.ok) { const d = await res.json(); setSubmittedDocs(d); setDocResetKey(k => k + 1) }
                       else throw new Error('Erreur chargement')
                     } catch (e) {
@@ -3059,7 +3060,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       onConfirm: async () => {
                         setDocConfirmModal(null)
                         try {
-                          const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE' })
+                          const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE' }, onLogout)
                           if (!res) return
                           if (!res.ok) throw new Error('Delete failed')
                           showToast('Document supprimé.', 'success')
@@ -3079,7 +3080,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       onConfirm: async () => {
                         setDocConfirmModal(null)
                         try {
-                          const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE' })
+                          const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE' }, onLogout)
                           if (!res) return
                           if (!res.ok) throw new Error('Modify failed')
                           showToast('Vous pouvez maintenant téléverser une nouvelle version.', 'success')
@@ -3712,7 +3713,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               }
 
                               try {
-                                const res = await apiFetch(url, { method, headers, body })
+                                const res = await apiFetch(url, { method, headers, body }, onLogout)
                                 if (!res) throw new Error('Session expirée')
                                 if (!res.ok) {
                                   const errData = await res.json().catch(() => ({}))
@@ -3864,7 +3865,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           let method = 'POST'
                           if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
                           try {
-                            const res = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                            const res = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, onLogout)
                             if (!res) throw new Error('Session expirée')
                             if (!res.ok) { const errData = await res.json().catch(() => ({})); const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'; throw new Error(errMsg) }
                             const saved = await res.json()
@@ -3963,7 +3964,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           let method = 'POST'
                           if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
                           const body = JSON.stringify({ uid, extra_data })
-                          const res = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body })
+                          const res = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body }, onLogout)
                           if (!res) throw new Error('Session expirée')
                           if (!res.ok) throw new Error('Erreur')
                           const saved = await res.json()
@@ -4325,7 +4326,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                                 const send = async () => {
                                   const { body, headers: eh } = buildBody()
-                                  const res = await apiFetch(url, { method, headers: eh, body })
+                                  const res = await apiFetch(url, { method, headers: eh, body }, onLogout)
                                   if (!res) throw new Error('Session expirée')
                                   if (!res.ok) { const ed = await res.json().catch(()=>({})); throw new Error(ed.error || Object.values(ed).flat().join(' ') || 'Erreur') }
                                   return res.json()
@@ -4658,7 +4659,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
                                 const send = async () => {
                                   const { body, headers: eh } = buildBody()
-                                  const res = await apiFetch(url, { method, headers: eh, body })
+                                  const res = await apiFetch(url, { method, headers: eh, body }, onLogout)
                                   if (!res) throw new Error('Session expirée')
                                   if (!res.ok) { const ed = await res.json().catch(()=>({})); throw new Error(ed.error || Object.values(ed).flat().join(' ') || 'Erreur') }
                                   return res.json()
@@ -4807,7 +4808,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                           const send = async () => {
                             const { body, headers: extraHeaders } = buildBody()
-                            const res = await apiFetch(url, { method, headers: extraHeaders, body })
+                            const res = await apiFetch(url, { method, headers: extraHeaders, body }, onLogout)
                             if (!res) throw new Error('Session expirée')
                             if (!res.ok) {
                               const errData = await res.json().catch(() => ({}))
