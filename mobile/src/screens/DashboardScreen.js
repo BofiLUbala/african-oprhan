@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, Animated, Alert } from 'react-native'
-import { ROLE_STATS, ROLE_NAV, ROLE_PAGES, RECENT_ACTIVITIES, COLORS, ROLE_LABELS, getInitials, hueFromName } from '../constants'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { API, ROLE_STATS, ROLE_NAV, ROLE_PAGES, RECENT_ACTIVITIES, COLORS, ROLE_LABELS, getInitials, hueFromName } from '../constants'
 
 const MOBILE_SCREENS = ['dashboard', 'enfants', 'communication', 'parametres']
 
@@ -9,7 +10,6 @@ const CARD_GAP = 12
 const CARD_WIDTH = (SCREEN_WIDTH - 48 - CARD_GAP) / 2
 
 export default function DashboardScreen({ user, role, onNavigate }) {
-  const statCards = ROLE_STATS[role] || ROLE_STATS.director
   const navItems = ROLE_NAV[role] || ROLE_NAV.director
   const page = (ROLE_PAGES[role] || ROLE_PAGES.director).dashboard
 
@@ -22,7 +22,28 @@ export default function DashboardScreen({ user, role, onNavigate }) {
   const displayRole = (ROLE_LABELS[safeRole] || safeRole).toUpperCase()
 
   const [isOpen, setIsOpen] = useState(false)
+  const [liveKpis, setLiveKpis] = useState(null)
+  const statCards = liveKpis || ROLE_STATS[role] || ROLE_STATS.director
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH * 0.5)).current
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = await AsyncStorage.getItem('access_token')
+        if (!token) return
+        const res = await fetch(`${API}/auth/stats/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data.kpis) && data.kpis.length > 0) {
+            setLiveKpis(data.kpis)
+          }
+        }
+      } catch (_) {}
+    }
+    fetchStats()
+  }, [])
 
   const toggleMenu = () => {
     const toValue = isOpen ? -SCREEN_WIDTH * 0.5 : 0

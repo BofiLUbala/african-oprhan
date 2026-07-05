@@ -7,7 +7,7 @@ import DashboardScreen from './screens/DashboardScreen'
 import ChildrenScreen from './screens/ChildrenScreen'
 import CommunicationScreen from './screens/CommunicationScreen'
 import SettingsScreen from './screens/SettingsScreen'
-import { COLORS } from './constants'
+import { COLORS, API } from './constants'
 
 const TABS = [
   { key: 'dashboard', label: 'Accueil', icon: '🏠' },
@@ -220,9 +220,18 @@ function AppContent() {
     // Minimum splash duration so the user always sees it
     const minSplash = new Promise(resolve => setTimeout(resolve, 2400))
     try {
-      const stored = await AsyncStorage.getItem('cdo_auth')
-      if (stored) {
-        setAuth(JSON.parse(stored))
+      const token = await AsyncStorage.getItem('access_token')
+      if (token) {
+        const res = await fetch(`${API}/auth/me/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const userProfile = await res.json()
+          const role = (userProfile.role || '').toLowerCase()
+          setAuth({ user: userProfile, role, access_token: token })
+        } else {
+          await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'user', 'role', 'cdo_auth'])
+        }
       }
     } catch (e) {
       console.error('Auth restore error:', e)
@@ -234,12 +243,10 @@ function AppContent() {
   const handleLogin = async (authData) => {
     setAuth(authData)
     try {
-      if (authData.access_token) {
-        await AsyncStorage.setItem('access_token', authData.access_token)
-      }
-      if (authData.refresh_token) {
-        await AsyncStorage.setItem('refresh_token', authData.refresh_token)
-      }
+      await AsyncStorage.setItem('access_token', authData.access_token || '')
+      await AsyncStorage.setItem('refresh_token', authData.refresh_token || '')
+      await AsyncStorage.setItem('user', JSON.stringify(authData.user))
+      await AsyncStorage.setItem('role', authData.role || '')
       await AsyncStorage.setItem('cdo_auth', JSON.stringify(authData))
     } catch (e) {
       console.error('Auth save error:', e)
@@ -250,7 +257,7 @@ function AppContent() {
   const handleLogout = async () => {
     setAuth(null)
     try {
-      await AsyncStorage.multiRemove(['cdo_auth', 'access_token', 'refresh_token'])
+      await AsyncStorage.multiRemove(['cdo_auth', 'access_token', 'refresh_token', 'user', 'role'])
     } catch (e) {
       console.error('Logout error:', e)
     }

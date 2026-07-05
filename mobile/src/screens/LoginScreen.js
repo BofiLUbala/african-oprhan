@@ -27,20 +27,19 @@ export default function LoginScreen({ onLogin }) {
         throw new Error(errData.detail || 'Email ou mot de passe incorrect')
       }
       const data = await res.json()
-      const fakeUser = { first_name: email.split('@')[0], last_name: '', email, role: selectedRole }
-      onLogin({
-        user: fakeUser,
-        role: selectedRole,
-        access_token: data.access,
-        refresh_token: data.refresh,
-      })
+      // Fetch real user profile
+      let userProfile = null
+      try {
+        const meRes = await fetch(`${API}/auth/me/`, {
+          headers: { Authorization: `Bearer ${data.access}` },
+        })
+        if (meRes.ok) userProfile = await meRes.json()
+      } catch (_) {}
+      const user = userProfile || { first_name: email.split('@')[0], last_name: '', email, role: selectedRole }
+      const role = (userProfile?.role || selectedRole).toLowerCase()
+      onLogin({ user, role, access_token: data.access, refresh_token: data.refresh })
     } catch (e) {
-      if (e.message.includes('incorrect') || e.message.includes('Email')) {
-        setError(e.message)
-      } else {
-        const fakeUser = { first_name: email.split('@')[0], last_name: '', email, role: selectedRole }
-        onLogin({ user: fakeUser, role: selectedRole, access_token: 'demo', refresh_token: 'demo' })
-      }
+      setError(e.message || 'Erreur de connexion')
     } finally {
       setLoading(false)
     }
