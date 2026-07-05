@@ -1142,6 +1142,43 @@ function EclatSocialApp({ user, onReturn }) {
   const [esModal, setEsModal] = useState(null) // 'create' | 'detail' | null
   const [esSelectedPost, setEsSelectedPost] = useState(null)
   const [esNavActive, setEsNavActive] = useState('home')
+  const [esConversations, setEsConversations] = React.useState([])
+  const [esActiveConv, setEsActiveConv] = React.useState(null)
+  const [esMessages, setEsMessages] = React.useState([])
+  const [esMsgInput, setEsMsgInput] = React.useState('')
+  const [esUsers, setEsUsers] = React.useState([])
+  const [esNotifs, setEsNotifs] = React.useState([])
+
+  const esNavigate = (view) => { setEsNavActive(view); setEsView(view) }
+
+  React.useEffect(() => {
+    if (esView !== 'messages') return
+    apiFetch(`${API}/conversations/`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : null)
+      .then(data => { if (data) setEsConversations(Array.isArray(data) ? data : (data.results || [])) })
+      .catch(() => {})
+  }, [esView])
+
+  React.useEffect(() => {
+    if (!esActiveConv) return
+    apiFetch(`${API}/conversations/${esActiveConv.id}/messages/`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : null)
+      .then(data => { if (data) setEsMessages(Array.isArray(data) ? data : (data.results || [])) })
+      .catch(() => {})
+  }, [esActiveConv])
+
+  const esSendMessage = async () => {
+    if (!esMsgInput.trim() || !esActiveConv) return
+    const res = await apiFetch(`${API}/conversations/${esActiveConv.id}/messages/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: esMsgInput })
+    }, onReturn)
+    if (res && res.ok) {
+      const msg = await res.json()
+      setEsMessages(prev => [...prev, msg])
+      setEsMsgInput('')
+    }
+  }
 
   const initials = (user.first_name?.[0] || '') + (user.last_name?.[0] || '')
   const hue = user.first_name ? user.first_name.charCodeAt(0) * 37 % 360 : 200
@@ -1200,11 +1237,11 @@ function EclatSocialApp({ user, onReturn }) {
         </div>
 
         <nav className="es-nav">
-          <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => setEsNavActive('home')}><span className="es-nav-icon">🏠</span> Accueil</button>
-          <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => setEsNavActive('profil')}><span className="es-nav-icon">👤</span> Profil</button>
-          <button className={esNavActive === 'messages' ? 'active' : ''} onClick={() => setEsNavActive('messages')}><span className="es-nav-icon">💬</span> Messages <span className="es-badge">3</span></button>
-          <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => setEsNavActive('notifs')}><span className="es-nav-icon">🔔</span> Notifications</button>
-          <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => setEsNavActive('settings')}><span className="es-nav-icon">⚙️</span> Paramètres</button>
+          <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => esNavigate('home')}><span className="es-nav-icon">🏠</span> Accueil</button>
+          <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => esNavigate('profil')}><span className="es-nav-icon">👤</span> Profil</button>
+          <button className={esNavActive === 'messages' ? 'active' : ''} onClick={() => esNavigate('messages')}><span className="es-nav-icon">💬</span> Messages {esConversations.length > 0 && <span className="es-badge">{esConversations.length}</span>}</button>
+          <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => esNavigate('notifs')}><span className="es-nav-icon">🔔</span> Notifications</button>
+          <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => esNavigate('settings')}><span className="es-nav-icon">⚙️</span> Paramètres</button>
         </nav>
 
         <div className="es-sidebar-bottom">
@@ -1223,7 +1260,127 @@ function EclatSocialApp({ user, onReturn }) {
           </div>
         </div>
 
-        <div className="es-feed-container">
+        {/* MESSAGES VIEW */}
+        {esView === 'messages' && (
+          <div style={{ display: 'flex', height: 'calc(100vh - 120px)', gap: 0 }}>
+            {/* Conversation list */}
+            <div style={{ width: '280px', borderRight: '1px solid var(--border-card,#e2e8f0)', overflowY: 'auto', flexShrink: 0 }}>
+              <div style={{ padding: '16px', fontWeight: 700, fontSize: '16px', borderBottom: '1px solid var(--border-card,#e2e8f0)' }}>💬 Conversations</div>
+              {esConversations.length === 0 ? (
+                <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>Aucune conversation</div>
+              ) : esConversations.map(conv => {
+                const other = conv.participants?.find(p => p.id !== user?.id) || conv.participants?.[0]
+                const name = other ? `${other.first_name || ''} ${other.last_name || ''}`.trim() || other.email : `Conv #${conv.id}`
+                return (
+                  <div key={conv.id} onClick={() => setEsActiveConv(conv)}
+                    style={{ padding: '14px 16px', cursor: 'pointer', background: esActiveConv?.id === conv.id ? 'var(--accent-bg,#eff6ff)' : 'transparent', borderBottom: '1px solid var(--border-card,#f1f5f9)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>
+                      {(other?.first_name?.[0] || '?').toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '14px' }}>{name}</div>
+                      <div style={{ fontSize: '12px', color: '#94a3b8' }}>{conv.last_message?.content?.slice(0,40) || 'Démarrer la conversation'}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            {/* Chat area */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              {!esActiveConv ? (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '15px' }}>Sélectionnez une conversation</div>
+              ) : (
+                <>
+                  <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-card,#e2e8f0)', fontWeight: 600, fontSize: '15px' }}>
+                    {(() => { const o = esActiveConv.participants?.find(p => p.id !== user?.id) || esActiveConv.participants?.[0]; return o ? `${o.first_name||''} ${o.last_name||''}`.trim() || o.email : `Conv #${esActiveConv.id}` })()}
+                  </div>
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {esMessages.length === 0 && <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '14px', marginTop: '40px' }}>Aucun message. Commencez la conversation !</div>}
+                    {esMessages.map((msg, i) => {
+                      const isMe = msg.sender === user?.id || msg.sender?.id === user?.id
+                      return (
+                        <div key={i} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
+                          <div style={{ maxWidth: '65%', padding: '10px 14px', borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px', background: isMe ? '#3b82f6' : 'var(--bg-card,#f1f5f9)', color: isMe ? '#fff' : 'inherit', fontSize: '14px' }}>
+                            {msg.content}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-card,#e2e8f0)', display: 'flex', gap: '10px' }}>
+                    <input value={esMsgInput} onChange={e => setEsMsgInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && esSendMessage()}
+                      placeholder="Écrire un message..."
+                      style={{ flex: 1, padding: '10px 14px', borderRadius: '24px', border: '1px solid var(--border-card,#e2e8f0)', background: 'var(--bg-card,#f8fafc)', fontSize: '14px', outline: 'none' }} />
+                    <button onClick={esSendMessage} style={{ padding: '10px 20px', borderRadius: '24px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>Envoyer</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* PROFIL VIEW */}
+        {esView === 'profil' && (
+          <div style={{ padding: '32px', maxWidth: '600px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '24px' }}>👤 Mon Profil</h2>
+            <div style={{ background: 'var(--bg-card,#f8fafc)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-card,#e2e8f0)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' }}>
+                <img src={`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72"><rect width="72" height="72" rx="36" fill="hsl(${user?.first_name ? user.first_name.charCodeAt(0)*37%360 : 200},50%,45%)"/><text x="36" y="36" dominant-baseline="central" text-anchor="middle" fill="white" font-size="28" font-weight="700" font-family="system-ui">${((user?.first_name?.[0]||'')+(user?.last_name?.[0]||'')).toUpperCase()}</text></svg>`)}`} alt="" style={{ borderRadius: '50%' }} />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '20px' }}>{user?.first_name} {user?.last_name}</div>
+                  <div style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>{user?.email}</div>
+                  <div style={{ marginTop: '8px' }}><span style={{ background: '#eff6ff', color: '#3b82f6', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600 }}>{user?.role}</span></div>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                {[['Email', user?.email], ['Rôle', user?.role], ['Prénom', user?.first_name], ['Nom', user?.last_name]].map(([label, val]) => (
+                  <div key={label} style={{ padding: '12px', background: 'var(--bg-main,#fff)', borderRadius: '10px', border: '1px solid var(--border-card,#e2e8f0)' }}>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600, marginBottom: '4px' }}>{label}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 500 }}>{val || '—'}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* NOTIFICATIONS VIEW */}
+        {esView === 'notifs' && (
+          <div style={{ padding: '32px', maxWidth: '600px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '24px' }}>🔔 Notifications</h2>
+            {[
+              { icon: '⚠️', text: 'Demandes critiques en attente', time: 'Il y a 5 min', color: '#fef3c7' },
+              { icon: '⏳', text: 'Approbations en attente de validation', time: 'Il y a 1h', color: '#eff6ff' },
+              { icon: '✉️', text: 'Nouveaux messages reçus', time: 'Il y a 2h', color: '#f0fdf4' },
+            ].map((n, i) => (
+              <div key={i} style={{ background: n.color, borderRadius: '12px', padding: '16px 20px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <span style={{ fontSize: '22px' }}>{n.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: '14px' }}>{n.text}</div>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{n.time}</div>
+                </div>
+                <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '18px' }}>×</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* SETTINGS VIEW */}
+        {esView === 'settings' && (
+          <div style={{ padding: '32px', maxWidth: '600px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '24px' }}>⚙️ Paramètres</h2>
+            {[['🌙 Thème', 'Sombre / Clair'], ['🔔 Notifications', 'Activées'], ['🌍 Langue', 'Français'], ['🔒 Confidentialité', 'Gérer']].map(([label, val]) => (
+              <div key={label} style={{ background: 'var(--bg-card,#f8fafc)', border: '1px solid var(--border-card,#e2e8f0)', borderRadius: '12px', padding: '16px 20px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 600, fontSize: '14px' }}>{label}</span>
+                <span style={{ color: '#64748b', fontSize: '14px' }}>{val} →</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* HOME FEED (default) */}
+        {(esView === 'home' || esView === 'search') && <div className="es-feed-container">
           {/* STORIES ROW */}
           <div className="es-stories-row">
             {ES_STORIES.map((s, i) => (
@@ -1300,7 +1457,7 @@ function EclatSocialApp({ user, onReturn }) {
               </article>
             ))}
           </div>
-        </div>
+        </div>}
       </main>
 
       {/* RIGHT SIDEBAR */}
@@ -1334,11 +1491,11 @@ function EclatSocialApp({ user, onReturn }) {
 
       {/* MOBILE BOTTOM NAV */}
       <nav className="es-bottom-nav">
-        <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => setEsNavActive('home')}>
+        <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => esNavigate('home')}>
           <span className="es-nav-icon">🏠</span>
           <span className="es-nav-label">Accueil</span>
         </button>
-        <button className={esNavActive === 'search' ? 'active' : ''} onClick={() => setEsNavActive('search')}>
+        <button className={esNavActive === 'search' ? 'active' : ''} onClick={() => esNavigate('search')}>
           <span className="es-nav-icon">🔍</span>
           <span className="es-nav-label">Explorer</span>
         </button>
@@ -1346,11 +1503,11 @@ function EclatSocialApp({ user, onReturn }) {
           <span className="es-nav-icon">+</span>
           <span className="es-nav-label">Publier</span>
         </button>
-        <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => setEsNavActive('notifs')}>
+        <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => esNavigate('notifs')}>
           <span className="es-nav-icon">🔔</span>
           <span className="es-nav-label">Notifs</span>
         </button>
-        <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => setEsNavActive('profil')}>
+        <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => esNavigate('profil')}>
           <span className="es-nav-icon">👤</span>
           <span className="es-nav-label">Profil</span>
         </button>
