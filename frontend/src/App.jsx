@@ -1133,6 +1133,70 @@ function genChildUid(exclude = new Set()) {
 
 /* ===== MESSAGING (EclatSocialApp removed — replaced by inline IIFE in DashboardShell) ===== */
 
+/* ===== SVG CHART HELPERS ===== */
+function BarChart({ data, valueKey, labelKey, color, unit }) {
+  const u = unit || ''
+  const values = data.map(d => d[valueKey] || 0)
+  const max = Math.max(...values, 1)
+  const W = 340, H = 140, BAR_W = Math.floor(W / data.length) - 6, PAD = 28
+  return (
+    <svg viewBox={`0 0 ${W} ${H + PAD}`} style={{ width: '100%', overflow: 'visible' }}>
+      {data.map((d, i) => {
+        const barH = Math.max(2, ((d[valueKey] || 0) / max) * H)
+        const x = i * (W / data.length) + (W / data.length - BAR_W) / 2
+        const y = H - barH
+        return (
+          <g key={i}>
+            <rect x={x} y={y} width={BAR_W} height={barH} fill={color} rx={3} opacity={0.85} />
+            <text x={x + BAR_W / 2} y={H + 14} textAnchor="middle" fontSize={10} fill="#64748B">{d[labelKey]}</text>
+            {d[valueKey] > 0 && <text x={x + BAR_W / 2} y={y - 4} textAnchor="middle" fontSize={9} fill={color}>{u}{d[valueKey]}</text>}
+          </g>
+        )
+      })}
+      <line x1={0} y1={H} x2={W} y2={H} stroke="#E2E8F0" strokeWidth={1} />
+    </svg>
+  )
+}
+
+function DonutChart({ data }) {
+  const total = data.reduce((s, d) => s + d.value, 0)
+  if (total === 0) return <div style={{ textAlign: 'center', color: '#94A3B8', padding: 24 }}>Aucune donnée</div>
+  const R = 60, CX = 80, CY = 80, STROKE = 22
+  let cumAngle = -Math.PI / 2
+  const arcs = data.map(d => {
+    const angle = (d.value / total) * 2 * Math.PI
+    const start = cumAngle
+    cumAngle += angle
+    return { ...d, start, angle }
+  })
+  const arcPath = (start, angle, r) => {
+    const x1 = CX + r * Math.cos(start)
+    const y1 = CY + r * Math.sin(start)
+    const x2 = CX + r * Math.cos(start + angle)
+    const y2 = CY + r * Math.sin(start + angle)
+    const large = angle > Math.PI ? 1 : 0
+    return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <svg viewBox="0 0 160 160" style={{ width: 120, flexShrink: 0 }}>
+        {arcs.map((a, i) => (
+          <path key={i} d={arcPath(a.start, a.angle, R)} fill="none" stroke={a.color} strokeWidth={STROKE} strokeLinecap="butt" />
+        ))}
+        <text x={CX} y={CY} textAnchor="middle" dominantBaseline="central" fontSize={16} fontWeight={700} fill="#0F172A">{total}</text>
+      </svg>
+      <div>
+        {data.map((d, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: d.color, display: 'inline-block' }} />
+            <span style={{ fontSize: 12, color: '#374151' }}>{d.label}: <strong>{d.value}</strong></span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey, setSubKey }) {
   const [registeredChildren, setRegisteredChildren] = useState([])
   const [selectedRegChild, setSelectedRegChild] = useState(null)
@@ -1328,6 +1392,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     }
   }, [msgMessages, activeKey])
 
+  /* ── Live stats state ── */
+  const [liveStats, setLiveStats] = useState(null)
+  const [liveCharts, setLiveCharts] = useState(null)
+
   /* ── Navigation state preservation ── */
   const savedSubKeys = useRef({})
   const prevSection = useRef('')
@@ -1493,6 +1561,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
           .catch(() => {})
           .finally(() => setDocLoading(false))
       }
+    }
+    /* ── Fetch live dashboard stats ── */
+    if (activeKey === 'dashboard' || activeKey === 'rapports') {
+      fetch(`${API}/auth/stats/`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => { if (r.status === 401) { onLogout(); return null } return r.ok ? r.json() : null })
+        .then(d => { if (d) { setLiveStats(d.kpis); setLiveCharts(d.charts) } })
+        .catch(() => {})
     }
   }, [activeKey, role, subKey, orphanageName])
 
@@ -2138,12 +2213,15 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const kpiTrends = ['+12%', '+8%', '+23%', '-2%', '+15%']
                   const trendColors = ['#22c55e', '#22c55e', '#22c55e', '#ef4444', '#22c55e']
                   const barColors = ['#f59e0b', '#a855f7', '#3b82f6', '#ef4444', '#22c55e']
+                  const displayValue = liveStats ? (liveStats[i]?.value ?? card.value) : card.value
+                  const displayLabel = liveStats ? (liveStats[i]?.label ?? card.label) : card.label
+                  const displaySub = liveStats ? (liveStats[i]?.sub ?? card.sub) : card.sub
                   return (
                     <div key={i} className="dash-dash-kpi">
                       <div className="dash-dash-kpi-icon" style={{ background: `rgba(${i === 3 ? '239,68,68' : i === 1 ? '168,85,247' : i === 2 ? '59,130,246' : i === 4 ? '34,197,94' : '245,158,11'},0.1)` }}>{kpiIcons[i % kpiIcons.length]}</div>
                       <div className="dash-dash-kpi-body">
-                        <span className="dash-dash-kpi-label">{t('stat_' + role + '_' + i + '_label') || card.label}</span>
-                        <span className="dash-dash-kpi-value">{card.value}</span>
+                        <span className="dash-dash-kpi-label">{t('stat_' + role + '_' + i + '_label') || displayLabel}</span>
+                        <span className="dash-dash-kpi-value">{displayValue}</span>
                       </div>
                       <div className="dash-dash-kpi-trend">
                         <span className="dash-dash-kpi-trend-pct" style={{ color: trendColors[i % trendColors.length] }}>{kpiTrends[i % kpiTrends.length]}</span>
@@ -7845,6 +7923,52 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           </>
                         )}
                       </div>
+                    </div>
+                  )
+                })()
+                : activeKey === 'rapports' ? (() => {
+                  const rptStatCards = liveStats || statCards
+                  return (
+                    <div className="rpt-root">
+                      <div className="rpt-header">
+                        <h2>Rapports &amp; Statistiques</h2>
+                        <span className="rpt-subtitle">Données en temps réel</span>
+                      </div>
+                      {!liveCharts ? (
+                        <div style={{ padding: 32, textAlign: 'center', color: '#94A3B8' }}>Chargement des statistiques…</div>
+                      ) : (
+                        <div className="rpt-grid">
+                          <div className="rpt-card">
+                            <div className="rpt-card-title">Dons mensuels (6 derniers mois)</div>
+                            <BarChart data={liveCharts.donations_monthly} valueKey="total" labelKey="month" color="#6366F1" unit="$" />
+                          </div>
+                          <div className="rpt-card">
+                            <div className="rpt-card-title">Enfants par genre</div>
+                            <DonutChart data={[
+                              { label: 'Garçons', value: liveCharts.children_gender.M, color: '#3b82f6' },
+                              { label: 'Filles', value: liveCharts.children_gender.F, color: '#f472b6' },
+                            ]} />
+                          </div>
+                          <div className="rpt-card">
+                            <div className="rpt-card-title">Parrainages par statut</div>
+                            <BarChart data={[
+                              { label: 'Actifs', total: liveCharts.sponsorships_status.active },
+                              { label: 'Suspendus', total: liveCharts.sponsorships_status.paused },
+                              { label: 'Annulés', total: liveCharts.sponsorships_status.cancelled },
+                            ]} valueKey="total" labelKey="label" color="#22c55e" />
+                          </div>
+                          <div className="rpt-card rpt-kpi-summary">
+                            <div className="rpt-card-title">Indicateurs clés</div>
+                            {rptStatCards.map((kpi, i) => (
+                              <div key={i} className="rpt-kpi-row">
+                                <span className="rpt-kpi-label">{kpi.label}</span>
+                                <span className="rpt-kpi-value" style={{ color: kpi.color }}>{kpi.value}</span>
+                                <span className="rpt-kpi-sub">{kpi.sub}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })()

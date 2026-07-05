@@ -1,6 +1,11 @@
 from django.test import TestCase
+from rest_framework.test import APIClient
+from accounts.models import User
+from children.models import Child
+from finances.models import Donation
+from orphanages.models import Orphanage
 
-from .models import ROLES, User
+from .models import ROLES
 
 
 class RoleChoicesTests(TestCase):
@@ -21,3 +26,53 @@ class RoleChoicesTests(TestCase):
             country="CD", role="auditor",
         )
         self.assertEqual(user.role, "auditor")
+
+
+def make_user_stats(email, role, **kwargs):
+    u = User.objects.create_user(
+        email=email, password='pass', first_name='Test', last_name='User',
+        role=role, country='SN',
+    )
+    u.is_active = True
+    u.save()
+    for k, v in kwargs.items():
+        setattr(u, k, v)
+        u.save(update_fields=[k])
+    return u
+
+
+class StatsAPITest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_stats_requires_auth(self):
+        r = self.client.get('/api/auth/stats/')
+        self.assertEqual(r.status_code, 401)
+
+    def test_director_stats_returns_kpis_and_charts(self):
+        director = make_user_stats('dir@x.com', 'director')
+        self.client.force_authenticate(user=director)
+        r = self.client.get('/api/auth/stats/')
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('kpis', r.data)
+        self.assertIn('charts', r.data)
+        self.assertEqual(len(r.data['kpis']), 4)
+        self.assertIn('donations_monthly', r.data['charts'])
+        self.assertEqual(len(r.data['charts']['donations_monthly']), 6)
+        self.assertIn('children_gender', r.data['charts'])
+        self.assertIn('sponsorships_status', r.data['charts'])
+
+    def test_supermaster_stats_returns_kpis(self):
+        sm = make_user_stats('sm@x.com', 'supermaster')
+        self.client.force_authenticate(user=sm)
+        r = self.client.get('/api/auth/stats/')
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('kpis', r.data)
+        self.assertEqual(len(r.data['kpis']), 4)
+
+    def test_kpi_values_are_integers(self):
+        director = make_user_stats('dir2@x.com', 'director')
+        self.client.force_authenticate(user=director)
+        r = self.client.get('/api/auth/stats/')
+        for kpi in r.data['kpis']:
+            self.assertIsInstance(kpi['value'], int)
