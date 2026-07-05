@@ -1102,29 +1102,6 @@ function genChildUid(exclude = new Set()) {
 }
 
 /* ===== L'ÉCLAT SOCIAL APP ===== */
-const ES_POSTS = [
-  {
-    id: 1,
-    author: "Orphelinat Espoir",
-    avatar: "data:image/svg+xml,..." /* ... */,
-    time: "Il y a 2 heures",
-    text: "Nous venons de recevoir une nouvelle livraison de fournitures scolaires ! Merci à tous nos donateurs.",
-    image: "/images/bg.jpg",
-    likes: 24,
-    comments: 5
-  },
-  {
-    id: 2,
-    author: "Marie Claire",
-    avatar: "data:image/svg+xml,..." /* ... */,
-    time: "Il y a 5 heures",
-    text: "Retour sur notre journée de vaccination. Tout s'est très bien passé.",
-    image: "/images/bg.jpg",
-    likes: 45,
-    comments: 12
-  }
-];
-
 const ES_PENDING_POSTS = [
   {
     id: 99,
@@ -1148,8 +1125,80 @@ function EclatSocialApp({ user, onReturn }) {
   const [esMsgInput, setEsMsgInput] = React.useState('')
   const [esUsers, setEsUsers] = React.useState([])
   const [esNotifs, setEsNotifs] = React.useState([])
+  const [esPosts, setEsPosts] = React.useState([])
+  const [esPostText, setEsPostText] = React.useState('')
+  const [esPosting, setEsPosting] = React.useState(false)
+  const [esComments, setEsComments] = React.useState([])
+  const [esCommentInput, setEsCommentInput] = React.useState('')
 
   const esNavigate = (view) => { setEsNavActive(view); setEsView(view) }
+
+  const esTimeAgo = (dateStr) => {
+    if (!dateStr) return ''
+    const diffMs = Date.now() - new Date(dateStr).getTime()
+    const mins = Math.floor(diffMs / 60000)
+    if (mins < 1) return "à l'instant"
+    if (mins < 60) return `il y a ${mins} min`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `il y a ${hrs}h`
+    return `il y a ${Math.floor(hrs / 24)}j`
+  }
+
+  const esLoadPosts = () => {
+    apiFetch(`${API}/posts/`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : null)
+      .then(data => { if (data) setEsPosts(Array.isArray(data) ? data : (data.results || [])) })
+      .catch(() => {})
+  }
+
+  React.useEffect(() => {
+    if (esView !== 'home' && esView !== 'search') return
+    esLoadPosts()
+  }, [esView])
+
+  const esCreatePost = async () => {
+    if (!esPostText.trim() || esPosting) return
+    setEsPosting(true)
+    const res = await apiFetch(`${API}/posts/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: esPostText.trim(), post_type: 'text', audience: 'public' })
+    }, onReturn)
+    setEsPosting(false)
+    if (res && res.ok) {
+      setEsPostText('')
+      setEsModal(null)
+      esLoadPosts()
+    }
+  }
+
+  const esToggleLike = async (postId) => {
+    const res = await apiFetch(`${API}/posts/${postId}/like/`, { method: 'POST' }, onReturn)
+    if (res && res.ok) {
+      const data = await res.json()
+      setEsPosts(prev => prev.map(p => p.id === postId ? { ...p, is_liked: data.liked, likes_count: data.likes_count } : p))
+    }
+  }
+
+  const esLoadComments = (postId) => {
+    apiFetch(`${API}/posts/${postId}/comments/`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : null)
+      .then(data => { if (data) setEsComments(Array.isArray(data) ? data : (data.results || [])) })
+      .catch(() => {})
+  }
+
+  const esSendComment = async () => {
+    if (!esCommentInput.trim() || !esSelectedPost) return
+    const res = await apiFetch(`${API}/posts/${esSelectedPost.id}/comments/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: esCommentInput.trim() })
+    }, onReturn)
+    if (res && res.ok) {
+      const comment = await res.json()
+      setEsComments(prev => [...prev, comment])
+      setEsCommentInput('')
+      setEsPosts(prev => prev.map(p => p.id === esSelectedPost.id ? { ...p, comments_count: (p.comments_count || 0) + 1 } : p))
+    }
+  }
 
   React.useEffect(() => {
     if (esView !== 'messages') return
@@ -1199,15 +1248,11 @@ function EclatSocialApp({ user, onReturn }) {
     { name: 'Emma W.', role: 'DevOps', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="#A78BFA"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">EW</text></svg>')}` },
   ]
 
-  const ES_COMMENTS = [
-    { author: 'Sarah M.', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="16" fill="#F472B6"/><text x="16" y="16" dominant-baseline="central" text-anchor="middle" fill="white" font-size="12" font-weight="700">SM</text></svg>')}`, text: 'Magnifique ! Hâte de voir le résultat final 🔥', time: 'il y a 1h', likes: 5 },
-    { author: 'Mike T.', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="16" fill="#34D399"/><text x="16" y="16" dominant-baseline="central" text-anchor="middle" fill="white" font-size="12" font-weight="700">MT</text></svg>')}`, text: 'Super clean! Les animations sont fluides.', time: 'il y a 45min', likes: 3 },
-    { author: 'Emma W.', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="16" fill="#A78BFA"/><text x="16" y="16" dominant-baseline="central" text-anchor="middle" fill="white" font-size="12" font-weight="700">EW</text></svg>')}`, text: 'Le pipeline CI/CD est prêt pour ça 💪', time: 'il y a 30min', likes: 2 },
-  ]
-
   const openPostDetail = (post) => {
     setEsSelectedPost(post)
+    setEsComments([])
     setEsModal('detail')
+    esLoadComments(post.id)
   }
 
   return (
@@ -1427,35 +1472,44 @@ function EclatSocialApp({ user, onReturn }) {
 
           {/* POSTS */}
           <div className="es-posts">
-            {ES_POSTS.map(post => (
-              <article key={post.id} className="es-post">
-                <div className="es-post-header">
-                  <img src={post.avatar} alt={post.author} className="es-avatar-sm" />
-                  <div className="es-post-meta">
-                    <span className="es-post-author">{post.author}</span>
-                    <span className="es-author-time">{post.time}</span>
-                  </div>
-                  <button className="es-post-options">⋮</button>
-                </div>
-                <div className="es-post-content" onClick={() => openPostDetail(post)}>
-                  <p>{post.text}</p>
-                  {post.isVideo ? (
-                    <div className="es-video-preview">
-                      <img src={post.image} alt="Video preview" className="es-post-image" />
-                      <span className="es-play-icon">▶</span>
-                      {post.duration && <span className="es-duration">{post.duration}</span>}
+            {esPosts.length === 0 && (
+              <div style={{ textAlign: 'center', color: '#94a3b8', padding: '32px 16px', fontSize: '14px' }}>Aucune publication pour le moment.</div>
+            )}
+            {esPosts.map(post => {
+              const av = post.author_avatar || { initials: '?', hue: 200 }
+              const postAvatar = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="hsl(${av.hue},50%,45%)"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">${av.initials}</text></svg>`)}`
+              const media = post.media && post.media[0]
+              return (
+                <article key={post.id} className="es-post">
+                  <div className="es-post-header">
+                    <img src={postAvatar} alt={post.author_name} className="es-avatar-sm" />
+                    <div className="es-post-meta">
+                      <span className="es-post-author">{post.author_name}</span>
+                      <span className="es-author-time">{esTimeAgo(post.created_at)}</span>
                     </div>
-                  ) : (
-                    <img src={post.image} alt="Post" className="es-post-image" />
-                  )}
-                </div>
-                <div className="es-post-actions-bar">
-                  <button>❤️ {post.likes}</button>
-                  <button>💬 {post.comments}</button>
-                  <button>➦ Partager</button>
-                </div>
-              </article>
-            ))}
+                    <button className="es-post-options">⋮</button>
+                  </div>
+                  <div className="es-post-content" onClick={() => openPostDetail(post)}>
+                    <p>{post.content}</p>
+                    {media && (
+                      media.media_type === 'video' ? (
+                        <div className="es-video-preview">
+                          <video src={media.url} className="es-post-image" />
+                          <span className="es-play-icon">▶</span>
+                        </div>
+                      ) : (
+                        <img src={media.url} alt="Post" className="es-post-image" />
+                      )
+                    )}
+                  </div>
+                  <div className="es-post-actions-bar">
+                    <button onClick={() => esToggleLike(post.id)}>{post.is_liked ? '❤️' : '🤍'} {post.likes_count || 0}</button>
+                    <button onClick={() => openPostDetail(post)}>💬 {post.comments_count || 0}</button>
+                    <button>➦ Partager</button>
+                  </div>
+                </article>
+              )
+            })}
           </div>
         </div>}
       </main>
@@ -1520,19 +1574,10 @@ function EclatSocialApp({ user, onReturn }) {
             <div className="es-modal-header">
               <button className="es-close-btn" onClick={() => setEsModal(null)}>✕</button>
               <h3>Créer une publication</h3>
-              <button className="es-publish-btn">Publier</button>
+              <button className="es-publish-btn" onClick={esCreatePost} disabled={esPosting || !esPostText.trim()}>{esPosting ? '...' : 'Publier'}</button>
             </div>
             <div className="es-create-tabs">
-              <button className="active">📷 Image</button>
-              <button>🎬 Vidéo</button>
-              <button>📝 Texte</button>
-            </div>
-            <div className="es-create-media-area">
-              <div className="es-upload-placeholder">
-                <span className="es-upload-icon">📁</span>
-                <p>Glissez vos fichiers ici ou cliquez pour parcourir</p>
-                <span style={{ fontSize: '12px', color: '#94A3B8' }}>JPG, PNG, MP4 · Max 50 Mo</span>
-              </div>
+              <button className="active">📝 Texte</button>
             </div>
             <div className="es-create-input-area">
               <div className="es-post-author-row">
@@ -1541,7 +1586,7 @@ function EclatSocialApp({ user, onReturn }) {
                   <span className="es-author-name">
                     {user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : displayName}
                   </span>
-                  <select 
+                  <select
                     style={{ border: 'none', background: 'transparent', fontSize: '12px', color: '#64748B', outline: 'none', cursor: 'pointer' }}
                     defaultValue="general"
                   >
@@ -1550,7 +1595,7 @@ function EclatSocialApp({ user, onReturn }) {
                   </select>
                 </div>
               </div>
-              <textarea placeholder="Quoi de neuf ?" rows={3}></textarea>
+              <textarea placeholder="Quoi de neuf ?" rows={3} value={esPostText} onChange={e => setEsPostText(e.target.value)}></textarea>
             </div>
             <div className="es-create-options">
               <button>📍 Ajouter un lieu <span>›</span></button>
@@ -1567,61 +1612,59 @@ function EclatSocialApp({ user, onReturn }) {
           <div className="es-post-modal" onClick={e => e.stopPropagation()}>
             <div className="es-modal-header">
               <button className="es-back-btn" onClick={() => { setEsModal(null); setEsSelectedPost(null) }}>← Retour</button>
-              <h3>{esSelectedPost.author}</h3>
+              <h3>{esSelectedPost.author_name}</h3>
               <button className="es-more-btn">⋮</button>
             </div>
             <div className="es-modal-content">
               {/* LEFT: MEDIA */}
               <div className="es-modal-media">
-                <div className="es-post-header" style={{ padding: '0 0 16px 0' }}>
-                  <img src={esSelectedPost.avatar} alt="" className="es-avatar-sm" />
-                  <div className="es-post-meta">
-                    <span className="es-post-author">{esSelectedPost.author}</span>
-                    <span className="es-author-time">{esSelectedPost.time}</span>
-                  </div>
-                  <button className="es-follow-btn-sm">Suivre</button>
-                </div>
-                <p className="es-post-caption">{esSelectedPost.text}</p>
-                <div className="es-video-container">
-                  <img src={esSelectedPost.image} alt="" className="es-media-img" />
-                  {esSelectedPost.isVideo && <span className="es-play-icon-large">▶</span>}
-                  <span className="es-views-badge">👁️ {esSelectedPost.views} vues</span>
-                </div>
-                <div className="es-post-actions-bar" style={{ borderTop: 'none', padding: '16px 0' }}>
-                  <button>❤️ {esSelectedPost.likes}</button>
-                  <button>💬 {esSelectedPost.comments}</button>
-                  <button>➦ Partager</button>
-                  <button className="es-save-btn">🔖</button>
-                </div>
-                <div className="es-likes-summary">
-                  <div className="es-avatar-stack">
-                    {ES_COMMENTS.slice(0, 3).map((c, i) => (
-                      <img key={i} src={c.avatar} alt="" />
-                    ))}
-                  </div>
-                  <span>Aimé par <b>Sarah M.</b> et <b>{esSelectedPost.likes - 1} autres</b></span>
-                </div>
+                {(() => {
+                  const av = esSelectedPost.author_avatar || { initials: '?', hue: 200 }
+                  const postAvatar = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="hsl(${av.hue},50%,45%)"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">${av.initials}</text></svg>`)}`
+                  const media = esSelectedPost.media && esSelectedPost.media[0]
+                  return (
+                    <>
+                      <div className="es-post-header" style={{ padding: '0 0 16px 0' }}>
+                        <img src={postAvatar} alt="" className="es-avatar-sm" />
+                        <div className="es-post-meta">
+                          <span className="es-post-author">{esSelectedPost.author_name}</span>
+                          <span className="es-author-time">{esTimeAgo(esSelectedPost.created_at)}</span>
+                        </div>
+                      </div>
+                      <p className="es-post-caption">{esSelectedPost.content}</p>
+                      {media && (
+                        <div className="es-video-container">
+                          <img src={media.url} alt="" className="es-media-img" />
+                        </div>
+                      )}
+                      <div className="es-post-actions-bar" style={{ borderTop: 'none', padding: '16px 0' }}>
+                        <button onClick={() => esToggleLike(esSelectedPost.id)}>{esSelectedPost.is_liked ? '❤️' : '🤍'} {esSelectedPost.likes_count || 0}</button>
+                        <button>💬 {esComments.length}</button>
+                        <button>➦ Partager</button>
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
 
               {/* RIGHT: COMMENTS */}
               <div className="es-modal-comments">
                 <div className="es-comments-header">
-                  <h4>Commentaires ({ES_COMMENTS.length})</h4>
-                  <span>Les plus récents ▾</span>
+                  <h4>Commentaires ({esComments.length})</h4>
                 </div>
                 <div className="es-comments-list">
-                  {ES_COMMENTS.map((c, i) => (
-                    <div key={i} className="es-comment">
-                      <img src={c.avatar} alt="" className="es-comment-avatar" />
+                  {esComments.length === 0 && (
+                    <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '13px', padding: '16px' }}>Aucun commentaire. Soyez le premier !</div>
+                  )}
+                  {esComments.map((c) => (
+                    <div key={c.id} className="es-comment">
                       <div>
                         <div className="es-comment-body">
-                          <span className="es-comment-author">{c.author}</span>
-                          <p>{c.text}</p>
+                          <span className="es-comment-author">{c.author_name}</span>
+                          <p>{c.content}</p>
                         </div>
                         <div className="es-comment-actions">
-                          <span>{c.time}</span>
-                          <button>❤️ {c.likes}</button>
-                          <button>Répondre</button>
+                          <span>{esTimeAgo(c.created_at)}</span>
                         </div>
                       </div>
                     </div>
@@ -1629,8 +1672,8 @@ function EclatSocialApp({ user, onReturn }) {
                 </div>
                 <div className="es-comment-input-area">
                   <img src={avatarSvg} alt="" className="es-comment-avatar" />
-                  <input placeholder="Écrire un commentaire..." />
-                  <button className="es-send-btn">➤</button>
+                  <input placeholder="Écrire un commentaire..." value={esCommentInput} onChange={e => setEsCommentInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && esSendComment()} />
+                  <button className="es-send-btn" onClick={esSendComment}>➤</button>
                 </div>
               </div>
             </div>
