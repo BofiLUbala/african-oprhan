@@ -1,12 +1,13 @@
-﻿import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { LangProvider, useTranslation } from './i18n'
 import './App.css'
 
 const API = 'http://localhost:8000/api'
 
-async function apiFetch(url, options = {}, onLogout = null) {
-  const access = localStorage.getItem('access_token')
-  const headers = { ...(options.headers || {}), Authorization: `Bearer ${access}` }
+async function apiFetch(url, options = {}, onLogout) {
+  const token = localStorage.getItem('access_token')
+  const headers = { ...(options.headers || {}) }
+  if (token) headers['Authorization'] = `Bearer ${token}`
   let res = await fetch(url, { ...options, headers })
   if (res.status === 401) {
     const refresh = localStorage.getItem('refresh_token')
@@ -19,9 +20,9 @@ async function apiFetch(url, options = {}, onLogout = null) {
       if (refRes.ok) {
         const tokens = await refRes.json()
         localStorage.setItem('access_token', tokens.access)
-        const retryHeaders = { ...(options.headers || {}), Authorization: `Bearer ${tokens.access}` }
-        res = await fetch(url, { ...options, headers: retryHeaders })
-        return res
+        headers['Authorization'] = `Bearer ${tokens.access}`
+        res = await fetch(url, { ...options, headers })
+        if (res.status !== 401) return res
       }
     }
     if (onLogout) onLogout()
@@ -74,7 +75,6 @@ const ROLES = [
   { value: 'partner', label: 'Partenaire' },
   { value: 'director', label: "Chef d'orphelinat" },
   { value: 'federation', label: 'Fédération' },
-  { value: 'auditor', label: 'Auditeur' },
 ]
 
 const CATEGORY_ICONS = ['\u{1F4CB}', '\u{1F4C8}', '\u{26A1}', '\u{1F4C5}', '\u{1F4C4}', '\u{1F3EB}', '\u{1F4E2}', '\u{1F91D}', '\u{1F464}', '\u{1F3E0}']
@@ -114,17 +114,15 @@ export default function App() {
 
   if (user) {
     const roleLower = (user.role || '').toLowerCase()
-    const rolesWithDashboard = ['director', 'ambassador', 'supermaster', 'federation', 'partner', 'auditor']
+    const rolesWithDashboard = ['director', 'ambassador', 'supermaster', 'federation', 'partner']
     if (rolesWithDashboard.includes(roleLower)) {
       return (
-        <ToastProvider>
-          <LangProvider>
-            <div className="app">
-              <DashboardHeader user={user} roleLower={roleLower} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} activeKey={activeKey} subKey={subKey} setActiveKey={setActiveKey} setSubKey={setSubKey} />
-              <main><DashboardShell user={user} role={roleLower} onLogout={logout} activeKey={activeKey} setActiveKey={setActiveKey} subKey={subKey} setSubKey={setSubKey} /></main>
-            </div>
-          </LangProvider>
-        </ToastProvider>
+        <LangProvider>
+          <div className="app">
+            <DashboardHeader user={user} roleLower={roleLower} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} activeKey={activeKey} subKey={subKey} setActiveKey={setActiveKey} setSubKey={setSubKey} />
+            <main><DashboardShell user={user} role={roleLower} onLogout={logout} activeKey={activeKey} setActiveKey={setActiveKey} subKey={subKey} setSubKey={setSubKey} /></main>
+          </div>
+        </LangProvider>
       )
     }
   }
@@ -487,9 +485,6 @@ const ROLE_NAV = {
     { label: 'Documents', key: 'documents' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
     { label: 'Demandes', key: 'demandes' },
-    { label: 'Finances', key: 'finances' },
-    { label: 'Dons', key: 'dons' },
-    { label: 'Parrainages', key: 'parrainages' },
     { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
   ],
@@ -510,7 +505,6 @@ const ROLE_NAV = {
     { label: 'Utilisateurs', key: 'users' },
     { label: 'Orphelinats', key: 'orphelinats' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
-    { label: 'Finances', key: 'finances' },
     { label: 'Rapports', key: 'rapports' },
     { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
@@ -520,7 +514,6 @@ const ROLE_NAV = {
     { label: 'Utilisateurs', key: 'users' },
     { label: 'Orphelinats', key: 'orphelinats' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
-    { label: 'Finances', key: 'finances' },
     { label: 'Validation des donnees', key: 'validationLocale' },
     { label: 'Partenaires', key: 'partenaires' },
     { label: 'Rapports', key: 'rapports' },
@@ -532,21 +525,8 @@ const ROLE_NAV = {
     { label: 'Besoins', key: 'besoins' },
     { label: 'Projets', key: 'projets' },
     { label: 'Parrainages', key: 'parrainages' },
-    { label: 'Dons', key: 'dons' },
     { label: 'Rapports', key: 'rapports' },
     { label: 'Communication', key: 'communication' },
-    { label: 'Paramètres', key: 'parametres' },
-  ],
-  sponsor: [
-    { label: 'Tableau de bord', key: 'dashboard' },
-    { label: 'Dons', key: 'dons' },
-    { label: 'Parrainages', key: 'parrainages' },
-    { label: 'Communication', key: 'communication' },
-    { label: 'Paramètres', key: 'parametres' },
-  ],
-  auditor: [
-    { label: 'Tableau de bord', key: 'dashboard' },
-    { label: 'Finances', key: 'finances' },
     { label: 'Paramètres', key: 'parametres' },
   ],
 }
@@ -591,9 +571,6 @@ const ROLE_PAGES = {
       { id: 'R3', title: 'État des dons', subtitle: '45 Dons', count: 45 },
       { id: 'R4', title: 'Publications', subtitle: '18 Publications', count: 18 },
     ]},
-    dons: { title: 'Dons', subtitle: 'Suivi des contributions.', categories: [] },
-    finances: { title: 'Finances', subtitle: 'Revenus et dépenses.', categories: [] },
-    parrainages: { title: 'Parrainages', subtitle: "Parrainages de l'orphelinat.", categories: [] },
     parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
       { id: 'S4', title: 'Configuration', subtitle: 'Paramètres système', count: 2 },
     ]},
@@ -676,7 +653,6 @@ const ROLE_PAGES = {
       { id: 'A3', title: 'Évaluations', subtitle: '3 En cours', count: 3 },
       { id: 'A4', title: "Demandes d'affectation", subtitle: '2 Nouvelles', count: 2 },
     ]},
-    finances: { title: 'Finances', subtitle: 'Revenus et dépenses.', categories: [] },
     rapports: { title: 'Rapports nationaux', subtitle: "Production et consultation des rapports.", categories: [
       { id: 'R1', title: 'Rapport national', subtitle: 'À générer', count: 1 },
       { id: 'R2', title: 'Rapports régionaux', subtitle: '4 Reçus', count: 4 },
@@ -718,7 +694,6 @@ const ROLE_PAGES = {
       { id: 'N3', title: 'Conventions', subtitle: '8 Signées', count: 8 },
       { id: 'N4', title: "Appels d'offres", subtitle: '2 En cours', count: 2 },
     ]},
-    finances: { title: 'Finances', subtitle: 'Revenus et dépenses.', categories: [] },
     rapports: { title: 'Rapports nationaux', subtitle: "Production des rapports.", categories: [
       { id: 'R1', title: 'Rapport mensuel', subtitle: 'Avril 2026', count: 1 },
       { id: 'R2', title: 'Rapport financier', subtitle: 'Trimestre 2', count: 1 },
@@ -754,7 +729,6 @@ const ROLE_PAGES = {
       { id: 'F3', title: 'Échanges reçus', subtitle: '6 Messages', count: 6 },
       { id: 'F4', title: "Photos et rapports", subtitle: '9 Documents', count: 9 },
     ]},
-    dons: { title: 'Dons', subtitle: 'Suivi des contributions.', categories: [] },
     rapports: { title: 'Rapports et documents', subtitle: 'Télécharger les rapports.', categories: [
       { id: 'R1', title: "Rapports d'impact", subtitle: '8 Documents', count: 8 },
       { id: 'R2', title: "Rapports financiers", subtitle: '4 Documents', count: 4 },
@@ -764,18 +738,6 @@ const ROLE_PAGES = {
     parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
       { id: 'S4', title: 'Configuration', subtitle: 'Préférences', count: 2 },
     ]},
-  },
-  sponsor: {
-    dashboard: { title: 'Tableau de bord', subtitle: "Vue d'ensemble.", categories: [] },
-    dons: { title: 'Dons', subtitle: 'Suivi des contributions.', categories: [] },
-    parrainages: { title: 'Parrainages', subtitle: 'Parrainer un enfant.', categories: [] },
-    communication: { title: 'Communication', subtitle: 'Messagerie.', categories: [] },
-    parametres: { title: 'Paramètres', subtitle: 'Compte et préférences.', categories: [] },
-  },
-  auditor: {
-    dashboard: { title: 'Tableau de bord', subtitle: "Vue d'ensemble.", categories: [] },
-    finances: { title: 'Finances', subtitle: 'Revenus et dépenses.', categories: [] },
-    parametres: { title: 'Paramètres', subtitle: 'Compte et préférences.', categories: [] },
   },
 }
 
@@ -869,8 +831,7 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
   const notifFetchRef = useRef(false)
   const fetchNotifications = async () => {
     try {
-      // onLogout not available here — poll failure is non-critical, session will expire naturally
-      const res = await apiFetch(`${API}/notifications/`)
+      const res = await apiFetch(`${API}/notifications/`, {}, onLogout)
       if (res && res.ok) setNotifications(await res.json())
     } catch {}
   }
@@ -899,11 +860,8 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
 
     if (!allChildren.current.length) {
       setSearchLoading(true)
-      const token = localStorage.getItem('access_token')
-      fetch(`${API}/enfants/`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      })
-        .then(r => r.ok ? r.json() : [])
+      apiFetch(`${API}/enfants/`, {}, onLogout)
+        .then(r => r && r.ok ? r.json() : [])
         .then(data => {
           const list = Array.isArray(data) ? data : data.results || []
           allChildren.current = list
@@ -969,22 +927,18 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
   }
 
   const markNotifRead = (nid) => {
-    const t = localStorage.getItem('access_token')
-    if (!t) return
-    fetch(`${API}/notifications/`, {
+    apiFetch(`${API}/notifications/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: nid }),
-    }).then(() => { setNotifications(prev => prev.map(n => n.id === nid ? { ...n, is_read: true } : n)) }).catch(() => {})
+    }, onLogout).then(r => { if (r) setNotifications(prev => prev.map(n => n.id === nid ? { ...n, is_read: true } : n)) }).catch(() => {})
   }
   const markAllRead = () => {
-    const t = localStorage.getItem('access_token')
-    if (!t) return
-    fetch(`${API}/notifications/`, {
+    apiFetch(`${API}/notifications/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mark_read: true }),
-    }).then(() => { setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))) }).catch(() => {})
+    }, onLogout).then(r => { if (r) setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))) }).catch(() => {})
   }
 
   const notifCount = notifications.filter(n => !n.is_read).length
@@ -1147,103 +1101,386 @@ function genChildUid(exclude = new Set()) {
   return uid
 }
 
-/* ===== MESSAGING (EclatSocialApp removed — replaced by inline IIFE in DashboardShell) ===== */
-
-/* ===== SVG CHART HELPERS ===== */
-function EmptyState({ icon, title, sub }) {
-  return (
-    <div className="empty-state">
-      <div className="empty-state-icon">{icon || '📭'}</div>
-      <div className="empty-state-title">{title || 'Aucun élément'}</div>
-      {sub && <div className="empty-state-sub">{sub}</div>}
-    </div>
-  )
-}
-
-function BarChart({ data, valueKey, labelKey, color, unit }) {
-  const u = unit || ''
-  const values = data.map(d => d[valueKey] || 0)
-  const max = Math.max(...values, 1)
-  const W = 340, H = 140, BAR_W = Math.floor(W / data.length) - 6, PAD = 28
-  return (
-    <svg viewBox={`0 0 ${W} ${H + PAD}`} style={{ width: '100%', overflow: 'visible' }}>
-      {data.map((d, i) => {
-        const barH = Math.max(2, ((d[valueKey] || 0) / max) * H)
-        const x = i * (W / data.length) + (W / data.length - BAR_W) / 2
-        const y = H - barH
-        return (
-          <g key={i}>
-            <rect x={x} y={y} width={BAR_W} height={barH} fill={color} rx={3} opacity={0.85} />
-            <text x={x + BAR_W / 2} y={H + 14} textAnchor="middle" fontSize={10} fill="var(--text-muted)">{d[labelKey]}</text>
-            {d[valueKey] > 0 && <text x={x + BAR_W / 2} y={y - 4} textAnchor="middle" fontSize={9} fill={color}>{u}{d[valueKey]}</text>}
-          </g>
-        )
-      })}
-      <line x1={0} y1={H} x2={W} y2={H} stroke="var(--border-card)" strokeWidth={1} />
-    </svg>
-  )
-}
-
-function DonutChart({ data }) {
-  const total = data.reduce((s, d) => s + d.value, 0)
-  if (total === 0) return <div style={{ textAlign: 'center', color: '#94A3B8', padding: 24 }}>Aucune donnée</div>
-  const R = 60, CX = 80, CY = 80, STROKE = 22
-  let cumAngle = -Math.PI / 2
-  const arcs = data.map(d => {
-    const angle = (d.value / total) * 2 * Math.PI
-    const start = cumAngle
-    cumAngle += angle
-    return { ...d, start, angle }
-  })
-  const arcPath = (start, angle, r) => {
-    const x1 = CX + r * Math.cos(start)
-    const y1 = CY + r * Math.sin(start)
-    const x2 = CX + r * Math.cos(start + angle)
-    const y2 = CY + r * Math.sin(start + angle)
-    const large = angle > Math.PI ? 1 : 0
-    return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`
+/* ===== L'ÉCLAT SOCIAL APP ===== */
+const ES_POSTS = [
+  {
+    id: 1,
+    author: "Orphelinat Espoir",
+    avatar: "data:image/svg+xml,..." /* ... */,
+    time: "Il y a 2 heures",
+    text: "Nous venons de recevoir une nouvelle livraison de fournitures scolaires ! Merci à tous nos donateurs.",
+    image: "/images/bg.jpg",
+    likes: 24,
+    comments: 5
+  },
+  {
+    id: 2,
+    author: "Marie Claire",
+    avatar: "data:image/svg+xml,..." /* ... */,
+    time: "Il y a 5 heures",
+    text: "Retour sur notre journée de vaccination. Tout s'est très bien passé.",
+    image: "/images/bg.jpg",
+    likes: 45,
+    comments: 12
   }
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-      <svg viewBox="0 0 160 160" style={{ width: 120, flexShrink: 0 }}>
-        {arcs.map((a, i) => (
-          <path key={i} d={arcPath(a.start, a.angle, R)} fill="none" stroke={a.color} strokeWidth={STROKE} strokeLinecap="butt" />
-        ))}
-        <text x={CX} y={CY} textAnchor="middle" dominantBaseline="central" fontSize={16} fontWeight={700} fill="var(--text-body)">{total}</text>
-      </svg>
-      <div>
-        {data.map((d, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <span style={{ width: 10, height: 10, borderRadius: '50%', background: d.color, display: 'inline-block' }} />
-            <span style={{ fontSize: 12, color: 'var(--text-body)' }}>{d.label}: <strong>{d.value}</strong></span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+];
 
-const ToastContext = React.createContext(null)
-function useToast() { return React.useContext(ToastContext) }
-function ToastProvider({ children }) {
-  const [toasts, setToasts] = React.useState([])
-  const addToast = React.useCallback((message, type) => {
-    const id = Date.now() + Math.random()
-    setToasts(prev => [...prev, { id, message, type: type || 'success' }])
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
-  }, [])
+const ES_PENDING_POSTS = [
+  {
+    id: 99,
+    author: "Orphelinat Saint Jean",
+    avatar: "data:image/svg+xml,..." /* ... */,
+    time: "Il y a 30 minutes",
+    text: "Mise à jour médicale pour l'enfant David K. Il a besoin d'une intervention chirurgicale mineure la semaine prochaine. Merci de valider pour informer les partenaires.",
+    image: null,
+    childName: "David K."
+  }
+];
+
+function EclatSocialApp({ user, onReturn }) {
+  const [esView, setEsView] = useState('home')
+  const [esModal, setEsModal] = useState(null) // 'create' | 'detail' | null
+  const [esSelectedPost, setEsSelectedPost] = useState(null)
+  const [esNavActive, setEsNavActive] = useState('home')
+
+  const initials = (user.first_name?.[0] || '') + (user.last_name?.[0] || '')
+  const hue = user.first_name ? user.first_name.charCodeAt(0) * 37 % 360 : 200
+  const avatarSvg = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" rx="20" fill="hsl(${hue},50%,45%)"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700" font-family="system-ui">${initials}</text></svg>`)}`
+  const displayName = user.first_name ? `${user.first_name} ${user.last_name?.[0] || ''}`.trim() : 'DarloK'
+
+  const ES_STORIES = [
+    { name: 'Vous', avatar: avatarSvg, isYou: true, active: false },
+    { name: 'Sarah', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#F472B6"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">SM</text></svg>')}`, active: true },
+    { name: 'Johnson', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#60A5FA"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">JN</text></svg>')}`, active: true },
+    { name: 'Mike', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#34D399"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">MT</text></svg>')}`, active: false },
+    { name: 'Emma', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#A78BFA"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">EW</text></svg>')}`, active: true },
+    { name: 'David', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#FBBF24"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">DK</text></svg>')}`, active: false },
+  ]
+
+  const ES_SUGGESTIONS = [
+    { name: 'Mike T.', role: 'Designer UI', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="#34D399"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">MT</text></svg>')}` },
+    { name: 'Emma W.', role: 'DevOps', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="#A78BFA"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">EW</text></svg>')}` },
+  ]
+
+  const ES_COMMENTS = [
+    { author: 'Sarah M.', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="16" fill="#F472B6"/><text x="16" y="16" dominant-baseline="central" text-anchor="middle" fill="white" font-size="12" font-weight="700">SM</text></svg>')}`, text: 'Magnifique ! Hâte de voir le résultat final 🔥', time: 'il y a 1h', likes: 5 },
+    { author: 'Mike T.', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="16" fill="#34D399"/><text x="16" y="16" dominant-baseline="central" text-anchor="middle" fill="white" font-size="12" font-weight="700">MT</text></svg>')}`, text: 'Super clean! Les animations sont fluides.', time: 'il y a 45min', likes: 3 },
+    { author: 'Emma W.', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="16" fill="#A78BFA"/><text x="16" y="16" dominant-baseline="central" text-anchor="middle" fill="white" font-size="12" font-weight="700">EW</text></svg>')}`, text: 'Le pipeline CI/CD est prêt pour ça 💪', time: 'il y a 30min', likes: 2 },
+  ]
+
+  const openPostDetail = (post) => {
+    setEsSelectedPost(post)
+    setEsModal('detail')
+  }
+
   return (
-    <ToastContext.Provider value={addToast}>
-      {children}
-      <div className="toast-container">
-        {toasts.map(t => (
-          <div key={t.id} className={`toast toast-${t.type}`}>
-            <span className="toast-icon">{t.type === 'success' ? '✓' : '✕'}</span>
-            <span className="toast-msg">{t.message}</span>
+    <div className="es-wrapper">
+      {/* LEFT SIDEBAR */}
+      <aside className="es-sidebar">
+        <div className="es-logo-area">
+          <img src="/logo.jpg" alt="Logo Fédération" style={{ height: '32px', borderRadius: '4px' }} />
+        </div>
+
+        <div className="es-sidebar-profile" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#F8FAFC', borderRadius: '12px', marginBottom: '24px' }}>
+          <img src={avatarSvg} alt="" className="es-avatar-sm" />
+          <div>
+            <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '14px' }}>
+              {user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : displayName}
+            </div>
+            <div style={{ fontSize: '12px', color: '#64748B' }}>
+              {user ? (
+                user.role === 'admin' ? 'Administrateur' :
+                user.role === 'federation' ? 'Fédération' :
+                user.role === 'ambassador' ? 'Ambassadeur' :
+                user.role === 'orphanage' ? 'Orphelinat' :
+                user.role === 'partner' ? 'Partenaire' : 'Utilisateur'
+              ) : 'Utilisateur'}
+            </div>
           </div>
-        ))}
-      </div>
-    </ToastContext.Provider>
+        </div>
+
+        <nav className="es-nav">
+          <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => setEsNavActive('home')}><span className="es-nav-icon">🏠</span> Accueil</button>
+          <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => setEsNavActive('profil')}><span className="es-nav-icon">👤</span> Profil</button>
+          <button className={esNavActive === 'messages' ? 'active' : ''} onClick={() => setEsNavActive('messages')}><span className="es-nav-icon">💬</span> Messages <span className="es-badge">3</span></button>
+          <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => setEsNavActive('notifs')}><span className="es-nav-icon">🔔</span> Notifications</button>
+          <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => setEsNavActive('settings')}><span className="es-nav-icon">⚙️</span> Paramètres</button>
+        </nav>
+
+        <div className="es-sidebar-bottom">
+          <button className="es-return-btn" onClick={onReturn}>← Retourner au dashboard</button>
+        </div>
+      </aside>
+
+      {/* MAIN FEED */}
+      <main className="es-main">
+        {/* Mobile Header */}
+        <div className="es-mobile-header">
+          <img src="/logo.jpg" alt="Logo Fédération" style={{ height: '32px', borderRadius: '4px' }} />
+          <div className="es-header-actions">
+            <button onClick={onReturn} title="Retourner au dashboard">🚪</button>
+            <button onClick={() => setEsModal('create')}>✏️</button>
+          </div>
+        </div>
+
+        <div className="es-feed-container">
+          {/* STORIES ROW */}
+          <div className="es-stories-row">
+            {ES_STORIES.map((s, i) => (
+              <div key={i} className="es-story">
+                <div className={`es-story-avatar${s.active ? ' active' : ''}`}>
+                  <img src={s.avatar} alt={s.name} />
+                  {s.isYou && <span className="es-story-add-icon">+</span>}
+                </div>
+                <span>{s.name}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* QUICK CREATE */}
+          <div className="es-quick-create" onClick={() => setEsModal('create')}>
+            <img src={avatarSvg} alt="" className="es-avatar-sm" />
+            <div className="es-quick-input">Quoi de neuf ?</div>
+            <button className="es-publish-btn" style={{ fontSize: '13px' }}>Publier</button>
+          </div>
+
+          {/* AMBASSADOR VALIDATION SECTION */}
+          {user && user.role === 'ambassador' && (
+            <div style={{ marginBottom: '24px', background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: '12px', padding: '16px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#92400E', margin: '0 0 12px 0' }}>⚠️ Publications en attente de validation</h3>
+              {ES_PENDING_POSTS.map(post => (
+                <div key={post.id} style={{ background: '#fff', borderRadius: '8px', padding: '12px', border: '1px solid #FDE68A', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <img src={post.avatar} alt="" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+                    <strong style={{ fontSize: '13px', color: '#1E293B' }}>{post.author}</strong>
+                    <span style={{ fontSize: '11px', color: '#94A3B8' }}>{post.time}</span>
+                  </div>
+                  <p style={{ fontSize: '13px', color: '#475569', margin: '0 0 12px 0' }}>{post.text}</p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button style={{ background: '#10B981', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }} onClick={() => alert("Publication validée et envoyée au système !")}>✓ Valider</button>
+                    <button style={{ background: '#EF4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }} onClick={() => {
+                      const reason = prompt("Raison du refus :");
+                      if(reason) alert("Refus envoyé au directeur.");
+                    }}>✕ Refuser</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* POSTS */}
+          <div className="es-posts">
+            {ES_POSTS.map(post => (
+              <article key={post.id} className="es-post">
+                <div className="es-post-header">
+                  <img src={post.avatar} alt={post.author} className="es-avatar-sm" />
+                  <div className="es-post-meta">
+                    <span className="es-post-author">{post.author}</span>
+                    <span className="es-author-time">{post.time}</span>
+                  </div>
+                  <button className="es-post-options">⋮</button>
+                </div>
+                <div className="es-post-content" onClick={() => openPostDetail(post)}>
+                  <p>{post.text}</p>
+                  {post.isVideo ? (
+                    <div className="es-video-preview">
+                      <img src={post.image} alt="Video preview" className="es-post-image" />
+                      <span className="es-play-icon">▶</span>
+                      {post.duration && <span className="es-duration">{post.duration}</span>}
+                    </div>
+                  ) : (
+                    <img src={post.image} alt="Post" className="es-post-image" />
+                  )}
+                </div>
+                <div className="es-post-actions-bar">
+                  <button>❤️ {post.likes}</button>
+                  <button>💬 {post.comments}</button>
+                  <button>➦ Partager</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </main>
+
+      {/* RIGHT SIDEBAR */}
+      <aside className="es-right-sidebar">
+        <div className="es-search-bar">
+          <span>🔍</span>
+          <input placeholder="Rechercher..." />
+        </div>
+
+        <div className="es-suggestions-widget">
+          <h3>Suggestions</h3>
+          {ES_SUGGESTIONS.map((s, i) => (
+            <div key={i} className="es-suggestion">
+              <img src={s.avatar} alt={s.name} className="es-avatar-sm" />
+              <div className="es-suggestion-info">
+                <span className="es-sugg-name">{s.name}</span>
+                <span className="es-sugg-mutual">{s.role}</span>
+              </div>
+              <button className="es-sugg-add">+</button>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: '32px' }}>
+          <h3 style={{ fontSize: '16px', color: '#0F172A', margin: '0 0 16px 0' }}>Tendances</h3>
+          {['#WebDevelopment', '#ReactJS', '#UIUX'].map((tag, i) => (
+            <div key={i} style={{ padding: '8px 0', color: '#2563EB', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>{tag}</div>
+          ))}
+        </div>
+      </aside>
+
+      {/* MOBILE BOTTOM NAV */}
+      <nav className="es-bottom-nav">
+        <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => setEsNavActive('home')}>
+          <span className="es-nav-icon">🏠</span>
+          <span className="es-nav-label">Accueil</span>
+        </button>
+        <button className={esNavActive === 'search' ? 'active' : ''} onClick={() => setEsNavActive('search')}>
+          <span className="es-nav-icon">🔍</span>
+          <span className="es-nav-label">Explorer</span>
+        </button>
+        <button className="es-nav-publish" onClick={() => setEsModal('create')}>
+          <span className="es-nav-icon">+</span>
+          <span className="es-nav-label">Publier</span>
+        </button>
+        <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => setEsNavActive('notifs')}>
+          <span className="es-nav-icon">🔔</span>
+          <span className="es-nav-label">Notifs</span>
+        </button>
+        <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => setEsNavActive('profil')}>
+          <span className="es-nav-icon">👤</span>
+          <span className="es-nav-label">Profil</span>
+        </button>
+      </nav>
+
+      {/* CREATE POST MODAL */}
+      {esModal === 'create' && (
+        <div className="es-modal-overlay" onClick={() => setEsModal(null)}>
+          <div className="es-create-modal" onClick={e => e.stopPropagation()}>
+            <div className="es-modal-header">
+              <button className="es-close-btn" onClick={() => setEsModal(null)}>✕</button>
+              <h3>Créer une publication</h3>
+              <button className="es-publish-btn">Publier</button>
+            </div>
+            <div className="es-create-tabs">
+              <button className="active">📷 Image</button>
+              <button>🎬 Vidéo</button>
+              <button>📝 Texte</button>
+            </div>
+            <div className="es-create-media-area">
+              <div className="es-upload-placeholder">
+                <span className="es-upload-icon">📁</span>
+                <p>Glissez vos fichiers ici ou cliquez pour parcourir</p>
+                <span style={{ fontSize: '12px', color: '#94A3B8' }}>JPG, PNG, MP4 · Max 50 Mo</span>
+              </div>
+            </div>
+            <div className="es-create-input-area">
+              <div className="es-post-author-row">
+                <img src={avatarSvg} alt="" className="es-avatar-sm" />
+                <div className="es-author-info">
+                  <span className="es-author-name">
+                    {user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : displayName}
+                  </span>
+                  <select 
+                    style={{ border: 'none', background: 'transparent', fontSize: '12px', color: '#64748B', outline: 'none', cursor: 'pointer' }}
+                    defaultValue="general"
+                  >
+                    <option value="general">🌍 Général</option>
+                    <option value="child_info">🔒 Information Enfant (Validation Ambassadeur)</option>
+                  </select>
+                </div>
+              </div>
+              <textarea placeholder="Quoi de neuf ?" rows={3}></textarea>
+            </div>
+            <div className="es-create-options">
+              <button>📍 Ajouter un lieu <span>›</span></button>
+              <button>🏷️ Taguer des personnes <span>›</span></button>
+              <button>😊 Humeur / Activité <span>›</span></button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POST DETAIL MODAL */}
+      {esModal === 'detail' && esSelectedPost && (
+        <div className="es-modal-overlay" onClick={() => { setEsModal(null); setEsSelectedPost(null) }}>
+          <div className="es-post-modal" onClick={e => e.stopPropagation()}>
+            <div className="es-modal-header">
+              <button className="es-back-btn" onClick={() => { setEsModal(null); setEsSelectedPost(null) }}>← Retour</button>
+              <h3>{esSelectedPost.author}</h3>
+              <button className="es-more-btn">⋮</button>
+            </div>
+            <div className="es-modal-content">
+              {/* LEFT: MEDIA */}
+              <div className="es-modal-media">
+                <div className="es-post-header" style={{ padding: '0 0 16px 0' }}>
+                  <img src={esSelectedPost.avatar} alt="" className="es-avatar-sm" />
+                  <div className="es-post-meta">
+                    <span className="es-post-author">{esSelectedPost.author}</span>
+                    <span className="es-author-time">{esSelectedPost.time}</span>
+                  </div>
+                  <button className="es-follow-btn-sm">Suivre</button>
+                </div>
+                <p className="es-post-caption">{esSelectedPost.text}</p>
+                <div className="es-video-container">
+                  <img src={esSelectedPost.image} alt="" className="es-media-img" />
+                  {esSelectedPost.isVideo && <span className="es-play-icon-large">▶</span>}
+                  <span className="es-views-badge">👁️ {esSelectedPost.views} vues</span>
+                </div>
+                <div className="es-post-actions-bar" style={{ borderTop: 'none', padding: '16px 0' }}>
+                  <button>❤️ {esSelectedPost.likes}</button>
+                  <button>💬 {esSelectedPost.comments}</button>
+                  <button>➦ Partager</button>
+                  <button className="es-save-btn">🔖</button>
+                </div>
+                <div className="es-likes-summary">
+                  <div className="es-avatar-stack">
+                    {ES_COMMENTS.slice(0, 3).map((c, i) => (
+                      <img key={i} src={c.avatar} alt="" />
+                    ))}
+                  </div>
+                  <span>Aimé par <b>Sarah M.</b> et <b>{esSelectedPost.likes - 1} autres</b></span>
+                </div>
+              </div>
+
+              {/* RIGHT: COMMENTS */}
+              <div className="es-modal-comments">
+                <div className="es-comments-header">
+                  <h4>Commentaires ({ES_COMMENTS.length})</h4>
+                  <span>Les plus récents ▾</span>
+                </div>
+                <div className="es-comments-list">
+                  {ES_COMMENTS.map((c, i) => (
+                    <div key={i} className="es-comment">
+                      <img src={c.avatar} alt="" className="es-comment-avatar" />
+                      <div>
+                        <div className="es-comment-body">
+                          <span className="es-comment-author">{c.author}</span>
+                          <p>{c.text}</p>
+                        </div>
+                        <div className="es-comment-actions">
+                          <span>{c.time}</span>
+                          <button>❤️ {c.likes}</button>
+                          <button>Répondre</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="es-comment-input-area">
+                  <img src={avatarSvg} alt="" className="es-comment-avatar" />
+                  <input placeholder="Écrire un commentaire..." />
+                  <button className="es-send-btn">➤</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -1397,56 +1634,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [dirAmbLoading, setDirAmbLoading] = useState(false)
   const [dirSelectedAmb, setDirSelectedAmb] = useState(null)
 
-  /* ── Donations state ── */
-  const [donations, setDonations] = useState([])
-  const [donationsLoading, setDonationsLoading] = useState(false)
-  const [donationForm, setDonationForm] = useState({ donation_type: 'financier', amount: '', currency: 'USD', orphanage: '' })
-  const [donationFormError, setDonationFormError] = useState('')
-
-  /* ── Finances state ── */
-  const [incomes, setIncomes] = useState([])
-  const [expenses, setExpenses] = useState([])
-  const [financesLoading, setFinancesLoading] = useState(false)
-  const [financesTab, setFinancesTab] = useState('revenus')
-  const [incomeForm, setIncomeForm] = useState({ source: '', amount: '', orphanage: '' })
-  const [expenseForm, setExpenseForm] = useState({ category: '', amount: '', description: '', orphanage: '' })
-  const [financesFormError, setFinancesFormError] = useState('')
-
-  /* ── Parrainages state ── */
-  const [sponsorableChildren, setSponsorableChildren] = useState([])
-  const [mySponsored, setMySponsored] = useState([])
-  const [parrainagesTab, setParrainagesTab] = useState('disponibles')
-  const [parrainagesLoading, setParrainagesLoading] = useState(false)
-  const [sponsorshipForm, setSponsorshipForm] = useState({ child: '', sponsorship_type: 'monthly', amount: '' })
-  const [sponsorshipFormError, setSponsorshipFormError] = useState('')
-  const [donationSubmitting, setDonationSubmitting] = useState(false)
-  const [financesSubmitting, setFinancesSubmitting] = useState(false)
-  const [sponsorshipSubmitting, setSponsorshipSubmitting] = useState(false)
-  const toast = useToast()
-  const [selectedSponsorshipId, setSelectedSponsorshipId] = useState(null)
-  const [sponsorshipPayments, setSponsorshipPayments] = useState([])
-
-  /* ── Messaging state ── */
-  const [msgConversations, setMsgConversations] = useState([])
-  const [msgActiveConv, setMsgActiveConv] = useState(null)
-  const [msgMessages, setMsgMessages] = useState([])
-  const [msgInput, setMsgInput] = useState('')
-  const [msgLoading, setMsgLoading] = useState(false)
-  const [msgNewConv, setMsgNewConv] = useState(false)
-  const [msgChatUsers, setMsgChatUsers] = useState([])
-  const [msgUserSearch, setMsgUserSearch] = useState('')
-  const [msgSending, setMsgSending] = useState(false)
-  const messagesEndRef = useRef(null)
-  useEffect(() => {
-    if (activeKey === 'communication') {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [msgMessages, activeKey])
-
-  /* ── Live stats state ── */
-  const [liveStats, setLiveStats] = useState(null)
-  const [liveCharts, setLiveCharts] = useState(null)
-
   /* ── Navigation state preservation ── */
   const savedSubKeys = useRef({})
   const prevSection = useRef('')
@@ -1467,20 +1654,18 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }, [activeKey, role])
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
-    if (!token) return
     if (activeKey === 'validationLocale' && role === 'ambassador') {
       setAmbLoading(true)
-      fetch(`${API}/assignments/by-orphanage/`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : [])
+      apiFetch(`${API}/assignments/by-orphanage/`, {}, onLogout)
+        .then(r => r && r.ok ? r.json() : [])
         .then(d => setAmbAssignments(d))
         .catch(() => {})
         .finally(() => setAmbLoading(false))
     }
     if (activeKey === 'multiOrphelinats' && role === 'ambassador') {
       setAmbLoading(true)
-      fetch(`${API}/assignments/by-orphanage/`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : [])
+      apiFetch(`${API}/assignments/by-orphanage/`, {}, onLogout)
+        .then(r => r && r.ok ? r.json() : [])
         .then(d => setAmbAssignments(d))
         .catch(() => {})
         .finally(() => setAmbLoading(false))
@@ -1488,12 +1673,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     if (activeKey === 'ambassadeurs' && (role === 'federation' || role === 'supermaster')) {
       setFedLoadingData(true)
       Promise.all([
-        fetch(`${API}/enfants/`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/assignments/`, { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch(`${API}/enfants/`, {}, onLogout),
+        apiFetch(`${API}/assignments/`, {}, onLogout),
       ])
         .then(async ([cRes, aRes]) => {
-          if (cRes.ok) setFedAllChildren(await cRes.json())
-          if (aRes.ok) setFedAllAssignments(await aRes.json())
+          if (cRes && cRes.ok) setFedAllChildren(await cRes.json())
+          if (aRes && aRes.ok) setFedAllAssignments(await aRes.json())
         })
         .catch(() => {})
         .finally(() => setFedLoadingData(false))
@@ -1503,13 +1688,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       setOrpAssignAmb('')
       setLoadingOrpDetails(true)
       Promise.all([
-        fetch(`${API}/enfants/?orphanage_id=${subKey}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/assignments/`, { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch(`${API}/enfants/?orphanage_id=${subKey}`, {}, onLogout),
+        apiFetch(`${API}/assignments/`, {}, onLogout),
       ])
         .then(async ([cRes, aRes]) => {
-          const children = cRes.ok ? await cRes.json() : []
-          if (cRes.ok) setOrphanageChildren(children)
-          if (aRes.ok) {
+          const children = cRes && cRes.ok ? await cRes.json() : []
+          if (cRes && cRes.ok) setOrphanageChildren(children)
+          if (aRes && aRes.ok) {
             const allAssignments = await aRes.json()
             const childIds = new Set(children.map(c => c.id))
             setOrphanageAssignments(allAssignments.filter(a => childIds.has(a.child)))
@@ -1522,103 +1707,35 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       const myOrp = orphanageRequests.find(o => String(o.director) === String(user.id))
       if (myOrp) {
         setDirAmbLoading(true)
-        fetch(`${API}/assignments/?orphanage_id=${myOrp.id}`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => r.ok ? r.json() : [])
+        apiFetch(`${API}/assignments/?orphanage_id=${myOrp.id}`, {}, onLogout)
+          .then(r => r && r.ok ? r.json() : [])
           .then(d => setDirAmbAssignments(d))
           .catch(() => {})
           .finally(() => setDirAmbLoading(false))
       }
     }
-    /* ── Load donations ── */
-    if (activeKey === 'dons') {
-      setDonationsLoading(true)
-      fetch(`${API}/dons/`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => { if (r.status === 401) { onLogout(); return [] } return r.json() })
-        .then(data => { setDonations(Array.isArray(data) ? data : []); setDonationsLoading(false) })
-        .catch(() => setDonationsLoading(false))
-    }
-    /* ── Load finances ── */
-    if (activeKey === 'finances') {
-      const token = localStorage.getItem('access_token')
-      setFinancesLoading(true)
-      Promise.all([
-        fetch(`${API}/revenus/`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => { if (r.status === 401) { onLogout(); return [] } return r.ok ? r.json() : [] }),
-        fetch(`${API}/depenses/`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => { if (r.status === 401) { onLogout(); return [] } return r.ok ? r.json() : [] }),
-      ]).then(([rev, dep]) => {
-        setIncomes(Array.isArray(rev) ? rev : [])
-        setExpenses(Array.isArray(dep) ? dep : [])
-        setFinancesLoading(false)
-      }).catch(() => setFinancesLoading(false))
-    }
-    /* ── Load parrainages ── */
-    if (activeKey === 'parrainages') {
-      const token = localStorage.getItem('access_token')
-      setParrainagesLoading(true)
-      const isSponsorRole = ['sponsor', 'partner'].includes(role)
-      const promises = isSponsorRole
-        ? [
-            fetch(`${API}/parrainages/enfants-disponibles/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => { if (r.status === 401) { onLogout(); return [] } return r.ok ? r.json() : [] }),
-            fetch(`${API}/parrainages/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => { if (r.status === 401) { onLogout(); return [] } return r.ok ? r.json() : [] }),
-          ]
-        : [
-            Promise.resolve([]),
-            fetch(`${API}/parrainages/`, { headers: { Authorization: `Bearer ${token}` } }).then(r => { if (r.status === 401) { onLogout(); return [] } return r.ok ? r.json() : [] }),
-          ]
-      Promise.all(promises).then(([available, mine]) => {
-        setSponsorableChildren(Array.isArray(available) ? available : [])
-        setMySponsored(Array.isArray(mine) ? mine : [])
-        setParrainagesLoading(false)
-      }).catch(() => setParrainagesLoading(false))
-    }
-    /* ── Messaging: load conversations + chat-users + set up polling ── */
-    if (activeKey === 'communication') {
-      const msgToken = localStorage.getItem('access_token')
-      setMsgLoading(true)
-      const refreshConvs = () => {
-        fetch(`${API}/conversations/`, { headers: { Authorization: `Bearer ${msgToken}` } })
-          .then(r => { if (r.status === 401) { onLogout(); return [] } return r.ok ? r.json() : [] })
-          .then(d => { setMsgConversations(Array.isArray(d) ? d : []); setMsgLoading(false) })
-          .catch(() => setMsgLoading(false))
-      }
-      refreshConvs()
-      fetch(`${API}/users/chat-list/`, { headers: { Authorization: `Bearer ${msgToken}` } })
-        .then(r => r.ok ? r.json() : [])
-        .then(d => setMsgChatUsers(Array.isArray(d) ? d : []))
-        .catch(() => {})
-      const pollId = setInterval(refreshConvs, 4000)
-      return () => clearInterval(pollId)
-    }
     /* ── Load document types for Federation validation (orphanage docs loaded in separate effect) ── */
     if (activeKey === 'validationLocale' && role === 'federation') {
-      fetch(`${API}/document-types/`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : [])
+      apiFetch(`${API}/document-types/`, {}, onLogout)
+        .then(r => r && r.ok ? r.json() : [])
         .then(d => setFedDocTypes(d))
         .catch(() => {})
     }
     /* ── Load document types + submitted docs for Director documents ── */
     if (activeKey === 'documents' && role === 'director') {
-      fetch(`${API}/document-types/`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : [])
+      apiFetch(`${API}/document-types/`, {}, onLogout)
+        .then(r => r && r.ok ? r.json() : [])
         .then(d => setDocTypes(d))
         .catch(() => {})
       const myDocOrp = orphanageRequests.find(o => String(o.director) === String(user.id))
       if (myDocOrp) {
         setDocLoading(true)
-        fetch(`${API}/orphanages/${myDocOrp.id}/documents/`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => r.ok ? r.json() : [])
+        apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/`, {}, onLogout)
+          .then(r => r && r.ok ? r.json() : [])
           .then(d => setSubmittedDocs(d))
           .catch(() => {})
           .finally(() => setDocLoading(false))
       }
-    }
-    /* ── Fetch live dashboard stats ── */
-    if (activeKey === 'dashboard' || activeKey === 'rapports') {
-      fetch(`${API}/auth/stats/`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => { if (r.status === 401) { onLogout(); return null } return r.ok ? r.json() : null })
-        .then(d => { if (d) { setLiveStats(d.kpis); setLiveCharts(d.charts) } })
-        .catch(() => {})
     }
   }, [activeKey, role, subKey, orphanageName])
 
@@ -1759,15 +1876,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   useEffect(() => {
     if (activeKey !== 'validationLocale' || role !== 'federation') return
     if (orphanageRequests.length === 0) return
-    const token = localStorage.getItem('access_token')
-    if (!token) return
-    fetch(`${API}/document-types/`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : [])
+    apiFetch(`${API}/document-types/`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : [])
       .then(d => setFedDocTypes(d))
       .catch(() => {})
     orphanageRequests.forEach(o => {
-      fetch(`${API}/orphanages/${o.id}/documents/`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : [])
+      apiFetch(`${API}/orphanages/${o.id}/documents/`, {}, onLogout)
+        .then(r => r && r.ok ? r.json() : [])
         .then(d => setFedOrpDocuments(p => ({ ...p, [o.id]: d })))
         .catch(() => {})
     })
@@ -1839,13 +1954,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [assigningId, setAssigningId] = useState(null)
 
   const fetchAmbassadors = async () => {
-    const token = localStorage.getItem('access_token')
-    if (!token) return
     try {
-      const res = await fetch(`${API}/auth/users/?role=ambassador`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
+      const res = await apiFetch(`${API}/auth/users/?role=ambassador`, {}, onLogout)
+      if (res && res.ok) {
         const data = await res.json()
         setAmbassadorsList(Array.isArray(data) ? data : [])
       }
@@ -1853,15 +1964,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }
 
   const handleAssignAmbassador = async (orphanageId, ambassadorId) => {
-    const token = localStorage.getItem('access_token')
-    if (!token) return
     setOrphanageLoading(true)
     try {
-      const res = await fetch(`${API}/orphanages/${orphanageId}/assign-ambassador/`, {
+      const res = await apiFetch(`${API}/orphanages/${orphanageId}/assign-ambassador/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ambassador_id: ambassadorId }),
-      })
+      }, onLogout)
+      if (!res) return
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Erreur d'assignation")
       showToast("Ambassadeur assigné avec succès.", 'success')
@@ -1905,16 +2015,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
   useEffect(() => {
     const fetchChildren = async () => {
-      let token = localStorage.getItem('access_token')
-      if (!token) return
       try {
-        const res = await fetch(`${API}/enfants/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setRegisteredChildren(data)
-        }
+        const res = await apiFetch(`${API}/enfants/`, {}, onLogout)
+        if (res && res.ok) setRegisteredChildren(await res.json())
       } catch (err) {
         console.error('Failed to fetch children:', err)
       }
@@ -1922,15 +2025,23 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     fetchChildren()
   }, [activeKey])
 
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      const url = childSearchQuery.trim()
+        ? `${API}/enfants/?search=${encodeURIComponent(childSearchQuery.trim())}`
+        : `${API}/enfants/`
+      try {
+        const res = await apiFetch(url, {}, onLogout)
+        if (res && res.ok) setRegisteredChildren(await res.json())
+      } catch {}
+    }, 350)
+    return () => clearTimeout(t)
+  }, [childSearchQuery, onLogout])
+
   const deleteChild = async (child) => {
-    let token = localStorage.getItem('access_token')
-    if (!token) return
     try {
-      const res = await fetch(`${API}/enfants/${child.id}/`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
+      const res = await apiFetch(`${API}/enfants/${child.id}/`, { method: 'DELETE' }, onLogout)
+      if (res && res.ok) {
         setRegisteredChildren(prev => prev.filter(c => c.id !== child.id))
         setSelectedRegChild(null)
       }
@@ -2091,11 +2202,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     if (activeKey !== 'projets' && activeKey !== 'dashboard') return
     if (projects.length > 0) return
     setProjectLoading(true)
-    const token = localStorage.getItem('access_token')
-    fetch(`${API}/projets/`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {}
-    })
-      .then(r => r.ok ? r.json() : null)
+    apiFetch(`${API}/projets/`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : null)
       .then(data => {
         const list = Array.isArray(data) ? data : data?.results || MOCK_PROJECTS
         setProjects(list)
@@ -2106,13 +2214,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }, [activeKey])
 
   const loadOrphanages = async () => {
-    const token = localStorage.getItem('access_token')
-    if (!token) return
     setOrphanageLoading(true)
     try {
-      const res = await fetch(`${API}/orphanages/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await apiFetch(`${API}/orphanages/`, {}, onLogout)
+      if (!res) return
       const data = await res.json()
       if (res.ok) setOrphanageRequests(Array.isArray(data) ? data : [])
     } catch {
@@ -2129,7 +2234,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
   const submitOrphanage = async () => {
     if (!orphanageForm.name.trim()) { showToast("Nom de l'orphelinat requis.", 'error'); return }
-    const token = localStorage.getItem('access_token')
     setOrphanageLoading(true)
     try {
       const fd = new FormData()
@@ -2140,11 +2244,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       Object.entries(orpFiles).forEach(([k, file]) => {
         if (file) fd.append(k, file)
       })
-      const res = await fetch(`${API}/orphanages/`, {
+      const res = await apiFetch(`${API}/orphanages/`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: fd,
-      })
+      }, onLogout)
+      if (!res) return
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Envoi impossible")
       localStorage.setItem('cdo_orphanage_name', data.name)
@@ -2159,14 +2263,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }
 
   const validateOrphanage = async (id, action, note) => {
-    const token = localStorage.getItem('access_token')
     setOrphanageLoading(true)
     try {
-      const res = await fetch(`${API}/orphanages/${id}/validate/`, {
+      const res = await apiFetch(`${API}/orphanages/${id}/validate/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, validation_note: note ?? orphanageNote }),
-      })
+      }, onLogout)
+      if (!res) return
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Validation impossible')
       const msgs = { approve:'Orphelinat validé par la fédération.', reject:'Dossier rejeté.' }
@@ -2178,6 +2282,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     } finally {
       setOrphanageLoading(false)
     }
+  }
+
+  if (activeKey === 'communication') {
+    return <EclatSocialApp user={user} onReturn={() => { setActiveKey('dashboard'); setSubKey(null) }} />
   }
 
   return (
@@ -2247,15 +2355,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const kpiTrends = ['+12%', '+8%', '+23%', '-2%', '+15%']
                   const trendColors = ['#22c55e', '#22c55e', '#22c55e', '#ef4444', '#22c55e']
                   const barColors = ['#f59e0b', '#a855f7', '#3b82f6', '#ef4444', '#22c55e']
-                  const displayValue = liveStats ? (liveStats[i]?.value ?? card.value) : card.value
-                  const displayLabel = liveStats ? (liveStats[i]?.label ?? card.label) : card.label
-                  const displaySub = liveStats ? (liveStats[i]?.sub ?? card.sub) : card.sub
                   return (
                     <div key={i} className="dash-dash-kpi">
                       <div className="dash-dash-kpi-icon" style={{ background: `rgba(${i === 3 ? '239,68,68' : i === 1 ? '168,85,247' : i === 2 ? '59,130,246' : i === 4 ? '34,197,94' : '245,158,11'},0.1)` }}>{kpiIcons[i % kpiIcons.length]}</div>
                       <div className="dash-dash-kpi-body">
-                        <span className="dash-dash-kpi-label">{t('stat_' + role + '_' + i + '_label') || displayLabel}</span>
-                        <span className="dash-dash-kpi-value">{displayValue}</span>
+                        <span className="dash-dash-kpi-label">{t('stat_' + role + '_' + i + '_label') || card.label}</span>
+                        <span className="dash-dash-kpi-value">{card.value}</span>
                       </div>
                       <div className="dash-dash-kpi-trend">
                         <span className="dash-dash-kpi-trend-pct" style={{ color: trendColors[i % trendColors.length] }}>{kpiTrends[i % kpiTrends.length]}</span>
@@ -2438,19 +2543,16 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   )
                 })()
                 : activeKey === 'validationLocale' && role === 'federation' ? (() => {
-                  const token = localStorage.getItem('access_token')
-                  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {}
-
                   const loadFedDocTypes = () => {
-                    fetch(`${API}/document-types/`, { headers: authHeaders })
-                      .then(r => r.ok ? r.json() : [])
+                    apiFetch(`${API}/document-types/`, {}, onLogout)
+                      .then(r => r && r.ok ? r.json() : [])
                       .then(d => setFedDocTypes(d))
                       .catch(() => {})
                   }
                   const loadOrpDocuments = (orpId) => {
                     if (!orpId) return
-                    fetch(`${API}/orphanages/${orpId}/documents/`, { headers: authHeaders })
-                      .then(r => r.ok ? r.json() : [])
+                    apiFetch(`${API}/orphanages/${orpId}/documents/`, {}, onLogout)
+                      .then(r => r && r.ok ? r.json() : [])
                       .then(d => setFedOrpDocuments(p => ({ ...p, [orpId]: d })))
                       .catch(() => {})
                   }
@@ -2481,12 +2583,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     if (!fedDocTypeKey.trim() || !fedDocTypeName.trim()) { showToast('Clé et libellé requis.', 'error'); return }
                     setFedSavingDocType(true)
                     try {
-                      const res = await fetch(`${API}/document-types/`, {
+                      const res = await apiFetch(`${API}/document-types/`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', ...authHeaders },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ key: fedDocTypeKey.trim(), label: fedDocTypeName.trim(), required: fedDocTypeRequired, order: fedDocTypes.length + 1 }),
-                      })
-                      if (!res.ok) throw new Error('Failed')
+                      }, onLogout)
+                      if (!res || !res.ok) throw new Error('Failed')
                       showToast('Type de document ajouté.', 'success')
                       setFedDocTypeKey(''); setFedDocTypeName(''); setFedDocTypeRequired(true)
                       loadFedDocTypes()
@@ -2504,8 +2606,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       onConfirm: async () => {
                         setDocConfirmModal(null)
                         try {
-                          const res = await fetch(`${API}/document-types/${id}/`, { method: 'DELETE', headers: authHeaders })
-                          if (!res.ok) throw new Error('Failed')
+                          const res = await apiFetch(`${API}/document-types/${id}/`, { method: 'DELETE' }, onLogout)
+                          if (!res || !res.ok) throw new Error('Failed')
                           showToast('Type de document supprimé.', 'success')
                           loadFedDocTypes()
                         } catch (e) {
@@ -2516,12 +2618,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   }
                   const toggleDocTypeRequired = async (dt) => {
                     try {
-                      const res = await fetch(`${API}/document-types/${dt.id}/`, {
+                      const res = await apiFetch(`${API}/document-types/${dt.id}/`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', ...authHeaders },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ required: !dt.required }),
-                      })
-                      if (!res.ok) throw new Error('Failed')
+                      }, onLogout)
+                      if (!res || !res.ok) throw new Error('Failed')
                       loadFedDocTypes()
                     } catch (e) {
                       showToast('Erreur lors de la mise à jour.', 'error')
@@ -2897,7 +2999,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   );})()
                 : activeKey === 'documents' && role === 'director' ? (() => {
                   const myDocOrp = directorOrpRec()
-                  const token = localStorage.getItem('access_token')
                   const loadDocTypesDir = async () => {
                     const res = await apiFetch(`${API}/document-types/`, {}, onLogout)
                     if (res && res.ok) setDocTypes(await res.json())
@@ -2907,7 +3008,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     setDocLoading(true)
                     try {
                       const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/`, {}, onLogout)
-                      if (res && res.ok) { const d = await res.json(); setSubmittedDocs(d); setDocResetKey(k => k + 1) }
+                      if (!res) return
+                      if (res.ok) { const d = await res.json(); setSubmittedDocs(d); setDocResetKey(k => k + 1) }
                       else throw new Error('Erreur chargement')
                     } catch (e) {
                       showToast('Impossible de charger les documents.', 'error')
@@ -2934,8 +3036,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         setDocConfirmModal(null)
                         try {
                           const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE' }, onLogout)
-                          if (!res) return
-                          if (!res.ok) throw new Error('Delete failed')
+                          if (!res || !res.ok) throw new Error('Delete failed')
                           showToast('Document supprimé.', 'success')
                           loadSubmittedDocsDir()
                         } catch (e) {
@@ -2954,8 +3055,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         setDocConfirmModal(null)
                         try {
                           const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/${docId}/`, { method: 'DELETE' }, onLogout)
-                          if (!res) return
-                          if (!res.ok) throw new Error('Modify failed')
+                          if (!res || !res.ok) throw new Error('Modify failed')
                           showToast('Vous pouvez maintenant téléverser une nouvelle version.', 'success')
                           loadSubmittedDocsDir()
                         } catch (e) {
@@ -2972,12 +3072,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       const fd = new FormData()
                       fd.append('document_type', selDocTypeId)
                       fd.append('file', docFile)
-                      const res = await fetch(`${API}/orphanages/${myDocOrp.id}/documents/`, {
+                      const res = await apiFetch(`${API}/orphanages/${myDocOrp.id}/documents/`, {
                         method: 'POST',
-                        headers: token ? { Authorization: `Bearer ${token}` } : {},
                         body: fd,
-                      })
-                      if (!res.ok) throw new Error('Upload failed')
+                      }, onLogout)
+                      if (!res || !res.ok) throw new Error('Upload failed')
                       showToast('Document téléversé avec succès. En attente de validation par la fédération.', 'success')
                       setDocFile(null)
                       setSelDocTypeId('')
@@ -3543,9 +3642,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               let url = `${API}/enfants/`
                               let method = 'POST'
                               if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
-                              let token = localStorage.getItem('access_token')
-                              if (!token) { if (btn) btn.classList.remove('dash-prof-btn-loading'); alert('Session expirée'); return }
-
                               const dataToFile = (dataurl, name) => {
                                 const arr = dataurl.split(',')
                                 const mime = arr[0].match(/:(.*?);/)[1]
@@ -3570,7 +3666,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 fd.append('photo', dataToFile(photoData, 'photo.jpg'))
                                 fd.append('extra_data', JSON.stringify(editingChild ? editingChild.extra_data || {} : {}))
                                 body = fd
-                                headers = { Authorization: `Bearer ${token}` }
+                                headers = {}
                               } else {
                                 body = JSON.stringify({
                                   ...(uid ? { uid } : {}),
@@ -3582,12 +3678,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   ...(adresse ? { adresse } : {}),
                                   extra_data: editingChild ? editingChild.extra_data || {} : {},
                                 })
-                                headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+                                headers = { 'Content-Type': 'application/json' }
                               }
 
                               try {
                                 const res = await apiFetch(url, { method, headers, body }, onLogout)
-                                if (!res) throw new Error('Session expirée')
+                                if (!res) return
                                 if (!res.ok) {
                                   const errData = await res.json().catch(() => ({}))
                                   const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'
@@ -3606,8 +3702,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     ? (() => { const f = new FormData(); f.append('uid', uidRef.current); for (const [k,v] of body.entries()) if (k !== 'uid') f.append(k,v); return f })()
                                     : { ...JSON.parse(body), uid: uidRef.current }
                                   try {
-                                    let retry = await fetch(`${API}/enfants/`, { method: 'POST', headers: hasPhoto ? { Authorization: `Bearer ${localStorage.getItem('access_token')}` } : { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` }, body: newBody })
-                                    if (retry.ok) {
+                                    const retry = await apiFetch(`${API}/enfants/`, { method: 'POST', headers: hasPhoto ? {} : { 'Content-Type': 'application/json' }, body: newBody }, onLogout)
+                                    if (retry && retry.ok) {
                                       const saved = await retry.json()
                                       setRegisteredChildren(prev => [...prev, saved])
                                       if (btn) btn.classList.remove('dash-prof-btn-loading')
@@ -3739,7 +3835,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
                           try {
                             const res = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, onLogout)
-                            if (!res) throw new Error('Session expirée')
+                            if (!res) return
                             if (!res.ok) { const errData = await res.json().catch(() => ({})); const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'; throw new Error(errMsg) }
                             const saved = await res.json()
                             setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
@@ -3749,8 +3845,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             if (method === 'POST' && e.message?.includes('dupliquée')) {
                               uidRef.current = genChildUid(); body.uid = uidRef.current
                               try {
-                                let retry = await fetch(`${API}/enfants/`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` }, body: JSON.stringify(body) })
-                                if (retry.ok) { const saved = await retry.json(); setRegisteredChildren(prev => [...prev, saved]); if (btn) btn.classList.remove('dash-fam-btn-loading'); setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null); setEditingChild(saved); migratePhoto(uidRef.current, saved.uid); uidRef.current = saved.uid; return }
+                                const retry = await apiFetch(`${API}/enfants/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, onLogout)
+                                if (retry && retry.ok) { const saved = await retry.json(); setRegisteredChildren(prev => [...prev, saved]); if (btn) btn.classList.remove('dash-fam-btn-loading'); setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null); setEditingChild(saved); migratePhoto(uidRef.current, saved.uid); uidRef.current = saved.uid; return }
                               } catch (_) {}
                             }
                             if (btn) btn.classList.remove('dash-fam-btn-loading')
@@ -3838,7 +3934,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           if (editingChild) { url = `${API}/enfants/${editingChild.id}/`; method = 'PUT' }
                           const body = JSON.stringify({ uid, extra_data })
                           const res = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body }, onLogout)
-                          if (!res) throw new Error('Session expirée')
+                          if (!res) return
                           if (!res.ok) throw new Error('Erreur')
                           const saved = await res.json()
                           setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
@@ -4172,9 +4268,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               const extra_data = { ...(editingChild?.extra_data || {}), medical }
                               const photoDataUrl = localStorage.getItem('cdo_child_photo_' + uid)
                               try {
-                                let token = localStorage.getItem('access_token')
-                                if (!token) { alert('Session expirée'); setSavingHealth(false); return }
-
                                 const buildBody = () => {
                                   const nom = editingChild?.nom || ''
                                   const prenom = editingChild?.prenom || ''
@@ -4200,11 +4293,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 const send = async () => {
                                   const { body, headers: eh } = buildBody()
                                   const res = await apiFetch(url, { method, headers: eh, body }, onLogout)
-                                  if (!res) throw new Error('Session expirée')
+                                  if (!res) return null
                                   if (!res.ok) { const ed = await res.json().catch(()=>({})); throw new Error(ed.error || Object.values(ed).flat().join(' ') || 'Erreur') }
                                   return res.json()
                                 }
                                 const saved = await send()
+                                if (!saved) return
                                 setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
                                 setEditingChild(saved)
                                 setSavingHealth(false)
@@ -4508,8 +4602,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               const extra_data = { ...(editingChild?.extra_data || {}), education }
                               const photoDataUrl = localStorage.getItem('cdo_child_photo_' + uid)
                               try {
-                                let token = localStorage.getItem('access_token')
-                                if (!token) { alert('Session expirée'); setSavingEdu(false); return }
                                 const buildBody = () => {
                                   const nom = editingChild?.nom || ''
                                   const prenom = editingChild?.prenom || ''
@@ -4533,11 +4625,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 const send = async () => {
                                   const { body, headers: eh } = buildBody()
                                   const res = await apiFetch(url, { method, headers: eh, body }, onLogout)
-                                  if (!res) throw new Error('Session expirée')
+                                  if (!res) return null
                                   if (!res.ok) { const ed = await res.json().catch(()=>({})); throw new Error(ed.error || Object.values(ed).flat().join(' ') || 'Erreur') }
                                   return res.json()
                                 }
                                 const saved = await send()
+                                if (!saved) return
                                 setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
                                 setEditingChild(saved)
                                 setSavingEdu(false)
@@ -4682,7 +4775,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           const send = async () => {
                             const { body, headers: extraHeaders } = buildBody()
                             const res = await apiFetch(url, { method, headers: extraHeaders, body }, onLogout)
-                            if (!res) throw new Error('Session expirée')
+                            if (!res) return null
                             if (!res.ok) {
                               const errData = await res.json().catch(() => ({}))
                               const errMsg = errData.error || Object.values(errData).flat().join(' ') || 'Erreur sauvegarde'
@@ -4692,6 +4785,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           }
                           try {
                             const saved = await send()
+                            if (!saved) return
                             setRegisteredChildren(prev => prev.some(c => c.id === saved.id) ? prev.map(c => c.id === saved.id ? saved : c) : [...prev, saved])
                             setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null)
                             setEditingChild(saved)
@@ -4701,10 +4795,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               uidRef.current = genChildUid()
                               try {
                                 const { body, headers: extraHeaders } = buildBody()
-                                const allHeaders2 = { Authorization: `Bearer ${localStorage.getItem('access_token')}`, ...extraHeaders }
                                 const retryBody = typeof body === 'string' ? JSON.stringify({ ...JSON.parse(body), uid: uidRef.current }) : (() => { const f = new FormData(); f.append('uid', uidRef.current); for (const [k,v] of body.entries()) if (k !== 'uid') f.append(k,v); return f })()
-                                const retryRes = await fetch(`${API}/enfants/`, { method: 'POST', headers: allHeaders2, body: retryBody })
-                                if (retryRes.ok) {
+                                const retryRes = await apiFetch(`${API}/enfants/`, { method: 'POST', headers: extraHeaders, body: retryBody }, onLogout)
+                                if (retryRes && retryRes.ok) {
                                   const saved = await retryRes.json()
                                   setRegisteredChildren(prev => [...prev, saved])
                                   setSelectedRegChild(saved); setActiveKey('enfants-enregistres'); setSubKey(null)
@@ -5118,11 +5211,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     </div>
                                     <button className="uc-btn-primary uc-btn-save" onClick={async () => {
                                       setUcSaving(true)
-                                      const token = localStorage.getItem('access_token')
                                       const body = JSON.stringify({ category: ucCategory, update_type: ucType, title: ucTitle, description: ucDescription, previous_value: ucPrevValue, new_value: ucNewValue, reason: ucReason, attachments: ucFiles.map(f => f.name) })
                                       try {
-                                        const res = await fetch(`${API}/enfants/${selectedRegChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }, body })
-                                        if (res.ok) { setUcSaving(false); setUcSuccess(true); setUcStep(4) }
+                                        const res = await apiFetch(`${API}/enfants/${selectedRegChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body }, onLogout)
+                                        if (res && res.ok) { setUcSaving(false); setUcSuccess(true); setUcStep(4) }
                                         else throw new Error()
                                       } catch {
                                         const updates = JSON.parse(localStorage.getItem('cdo_updates_' + selectedRegChild.uid) || '[]')
@@ -5635,10 +5727,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     const notes = [...(selectedRegChild.extra_data?.notes || []), { text, author: user.first_name + ' ' + user.last_name, time: new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) }]
                                     const extra_data = { ...(selectedRegChild.extra_data || {}), notes }
                                     const uid = selectedRegChild.uid
-                                    const token = localStorage.getItem('access_token')
-                                    if (!token) return
-                                    fetch(`${API}/enfants/${selectedRegChild.id}/`, { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ extra_data }) })
-                                      .then(r => r.ok ? r.json() : null)
+                                    apiFetch(`${API}/enfants/${selectedRegChild.id}/`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ extra_data }) }, onLogout)
+                                      .then(r => r && r.ok ? r.json() : null)
                                       .then(saved => { if (saved) { setSelectedRegChild(saved); setRegisteredChildren(prev => prev.map(c => c.id === saved.id ? saved : c)); document.getElementById('pd-note-input').value = '' } })
                                       .catch(() => {})
                                   }}>{t('pd_save_note') || 'Enregistrer'}</button>
@@ -5923,13 +6013,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               )}
                               {role === 'partner' && selectedProject.status === 'open' && (
                                 <button className="dash-form-save" onClick={async () => {
-                                  const token = localStorage.getItem('access_token')
-                                  if (!token) { alert(t('proj_login_required') || 'Connectez-vous pour postuler'); return }
                                   try {
-                                    const res = await fetch(`${API}/projets/${selectedProject.id}/apply/`, {
-                                      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                    const res = await apiFetch(`${API}/projets/${selectedProject.id}/apply/`, {
+                                      method: 'POST', headers: { 'Content-Type': 'application/json' },
                                       body: JSON.stringify({ message: '' }),
-                                    })
+                                    }, onLogout)
+                                    if (!res) return
                                     if (res.ok) alert(t('proj_applied') || 'Candidature envoyée avec succès !')
                                     else throw new Error()
                                   } catch { alert(t('proj_error') || 'Erreur lors de la candidature') }
@@ -6123,7 +6212,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               if (!title) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_title_required') || 'Veuillez entrer un titre'); return }
                               if (!desc) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_desc_required') || 'Veuillez entrer une description'); return }
                               if (!startDate || !endDate) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_start_end_required') || 'Veuillez sélectionner les dates de début et de fin'); return }
-                              const token = localStorage.getItem('access_token')
                               const body = new FormData()
                               body.append('type', projectTypeFilter)
                               body.append('title', title)
@@ -6133,11 +6221,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               body.append('end_date', endDate)
                               if (pdfFile && pdfFile.type === 'application/pdf') body.append('pdf_file', pdfFile)
                               try {
-                                const res = await fetch(`${API}/projets/`, {
+                                const res = await apiFetch(`${API}/projets/`, {
                                   method: 'POST',
-                                  headers: token ? { Authorization: `Bearer ${token}` } : {},
                                   body,
-                                })
+                                }, onLogout)
+                                if (!res) return
                                 if (!res.ok) { const e = await res.json().catch(() => ({ error: 'Erreur' })); throw new Error(e.error || 'Erreur') }
                                 const saved = await res.json()
                                 setOngoingProjects(prev => [saved, ...prev])
@@ -6183,8 +6271,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {'\u{23F3}'} {t('proj_expired') || 'Expirés'} ({(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).length})
                           </button>
                         </div>
-                        <div className="dash-category-cards" style={{ gridTemplateColumns: role === 'director' ? '1fr 1fr' : '1fr 1fr 1fr' }}>
-                          {PROJECT_TYPES.filter(pt => !(role === 'director' && pt.value === 'federation')).map(pt => (
+                        <div className="dash-category-cards" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                          {PROJECT_TYPES.map(pt => (
                             <button key={pt.value} className="dash-category-card" onClick={() => setProjectTypeFilter(pt.value)}>
                               <div className="dash-card-icon-wrap">
                                 <span className="dash-card-icon" style={{ fontSize: '32px' }}>{pt.icon}</span>
@@ -6394,8 +6482,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 </div>
                                 <select className="uc2-status-select" value={updateChild.status} onChange={e => {
                                   const newStatus = e.target.value
-                                  const token = localStorage.getItem('access_token')
-                                  fetch(`${API}/enfants/${updateChild.id}/`, { method:'PUT', headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }, body:JSON.stringify({ status: newStatus }) }).catch(() => {})
+                                  apiFetch(`${API}/enfants/${updateChild.id}/`, { method:'PUT', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ status: newStatus }) }, onLogout).catch(() => {})
                                   setUpdateChild(prev => ({ ...prev, status: newStatus }))
                                 }}>
                                   {['active','sick','hospitalized','healthy','enrolled','dropped_out','with_guardian','missing','at_risk','reunified','adopted','transferred','exited','deceased'].map(s => (
@@ -6514,11 +6601,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       for (const rf of requiredFields) { if (!uc2FormData[rf.key]?.trim()) { alert(rf.label + ' ' + (t('form_required')||'est requis')); return } }
                                       if (!uc2Reason.trim()) { alert(t('uc_required')||'Motif requis'); return }
                                       setUc2Saving(true)
-                                      const token = localStorage.getItem('access_token')
                                       const payload = { category: uc2Category, update_type: uc2Type, title: (t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' '))+' - '+updateChild.prenom+' '+updateChild.nom, description: JSON.stringify(uc2FormData), previous_value: '', new_value: JSON.stringify(uc2FormData), reason: uc2Reason+' | Priorité: '+uc2Priority+(uc2Comment ? ' | '+uc2Comment : ''), attachments: uc2Files.map(f => f.name) }
                                       try {
-                                        const res = await fetch(`${API}/enfants/${updateChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }, body:JSON.stringify(payload) })
-                                        if (res.ok) { setUc2Saving(false); setUc2Success(true) }
+                                        const res = await apiFetch(`${API}/enfants/${updateChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(payload) }, onLogout)
+                                        if (res && res.ok) { setUc2Saving(false); setUc2Success(true) }
                                         else throw new Error()
                                       } catch {
                                         const updates = JSON.parse(localStorage.getItem('cdo_updates_'+updateChild.uid)||'[]')
@@ -7543,13 +7629,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 assignments={fedAllAssignments}
                                 setUnassignConfirm={setUnassignConfirm}
                                 onAssigned={() => {
-                                  const token = localStorage.getItem('access_token')
                                   Promise.all([
-                                    fetch(`${API}/enfants/`, { headers: { Authorization: `Bearer ${token}` } }),
-                                    fetch(`${API}/assignments/`, { headers: { Authorization: `Bearer ${token}` } })
+                                    apiFetch(`${API}/enfants/`, {}, onLogout),
+                                    apiFetch(`${API}/assignments/`, {}, onLogout),
                                   ]).then(async ([cRes, aRes]) => {
-                                    if (cRes.ok) setFedAllChildren(await cRes.json())
-          if (aRes.ok) setFedAllAssignments(await aRes.json())
+                                    if (cRes && cRes.ok) setFedAllChildren(await cRes.json())
+                                    if (aRes && aRes.ok) setFedAllAssignments(await aRes.json())
                                   }).catch(() => {})
                                 }}
                               />
@@ -7641,584 +7726,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     </div>
                   )
                 })()
-                : activeKey === 'communication' ? (() => {
-                  const token = localStorage.getItem('access_token')
-                  const myId = user?.id
-
-                  const avatarColor = (str) => {
-                    let h = 0
-                    for (let i = 0; i < (str || '').length; i++) h = (h * 37 + str.charCodeAt(i)) % 360
-                    return `hsl(${h},50%,45%)`
-                  }
-
-                  const msgTimeAgo = (iso) => {
-                    if (!iso) return ''
-                    const diff = (Date.now() - new Date(iso)) / 1000
-                    if (diff < 60) return "à l'instant"
-                    if (diff < 3600) return `il y a ${Math.floor(diff / 60)}min`
-                    if (diff < 86400) return `il y a ${Math.floor(diff / 3600)}h`
-                    const d = new Date(iso)
-                    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`
-                  }
-
-                  const otherParticipant = (conv) =>
-                    (conv.participants || []).find(p => p.id !== myId) || conv.participants?.[0] || { full_name: '?', initials: '?' }
-
-                  const loadConvMessages = async (conv) => {
-                    setMsgActiveConv(conv)
-                    setMsgMessages([])
-                    const res = await fetch(`${API}/conversations/${conv.id}/messages/`, { headers: { Authorization: `Bearer ${token}` } })
-                    if (res.status === 401) { onLogout(); return }
-                    if (res.ok) {
-                      const data = await res.json()
-                      setMsgMessages(data)
-                    }
-                    // mark read
-                    fetch(`${API}/conversations/${conv.id}/read/`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
-                    setMsgConversations(prev => prev.map(c => c.id === conv.id ? { ...c, unread_count: 0 } : c))
-                  }
-
-                  const sendMessage = async () => {
-                    const text = msgInput.trim()
-                    if (!text || msgSending || !msgActiveConv) return
-                    setMsgSending(true)
-                    const optimistic = { id: `tmp-${Date.now()}`, conversation: msgActiveConv.id, sender: { id: myId, full_name: user?.first_name || 'Vous', initials: ((user?.first_name||'')[0]+(user?.last_name||'')[0]).toUpperCase()||'?' }, content: text, is_read: false, created_at: new Date().toISOString(), _optimistic: true }
-                    setMsgMessages(prev => [...prev, optimistic])
-                    setMsgInput('')
-                    const res = await fetch(`${API}/conversations/${msgActiveConv.id}/messages/`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                      body: JSON.stringify({ content: text }),
-                    })
-                    setMsgSending(false)
-                    if (res.status === 401) { onLogout(); return }
-                    if (res.ok) {
-                      const created = await res.json()
-                      setMsgMessages(prev => prev.map(m => m._optimistic ? created : m))
-                      setMsgConversations(prev => {
-                        const updated = prev.map(c => c.id === msgActiveConv.id ? { ...c, last_message: { content: created.content, created_at: created.created_at, sender_id: myId }, updated_at: created.created_at } : c)
-                        return updated.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
-                      })
-                    } else {
-                      setMsgMessages(prev => prev.filter(m => !m._optimistic))
-                    }
-                  }
-
-                  const startConversation = async (chatUserId) => {
-                    const res = await fetch(`${API}/conversations/`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                      body: JSON.stringify({ participant_id: chatUserId }),
-                    })
-                    if (res.status === 401) { onLogout(); return }
-                    if (res.ok || res.status === 201 || res.status === 200) {
-                      const conv = await res.json()
-                      setMsgConversations(prev => {
-                        const exists = prev.find(c => c.id === conv.id)
-                        if (exists) return prev
-                        return [conv, ...prev]
-                      })
-                      setMsgNewConv(false)
-                      setMsgUserSearch('')
-                      loadConvMessages(conv)
-                    }
-                  }
-
-                  const filteredUsers = msgChatUsers.filter(u =>
-                    u.full_name.toLowerCase().includes(msgUserSearch.toLowerCase())
-                  )
-
-                  return (
-                    <div className="msg-root">
-                      {/* LEFT SIDEBAR */}
-                      <div className="msg-sidebar">
-                        <div className="msg-header">
-                          <h2>Messages</h2>
-                          <button className="msg-new-btn" onClick={() => setMsgNewConv(v => !v)} title="Nouvelle conversation">
-                            {msgNewConv ? '×' : '+'}
-                          </button>
-                        </div>
-
-                        {msgNewConv && (
-                          <div className="msg-new-conv-panel">
-                            <input
-                              placeholder="Rechercher un utilisateur…"
-                              value={msgUserSearch}
-                              onChange={e => setMsgUserSearch(e.target.value)}
-                              autoFocus
-                            />
-                            <div className="msg-user-pick-list">
-                              {filteredUsers.length === 0 && <div style={{ padding: '8px', color: '#94A3B8', fontSize: '13px' }}>Aucun utilisateur trouvé</div>}
-                              {filteredUsers.map(u => (
-                                <div key={u.id} className="msg-user-pick-item" onClick={() => startConversation(u.id)}>
-                                  <div className="msg-avatar" style={{ width: 32, height: 32, fontSize: 12, background: avatarColor(u.full_name) }}>{u.initials}</div>
-                                  <span style={{ fontSize: '14px', color: '#0F172A' }}>{u.full_name}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="msg-conv-list">
-                          {msgLoading
-                            ? [1,2,3].map(i => (
-                                <div key={i} className="msg-conv-item" style={{ pointerEvents:'none' }}>
-                                  <div className="msg-avatar" style={{ background: 'var(--border-card)' }} />
-                                  <div className="msg-conv-info">
-                                    <div className="skel-line" style={{ width: '60%', marginBottom: 6 }} />
-                                    <div className="skel-line" style={{ width: '80%' }} />
-                                  </div>
-                                </div>
-                              ))
-                            : msgConversations.length === 0
-                              ? <EmptyState icon="💬" title="Aucune conversation" sub="Commencez une nouvelle conversation." />
-                              : msgConversations.map(conv => {
-                                  const other = otherParticipant(conv)
-                                  const isActive = msgActiveConv?.id === conv.id
-                                  const hasUnread = conv.unread_count > 0
-                                  return (
-                                    <div key={conv.id} className={`msg-conv-item${isActive ? ' active' : ''}`} onClick={() => loadConvMessages(conv)}>
-                                      <div className="msg-avatar" style={{ background: avatarColor(other.full_name) }}>{other.initials}</div>
-                                      <div className="msg-conv-info">
-                                        <div className={`msg-conv-name${hasUnread ? ' unread' : ''}`}>{other.full_name}</div>
-                                        <div className="msg-conv-preview">{conv.last_message?.content?.slice(0, 40) || 'Aucun message'}</div>
-                                      </div>
-                                      <div className="msg-conv-meta">
-                                        <span className="msg-conv-time">{msgTimeAgo(conv.last_message?.created_at || conv.updated_at)}</span>
-                                        {hasUnread && <span className="msg-unread-badge">{conv.unread_count}</span>}
-                                      </div>
-                                    </div>
-                                  )
-                                })
-                          }
-                        </div>
-                      </div>
-
-                      {/* RIGHT THREAD */}
-                      <div className="msg-thread">
-                        {!msgActiveConv ? (
-                          <div className="msg-empty-thread">Sélectionnez une conversation pour commencer</div>
-                        ) : (
-                          <>
-                            <div className="msg-thread-header">
-                              <div className="msg-avatar" style={{ width: 36, height: 36, fontSize: 13, background: avatarColor(otherParticipant(msgActiveConv).full_name) }}>
-                                {otherParticipant(msgActiveConv).initials}
-                              </div>
-                              <div className="msg-conv-name">{otherParticipant(msgActiveConv).full_name}</div>
-                            </div>
-
-                            <div className="msg-messages">
-                              {msgMessages.map((m, i) => {
-                                const isMine = m.sender?.id === myId
-                                return (
-                                  <div key={m.id || i} className={`msg-bubble-row${isMine ? ' mine' : ''}`}>
-                                    {!isMine && (
-                                      <div className="msg-avatar" style={{ width: 28, height: 28, fontSize: 10, flexShrink: 0, background: avatarColor(m.sender?.full_name || '') }}>
-                                        {m.sender?.initials}
-                                      </div>
-                                    )}
-                                    <div>
-                                      <div className={`msg-bubble${isMine ? ' mine' : ' theirs'}`} style={m._optimistic ? { opacity: 0.7 } : {}}>
-                                        {m.content}
-                                      </div>
-                                      <div className="msg-bubble-time">{msgTimeAgo(m.created_at)}</div>
-                                    </div>
-                                  </div>
-                                )
-                              })}
-                              <div ref={messagesEndRef} />
-                            </div>
-
-                            <div className="msg-compose">
-                              <textarea
-                                rows={1}
-                                placeholder="Écrire un message…"
-                                value={msgInput}
-                                onChange={e => setMsgInput(e.target.value)}
-                                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-                                style={{ overflowY: 'auto' }}
-                              />
-                              <button className="msg-send-btn" onClick={sendMessage} disabled={!msgInput.trim() || msgSending} title="Envoyer">
-                                ➤
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })()
-                : activeKey === 'rapports' ? (() => {
-                  const rptStatCards = liveStats || statCards
-                  return (
-                    <div className="rpt-root">
-                      <div className="rpt-header">
-                        <h2>Rapports &amp; Statistiques</h2>
-                        <span className="rpt-subtitle">Données en temps réel</span>
-                      </div>
-                      {!liveCharts ? (
-                        <div style={{ padding: 32, textAlign: 'center', color: '#94A3B8' }}>Chargement des statistiques…</div>
-                      ) : (
-                        <div className="rpt-grid">
-                          <div className="rpt-card">
-                            <div className="rpt-card-title">Dons mensuels (6 derniers mois)</div>
-                            <BarChart data={liveCharts.donations_monthly} valueKey="total" labelKey="month" color="#6366F1" unit="$" />
-                          </div>
-                          <div className="rpt-card">
-                            <div className="rpt-card-title">Enfants par genre</div>
-                            <DonutChart data={[
-                              { label: 'Garçons', value: liveCharts.children_gender.M, color: '#3b82f6' },
-                              { label: 'Filles', value: liveCharts.children_gender.F, color: '#f472b6' },
-                            ]} />
-                          </div>
-                          <div className="rpt-card">
-                            <div className="rpt-card-title">Parrainages par statut</div>
-                            <BarChart data={[
-                              { label: 'Actifs', total: liveCharts.sponsorships_status.active },
-                              { label: 'Suspendus', total: liveCharts.sponsorships_status.paused },
-                              { label: 'Annulés', total: liveCharts.sponsorships_status.cancelled },
-                            ]} valueKey="total" labelKey="label" color="#22c55e" />
-                          </div>
-                          <div className="rpt-card rpt-kpi-summary">
-                            <div className="rpt-card-title">Indicateurs clés</div>
-                            {rptStatCards.map((kpi, i) => (
-                              <div key={i} className="rpt-kpi-row">
-                                <span className="rpt-kpi-label">{kpi.label}</span>
-                                <span className="rpt-kpi-value" style={{ color: kpi.color }}>{kpi.value}</span>
-                                <span className="rpt-kpi-sub">{kpi.sub}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })()
-                : activeKey === 'dons' ? (() => {
-                  const token = localStorage.getItem('access_token')
-                  const canCreate = ['sponsor', 'partner', 'ambassador'].includes(role)
-
-                  const submitDonation = async (e) => {
-                    e.preventDefault()
-                    setDonationFormError('')
-                    if (!donationForm.amount || isNaN(Number(donationForm.amount)) || Number(donationForm.amount) <= 0 || !donationForm.orphanage) {
-                      setDonationFormError('Montant valide et orphelinat requis.')
-                      return
-                    }
-                    setDonationSubmitting(true)
-                    try {
-                      const res = await fetch(`${API}/dons/`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                        body: JSON.stringify(donationForm),
-                      })
-                      if (res.status === 401) { setDonationSubmitting(false); onLogout(); return }
-                      if (res.ok) {
-                        const created = await res.json()
-                        setDonations(prev => [created, ...prev])
-                        setDonationForm({ donation_type: 'financier', amount: '', currency: 'USD', orphanage: '' })
-                        toast('Don enregistré avec succès.', 'success')
-                      } else {
-                        const err = await res.json().catch(() => ({}))
-                        toast(err.detail || "Erreur lors de l'enregistrement.", 'error')
-                      }
-                    } finally {
-                      setDonationSubmitting(false)
-                    }
-                  }
-
-                  return (
-                    <div className="dash-section">
-                      <div className="dash-section-header">
-                        <span className="dash-section-title">Dons</span>
-                        <span className="dash-section-sub">Suivi des contributions</span>
-                      </div>
-
-                      {canCreate && (
-                        <div className="dash-card" style={{ marginBottom: 24 }}>
-                          <div className="dash-card-title" style={{ marginBottom: 12 }}>Enregistrer un don</div>
-                          {donationFormError && <div className="dash-error">{donationFormError}</div>}
-                          <form onSubmit={submitDonation} style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                            <select value={donationForm.donation_type} onChange={e => setDonationForm(f => ({ ...f, donation_type: e.target.value }))} className="dash-input" style={{ flex: '1 1 140px' }}>
-                              <option value="financier">Financier</option>
-                              <option value="materiel">Matériel</option>
-                              <option value="service">Service</option>
-                            </select>
-                            <input type="number" min="0" step="0.01" placeholder="Montant" value={donationForm.amount} onChange={e => setDonationForm(f => ({ ...f, amount: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
-                            <select value={donationForm.currency} onChange={e => setDonationForm(f => ({ ...f, currency: e.target.value }))} className="dash-input" style={{ flex: '0 0 90px' }}>
-                              <option value="USD">USD</option>
-                              <option value="EUR">EUR</option>
-                              <option value="CDF">CDF</option>
-                              <option value="XAF">XAF</option>
-                            </select>
-                            <input type="number" placeholder="ID Orphelinat" value={donationForm.orphanage} onChange={e => setDonationForm(f => ({ ...f, orphanage: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
-                            <button type="submit" className="btn btn-primary btn-sm" disabled={donationSubmitting}>{donationSubmitting && <span className="btn-spinner" />}Enregistrer</button>
-                          </form>
-                        </div>
-                      )}
-
-                      {donationsLoading ? (
-                        <div className="dash-empty">Chargement...</div>
-                      ) : donations.length === 0 ? (
-                        <EmptyState icon="💝" title="Aucun don enregistré" sub="Les dons apparaîtront ici une fois soumis." />
-                      ) : (
-                        <div className="dash-table-wrap">
-                          <table className="dash-table">
-                            <thead>
-                              <tr><th>Date</th><th>Donateur</th><th>Type</th><th>Montant</th><th>Statut</th><th>Orphelinat</th></tr>
-                            </thead>
-                            <tbody>
-                              {donations.map(d => (
-                                <tr key={d.id}>
-                                  <td>{new Date(d.date).toLocaleDateString('fr-FR')}</td>
-                                  <td>{d.donator_name || '—'}</td>
-                                  <td>{d.donation_type_label}</td>
-                                  <td>{d.amount} {d.currency}</td>
-                                  <td>{d.status_label}</td>
-                                  <td>{d.orphanage_name || '—'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })()
-                : activeKey === 'finances' ? (() => {
-                  const token = localStorage.getItem('access_token')
-                  const canWrite = ['director', 'federation', 'supermaster'].includes(role)
-
-                  const submitIncome = async (e) => {
-                    e.preventDefault()
-                    setFinancesFormError('')
-                    if (!incomeForm.source || !incomeForm.amount || isNaN(Number(incomeForm.amount)) || Number(incomeForm.amount) <= 0) { setFinancesFormError('Source et montant valide requis.'); return }
-                    setFinancesSubmitting(true)
-                    try {
-                      const res = await fetch(`${API}/revenus/`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                        body: JSON.stringify(incomeForm),
-                      })
-                      if (res.status === 401) { setFinancesSubmitting(false); onLogout(); return }
-                      if (res.ok) {
-                        setIncomes(prev => [await res.json(), ...prev])
-                        setIncomeForm({ source: '', amount: '', orphanage: '' })
-                        toast('Revenu enregistré.', 'success')
-                      } else { toast('Erreur lors de l\'enregistrement.', 'error') }
-                    } finally {
-                      setFinancesSubmitting(false)
-                    }
-                  }
-
-                  const submitExpense = async (e) => {
-                    e.preventDefault()
-                    setFinancesFormError('')
-                    if (!expenseForm.category || !expenseForm.amount || isNaN(Number(expenseForm.amount)) || Number(expenseForm.amount) <= 0) { setFinancesFormError('Catégorie et montant valide requis.'); return }
-                    setFinancesSubmitting(true)
-                    try {
-                      const res = await fetch(`${API}/depenses/`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                        body: JSON.stringify(expenseForm),
-                      })
-                      if (res.status === 401) { setFinancesSubmitting(false); onLogout(); return }
-                      if (res.ok) {
-                        setExpenses(prev => [await res.json(), ...prev])
-                        setExpenseForm({ category: '', amount: '', description: '', orphanage: '' })
-                        toast('Dépense enregistrée.', 'success')
-                      } else { toast('Erreur lors de l\'enregistrement.', 'error') }
-                    } finally {
-                      setFinancesSubmitting(false)
-                    }
-                  }
-
-                  return (
-                    <div className="dash-section">
-                      <div className="dash-section-header">
-                        <span className="dash-section-title">Finances</span>
-                        <span className="dash-section-sub">Revenus et dépenses</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                        {['revenus', 'depenses'].map(tab => (
-                          <button key={tab} className={`btn btn-sm${financesTab === tab ? ' btn-primary' : ''}`} onClick={() => setFinancesTab(tab)}>
-                            {tab === 'revenus' ? 'Revenus' : 'Dépenses'}
-                          </button>
-                        ))}
-                      </div>
-                      {financesFormError && <div className="dash-error">{financesFormError}</div>}
-
-                      {financesLoading ? <div className="dash-empty">Chargement...</div> : financesTab === 'revenus' ? (
-                        <>
-                          {canWrite && (
-                            <form onSubmit={submitIncome} style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-                              <input placeholder="Source (Dons, Subventions...)" value={incomeForm.source} onChange={e => setIncomeForm(f => ({ ...f, source: e.target.value }))} className="dash-input" style={{ flex: '2 1 180px' }} />
-                              <input type="number" min="0" step="0.01" placeholder="Montant" value={incomeForm.amount} onChange={e => setIncomeForm(f => ({ ...f, amount: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
-                              <input type="number" placeholder="ID Orphelinat" value={incomeForm.orphanage} onChange={e => setIncomeForm(f => ({ ...f, orphanage: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
-                              <button type="submit" className="btn btn-primary btn-sm" disabled={financesSubmitting}>{financesSubmitting && <span className="btn-spinner" />}Ajouter</button>
-                            </form>
-                          )}
-                          {incomes.length === 0 ? <EmptyState icon="💰" title="Aucun revenu enregistré" sub="Les revenus apparaîtront ici." /> : (
-                            <table className="dash-table"><thead><tr><th>Date</th><th>Source</th><th>Montant</th><th>Orphelinat</th></tr></thead>
-                            <tbody>{incomes.map(r => <tr key={r.id}><td>{r.date}</td><td>{r.source}</td><td>{r.amount}</td><td>{r.orphanage_name || '—'}</td></tr>)}</tbody></table>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          {canWrite && (
-                            <form onSubmit={submitExpense} style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-                              <input placeholder="Catégorie (Alimentation, Santé...)" value={expenseForm.category} onChange={e => setExpenseForm(f => ({ ...f, category: e.target.value }))} className="dash-input" style={{ flex: '2 1 180px' }} />
-                              <input type="number" min="0" step="0.01" placeholder="Montant" value={expenseForm.amount} onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
-                              <input placeholder="Description (optionnel)" value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} className="dash-input" style={{ flex: '2 1 180px' }} />
-                              <input type="number" placeholder="ID Orphelinat" value={expenseForm.orphanage} onChange={e => setExpenseForm(f => ({ ...f, orphanage: e.target.value }))} className="dash-input" style={{ flex: '1 1 120px' }} />
-                              <button type="submit" className="btn btn-primary btn-sm" disabled={financesSubmitting}>{financesSubmitting && <span className="btn-spinner" />}Ajouter</button>
-                            </form>
-                          )}
-                          {expenses.length === 0 ? <EmptyState icon="📊" title="Aucune dépense enregistrée" sub="Les dépenses apparaîtront ici." /> : (
-                            <table className="dash-table"><thead><tr><th>Date</th><th>Catégorie</th><th>Montant</th><th>Description</th><th>Orphelinat</th></tr></thead>
-                            <tbody>{expenses.map(d => <tr key={d.id}><td>{d.date}</td><td>{d.category}</td><td>{d.amount}</td><td>{d.description || '—'}</td><td>{d.orphanage_name || '—'}</td></tr>)}</tbody></table>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )
-                })()
-                : activeKey === 'parrainages' ? (() => {
-                  const token = localStorage.getItem('access_token')
-                  const isSponsorRole = ['sponsor', 'partner'].includes(role)
-
-                  const createSponsorship = async (childId) => {
-                    setSponsorshipFormError('')
-                    if (!sponsorshipForm.amount || isNaN(Number(sponsorshipForm.amount)) || Number(sponsorshipForm.amount) <= 0) { setSponsorshipFormError('Veuillez saisir un montant valide.'); return }
-                    setSponsorshipSubmitting(true)
-                    try {
-                      const res = await fetch(`${API}/parrainages/`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                        body: JSON.stringify({ ...sponsorshipForm, child: childId }),
-                      })
-                      if (res.status === 401) { setSponsorshipSubmitting(false); onLogout(); return }
-                      if (res.ok) {
-                        const created = await res.json()
-                        setMySponsored(prev => [created, ...prev])
-                        setSponsorableChildren(prev => prev.filter(c => c.id !== childId))
-                        toast('Parrainage créé avec succès.', 'success')
-                      } else {
-                        const err = await res.json().catch(() => ({}))
-                        toast(err.detail || err.error || 'Erreur lors de la création.', 'error')
-                      }
-                    } finally {
-                      setSponsorshipSubmitting(false)
-                    }
-                  }
-
-                  const loadPayments = async (sponsorshipId) => {
-                    const res = await fetch(`${API}/parrainages/${sponsorshipId}/paiements/`, { headers: { Authorization: `Bearer ${token}` } })
-                    if (!res.ok) { if (res.status === 401) { onLogout() } return }
-                    setSponsorshipPayments(await res.json()); setSelectedSponsorshipId(sponsorshipId)
-                  }
-
-                  const updateSponsorshipStatus = async (id, newStatus) => {
-                    const res = await fetch(`${API}/parrainages/${id}/`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                      body: JSON.stringify({ status: newStatus }),
-                    })
-                    if (res.status === 401) { onLogout(); return }
-                    if (res.ok) {
-                      const updated = await res.json()
-                      setMySponsored(prev => prev.map(s => s.id === id ? { ...s, status: updated.status, status_label: updated.status_label } : s))
-                    }
-                  }
-
-                  return (
-                    <div className="dash-section">
-                      <div className="dash-section-header">
-                        <span className="dash-section-title">Parrainages</span>
-                        <span className="dash-section-sub">{isSponsorRole ? 'Parrainer un enfant à distance' : 'Parrainages de votre orphelinat'}</span>
-                      </div>
-
-                      {sponsorshipFormError && <div className="dash-error">{sponsorshipFormError}</div>}
-
-                      {isSponsorRole && (
-                        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                          {['disponibles', 'mes-parrainages'].map(tab => (
-                            <button key={tab} className={`btn btn-sm${parrainagesTab === tab ? ' btn-primary' : ''}`} onClick={() => setParrainagesTab(tab)}>
-                              {tab === 'disponibles' ? `Enfants disponibles (${sponsorableChildren.length})` : `Mes parrainages (${mySponsored.length})`}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {parrainagesLoading ? <div className="dash-empty">Chargement...</div> : isSponsorRole && parrainagesTab === 'disponibles' ? (
-                        <>
-                          <div style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Montant mensuel :</span>
-                            <input type="number" min="1" step="1" placeholder="ex: 50" value={sponsorshipForm.amount} onChange={e => setSponsorshipForm(f => ({ ...f, amount: e.target.value }))} className="dash-input" style={{ width: 100 }} />
-                            <select value={sponsorshipForm.sponsorship_type} onChange={e => setSponsorshipForm(f => ({ ...f, sponsorship_type: e.target.value }))} className="dash-input" style={{ width: 120 }}>
-                              <option value="monthly">Mensuel</option>
-                              <option value="annual">Annuel</option>
-                            </select>
-                          </div>
-                          {sponsorableChildren.length === 0 ? (
-                            <div className="dash-empty">Aucun enfant disponible pour parrainage.</div>
-                          ) : (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
-                              {sponsorableChildren.map(child => (
-                                <div key={child.id} className="dash-card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                  <div style={{ fontWeight: 600 }}>{child.prenom} {child.nom}</div>
-                                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{child.uid}</div>
-                                  {child.date_naissance && <div style={{ fontSize: 12 }}>Né(e) le {new Date(child.date_naissance).toLocaleDateString('fr-FR')}</div>}
-                                  <button className="btn btn-primary btn-sm" style={{ marginTop: 'auto' }} onClick={() => createSponsorship(child.id)} disabled={Number(sponsorshipForm.amount) <= 0 || sponsorshipSubmitting}>{sponsorshipSubmitting && <span className="btn-spinner" />}Parrainer</button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </>
-                      ) : isSponsorRole && parrainagesTab === 'mes-parrainages' ? (
-                        mySponsored.length === 0 ? <EmptyState icon="🤝" title="Aucun parrainage" sub="Les parrainages actifs apparaîtront ici." /> : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            {mySponsored.map(s => (
-                              <div key={s.id} className="dash-card">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
-                                  <div>
-                                    <div style={{ fontWeight: 600, marginBottom: 4 }}>{s.child_name}</div>
-                                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{s.sponsorship_type_label} — {s.amount} USD · {s.status_label}</div>
-                                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Depuis le {s.start_date}</div>
-                                  </div>
-                                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                    {s.status === 'active' && <button className="btn btn-sm" onClick={() => updateSponsorshipStatus(s.id, 'paused')}>Suspendre</button>}
-                                    {s.status === 'paused' && <button className="btn btn-sm btn-primary" onClick={() => updateSponsorshipStatus(s.id, 'active')}>Reprendre</button>}
-                                    {s.status !== 'cancelled' && <button className="btn btn-sm" style={{ color: '#ef4444' }} onClick={() => updateSponsorshipStatus(s.id, 'cancelled')}>Annuler</button>}
-                                    <button className="btn btn-sm" onClick={() => loadPayments(s.id)}>Historique</button>
-                                  </div>
-                                </div>
-                                {selectedSponsorshipId === s.id && (
-                                  <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Paiements</div>
-                                    {sponsorshipPayments.length === 0 ? <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Aucun paiement.</div> : (
-                                      <table className="dash-table">
-                                        <thead><tr><th>Date</th><th>Montant</th><th>Réf</th></tr></thead>
-                                        <tbody>{sponsorshipPayments.map(p => <tr key={p.id}><td>{new Date(p.date).toLocaleDateString('fr-FR')}</td><td>{p.amount}</td><td>{p.transaction_id || '—'}</td></tr>)}</tbody>
-                                      </table>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )
-                      ) : (
-                        mySponsored.length === 0 ? <EmptyState icon="🤝" title="Aucun parrainage" sub="Les parrainages pour cet orphelinat apparaîtront ici." /> : (
-                          <table className="dash-table">
-                            <thead><tr><th>Enfant</th><th>Parrain</th><th>Type</th><th>Montant</th><th>Statut</th><th>Depuis</th></tr></thead>
-                            <tbody>{mySponsored.map(s => <tr key={s.id}><td>{s.child_name}</td><td>{s.sponsor_name}</td><td>{s.sponsorship_type_label}</td><td>{s.amount}</td><td>{s.status_label}</td><td>{s.start_date}</td></tr>)}</tbody>
-                          </table>
-                        )
-                      )}
-                    </div>
-                  )
-                })()
                 : !subKey ? (
                   <div className="dash-category-cards">
                     {activeKey === 'parametres' && !subKey && (
@@ -8271,7 +7778,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
             <p style={{ fontSize:'13px', color:'#94a3b8', margin:0 }}>Retirer l'assignation de <strong style={{color:'#f59e0b'}}>{unassignConfirm.childName}</strong> ?</p>
             <div style={{ display:'flex', gap:'12px', justifyContent:'center', marginTop:'8px' }}>
               <button type="button" onClick={() => setUnassignConfirm(null)} style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:10,color:'#94a3b8',fontSize:13,fontWeight:600,padding:'8px 24px',cursor:'pointer'}}>Annuler</button>
-              <button type="button" onClick={async()=>{const c=unassignConfirm;setUnassignConfirm(null);const token=localStorage.getItem('access_token');try{await fetch(API+'/assignments/'+c.assignmentId+'/',{method:'DELETE',headers:{Authorization:'Bearer '+token}});if(c.orphanageId){const r=await fetch(API+'/assignments/?orphanage_id='+c.orphanageId,{headers:{Authorization:'Bearer '+token}});if(r.ok)setOrphanageAssignments(await r.json())}if(c.onAssigned)c.onAssigned()}catch(_){}}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:13,fontWeight:600,padding:'8px 24px',cursor:'pointer'}}>Désassigner</button>
+              <button type="button" onClick={async()=>{const c=unassignConfirm;setUnassignConfirm(null);try{await apiFetch(API+'/assignments/'+c.assignmentId+'/',{method:'DELETE'},onLogout);if(c.orphanageId){const r=await apiFetch(API+'/assignments/?orphanage_id='+c.orphanageId,{},onLogout);if(r&&r.ok)setOrphanageAssignments(await r.json())}if(c.onAssigned)c.onAssigned()}catch(_){}}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:13,fontWeight:600,padding:'8px 24px',cursor:'pointer'}}>Désassigner</button>
             </div>
           </div>
         </div>
@@ -8325,13 +7832,14 @@ function ChildAssignmentForm({ API, ambassadors, children, assignments, onAssign
     }
     setLoading(true)
     setMsg('')
-    const token = localStorage.getItem('access_token')
     try {
-      const res = await fetch(`${API}/assignments/bulk/`, {
+      // onLogout not available in this nested component — 401 returns null and bails silently
+      const res = await apiFetch(`${API}/assignments/bulk/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ child_ids: selChildren, ambassador_id: Number(selectedAmbassador), note }),
-      })
+      }, null)
+      if (!res) return
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Erreur d'assignation")
       setMsg(`✅ ${data.results.length} enfant(s) assigné(s) avec succès.`)
