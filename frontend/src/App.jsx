@@ -2076,7 +2076,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
   const navItems = ROLE_NAV[role] || ROLE_NAV.director
   const pages = ROLE_PAGES[role] || ROLE_PAGES.director
-  const statCards = ROLE_STATS[role] || ROLE_STATS.director
+  const [liveStats, setLiveStats] = React.useState(null)
+  React.useEffect(() => {
+    apiFetch(`${API}/auth/stats/`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : null)
+      .then(data => { if (data?.kpis) setLiveStats(data.kpis) })
+      .catch(() => {})
+  }, [role])
+  const statCards = liveStats || ROLE_STATS[role] || ROLE_STATS.director
   const roleLabel = ROLES.find(r => r.value === role)?.label || role
 
   const page = pages[activeKey]
