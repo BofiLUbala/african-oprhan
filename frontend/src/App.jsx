@@ -1271,6 +1271,26 @@ function EclatSocialApp({ user, onReturn }) {
 
   const esUnreadNotifs = esNotifs.filter(n => n && n.is_read === false).length
 
+  // Notifications actions (real backend)
+  const esMarkNotif = async (nid) => {
+    const res = await apiFetch(`${API}/notifications/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: nid }) }, onReturn)
+    if (res && res.ok) setEsNotifs(prev => prev.map(n => n.id === nid ? { ...n, is_read: true } : n))
+  }
+  const esMarkAllNotifs = async () => {
+    const res = await apiFetch(`${API}/notifications/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mark_read: true }) }, onReturn)
+    if (res && res.ok) setEsNotifs(prev => prev.map(n => ({ ...n, is_read: true })))
+  }
+
+  // Settings — theme + language (shared with dashboard via same storage/context)
+  const { lang: esLang, setLang: esSetLang } = useTranslation()
+  const [esTheme, setEsTheme] = React.useState(() => (typeof localStorage !== 'undefined' && localStorage.getItem('cdo_theme')) || 'dark')
+  const esToggleTheme = () => {
+    const next = esTheme === 'dark' ? 'light' : 'dark'
+    setEsTheme(next)
+    document.documentElement.setAttribute('data-theme', next === 'light' ? 'light' : '')
+    localStorage.setItem('cdo_theme', next)
+  }
+
   // Close search/filter popovers on outside click
   React.useEffect(() => {
     const handler = (e) => { if (esSearchRef.current && !esSearchRef.current.contains(e.target)) { setEsSearchOpen(false); setEsFilterOpen(false) } }
@@ -2036,35 +2056,72 @@ function EclatSocialApp({ user, onReturn }) {
 
         {/* NOTIFICATIONS VIEW */}
         {esView === 'notifs' && (
-          <div style={{ padding: '32px', maxWidth: '600px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '24px' }}>🔔 Notifications</h2>
-            {[
-              { icon: '⚠️', text: 'Demandes critiques en attente', time: 'Il y a 5 min', color: '#fef3c7' },
-              { icon: '⏳', text: 'Approbations en attente de validation', time: 'Il y a 1h', color: '#eff6ff' },
-              { icon: '✉️', text: 'Nouveaux messages reçus', time: 'Il y a 2h', color: '#f0fdf4' },
-            ].map((n, i) => (
-              <div key={i} style={{ background: n.color, borderRadius: '12px', padding: '16px 20px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <span style={{ fontSize: '22px' }}>{n.icon}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: '14px' }}>{n.text}</div>
-                  <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{n.time}</div>
+          <div style={{ padding: '32px', maxWidth: '640px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '9px' }}><EsIcon name="bell" size={22} /> Notifications {esUnreadNotifs > 0 && <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg,#f43f5e,#ec4899)', padding: '2px 9px', borderRadius: '12px' }}>{esUnreadNotifs}</span>}</h2>
+              {esUnreadNotifs > 0 && (
+                <button onClick={esMarkAllNotifs} style={{ background: 'transparent', border: 'none', color: '#6366f1', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Tout marquer comme lu</button>
+              )}
+            </div>
+            {esNotifs.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '48px 16px', color: '#94a3b8' }}>
+                <div style={{ width: 60, height: 60, margin: '0 auto 12px', borderRadius: '18px', background: 'var(--bg-card,#f1f5f9)', display: 'grid', placeItems: 'center', color: '#cbd5e1' }}><EsIcon name="bell" size={28} /></div>
+                <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-heading,#334155)' }}>Aucune notification</div>
+                <div style={{ fontSize: '13px', marginTop: '3px' }}>Vous êtes à jour.</div>
+              </div>
+            ) : esNotifs.map(n => (
+              <div key={n.id} style={{ background: n.is_read ? 'var(--bg-card,#f8fafc)' : 'linear-gradient(135deg,#eff6ff,#faf5ff)', border: `1px solid ${n.is_read ? 'var(--border-card,#e2e8f0)' : '#c7d2fe'}`, borderRadius: '13px', padding: '15px 18px', marginBottom: '11px', display: 'flex', alignItems: 'flex-start', gap: '13px' }}>
+                <span style={{ width: 34, height: 34, borderRadius: '10px', flexShrink: 0, background: n.is_read ? 'rgba(148,163,184,0.15)' : 'rgba(99,102,241,0.14)', color: n.is_read ? '#94a3b8' : '#6366f1', display: 'grid', placeItems: 'center' }}><EsIcon name="bell" size={17} /></span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-heading,#0f172a)' }}>{n.title}</div>
+                  {n.content && <div style={{ fontSize: '13px', color: 'var(--text-body,#475569)', marginTop: '2px' }}>{n.content}</div>}
+                  <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '4px' }}>{esTimeAgo(n.created_at)}</div>
                 </div>
-                <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '18px' }}>×</button>
+                {!n.is_read && (
+                  <button onClick={() => esMarkNotif(n.id)} title="Marquer comme lu" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#6366f1', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  </button>
+                )}
               </div>
             ))}
           </div>
         )}
 
-        {/* SETTINGS VIEW */}
+        {/* SETTINGS VIEW — real, working controls */}
         {esView === 'settings' && (
-          <div style={{ padding: '32px', maxWidth: '600px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '24px' }}>⚙️ Paramètres</h2>
-            {[['🌙 Thème', 'Sombre / Clair'], ['🔔 Notifications', 'Activées'], ['🌍 Langue', 'Français'], ['🔒 Confidentialité', 'Gérer']].map(([label, val]) => (
-              <div key={label} style={{ background: 'var(--bg-card,#f8fafc)', border: '1px solid var(--border-card,#e2e8f0)', borderRadius: '12px', padding: '16px 20px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 600, fontSize: '14px' }}>{label}</span>
-                <span style={{ color: '#64748b', fontSize: '14px' }}>{val} →</span>
+          <div style={{ padding: '32px', maxWidth: '640px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '9px' }}><EsIcon name="settings" size={22} /> Paramètres</h2>
+
+            {/* Theme */}
+            <div style={{ background: 'var(--bg-card,#f8fafc)', border: '1px solid var(--border-card,#e2e8f0)', borderRadius: '13px', padding: '15px 18px', marginBottom: '11px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ width: 34, height: 34, borderRadius: '10px', background: 'rgba(99,102,241,0.12)', color: '#6366f1', display: 'grid', placeItems: 'center' }}><EsIcon name="settings" size={17} /></span>
+                <div><div style={{ fontWeight: 700, fontSize: '14px' }}>Thème de l'application</div><div style={{ fontSize: '12px', color: '#94a3b8' }}>{esTheme === 'light' ? 'Clair' : 'Sombre'}</div></div>
               </div>
-            ))}
+              <button onClick={esToggleTheme} style={{ width: 52, height: 28, borderRadius: '20px', border: 'none', cursor: 'pointer', background: esTheme === 'light' ? '#cbd5e1' : 'linear-gradient(135deg,#6366f1,#8b5cf6)', position: 'relative', transition: 'background .2s' }}>
+                <span style={{ position: 'absolute', top: 3, left: esTheme === 'light' ? 3 : 27, width: 22, height: 22, borderRadius: '50%', background: '#fff', transition: 'left .2s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }} />
+              </button>
+            </div>
+
+            {/* Language */}
+            <div style={{ background: 'var(--bg-card,#f8fafc)', border: '1px solid var(--border-card,#e2e8f0)', borderRadius: '13px', padding: '15px 18px', marginBottom: '11px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ width: 34, height: 34, borderRadius: '10px', background: 'rgba(16,185,129,0.12)', color: '#10b981', display: 'grid', placeItems: 'center' }}><EsIcon name="globe" size={17} /></span>
+                <div><div style={{ fontWeight: 700, fontSize: '14px' }}>Langue</div><div style={{ fontSize: '12px', color: '#94a3b8' }}>Interface</div></div>
+              </div>
+              <select value={esLang} onChange={e => esSetLang(e.target.value)} style={{ padding: '7px 12px', borderRadius: '9px', border: '1px solid var(--border-card,#e2e8f0)', background: 'var(--bg-input,#fff)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', outline: 'none' }}>
+                <option value="fr">Français</option><option value="en">English</option><option value="sw">Kiswahili</option><option value="ln">Lingala</option>
+              </select>
+            </div>
+
+            {/* Connection status (real) */}
+            <div style={{ background: 'var(--bg-card,#f8fafc)', border: '1px solid var(--border-card,#e2e8f0)', borderRadius: '13px', padding: '15px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ width: 34, height: 34, borderRadius: '10px', background: 'rgba(139,92,246,0.12)', color: '#8b5cf6', display: 'grid', placeItems: 'center' }}><EsIcon name="shield" size={17} /></span>
+                <div><div style={{ fontWeight: 700, fontSize: '14px' }}>Connexion</div><div style={{ fontSize: '12px', color: '#94a3b8' }}>Session sécurisée (JWT)</div></div>
+              </div>
+              <span style={{ fontSize: '12.5px', fontWeight: 700, color: esOnline ? '#059669' : '#dc2626' }}>{esOnline ? '● En ligne' : '● Hors ligne'}</span>
+            </div>
           </div>
         )}
 

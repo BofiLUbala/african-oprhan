@@ -14,6 +14,10 @@ class ChatUserSerializer(serializers.Serializer):
     def to_representation(self, user):
         return {
             'id': user.id,
+            'first_name': user.first_name or '',
+            'last_name': user.last_name or '',
+            'email': user.email,
+            'role': getattr(user, 'role', ''),
             'full_name': f"{user.first_name or ''} {user.last_name or ''}".strip() or user.email,
             'initials': user_initials(user),
         }
