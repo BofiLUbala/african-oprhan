@@ -1129,7 +1129,50 @@ function EclatSocialApp({ user, onReturn }) {
   const [esOnline, setEsOnline] = React.useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const esSearchRef = React.useRef(null)
 
-  const esNavigate = (view) => { setEsNavActive(view); setEsView(view); setEsSearchOpen(false) }
+  // ── Channels (Slack-like, role-based) ──────────────────────────────
+  const [esChannels, setEsChannels] = React.useState([])
+  const [esActiveChannel, setEsActiveChannel] = React.useState(null)
+  const [esChannelMsgs, setEsChannelMsgs] = React.useState([])
+  const [esChannelInput, setEsChannelInput] = React.useState('')
+  const [esSideSearch, setEsSideSearch] = React.useState('')
+  const [esSecOpen, setEsSecOpen] = React.useState({ channels: true, dms: true })
+  const esChannelEndRef = React.useRef(null)
+
+  const esNavigate = (view) => { setEsNavActive(view); setEsView(view); setEsSearchOpen(false); if (view !== 'channel') setEsActiveChannel(null) }
+
+  const esOpenChannel = (ch) => {
+    setEsActiveChannel(ch)
+    setEsNavActive('channel')
+    setEsView('channel')
+    setEsChannelMsgs([])
+    apiFetch(`${API}/channels/${ch.slug}/messages/`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : null)
+      .then(data => { if (data) setEsChannelMsgs(Array.isArray(data) ? data : []) })
+      .catch(() => {})
+  }
+
+  const esSendChannelMsg = async () => {
+    if (!esChannelInput.trim() || !esActiveChannel) return
+    const res = await apiFetch(`${API}/channels/${esActiveChannel.slug}/messages/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: esChannelInput.trim() })
+    }, onReturn)
+    if (res && res.ok) {
+      const msg = await res.json()
+      setEsChannelMsgs(prev => [...prev, msg])
+      setEsChannelInput('')
+      setEsChannels(prev => prev.map(c => c.slug === esActiveChannel.slug ? { ...c, messages_count: (c.messages_count || 0) + 1 } : c))
+    }
+  }
+
+  React.useEffect(() => {
+    apiFetch(`${API}/channels/`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : null)
+      .then(data => { if (Array.isArray(data)) setEsChannels(data) })
+      .catch(() => {})
+  }, [])
+
+  React.useEffect(() => { esChannelEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [esChannelMsgs])
 
   // Live browser connection status
   React.useEffect(() => {
@@ -1184,7 +1227,11 @@ function EclatSocialApp({ user, onReturn }) {
           esUsers.filter(u => (u.full_name || `${u.first_name} ${u.last_name}`).toLowerCase().includes(ql) || (u.email || '').toLowerCase().includes(ql))
             .slice(0, 6).forEach(u => results.push({ type: 'users', id: `u${u.id}`, title: u.full_name || `${u.first_name} ${u.last_name}`.trim(), subtitle: esRoleLabel(u.role), icon: '👤', hue: (u.first_name || 'U').charCodeAt(0) * 37 % 360, initials: ((u.first_name?.[0] || '') + (u.last_name?.[0] || '')).toUpperCase() }))
         }
-        if (wants('messages') || wants('channels')) {
+        if (wants('channels')) {
+          esChannels.filter(c => c.name.toLowerCase().includes(ql) || (c.description || '').toLowerCase().includes(ql))
+            .slice(0, 5).forEach(c => results.push({ type: 'channels', id: `ch-${c.slug}`, title: c.name, subtitle: c.description || 'Canal', icon: c.icon, channel: c }))
+        }
+        if (wants('messages')) {
           esConversations.filter(c => { const o = c.participants?.find(p => p.id !== user?.id) || c.participants?.[0]; const nm = o ? `${o.first_name || ''} ${o.last_name || ''}` : ''; return nm.toLowerCase().includes(ql) || (c.last_message?.content || '').toLowerCase().includes(ql) })
             .slice(0, 5).forEach(c => { const o = c.participants?.find(p => p.id !== user?.id) || c.participants?.[0]; results.push({ type: 'messages', id: `c${c.id}`, title: o ? `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email : `Conversation #${c.id}`, subtitle: c.last_message?.content?.slice(0, 40) || 'Conversation', icon: '💬', conv: c }) })
         }
@@ -1205,6 +1252,7 @@ function EclatSocialApp({ user, onReturn }) {
 
   const esOpenSearchResult = (r) => {
     if (r.type === 'messages' && r.conv) { esNavigate('messages'); setEsActiveConv(r.conv) }
+    else if (r.type === 'channels' && r.channel) { esOpenChannel(r.channel) }
     else if (r.type === 'users') { esNavigate('messages') }
     setEsSearchQuery(''); setEsSearchOpen(false)
   }
@@ -1232,6 +1280,7 @@ function EclatSocialApp({ user, onReturn }) {
     messages: { label: 'Messages', channel: 'Messagerie directe', icon: '💬' },
     notifs: { label: 'Notifications', channel: 'Centre de notifications', icon: '🔔' },
     settings: { label: 'Paramètres', channel: 'Préférences', icon: '⚙️' },
+    channel: { label: 'Canal', channel: 'Canal', icon: '#' },
   }
 
   const esLoadPosts = () => {
@@ -1357,8 +1406,9 @@ function EclatSocialApp({ user, onReturn }) {
     }
   }
 
+  // Conversations chargées au montage (sidebar) et rafraîchies sur la vue Messages
   React.useEffect(() => {
-    if (esView !== 'messages') return
+    if (esView !== 'messages' && esConversations.length > 0) return
     apiFetch(`${API}/conversations/`, {}, onReturn)
       .then(r => r && r.ok ? r.json() : null)
       .then(data => { if (data) setEsConversations(Array.isArray(data) ? data : (data.results || [])) })
@@ -1428,7 +1478,9 @@ function EclatSocialApp({ user, onReturn }) {
     <div className="es-wrapper es-wrapper-stacked">
       {/* ═══════════ GLOBAL COMMUNICATION HEADER (full width) ═══════════ */}
       {(() => {
-        const meta = ES_VIEW_META[esView] || ES_VIEW_META.home
+        const meta = esView === 'channel' && esActiveChannel
+          ? { label: esActiveChannel.name, channel: esActiveChannel.name, icon: esActiveChannel.icon }
+          : (ES_VIEW_META[esView] || ES_VIEW_META.home)
         const activeFilter = ES_SEARCH_FILTERS.find(f => f.key === esSearchType) || ES_SEARCH_FILTERS[0]
         return (
       <header className="es-topbar">
@@ -1611,13 +1663,91 @@ function EclatSocialApp({ user, onReturn }) {
           </div>
         </div>
 
-        <nav className="es-nav">
+        <nav className="es-nav" style={{ flex: 'none' }}>
           <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => esNavigate('home')}><span className="es-nav-icon">🏠</span> Accueil</button>
-          <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => esNavigate('profil')}><span className="es-nav-icon">👤</span> Profil</button>
-          <button className={esNavActive === 'messages' ? 'active' : ''} onClick={() => esNavigate('messages')}><span className="es-nav-icon">💬</span> Messages {esConversations.length > 0 && <span className="es-badge">{esConversations.length}</span>}</button>
           <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => esNavigate('notifs')}><span className="es-nav-icon">🔔</span> Notifications</button>
           <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => esNavigate('settings')}><span className="es-nav-icon">⚙️</span> Paramètres</button>
         </nav>
+
+        {/* Sidebar workspace search */}
+        <div className="es-side-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input value={esSideSearch} onChange={e => setEsSideSearch(e.target.value)} placeholder="Filtrer canaux, messages…" aria-label="Filtrer la navigation" />
+        </div>
+
+        {/* CANAUX — collapsible */}
+        <div className="es-side-section">
+          <button className="es-side-section-head" onClick={() => setEsSecOpen(o => ({ ...o, channels: !o.channels }))} aria-expanded={esSecOpen.channels}>
+            <svg className={`es-side-caret${esSecOpen.channels ? ' open' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            Canaux
+            <span className="es-side-count">{esChannels.length}</span>
+          </button>
+          {esSecOpen.channels && (
+            <div className="es-side-items">
+              {esChannels.length === 0 && <div className="es-side-empty">Chargement…</div>}
+              {esChannels
+                .filter(c => !esSideSearch.trim() || c.name.toLowerCase().includes(esSideSearch.trim().toLowerCase()))
+                .map(ch => (
+                  <button key={ch.slug}
+                    className={`es-side-item${esView === 'channel' && esActiveChannel?.slug === ch.slug ? ' active' : ''}`}
+                    onClick={() => esOpenChannel(ch)} title={ch.description}>
+                    <span className="es-side-item-icon">{ch.icon}</span>
+                    <span className="es-side-item-label">{ch.name}</span>
+                    {ch.restricted && (
+                      <svg className="es-side-lock" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                    )}
+                    {ch.messages_count > 0 && <span className="es-side-badge">{ch.messages_count > 99 ? '99+' : ch.messages_count}</span>}
+                  </button>
+                ))}
+            </div>
+          )}
+        </div>
+
+        {/* MESSAGES DIRECTS — collapsible */}
+        <div className="es-side-section">
+          <button className="es-side-section-head" onClick={() => setEsSecOpen(o => ({ ...o, dms: !o.dms }))} aria-expanded={esSecOpen.dms}>
+            <svg className={`es-side-caret${esSecOpen.dms ? ' open' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            Messages directs
+            {esConversations.length > 0 && <span className="es-side-count">{esConversations.length}</span>}
+          </button>
+          {esSecOpen.dms && (
+            <div className="es-side-items">
+              {esConversations.length === 0 && <div className="es-side-empty">Aucune conversation</div>}
+              {esConversations
+                .map(conv => {
+                  const other = conv.participants?.find(p => p.id !== user?.id) || conv.participants?.[0]
+                  const name = other ? `${other.first_name || ''} ${other.last_name || ''}`.trim() || other.email : `Conv #${conv.id}`
+                  return { conv, other, name }
+                })
+                .filter(({ name }) => !esSideSearch.trim() || name.toLowerCase().includes(esSideSearch.trim().toLowerCase()))
+                .map(({ conv, other, name }) => (
+                  <button key={conv.id}
+                    className={`es-side-item${esView === 'messages' && esActiveConv?.id === conv.id ? ' active' : ''}`}
+                    onClick={() => { esNavigate('messages'); setEsActiveConv(conv) }} title={name}>
+                    <span className="es-side-dm-ava" style={{ background: `hsl(${(other?.first_name || 'U').charCodeAt(0) * 37 % 360},55%,50%)` }}>
+                      {(other?.first_name?.[0] || '?').toUpperCase()}
+                    </span>
+                    <span className="es-side-item-label">{name}</span>
+                  </button>
+                ))}
+              <button className="es-side-item es-side-new" onClick={() => esNavigate('messages')}>
+                <span className="es-side-item-icon">＋</span>
+                <span className="es-side-item-label">Tous les messages</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* VALIDATION — reviewers only, real count */}
+        {esIsReviewer && esPendingReview.length > 0 && (
+          <div className="es-side-section">
+            <button className="es-side-item es-side-approval" onClick={() => esNavigate('home')}>
+              <span className="es-side-item-icon">🛡️</span>
+              <span className="es-side-item-label">File de validation</span>
+              <span className="es-side-badge es-side-badge-hot">{esPendingReview.length}</span>
+            </button>
+          </div>
+        )}
 
         <div className="es-sidebar-bottom">
           <button className="es-return-btn" onClick={onReturn}>← Retourner au dashboard</button>
@@ -1626,6 +1756,78 @@ function EclatSocialApp({ user, onReturn }) {
 
       {/* MAIN FEED */}
       <main className="es-main">
+
+        {/* CHANNEL VIEW — Slack-like role-based channel chat */}
+        {esView === 'channel' && esActiveChannel && (
+          <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 210px)', minHeight: '420px' }}>
+            {/* Channel header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 22px', borderBottom: '1px solid var(--border-card,#e2e8f0)' }}>
+              <span style={{ width: 40, height: 40, borderRadius: '11px', background: 'linear-gradient(135deg,#eef2ff,#faf5ff)', display: 'grid', placeItems: 'center', fontSize: '19px', flexShrink: 0 }}>{esActiveChannel.icon}</span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontWeight: 800, fontSize: '15.5px', letterSpacing: '-0.2px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  {esActiveChannel.name}
+                  {esActiveChannel.restricted && (
+                    <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: '#7c3aed', background: 'rgba(139,92,246,0.1)', padding: '3px 8px', borderRadius: '6px' }}>🔒 Réservé</span>
+                  )}
+                </div>
+                <div style={{ fontSize: '12.5px', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{esActiveChannel.description}</div>
+              </div>
+              <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600, flexShrink: 0 }}>{esChannelMsgs.length} message{esChannelMsgs.length > 1 ? 's' : ''}</span>
+            </div>
+
+            {/* Messages */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {esChannelMsgs.length === 0 && (
+                <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '48px' }}>
+                  <div style={{ fontSize: '42px', marginBottom: '10px' }}>{esActiveChannel.icon}</div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading,#334155)' }}>Bienvenue dans {esActiveChannel.name}</div>
+                  <div style={{ fontSize: '13px', marginTop: '4px' }}>{esActiveChannel.description || 'Soyez le premier à écrire ici.'}</div>
+                </div>
+              )}
+              {esChannelMsgs.map((m, i) => {
+                const isMe = m.sender === user?.id
+                const prev = esChannelMsgs[i - 1]
+                const grouped = prev && prev.sender === m.sender
+                return (
+                  <div key={m.id} style={{ display: 'flex', gap: '11px', marginTop: grouped ? '-8px' : 0 }}>
+                    {grouped ? <span style={{ width: 36, flexShrink: 0 }} /> : (
+                      <span style={{ width: 36, height: 36, borderRadius: '50%', background: `hsl(${m.sender_hue},55%,50%)`, color: '#fff', display: 'grid', placeItems: 'center', fontSize: '13px', fontWeight: 700, flexShrink: 0 }}>{m.sender_initials}</span>
+                    )}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      {!grouped && (
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '3px' }}>
+                          <span style={{ fontSize: '13.5px', fontWeight: 700, color: isMe ? '#4f46e5' : 'var(--text-heading,#0f172a)' }}>{m.sender_name}{isMe ? ' (vous)' : ''}</span>
+                          <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>{esRoleLabel(m.sender_role)}</span>
+                          <span style={{ fontSize: '11px', color: '#cbd5e1' }}>{esTimeAgo(m.created_at)}</span>
+                        </div>
+                      )}
+                      <div style={{ fontSize: '14px', color: 'var(--text-body,#334155)', lineHeight: 1.55, wordBreak: 'break-word' }}>{m.content}</div>
+                    </div>
+                  </div>
+                )
+              })}
+              <div ref={esChannelEndRef} />
+            </div>
+
+            {/* Composer */}
+            <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border-card,#e2e8f0)' }}>
+              {esActiveChannel.can_post ? (
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <input value={esChannelInput} onChange={e => setEsChannelInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && esSendChannelMsg()}
+                    placeholder={`Écrire dans ${esActiveChannel.name}…`}
+                    style={{ flex: 1, padding: '11px 15px', borderRadius: '13px', border: '1.5px solid var(--border-card,#e2e8f0)', background: 'var(--bg-card,#f8fafc)', fontSize: '14px', outline: 'none' }} />
+                  <button onClick={esSendChannelMsg} disabled={!esChannelInput.trim()}
+                    style={{ padding: '11px 20px', borderRadius: '13px', background: esChannelInput.trim() ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : '#e2e8f0', color: esChannelInput.trim() ? '#fff' : '#94a3b8', border: 'none', fontWeight: 700, cursor: esChannelInput.trim() ? 'pointer' : 'default', fontSize: '14px', transition: 'all .2s' }}>Envoyer</button>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', fontSize: '13px', color: '#94a3b8', padding: '8px', background: 'var(--bg-card,#f8fafc)', borderRadius: '11px' }}>
+                  🔒 Lecture seule — votre rôle ne peut pas publier dans ce canal.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* MESSAGES VIEW */}
         {esView === 'messages' && (
