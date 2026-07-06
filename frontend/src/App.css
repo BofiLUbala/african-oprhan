@@ -2932,7 +2932,15 @@ select.dash-prof-input option { background:#1e293b; color:#e2e8f0; }
 }
 .es-side-item:hover { background: rgba(99, 102, 241, 0.07); color: #1e293b; }
 .es-side-item.active { background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(139, 92, 246, 0.1)); color: #4f46e5; }
-.es-side-item-icon { width: 20px; text-align: center; font-size: 14px; flex-shrink: 0; }
+.es-side-item-icon { width: 20px; display: inline-flex; align-items: center; justify-content: center; color: #94a3b8; flex-shrink: 0; }
+.es-side-item:hover .es-side-item-icon,
+.es-side-item.active .es-side-item-icon { color: currentColor; }
+.es-side-item-icon svg { display: block; }
+/* nav + members + crumb icon alignment; real-photo avatars must not distort */
+.es-nav-icon { display: inline-flex; align-items: center; justify-content: center; }
+.es-nav-icon svg { display: block; }
+.es-crumb-active { display: inline-flex; align-items: center; gap: 5px; }
+.es-avatar-sm, .es-user-ava img, .es-story-avatar img, .es-online-ava img, .es-result-ava img { object-fit: cover; }
 .es-side-item-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .es-side-lock { color: #a78bfa; flex-shrink: 0; }
 .es-side-badge {

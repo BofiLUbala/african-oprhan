@@ -1103,6 +1103,44 @@ function genChildUid(exclude = new Set()) {
 
 /* ===== L'ÉCLAT SOCIAL APP ===== */
 
+/* Crafted line-icon set (Lucide-derived) — professional, consistent, theme-aware */
+const ES_ICON_PATHS = {
+  home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  globe: '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
+  megaphone: '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+  siren: '<path d="M7 18v-6a5 5 0 0 1 10 0v6"/><path d="M5 21a1 1 0 0 0 1-1v-1a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1a1 1 0 0 0 1 1"/><path d="M21 12h1"/><path d="M18.5 4.5 18 5"/><path d="M2 12h1"/><path d="M12 2v1"/>',
+  award: '<path d="m15.5 12.9 1.5 8.6-5-3-5 3 1.5-8.6"/><circle cx="12" cy="8" r="6"/>',
+  building: '<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/>',
+  landmark: '<line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  heart: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+  hash: '<line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="14" x2="12" y1="3" y2="21"/>',
+  message: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  pencil: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>',
+  trash: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  user: '<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>',
+}
+
+function EsIcon({ name, size = 18, stroke = 2, style, className }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round"
+      className={className} style={style} aria-hidden="true"
+      dangerouslySetInnerHTML={{ __html: ES_ICON_PATHS[name] || ES_ICON_PATHS.hash }} />
+  )
+}
+
+const esChannelIconName = (ch) => ({
+  public: 'globe', annonces: 'megaphone', urgences: 'siren',
+  ambassadeurs: 'award', 'chefs-orphelinat': 'building', confederation: 'landmark',
+  administration: 'shield', orphanage: 'heart',
+}[ch?.slug] || (ch?.kind === 'project' ? 'folder' : 'hash'))
+
 function EclatSocialApp({ user, onReturn }) {
   const [esView, setEsView] = useState('home')
   const [esModal, setEsModal] = useState(null) // 'create' | 'detail' | null
@@ -1474,7 +1512,10 @@ function EclatSocialApp({ user, onReturn }) {
 
   const initials = (user.first_name?.[0] || '') + (user.last_name?.[0] || '')
   const hue = user.first_name ? user.first_name.charCodeAt(0) * 37 % 360 : 200
-  const avatarSvg = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" rx="20" fill="hsl(${hue},50%,45%)"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700" font-family="system-ui">${initials}</text></svg>`)}`
+  // Synchronise avec la photo de profil du tableau de bord (même source).
+  const esDashPhoto = (typeof localStorage !== 'undefined' && localStorage.getItem('cdo_profile_img')) || null
+  const esInitialsSvg = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" rx="20" fill="hsl(${hue},50%,45%)"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700" font-family="system-ui">${initials}</text></svg>`)}`
+  const avatarSvg = esDashPhoto || esInitialsSvg
   const displayName = user.first_name ? `${user.first_name} ${user.last_name?.[0] || ''}`.trim() : 'DarloK'
 
   // Avatar generator for a real agent (initials + deterministic hue)
@@ -1549,7 +1590,11 @@ function EclatSocialApp({ user, onReturn }) {
           <nav className="es-breadcrumb" aria-label="Fil d'ariane">
             <span className="es-crumb es-crumb-ws">🏛️ Fédération</span>
             <svg className="es-crumb-sep" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-            <span className="es-crumb es-crumb-active">{meta.icon} {meta.channel}</span>
+            <span className="es-crumb es-crumb-active">
+              {esView === 'channel' && esActiveChannel
+                ? <><EsIcon name={esChannelIconName(esActiveChannel)} size={13} /> {meta.channel}</>
+                : <>{meta.icon} {meta.channel}</>}
+            </span>
           </nav>
         </div>
 
@@ -1700,9 +1745,9 @@ function EclatSocialApp({ user, onReturn }) {
         </div>
 
         <nav className="es-nav" style={{ flex: 'none' }}>
-          <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => esNavigate('home')}><span className="es-nav-icon">🏠</span> Accueil</button>
-          <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => esNavigate('notifs')}><span className="es-nav-icon">🔔</span> Notifications</button>
-          <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => esNavigate('settings')}><span className="es-nav-icon">⚙️</span> Paramètres</button>
+          <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => esNavigate('home')}><span className="es-nav-icon"><EsIcon name="home" size={18} /></span> Accueil</button>
+          <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => esNavigate('notifs')}><span className="es-nav-icon"><EsIcon name="bell" size={18} /></span> Notifications {esUnreadNotifs > 0 && <span className="es-badge">{esUnreadNotifs}</span>}</button>
+          <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => esNavigate('settings')}><span className="es-nav-icon"><EsIcon name="settings" size={18} /></span> Paramètres</button>
         </nav>
 
         {/* Sidebar workspace search */}
@@ -1727,7 +1772,7 @@ function EclatSocialApp({ user, onReturn }) {
                   <button key={ch.slug}
                     className={`es-side-item${esView === 'channel' && esActiveChannel?.slug === ch.slug ? ' active' : ''}`}
                     onClick={() => esOpenChannel(ch)} title={ch.description}>
-                    <span className="es-side-item-icon">{ch.icon}</span>
+                    <span className="es-side-item-icon"><EsIcon name={esChannelIconName(ch)} size={17} /></span>
                     <span className="es-side-item-label">{ch.name}</span>
                     {ch.restricted && (
                       <svg className="es-side-lock" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
@@ -1767,7 +1812,7 @@ function EclatSocialApp({ user, onReturn }) {
                   </button>
                 ))}
               <button className="es-side-item es-side-new" onClick={() => esNavigate('messages')}>
-                <span className="es-side-item-icon">＋</span>
+                <span className="es-side-item-icon"><EsIcon name="plus" size={16} /></span>
                 <span className="es-side-item-label">Tous les messages</span>
               </button>
             </div>
@@ -1778,7 +1823,7 @@ function EclatSocialApp({ user, onReturn }) {
         {esIsReviewer && esPendingReview.length > 0 && (
           <div className="es-side-section">
             <button className="es-side-item es-side-approval" onClick={() => esNavigate('home')}>
-              <span className="es-side-item-icon">🛡️</span>
+              <span className="es-side-item-icon"><EsIcon name="shield" size={16} /></span>
               <span className="es-side-item-label">File de validation</span>
               <span className="es-side-badge es-side-badge-hot">{esPendingReview.length}</span>
             </button>
@@ -1798,7 +1843,7 @@ function EclatSocialApp({ user, onReturn }) {
           <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 210px)', minHeight: '420px' }}>
             {/* Channel header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 22px', borderBottom: '1px solid var(--border-card,#e2e8f0)' }}>
-              <span style={{ width: 40, height: 40, borderRadius: '11px', background: 'linear-gradient(135deg,#eef2ff,#faf5ff)', display: 'grid', placeItems: 'center', fontSize: '19px', flexShrink: 0 }}>{esActiveChannel.icon}</span>
+              <span style={{ width: 40, height: 40, borderRadius: '11px', background: 'linear-gradient(135deg,#eef2ff,#f5f3ff)', display: 'grid', placeItems: 'center', color: '#6366f1', flexShrink: 0 }}><EsIcon name={esChannelIconName(esActiveChannel)} size={21} stroke={2.1} /></span>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontWeight: 800, fontSize: '15.5px', letterSpacing: '-0.2px', display: 'flex', alignItems: 'center', gap: '7px' }}>
                   {esActiveChannel.name}
@@ -1815,7 +1860,7 @@ function EclatSocialApp({ user, onReturn }) {
             <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {esChannelMsgs.length === 0 && (
                 <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '48px' }}>
-                  <div style={{ fontSize: '42px', marginBottom: '10px' }}>{esActiveChannel.icon}</div>
+                  <div style={{ width: 64, height: 64, margin: '0 auto 12px', borderRadius: '18px', background: 'linear-gradient(135deg,#eef2ff,#f5f3ff)', display: 'grid', placeItems: 'center', color: '#6366f1' }}><EsIcon name={esChannelIconName(esActiveChannel)} size={30} stroke={1.9} /></div>
                   <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading,#334155)' }}>Bienvenue dans {esActiveChannel.name}</div>
                   <div style={{ fontSize: '13px', marginTop: '4px' }}>{esActiveChannel.description || 'Soyez le premier à écrire ici.'}</div>
                 </div>
@@ -1874,8 +1919,8 @@ function EclatSocialApp({ user, onReturn }) {
                         {ES_REACT_EMOJIS.map(em => (
                           <button key={em} onClick={() => esReactToMsg(m.id, em)} title={`Réagir ${em}`}>{em}</button>
                         ))}
-                        {isMe && <button onClick={() => setEsEditingMsg({ id: m.id, content: m.content })} title="Modifier">✎</button>}
-                        {isMe && <button onClick={() => esDeleteChannelMsg(m.id)} title="Supprimer" style={{ color: '#ef4444' }}>🗑</button>}
+                        {isMe && <button onClick={() => setEsEditingMsg({ id: m.id, content: m.content })} title="Modifier"><EsIcon name="pencil" size={15} /></button>}
+                        {isMe && <button onClick={() => esDeleteChannelMsg(m.id)} title="Supprimer" style={{ color: '#ef4444' }}><EsIcon name="trash" size={15} /></button>}
                       </div>
                     )}
                   </div>
@@ -1967,10 +2012,10 @@ function EclatSocialApp({ user, onReturn }) {
         {/* PROFIL VIEW */}
         {esView === 'profil' && (
           <div style={{ padding: '32px', maxWidth: '600px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '24px' }}>👤 Mon Profil</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '9px' }}><EsIcon name="user" size={22} /> Mon Profil</h2>
             <div style={{ background: 'var(--bg-card,#f8fafc)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-card,#e2e8f0)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' }}>
-                <img src={`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72"><rect width="72" height="72" rx="36" fill="hsl(${user?.first_name ? user.first_name.charCodeAt(0)*37%360 : 200},50%,45%)"/><text x="36" y="36" dominant-baseline="central" text-anchor="middle" fill="white" font-size="28" font-weight="700" font-family="system-ui">${((user?.first_name?.[0]||'')+(user?.last_name?.[0]||'')).toUpperCase()}</text></svg>`)}`} alt="" style={{ borderRadius: '50%' }} />
+                <img src={esDashPhoto || `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72"><rect width="72" height="72" rx="36" fill="hsl(${user?.first_name ? user.first_name.charCodeAt(0)*37%360 : 200},50%,45%)"/><text x="36" y="36" dominant-baseline="central" text-anchor="middle" fill="white" font-size="28" font-weight="700" font-family="system-ui">${((user?.first_name?.[0]||'')+(user?.last_name?.[0]||'')).toUpperCase()}</text></svg>`)}`} alt="" style={{ width: '72px', height: '72px', borderRadius: '50%', objectFit: 'cover' }} />
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '20px' }}>{user?.first_name} {user?.last_name}</div>
                   <div style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>{user?.email}</div>
@@ -2197,7 +2242,7 @@ function EclatSocialApp({ user, onReturn }) {
                   <span className="es-sugg-name">{s.name}</span>
                   <span className="es-sugg-mutual">{s.role}</span>
                 </div>
-                <button className="es-sugg-add" onClick={(e) => { e.stopPropagation(); esNavigate('messages') }} title="Envoyer un message">✉</button>
+                <button className="es-sugg-add" onClick={(e) => { e.stopPropagation(); esNavigate('messages') }} title="Envoyer un message"><EsIcon name="message" size={15} /></button>
               </div>
             ))}
           </div>
