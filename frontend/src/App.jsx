@@ -1391,19 +1391,31 @@ function EclatSocialApp({ user, onReturn }) {
   const avatarSvg = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" rx="20" fill="hsl(${hue},50%,45%)"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700" font-family="system-ui">${initials}</text></svg>`)}`
   const displayName = user.first_name ? `${user.first_name} ${user.last_name?.[0] || ''}`.trim() : 'DarloK'
 
+  // Avatar generator for a real agent (initials + deterministic hue)
+  const esAgentAvatar = (u, size = 64) => {
+    const initials = ((u.first_name?.[0] || '') + (u.last_name?.[0] || '')).toUpperCase() || (u.full_name?.[0] || '?').toUpperCase()
+    const hue = (u.first_name || u.full_name || 'U').charCodeAt(0) * 37 % 360
+    return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><rect width="${size}" height="${size}" rx="${size / 2}" fill="hsl(${hue},55%,50%)"/><text x="${size / 2}" y="${size / 2}" dominant-baseline="central" text-anchor="middle" fill="white" font-size="${Math.round(size * 0.38)}" font-weight="700">${initials}</text></svg>`)}`
+  }
+  const esOtherAgents = esUsers.filter(u => u.id !== user?.id)
+
+  // Real registered agents — no placeholder accounts
   const ES_STORIES = [
     { name: 'Vous', avatar: avatarSvg, isYou: true, active: false },
-    { name: 'Sarah', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#F472B6"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">SM</text></svg>')}`, active: true },
-    { name: 'Johnson', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#60A5FA"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">JN</text></svg>')}`, active: true },
-    { name: 'Mike', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#34D399"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">MT</text></svg>')}`, active: false },
-    { name: 'Emma', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#A78BFA"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">EW</text></svg>')}`, active: true },
-    { name: 'David', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#FBBF24"/><text x="32" y="32" dominant-baseline="central" text-anchor="middle" fill="white" font-size="24" font-weight="700">DK</text></svg>')}`, active: false },
+    ...esOtherAgents.slice(0, 6).map(u => ({
+      id: u.id,
+      name: (u.first_name || u.full_name || 'Agent').split(' ')[0],
+      avatar: esAgentAvatar(u),
+      active: false,
+    })),
   ]
 
-  const ES_SUGGESTIONS = [
-    { name: 'Mike T.', role: 'Designer UI', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="#34D399"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">MT</text></svg>')}` },
-    { name: 'Emma W.', role: 'DevOps', avatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="#A78BFA"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">EW</text></svg>')}` },
-  ]
+  const ES_SUGGESTIONS = esOtherAgents.slice(0, 4).map(u => ({
+    id: u.id,
+    name: u.full_name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'Agent',
+    role: esRoleLabel(u.role),
+    avatar: esAgentAvatar(u, 40),
+  }))
 
   const openPostDetail = (post) => {
     setEsSelectedPost(post)
@@ -1736,10 +1748,12 @@ function EclatSocialApp({ user, onReturn }) {
 
         {/* HOME FEED (default) */}
         {(esView === 'home' || esView === 'search') && <div className="es-feed-container">
-          {/* STORIES ROW */}
+          {/* AGENTS ROW — real registered agents */}
           <div className="es-stories-row">
             {ES_STORIES.map((s, i) => (
-              <div key={i} className="es-story">
+              <div key={s.id || i} className="es-story" style={{ cursor: 'pointer' }}
+                onClick={() => s.isYou ? esNavigate('profil') : esNavigate('messages')}
+                title={s.isYou ? 'Mon profil' : `Discuter avec ${s.name}`}>
                 <div className={`es-story-avatar${s.active ? ' active' : ''}`}>
                   <img src={s.avatar} alt={s.name} />
                   {s.isYou && <span className="es-story-add-icon">+</span>}
@@ -1896,31 +1910,26 @@ function EclatSocialApp({ user, onReturn }) {
 
       {/* RIGHT SIDEBAR */}
       <aside className="es-right-sidebar">
-        <div className="es-search-bar">
-          <span>🔍</span>
-          <input placeholder="Rechercher..." />
-        </div>
-
-        <div className="es-suggestions-widget">
-          <h3>Suggestions</h3>
-          {ES_SUGGESTIONS.map((s, i) => (
-            <div key={i} className="es-suggestion">
-              <img src={s.avatar} alt={s.name} className="es-avatar-sm" />
-              <div className="es-suggestion-info">
-                <span className="es-sugg-name">{s.name}</span>
-                <span className="es-sugg-mutual">{s.role}</span>
+        {ES_SUGGESTIONS.length > 0 ? (
+          <div className="es-suggestions-widget">
+            <h3>Membres de la fédération</h3>
+            {ES_SUGGESTIONS.map((s) => (
+              <div key={s.id} className="es-suggestion" style={{ cursor: 'pointer' }} onClick={() => esNavigate('messages')} title={`Discuter avec ${s.name}`}>
+                <img src={s.avatar} alt={s.name} className="es-avatar-sm" />
+                <div className="es-suggestion-info">
+                  <span className="es-sugg-name">{s.name}</span>
+                  <span className="es-sugg-mutual">{s.role}</span>
+                </div>
+                <button className="es-sugg-add" onClick={(e) => { e.stopPropagation(); esNavigate('messages') }} title="Envoyer un message">✉</button>
               </div>
-              <button className="es-sugg-add">+</button>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ marginTop: '32px' }}>
-          <h3 style={{ fontSize: '16px', color: '#0F172A', margin: '0 0 16px 0' }}>Tendances</h3>
-          {['#WebDevelopment', '#ReactJS', '#UIUX'].map((tag, i) => (
-            <div key={i} style={{ padding: '8px 0', color: '#2563EB', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>{tag}</div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="es-suggestions-widget">
+            <h3>Membres de la fédération</h3>
+            <div style={{ padding: '16px 4px', color: '#94a3b8', fontSize: '13px' }}>Chargement des agents…</div>
+          </div>
+        )}
       </aside>
       </div>{/* /es-body */}
 
