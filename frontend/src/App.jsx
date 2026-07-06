@@ -1130,8 +1130,95 @@ function EclatSocialApp({ user, onReturn }) {
   const [esPosting, setEsPosting] = React.useState(false)
   const [esComments, setEsComments] = React.useState([])
   const [esCommentInput, setEsCommentInput] = React.useState('')
+  // ── Header state ──────────────────────────────────────────────
+  const [esSearchQuery, setEsSearchQuery] = React.useState('')
+  const [esSearchType, setEsSearchType] = React.useState('all')
+  const [esSearchOpen, setEsSearchOpen] = React.useState(false)
+  const [esFilterOpen, setEsFilterOpen] = React.useState(false)
+  const [esSearchResults, setEsSearchResults] = React.useState([])
+  const [esSearchLoading, setEsSearchLoading] = React.useState(false)
+  const [esOnline, setEsOnline] = React.useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
+  const esSearchRef = React.useRef(null)
 
-  const esNavigate = (view) => { setEsNavActive(view); setEsView(view) }
+  const esNavigate = (view) => { setEsNavActive(view); setEsView(view); setEsSearchOpen(false) }
+
+  // Live browser connection status
+  React.useEffect(() => {
+    const on = () => setEsOnline(true)
+    const off = () => setEsOnline(false)
+    window.addEventListener('online', on)
+    window.addEventListener('offline', off)
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
+  }, [])
+
+  // Load real registered agents + notifications once
+  React.useEffect(() => {
+    apiFetch(`${API}/auth/users/`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : null)
+      .then(data => { if (Array.isArray(data)) setEsUsers(data) })
+      .catch(() => {})
+    apiFetch(`${API}/notifications/`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : null)
+      .then(data => { if (data) setEsNotifs(Array.isArray(data) ? data : (data.results || [])) })
+      .catch(() => {})
+  }, [])
+
+  const esUnreadNotifs = esNotifs.filter(n => n && n.is_read === false).length
+
+  // Close search/filter popovers on outside click
+  React.useEffect(() => {
+    const handler = (e) => { if (esSearchRef.current && !esSearchRef.current.contains(e.target)) { setEsSearchOpen(false); setEsFilterOpen(false) } }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const ES_SEARCH_FILTERS = [
+    { key: 'all', label: 'Tout', icon: '🔎' },
+    { key: 'messages', label: 'Messages', icon: '💬' },
+    { key: 'users', label: 'Agents', icon: '👥' },
+    { key: 'children', label: 'Enfants', icon: '🧒' },
+    { key: 'channels', label: 'Canaux', icon: '#️⃣' },
+    { key: 'projects', label: 'Projets', icon: '📁' },
+  ]
+
+  // Debounced multi-category search across real backend data
+  React.useEffect(() => {
+    const q = esSearchQuery.trim()
+    if (!q) { setEsSearchResults([]); setEsSearchLoading(false); return }
+    setEsSearchLoading(true)
+    const timer = setTimeout(async () => {
+      const results = []
+      const wants = (t) => esSearchType === 'all' || esSearchType === t
+      const ql = q.toLowerCase()
+      try {
+        if (wants('users')) {
+          esUsers.filter(u => (u.full_name || `${u.first_name} ${u.last_name}`).toLowerCase().includes(ql) || (u.email || '').toLowerCase().includes(ql))
+            .slice(0, 6).forEach(u => results.push({ type: 'users', id: `u${u.id}`, title: u.full_name || `${u.first_name} ${u.last_name}`.trim(), subtitle: esRoleLabel(u.role), icon: '👤', hue: (u.first_name || 'U').charCodeAt(0) * 37 % 360, initials: ((u.first_name?.[0] || '') + (u.last_name?.[0] || '')).toUpperCase() }))
+        }
+        if (wants('messages') || wants('channels')) {
+          esConversations.filter(c => { const o = c.participants?.find(p => p.id !== user?.id) || c.participants?.[0]; const nm = o ? `${o.first_name || ''} ${o.last_name || ''}` : ''; return nm.toLowerCase().includes(ql) || (c.last_message?.content || '').toLowerCase().includes(ql) })
+            .slice(0, 5).forEach(c => { const o = c.participants?.find(p => p.id !== user?.id) || c.participants?.[0]; results.push({ type: 'messages', id: `c${c.id}`, title: o ? `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email : `Conversation #${c.id}`, subtitle: c.last_message?.content?.slice(0, 40) || 'Conversation', icon: '💬', conv: c }) })
+        }
+        if (wants('children')) {
+          const res = await apiFetch(`${API}/enfants/?search=${encodeURIComponent(q)}`, {}, onReturn)
+          if (res && res.ok) { const data = await res.json(); (Array.isArray(data) ? data : (data.results || [])).slice(0, 6).forEach(ch => results.push({ type: 'children', id: `ch${ch.id || ch.uid}`, title: `${ch.first_name || ''} ${ch.last_name || ''}`.trim() || ch.uid, subtitle: ch.uid ? `Code ${ch.uid}` : 'Enfant enregistré', icon: '🧒' })) }
+        }
+        if (wants('projects')) {
+          const res = await apiFetch(`${API}/projets/?search=${encodeURIComponent(q)}`, {}, onReturn)
+          if (res && res.ok) { const data = await res.json(); (Array.isArray(data) ? data : (data.results || [])).filter(p => (p.title || p.name || '').toLowerCase().includes(ql)).slice(0, 5).forEach(p => results.push({ type: 'projects', id: `p${p.id}`, title: p.title || p.name || `Projet #${p.id}`, subtitle: p.status || 'Projet', icon: '📁' })) }
+        }
+      } catch (_) { /* graceful */ }
+      setEsSearchResults(results)
+      setEsSearchLoading(false)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [esSearchQuery, esSearchType])
+
+  const esOpenSearchResult = (r) => {
+    if (r.type === 'messages' && r.conv) { esNavigate('messages'); setEsActiveConv(r.conv) }
+    else if (r.type === 'users') { esNavigate('messages') }
+    setEsSearchQuery(''); setEsSearchOpen(false)
+  }
 
   const esTimeAgo = (dateStr) => {
     if (!dateStr) return ''
@@ -1142,6 +1229,20 @@ function EclatSocialApp({ user, onReturn }) {
     const hrs = Math.floor(mins / 60)
     if (hrs < 24) return `il y a ${hrs}h`
     return `il y a ${Math.floor(hrs / 24)}j`
+  }
+
+  const esRoleLabel = (role) => ({
+    supermaster: 'Super Master', admin: 'Administrateur', federation: 'Confédération',
+    ambassador: 'Ambassadeur', orphanage: 'Chef d\'orphelinat', partner: 'Partenaire',
+    auditor: 'Auditeur', sponsor: 'Parrain', staff: 'Personnel',
+  }[role] || 'Agent')
+
+  const ES_VIEW_META = {
+    home: { label: 'Accueil', channel: 'Fil public', icon: '🏠' },
+    profil: { label: 'Profil', channel: 'Mon profil', icon: '👤' },
+    messages: { label: 'Messages', channel: 'Messagerie directe', icon: '💬' },
+    notifs: { label: 'Notifications', channel: 'Centre de notifications', icon: '🔔' },
+    settings: { label: 'Paramètres', channel: 'Préférences', icon: '⚙️' },
   }
 
   const esLoadPosts = () => {
@@ -1256,11 +1357,172 @@ function EclatSocialApp({ user, onReturn }) {
   }
 
   return (
-    <div className="es-wrapper">
+    <div className="es-wrapper es-wrapper-stacked">
+      {/* ═══════════ GLOBAL COMMUNICATION HEADER (full width) ═══════════ */}
+      {(() => {
+        const meta = ES_VIEW_META[esView] || ES_VIEW_META.home
+        const activeFilter = ES_SEARCH_FILTERS.find(f => f.key === esSearchType) || ES_SEARCH_FILTERS[0]
+        return (
+      <header className="es-topbar">
+        {/* Left — brand + breadcrumb */}
+        <div className="es-topbar-left">
+          <button className="es-topbar-back" onClick={onReturn} title="Retour au tableau de bord" aria-label="Retour au tableau de bord">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div className="es-brand">
+            <span className="es-brand-mark" aria-hidden="true">
+              <svg width="38" height="38" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="esBrandGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#6366F1"/><stop offset="0.55" stopColor="#8B5CF6"/><stop offset="1" stopColor="#EC4899"/>
+                  </linearGradient>
+                </defs>
+                <rect width="40" height="40" rx="12" fill="url(#esBrandGrad)"/>
+                <rect x="9" y="10" width="22" height="15" rx="5.5" fill="#fff"/>
+                <path d="M14.5 24.5L14.5 30L20.5 24.5Z" fill="#fff"/>
+                <circle cx="15.5" cy="17.5" r="1.7" fill="url(#esBrandGrad)"/>
+                <circle cx="20" cy="17.5" r="1.7" fill="url(#esBrandGrad)"/>
+                <circle cx="24.5" cy="17.5" r="1.7" fill="url(#esBrandGrad)"/>
+              </svg>
+            </span>
+            <span className="es-brand-text">
+              <span className="es-brand-name">FedOC</span>
+              <span className="es-brand-sub">Communication</span>
+            </span>
+          </div>
+          <nav className="es-breadcrumb" aria-label="Fil d'ariane">
+            <span className="es-crumb es-crumb-ws">🏛️ Fédération</span>
+            <svg className="es-crumb-sep" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            <span className="es-crumb es-crumb-active">{meta.icon} {meta.channel}</span>
+          </nav>
+        </div>
+
+        {/* Center — universal search */}
+        <div className="es-search" ref={esSearchRef}>
+          <div className={`es-search-box${esSearchOpen ? ' focused' : ''}`}>
+            <button className="es-search-filter" onClick={() => setEsFilterOpen(o => !o)} aria-haspopup="listbox" aria-expanded={esFilterOpen} title="Filtrer la recherche">
+              <span className="es-search-filter-icon">{activeFilter.icon}</span>
+              <span className="es-search-filter-label">{activeFilter.label}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <svg className="es-search-glass" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input
+              value={esSearchQuery}
+              onChange={e => { setEsSearchQuery(e.target.value); setEsSearchOpen(true) }}
+              onFocus={() => setEsSearchOpen(true)}
+              placeholder={`Rechercher ${activeFilter.key === 'all' ? 'messages, agents, enfants…' : activeFilter.label.toLowerCase() + '…'}`}
+              aria-label="Recherche universelle"
+            />
+            {esSearchQuery ? (
+              <button className="es-search-clear" onClick={() => { setEsSearchQuery(''); setEsSearchResults([]) }} aria-label="Effacer">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            ) : <kbd className="es-search-kbd">⌘K</kbd>}
+          </div>
+
+          {esFilterOpen && (
+            <div className="es-search-filters" role="listbox">
+              {ES_SEARCH_FILTERS.map(f => (
+                <button key={f.key} role="option" aria-selected={esSearchType === f.key}
+                  className={`es-search-filter-opt${esSearchType === f.key ? ' active' : ''}`}
+                  onClick={() => { setEsSearchType(f.key); setEsFilterOpen(false); if (esSearchQuery) setEsSearchOpen(true) }}>
+                  <span>{f.icon}</span> {f.label}
+                  {esSearchType === f.key && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto' }}><path d="M20 6L9 17l-5-5"/></svg>}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {esSearchOpen && esSearchQuery && !esFilterOpen && (
+            <div className="es-search-results">
+              {esSearchLoading ? (
+                <div className="es-search-state">
+                  <span className="es-search-spinner" /> Recherche…
+                </div>
+              ) : esSearchResults.length === 0 ? (
+                <div className="es-search-state">Aucun résultat pour « {esSearchQuery} »</div>
+              ) : (
+                esSearchResults.map(r => (
+                  <button key={r.id} className="es-search-result" onClick={() => esOpenSearchResult(r)}>
+                    <span className="es-result-ava" style={r.hue != null ? { background: `hsl(${r.hue},55%,50%)`, color: '#fff' } : {}}>
+                      {r.initials || r.icon}
+                    </span>
+                    <span className="es-result-body">
+                      <span className="es-result-title">{r.title}</span>
+                      <span className="es-result-sub">{r.subtitle}</span>
+                    </span>
+                    <span className="es-result-type">{r.type}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Right — status cluster */}
+        <div className="es-topbar-right">
+          <div className={`es-conn${esOnline ? ' online' : ' offline'}`} title={esOnline ? 'Connexion active' : 'Hors ligne'}>
+            <span className="es-conn-dot" />
+            <span className="es-conn-label">{esOnline ? 'Connecté' : 'Hors ligne'}</span>
+          </div>
+
+          {esUsers.length > 0 && (
+            <div className="es-online" title={`${esUsers.length} agents enregistrés`}>
+              <div className="es-online-stack">
+                {esUsers.slice(0, 4).map(u => (
+                  <span key={u.id} className="es-online-ava" style={{ background: `hsl(${(u.first_name || 'U').charCodeAt(0) * 37 % 360},55%,50%)` }}>
+                    {((u.first_name?.[0] || '') + (u.last_name?.[0] || '')).toUpperCase() || '?'}
+                  </span>
+                ))}
+              </div>
+              <span className="es-online-count">{esUsers.length}</span>
+            </div>
+          )}
+
+          <button className="es-icon-btn" onClick={() => esNavigate('notifs')} title="Notifications" aria-label={`Notifications${esUnreadNotifs ? `, ${esUnreadNotifs} non lues` : ''}`}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            {esUnreadNotifs > 0 && <span className="es-icon-badge">{esUnreadNotifs > 9 ? '9+' : esUnreadNotifs}</span>}
+          </button>
+
+          <button className="es-icon-btn es-icon-primary" onClick={() => setEsModal('create')} title="Nouvelle publication" aria-label="Nouvelle publication">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+
+          <button className="es-user-chip" onClick={() => esNavigate('profil')} title="Mon profil">
+            <span className="es-user-ava">
+              <img src={avatarSvg} alt="" />
+              <span className={`es-user-dot${esOnline ? '' : ' off'}`} />
+            </span>
+            <span className="es-user-meta">
+              <span className="es-user-name">{user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : 'Utilisateur'}</span>
+              <span className="es-user-role">{esRoleLabel(user?.role)}</span>
+            </span>
+          </button>
+        </div>
+      </header>
+        )
+      })()}
+
+      <div className="es-body">
       {/* LEFT SIDEBAR */}
       <aside className="es-sidebar">
         <div className="es-logo-area">
-          <img src="/logo.jpg" alt="Logo Fédération" style={{ height: '32px', borderRadius: '4px' }} />
+          <span className="es-logo-mark" aria-hidden="true">
+            <svg width="30" height="30" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="esSideGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#6366F1"/><stop offset="0.55" stopColor="#8B5CF6"/><stop offset="1" stopColor="#EC4899"/>
+                </linearGradient>
+              </defs>
+              <rect width="40" height="40" rx="12" fill="url(#esSideGrad)"/>
+              <rect x="9" y="10" width="22" height="15" rx="5.5" fill="#fff"/>
+              <path d="M14.5 24.5L14.5 30L20.5 24.5Z" fill="#fff"/>
+              <circle cx="15.5" cy="17.5" r="1.7" fill="url(#esSideGrad)"/>
+              <circle cx="20" cy="17.5" r="1.7" fill="url(#esSideGrad)"/>
+              <circle cx="24.5" cy="17.5" r="1.7" fill="url(#esSideGrad)"/>
+            </svg>
+          </span>
+          <h2>FedOC</h2>
         </div>
 
         <div className="es-sidebar-profile" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#F8FAFC', borderRadius: '12px', marginBottom: '24px' }}>
@@ -1296,14 +1558,6 @@ function EclatSocialApp({ user, onReturn }) {
 
       {/* MAIN FEED */}
       <main className="es-main">
-        {/* Mobile Header */}
-        <div className="es-mobile-header">
-          <img src="/logo.jpg" alt="Logo Fédération" style={{ height: '32px', borderRadius: '4px' }} />
-          <div className="es-header-actions">
-            <button onClick={onReturn} title="Retourner au dashboard">🚪</button>
-            <button onClick={() => setEsModal('create')}>✏️</button>
-          </div>
-        </div>
 
         {/* MESSAGES VIEW */}
         {esView === 'messages' && (
@@ -1542,6 +1796,7 @@ function EclatSocialApp({ user, onReturn }) {
           ))}
         </div>
       </aside>
+      </div>{/* /es-body */}
 
       {/* MOBILE BOTTOM NAV */}
       <nav className="es-bottom-nav">
