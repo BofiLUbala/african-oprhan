@@ -2951,6 +2951,25 @@ select.dash-prof-input option { background:#1e293b; color:#e2e8f0; }
 .es-side-approval { border: 1px dashed rgba(244, 63, 94, 0.35); background: rgba(244, 63, 94, 0.04); }
 .es-side-approval:hover { background: rgba(244, 63, 94, 0.09); }
 
+/* ═══════ CHANNEL MESSAGES — hover action toolbar ═══════ */
+.es-chmsg { position: relative; border-radius: 10px; padding: 4px 8px; margin: 0 -8px; transition: background 0.15s; }
+.es-chmsg:hover { background: rgba(15, 23, 42, 0.025); }
+.es-chmsg-actions {
+  position: absolute; top: -12px; right: 8px;
+  display: flex; gap: 2px; padding: 3px 5px;
+  background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 10px; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+  opacity: 0; pointer-events: none; transform: translateY(3px);
+  transition: opacity 0.15s, transform 0.15s;
+}
+.es-chmsg:hover .es-chmsg-actions { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.es-chmsg-actions button {
+  display: grid; place-items: center; width: 27px; height: 27px;
+  border: none; background: transparent; border-radius: 7px;
+  font-size: 14px; cursor: pointer; transition: background 0.12s, transform 0.12s;
+}
+.es-chmsg-actions button:hover { background: rgba(99, 102, 241, 0.1); transform: scale(1.12); }
+
 .es-logo-area h2 {
   font-size: 20px;
   font-weight: 800;

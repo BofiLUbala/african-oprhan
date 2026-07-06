@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Channel, ChannelMessage, Conversation, Message, Notification
+from .models import Channel, ChannelMessage, ChannelReaction, Conversation, Message, Notification
 from .serializers import (
     ConversationSerializer, MessageSerializer,
     NotificationSerializer, ChatUserSerializer,
@@ -27,8 +27,16 @@ def _channel_payload(ch, user):
     }
 
 
-def _channel_message_payload(m):
+def _channel_message_payload(m, user=None):
     u = m.sender
+    # Réactions groupées par émoji, avec les NOMS RÉELS des agents qui ont réagi
+    grouped = {}
+    for r in m.reactions.select_related("user").all():
+        g = grouped.setdefault(r.emoji, {"emoji": r.emoji, "count": 0, "users": [], "me": False})
+        g["count"] += 1
+        g["users"].append(r.user.full_name)
+        if user is not None and r.user_id == user.pk:
+            g["me"] = True
     return {
         "id": m.pk,
         "sender": u.pk,
@@ -37,6 +45,8 @@ def _channel_message_payload(m):
         "sender_initials": ((u.first_name[:1] or "") + (u.last_name[:1] or "")).upper() or "?",
         "sender_hue": (u.first_name or "U").encode("utf-8")[0] * 37 % 360,
         "content": m.content,
+        "edited": m.edited,
+        "reactions": list(grouped.values()),
         "created_at": m.created_at,
     }
 
@@ -61,8 +71,8 @@ def channel_messages(request, slug):
         return Response({'error': 'Accès refusé à ce canal.'}, status=status.HTTP_403_FORBIDDEN)
 
     if request.method == 'GET':
-        msgs = ch.messages.select_related('sender').order_by('created_at')[:200]
-        return Response([_channel_message_payload(m) for m in msgs])
+        msgs = ch.messages.select_related('sender').prefetch_related('reactions__user').order_by('created_at')[:200]
+        return Response([_channel_message_payload(m, request.user) for m in msgs])
 
     if not ch.can_post(request.user):
         return Response({'error': 'Votre rôle ne peut pas publier dans ce canal.'}, status=status.HTTP_403_FORBIDDEN)
@@ -72,7 +82,56 @@ def channel_messages(request, slug):
         return Response({'error': 'Contenu requis.'}, status=status.HTTP_400_BAD_REQUEST)
 
     m = ChannelMessage.objects.create(channel=ch, sender=request.user, content=content)
-    return Response(_channel_message_payload(m), status=status.HTTP_201_CREATED)
+    return Response(_channel_message_payload(m, request.user), status=status.HTTP_201_CREATED)
+
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def channel_message_detail(request, message_id):
+    """Modifier ou supprimer SON propre message de canal."""
+    try:
+        m = ChannelMessage.objects.select_related('channel', 'sender').get(pk=message_id)
+    except ChannelMessage.DoesNotExist:
+        return Response({'error': 'Message introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if m.sender_id != request.user.pk:
+        return Response({'error': 'Vous ne pouvez modifier que vos propres messages.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if request.method == 'DELETE':
+        m.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    content = request.data.get('content', '').strip()
+    if not content:
+        return Response({'error': 'Contenu requis.'}, status=status.HTTP_400_BAD_REQUEST)
+    m.content = content
+    m.edited = True
+    m.save(update_fields=['content', 'edited'])
+    return Response(_channel_message_payload(m, request.user))
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def channel_message_react(request, message_id):
+    """Basculer une réaction émoji sur un message de canal."""
+    try:
+        m = ChannelMessage.objects.select_related('channel').get(pk=message_id)
+    except ChannelMessage.DoesNotExist:
+        return Response({'error': 'Message introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not m.channel.can_view(request.user):
+        return Response({'error': 'Accès refusé.'}, status=status.HTTP_403_FORBIDDEN)
+
+    emoji = (request.data.get('emoji') or '').strip()[:16]
+    if not emoji:
+        return Response({'error': 'Émoji requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    existing = ChannelReaction.objects.filter(message=m, user=request.user, emoji=emoji)
+    if existing.exists():
+        existing.delete()
+    else:
+        ChannelReaction.objects.create(message=m, user=request.user, emoji=emoji)
+    return Response(_channel_message_payload(m, request.user))
 
 
 @api_view(['GET', 'POST'])

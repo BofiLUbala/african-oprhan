@@ -1172,6 +1172,42 @@ function EclatSocialApp({ user, onReturn }) {
       .catch(() => {})
   }, [])
 
+  // ── Channel message actions: react / edit / delete ────────────────
+  const ES_REACT_EMOJIS = ['👍', '❤️', '🎉', '🙏']
+  const [esEditingMsg, setEsEditingMsg] = React.useState(null) // {id, content}
+
+  const esReactToMsg = async (msgId, emoji) => {
+    const res = await apiFetch(`${API}/channels/messages/${msgId}/react/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emoji })
+    }, onReturn)
+    if (res && res.ok) {
+      const updated = await res.json()
+      setEsChannelMsgs(prev => prev.map(m => m.id === msgId ? updated : m))
+    }
+  }
+
+  const esDeleteChannelMsg = async (msgId) => {
+    const res = await apiFetch(`${API}/channels/messages/${msgId}/`, { method: 'DELETE' }, onReturn)
+    if (res && (res.ok || res.status === 204)) {
+      setEsChannelMsgs(prev => prev.filter(m => m.id !== msgId))
+      setEsChannels(prev => prev.map(c => c.slug === esActiveChannel?.slug ? { ...c, messages_count: Math.max(0, (c.messages_count || 1) - 1) } : c))
+    }
+  }
+
+  const esSaveEditedMsg = async () => {
+    if (!esEditingMsg || !esEditingMsg.content.trim()) return
+    const res = await apiFetch(`${API}/channels/messages/${esEditingMsg.id}/`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: esEditingMsg.content.trim() })
+    }, onReturn)
+    if (res && res.ok) {
+      const updated = await res.json()
+      setEsChannelMsgs(prev => prev.map(m => m.id === esEditingMsg.id ? updated : m))
+      setEsEditingMsg(null)
+    }
+  }
+
   React.useEffect(() => { esChannelEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [esChannelMsgs])
 
   // Live browser connection status
@@ -1788,8 +1824,9 @@ function EclatSocialApp({ user, onReturn }) {
                 const isMe = m.sender === user?.id
                 const prev = esChannelMsgs[i - 1]
                 const grouped = prev && prev.sender === m.sender
+                const isEditing = esEditingMsg?.id === m.id
                 return (
-                  <div key={m.id} style={{ display: 'flex', gap: '11px', marginTop: grouped ? '-8px' : 0 }}>
+                  <div key={m.id} className="es-chmsg" style={{ display: 'flex', gap: '11px', marginTop: grouped ? '-8px' : 0 }}>
                     {grouped ? <span style={{ width: 36, flexShrink: 0 }} /> : (
                       <span style={{ width: 36, height: 36, borderRadius: '50%', background: `hsl(${m.sender_hue},55%,50%)`, color: '#fff', display: 'grid', placeItems: 'center', fontSize: '13px', fontWeight: 700, flexShrink: 0 }}>{m.sender_initials}</span>
                     )}
@@ -1801,8 +1838,46 @@ function EclatSocialApp({ user, onReturn }) {
                           <span style={{ fontSize: '11px', color: '#cbd5e1' }}>{esTimeAgo(m.created_at)}</span>
                         </div>
                       )}
-                      <div style={{ fontSize: '14px', color: 'var(--text-body,#334155)', lineHeight: 1.55, wordBreak: 'break-word' }}>{m.content}</div>
+                      {isEditing ? (
+                        <div>
+                          <textarea value={esEditingMsg.content} autoFocus rows={2}
+                            onChange={e => setEsEditingMsg(v => ({ ...v, content: e.target.value }))}
+                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); esSaveEditedMsg() } if (e.key === 'Escape') setEsEditingMsg(null) }}
+                            style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', borderRadius: '10px', border: '1.5px solid #6366f1', fontSize: '14px', fontFamily: 'inherit', outline: 'none', resize: 'vertical' }} />
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                            <button onClick={esSaveEditedMsg} style={{ background: '#6366f1', color: '#fff', border: 'none', padding: '5px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Enregistrer</button>
+                            <button onClick={() => setEsEditingMsg(null)} style={{ background: 'transparent', color: '#64748b', border: 'none', padding: '5px 10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Annuler (Échap)</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '14px', color: 'var(--text-body,#334155)', lineHeight: 1.55, wordBreak: 'break-word' }}>
+                          {m.content}
+                          {m.edited && <span style={{ fontSize: '10.5px', color: '#94a3b8', marginLeft: '6px' }}>(modifié)</span>}
+                        </div>
+                      )}
+                      {/* Reaction chips — real reactor names in tooltip */}
+                      {m.reactions && m.reactions.length > 0 && (
+                        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginTop: '5px' }}>
+                          {m.reactions.map(r => (
+                            <button key={r.emoji} onClick={() => esReactToMsg(m.id, r.emoji)}
+                              title={r.users.join(', ')}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 9px', borderRadius: '12px', fontSize: '12.5px', cursor: 'pointer', border: r.me ? '1.5px solid #6366f1' : '1px solid var(--border-card,#e2e8f0)', background: r.me ? 'rgba(99,102,241,0.1)' : 'var(--bg-card,#f8fafc)', color: r.me ? '#4f46e5' : '#475569', fontWeight: 700 }}>
+                              {r.emoji} {r.count}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
+                    {/* Hover action toolbar */}
+                    {!isEditing && (
+                      <div className="es-chmsg-actions">
+                        {ES_REACT_EMOJIS.map(em => (
+                          <button key={em} onClick={() => esReactToMsg(m.id, em)} title={`Réagir ${em}`}>{em}</button>
+                        ))}
+                        {isMe && <button onClick={() => setEsEditingMsg({ id: m.id, content: m.content })} title="Modifier">✎</button>}
+                        {isMe && <button onClick={() => esDeleteChannelMsg(m.id)} title="Supprimer" style={{ color: '#ef4444' }}>🗑</button>}
+                      </div>
+                    )}
                   </div>
                 )
               })}

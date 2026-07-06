@@ -58,6 +58,7 @@ class ChannelMessage(models.Model):
         related_name="channel_messages", verbose_name="Expéditeur"
     )
     content = models.TextField(verbose_name="Contenu")
+    edited = models.BooleanField(default=False, verbose_name="Modifié")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -67,6 +68,26 @@ class ChannelMessage(models.Model):
 
     def __str__(self):
         return f"#{self.channel.slug} — {self.sender.full_name}"
+
+
+class ChannelReaction(models.Model):
+    message = models.ForeignKey(
+        ChannelMessage, on_delete=models.CASCADE, related_name="reactions", verbose_name="Message"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="channel_reactions", verbose_name="Utilisateur"
+    )
+    emoji = models.CharField(max_length=16, verbose_name="Émoji")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Réaction"
+        verbose_name_plural = "Réactions"
+        unique_together = [("message", "user", "emoji")]
+
+    def __str__(self):
+        return f"{self.emoji} par {self.user.full_name}"
 
 
 class Conversation(models.Model):
