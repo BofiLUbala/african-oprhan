@@ -17,9 +17,10 @@ class Post(models.Model):
         ("federation", "Chef de confederation"),
     ]
     STATUS_CHOICES = [
-        ("pending", "En attente"),
+        ("pending", "En attente de validation"),
         ("approved", "Approuvé"),
         ("rejected", "Refusé"),
+        ("needs_changes", "Modifications demandées"),
     ]
 
     author = models.ForeignKey(
@@ -27,6 +28,15 @@ class Post(models.Model):
         on_delete=models.CASCADE,
         related_name="posts",
         verbose_name="Auteur",
+    )
+    review_ambassador = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="posts_to_review",
+        limit_choices_to={"role": "ambassador"},
+        verbose_name="Ambassadeur validateur",
     )
     content = models.TextField(verbose_name="Contenu", blank=True)
     post_type = models.CharField(

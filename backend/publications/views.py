@@ -26,11 +26,18 @@ def visible_post_filter(user):
 @api_view(["GET", "POST"])
 def post_list(request):
     if request.method == "GET":
-        posts = Post.objects.filter(status="approved").filter(
-            visible_post_filter(request.user)
-        ).prefetch_related(
-            "media", "likes", "comments", "views"
-        )
+        # A Chef d'Orphelinat (or any author) can review the status of their
+        # own submissions — including pending / rejected / needs_changes.
+        if request.query_params.get("mine") and request.user.is_authenticated:
+            posts = Post.objects.filter(author=request.user).prefetch_related(
+                "media", "likes", "comments", "views"
+            )
+        else:
+            posts = Post.objects.filter(status="approved").filter(
+                visible_post_filter(request.user)
+            ).prefetch_related(
+                "media", "likes", "comments", "views"
+            )
         serializer = PostListSerializer(posts, many=True, context={"request": request})
         return Response(serializer.data)
 
@@ -171,35 +178,46 @@ def story_detail(request, story_id):
 
 @api_view(["GET"])
 def pending_posts(request):
-    if getattr(request.user, 'role', '') not in ['ambassador', 'admin', 'federation']:
+    role = getattr(request.user, 'role', '')
+    if role not in ['ambassador', 'admin', 'federation', 'supermaster']:
         return Response({"error": "Accès refusé. Réservé aux ambassadeurs."}, status=status.HTTP_403_FORBIDDEN)
-    
-    posts = Post.objects.filter(status="pending").prefetch_related(
-        "media", "likes", "comments", "views"
-    )
+
+    posts = Post.objects.filter(status="pending")
+    # An ambassador only reviews posts routed to them (their assigned children).
+    if role == 'ambassador':
+        posts = posts.filter(review_ambassador=request.user)
+    posts = posts.prefetch_related("media", "likes", "comments", "views")
     serializer = PostListSerializer(posts, many=True, context={"request": request})
     return Response(serializer.data)
 
 
 @api_view(["POST"])
 def review_post(request, post_id):
-    if getattr(request.user, 'role', '') not in ['ambassador', 'admin', 'federation']:
+    role = getattr(request.user, 'role', '')
+    if role not in ['ambassador', 'admin', 'federation', 'supermaster']:
         return Response({"error": "Accès refusé."}, status=status.HTTP_403_FORBIDDEN)
 
     try:
-        post = Post.objects.get(pk=post_id, status="pending")
+        post = Post.objects.get(pk=post_id, status__in=["pending", "needs_changes"])
     except Post.DoesNotExist:
         return Response({"error": "Publication en attente introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+    # An ambassador may only review posts routed to them.
+    if role == 'ambassador' and post.review_ambassador_id and post.review_ambassador_id != request.user.pk:
+        return Response({"error": "Cette publication est assignée à un autre ambassadeur."}, status=status.HTTP_403_FORBIDDEN)
 
     new_status = request.data.get("status")
     reason = request.data.get("reason", "")
 
-    if new_status not in ["approved", "rejected"]:
+    # approved → published publicly | rejected → back to author | needs_changes → back with comments
+    if new_status not in ["approved", "rejected", "needs_changes"]:
         return Response({"error": "Statut invalide."}, status=status.HTTP_400_BAD_REQUEST)
 
+    if new_status in ("rejected", "needs_changes") and not reason.strip():
+        return Response({"error": "Un motif est requis pour un rejet ou une demande de modification."}, status=status.HTTP_400_BAD_REQUEST)
+
     post.status = new_status
-    if new_status == "rejected":
-        post.rejection_reason = reason
-    
+    post.rejection_reason = reason if new_status in ("rejected", "needs_changes") else ""
     post.save()
-    return Response({"message": f"Publication {new_status} avec succès."})
+    labels = {"approved": "approuvée", "rejected": "refusée", "needs_changes": "renvoyée pour modification"}
+    return Response({"message": f"Publication {labels[new_status]} avec succès.", "status": new_status})

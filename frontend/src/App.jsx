@@ -1102,17 +1102,6 @@ function genChildUid(exclude = new Set()) {
 }
 
 /* ===== L'ÉCLAT SOCIAL APP ===== */
-const ES_PENDING_POSTS = [
-  {
-    id: 99,
-    author: "Orphelinat Saint Jean",
-    avatar: "data:image/svg+xml,..." /* ... */,
-    time: "Il y a 30 minutes",
-    text: "Mise à jour médicale pour l'enfant David K. Il a besoin d'une intervention chirurgicale mineure la semaine prochaine. Merci de valider pour informer les partenaires.",
-    image: null,
-    childName: "David K."
-  }
-];
 
 function EclatSocialApp({ user, onReturn }) {
   const [esView, setEsView] = useState('home')
@@ -1233,7 +1222,7 @@ function EclatSocialApp({ user, onReturn }) {
 
   const esRoleLabel = (role) => ({
     supermaster: 'Super Master', admin: 'Administrateur', federation: 'Confédération',
-    ambassador: 'Ambassadeur', orphanage: 'Chef d\'orphelinat', partner: 'Partenaire',
+    ambassador: 'Ambassadeur', director: 'Chef d\'orphelinat', partner: 'Partenaire',
     auditor: 'Auditeur', sponsor: 'Parrain', staff: 'Personnel',
   }[role] || 'Agent')
 
@@ -1257,18 +1246,85 @@ function EclatSocialApp({ user, onReturn }) {
     esLoadPosts()
   }, [esView])
 
+  // ── Approval workflow: Chef d'Orphelinat → Ambassadeur ─────────────
+  const esIsDirector = user?.role === 'director'
+  const esIsReviewer = ['ambassador', 'federation', 'supermaster', 'admin'].includes(user?.role)
+  const [esChildQuery, setEsChildQuery] = React.useState('')
+  const [esChildResults, setEsChildResults] = React.useState([])
+  const [esSelectedChild, setEsSelectedChild] = React.useState(null)
+  const [esPendingReview, setEsPendingReview] = React.useState([])
+  const [esPostNotice, setEsPostNotice] = React.useState('')
+  const [esReviewReasonFor, setEsReviewReasonFor] = React.useState(null) // {id, action}
+  const [esReviewReason, setEsReviewReason] = React.useState('')
+
+  // Director: search a registered child to attach to a post
+  React.useEffect(() => {
+    if (!esIsDirector) return
+    const q = esChildQuery.trim()
+    if (!q) { setEsChildResults([]); return }
+    const t = setTimeout(() => {
+      apiFetch(`${API}/enfants/?search=${encodeURIComponent(q)}`, {}, onReturn)
+        .then(r => r && r.ok ? r.json() : [])
+        .then(d => setEsChildResults((Array.isArray(d) ? d : (d.results || [])).slice(0, 6)))
+        .catch(() => {})
+    }, 300)
+    return () => clearTimeout(t)
+  }, [esChildQuery])
+
+  // Reviewer: load posts awaiting my validation
+  const esLoadPending = () => {
+    if (!esIsReviewer) return
+    apiFetch(`${API}/posts/pending/`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : null)
+      .then(data => { if (data) setEsPendingReview(Array.isArray(data) ? data : (data.results || [])) })
+      .catch(() => {})
+  }
+  const [esMyPosts, setEsMyPosts] = React.useState([])
+  const esLoadMyPosts = () => {
+    if (!esIsDirector) return
+    apiFetch(`${API}/posts/?mine=1`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : null)
+      .then(data => { if (data) setEsMyPosts((Array.isArray(data) ? data : (data.results || [])).filter(p => p.status !== 'approved')) })
+      .catch(() => {})
+  }
+  React.useEffect(() => { if (esView === 'home') { esLoadPending(); esLoadMyPosts() } }, [esView])
+
+  const esChildName = (c) => `${c.prenom || c.first_name || ''} ${c.nom || c.last_name || ''}`.trim() || c.uid
+
   const esCreatePost = async () => {
     if (!esPostText.trim() || esPosting) return
     setEsPosting(true)
+    const body = { content: esPostText.trim(), post_type: 'text', audience: 'public' }
+    if (esIsDirector && esSelectedChild) body.child = esSelectedChild.id
     const res = await apiFetch(`${API}/posts/`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: esPostText.trim(), post_type: 'text', audience: 'public' })
+      body: JSON.stringify(body)
     }, onReturn)
     setEsPosting(false)
     if (res && res.ok) {
-      setEsPostText('')
-      setEsModal(null)
-      esLoadPosts()
+      const created = await res.json()
+      setEsPostText(''); setEsSelectedChild(null); setEsChildQuery(''); setEsModal(null)
+      if (created.status === 'pending') {
+        setEsPostNotice(created.child_info?.ambassador_name
+          ? `Publication envoyée à ${created.child_info.ambassador_name} (ambassadeur assigné) pour validation.`
+          : `Publication soumise pour validation. Aucun ambassadeur n'est encore assigné à cet enfant — la fédération pourra la valider.`)
+        setTimeout(() => setEsPostNotice(''), 8000)
+        esLoadMyPosts()
+      } else {
+        esLoadPosts()
+      }
+    }
+  }
+
+  const esReviewPost = async (postId, decision, reason = '') => {
+    const res = await apiFetch(`${API}/posts/${postId}/review/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: decision, reason })
+    }, onReturn)
+    if (res && res.ok) {
+      setEsPendingReview(prev => prev.filter(p => p.id !== postId))
+      setEsReviewReasonFor(null); setEsReviewReason('')
+      if (decision === 'approved') esLoadPosts()
     }
   }
 
@@ -1700,27 +1756,97 @@ function EclatSocialApp({ user, onReturn }) {
             <button className="es-publish-btn" style={{ fontSize: '13px' }}>Publier</button>
           </div>
 
-          {/* AMBASSADOR VALIDATION SECTION */}
-          {user && user.role === 'ambassador' && (
-            <div style={{ marginBottom: '24px', background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: '12px', padding: '16px' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#92400E', margin: '0 0 12px 0' }}>⚠️ Publications en attente de validation</h3>
-              {ES_PENDING_POSTS.map(post => (
-                <div key={post.id} style={{ background: '#fff', borderRadius: '8px', padding: '12px', border: '1px solid #FDE68A', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <img src={post.avatar} alt="" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
-                    <strong style={{ fontSize: '13px', color: '#1E293B' }}>{post.author}</strong>
-                    <span style={{ fontSize: '11px', color: '#94A3B8' }}>{post.time}</span>
+          {/* WORKFLOW NOTICE (after a director submits) */}
+          {esPostNotice && (
+            <div style={{ marginBottom: '20px', background: 'linear-gradient(135deg,#eef2ff,#faf5ff)', border: '1px solid #c7d2fe', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '22px' }}>📨</span>
+              <span style={{ fontSize: '13.5px', color: '#4338ca', fontWeight: 500 }}>{esPostNotice}</span>
+            </div>
+          )}
+
+          {/* AMBASSADOR APPROVAL QUEUE — real posts awaiting this reviewer */}
+          {esIsReviewer && esPendingReview.length > 0 && (
+            <div style={{ marginBottom: '24px', background: 'linear-gradient(135deg,#fffbeb,#fef3c7)', border: '1px solid #fcd34d', borderRadius: '16px', padding: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <span style={{ fontSize: '18px' }}>🛡️</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#92400E', margin: 0 }}>File de validation ({esPendingReview.length})</h3>
+              </div>
+              {esPendingReview.map(post => {
+                const ci = post.child_info
+                return (
+                  <div key={post.id} style={{ background: '#fff', borderRadius: '12px', padding: '14px', border: '1px solid #fde68a', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '10px' }}>
+                      <span style={{ width: 30, height: 30, borderRadius: '50%', background: `hsl(${post.author_avatar?.hue || 200},55%,50%)`, color: '#fff', display: 'grid', placeItems: 'center', fontSize: '12px', fontWeight: 700 }}>{post.author_avatar?.initials || '?'}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#1E293B' }}>{post.author_name}</div>
+                        <div style={{ fontSize: '11px', color: '#94A3B8' }}>Chef d'orphelinat · {esTimeAgo(post.created_at)}</div>
+                      </div>
+                    </div>
+                    {ci && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: '#f8fafc', borderRadius: '9px', marginBottom: '10px', border: '1px solid #eef2f7' }}>
+                        <span style={{ width: 32, height: 32, borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: '#e0e7ff', display: 'grid', placeItems: 'center', fontSize: '14px' }}>{ci.photo ? <img src={ci.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🧒'}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#1e293b' }}>{ci.name} <span style={{ color: '#94a3b8', fontWeight: 400 }}>· {ci.uid}</span></div>
+                          <div style={{ fontSize: '11px', color: '#64748b' }}>{ci.orphanage || 'Orphelinat'}</div>
+                        </div>
+                      </div>
+                    )}
+                    <p style={{ fontSize: '13.5px', color: '#334155', margin: '0 0 12px 0', lineHeight: 1.5 }}>{post.content}</p>
+                    {esReviewReasonFor && esReviewReasonFor.id === post.id ? (
+                      <div>
+                        <textarea value={esReviewReason} onChange={e => setEsReviewReason(e.target.value)} rows={2}
+                          placeholder={esReviewReasonFor.action === 'rejected' ? 'Motif du refus (obligatoire)…' : 'Modifications demandées (obligatoire)…'}
+                          style={{ width: '100%', boxSizing: 'border-box', padding: '9px 11px', borderRadius: '9px', border: '1px solid #e2e8f0', fontSize: '13px', fontFamily: 'inherit', outline: 'none', resize: 'vertical' }} />
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                          <button disabled={!esReviewReason.trim()} onClick={() => esReviewPost(post.id, esReviewReasonFor.action, esReviewReason)}
+                            style={{ background: esReviewReasonFor.action === 'rejected' ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: esReviewReason.trim() ? 'pointer' : 'not-allowed', opacity: esReviewReason.trim() ? 1 : 0.6 }}>
+                            {esReviewReasonFor.action === 'rejected' ? 'Confirmer le refus' : 'Envoyer la demande'}
+                          </button>
+                          <button onClick={() => { setEsReviewReasonFor(null); setEsReviewReason('') }} style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}>Annuler</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <button onClick={() => esReviewPost(post.id, 'approved')} style={{ background: '#10B981', color: '#fff', border: 'none', padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}>✓ Approuver &amp; publier</button>
+                        <button onClick={() => { setEsReviewReasonFor({ id: post.id, action: 'needs_changes' }); setEsReviewReason('') }} style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}>✎ Demander une modification</button>
+                        <button onClick={() => { setEsReviewReasonFor({ id: post.id, action: 'rejected' }); setEsReviewReason('') }} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}>✕ Rejeter</button>
+                      </div>
+                    )}
                   </div>
-                  <p style={{ fontSize: '13px', color: '#475569', margin: '0 0 12px 0' }}>{post.text}</p>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button style={{ background: '#10B981', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }} onClick={() => alert("Publication validée et envoyée au système !")}>✓ Valider</button>
-                    <button style={{ background: '#EF4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }} onClick={() => {
-                      const reason = prompt("Raison du refus :");
-                      if(reason) alert("Refus envoyé au directeur.");
-                    }}>✕ Refuser</button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* DIRECTOR — status of my submissions (approval feedback loop) */}
+          {esIsDirector && esMyPosts.length > 0 && (
+            <div style={{ marginBottom: '24px', background: 'var(--bg-card,#fff)', border: '1px solid var(--border-card,#e2e8f0)', borderRadius: '16px', padding: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <span style={{ fontSize: '18px' }}>📋</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading,#0f172a)', margin: 0 }}>Mes soumissions</h3>
+              </div>
+              {esMyPosts.map(post => {
+                const badge = {
+                  pending: { bg: '#fef3c7', fg: '#92400e', label: '⏳ En attente de validation' },
+                  needs_changes: { bg: '#ffedd5', fg: '#c2410c', label: '✎ Modifications demandées' },
+                  rejected: { bg: '#fee2e2', fg: '#dc2626', label: '✕ Refusée' },
+                }[post.status] || { bg: '#e2e8f0', fg: '#475569', label: post.status }
+                return (
+                  <div key={post.id} style={{ padding: '13px', border: '1px solid var(--border-card,#eef2f7)', borderRadius: '12px', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: badge.fg, background: badge.bg, padding: '4px 10px', borderRadius: '20px' }}>{badge.label}</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>{esTimeAgo(post.created_at)}</span>
+                    </div>
+                    {post.child_info && <div style={{ fontSize: '12px', color: '#6366f1', fontWeight: 600, marginBottom: '4px' }}>🧒 {post.child_info.name} · {post.child_info.uid}{post.review_ambassador_name ? ` → ${post.review_ambassador_name}` : ''}</div>}
+                    <p style={{ fontSize: '13.5px', color: 'var(--text-body,#334155)', margin: '0 0 6px', lineHeight: 1.5 }}>{post.content}</p>
+                    {(post.status === 'rejected' || post.status === 'needs_changes') && post.rejection_reason && (
+                      <div style={{ fontSize: '12.5px', color: badge.fg, background: badge.bg, padding: '8px 11px', borderRadius: '9px', marginTop: '6px' }}>
+                        <strong>Commentaire de l'ambassadeur :</strong> {post.rejection_reason}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
 
@@ -1828,8 +1954,8 @@ function EclatSocialApp({ user, onReturn }) {
           <div className="es-create-modal" onClick={e => e.stopPropagation()}>
             <div className="es-modal-header">
               <button className="es-close-btn" onClick={() => setEsModal(null)}>✕</button>
-              <h3>Créer une publication</h3>
-              <button className="es-publish-btn" onClick={esCreatePost} disabled={esPosting || !esPostText.trim()}>{esPosting ? '...' : 'Publier'}</button>
+              <h3>{esIsDirector ? 'Publier une information' : 'Créer une publication'}</h3>
+              <button className="es-publish-btn" onClick={esCreatePost} disabled={esPosting || !esPostText.trim()}>{esPosting ? '…' : (esIsDirector && esSelectedChild ? 'Soumettre' : 'Publier')}</button>
             </div>
             <div className="es-create-tabs">
               <button className="active">📝 Texte</button>
@@ -1841,21 +1967,55 @@ function EclatSocialApp({ user, onReturn }) {
                   <span className="es-author-name">
                     {user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : displayName}
                   </span>
-                  <select
-                    style={{ border: 'none', background: 'transparent', fontSize: '12px', color: '#64748B', outline: 'none', cursor: 'pointer' }}
-                    defaultValue="general"
-                  >
-                    <option value="general">🌍 Général</option>
-                    <option value="child_info">🔒 Information Enfant (Validation Ambassadeur)</option>
-                  </select>
+                  <span style={{ fontSize: '12px', color: '#64748B' }}>{esRoleLabel(user?.role)}</span>
                 </div>
               </div>
-              <textarea placeholder="Quoi de neuf ?" rows={3} value={esPostText} onChange={e => setEsPostText(e.target.value)}></textarea>
-            </div>
-            <div className="es-create-options">
-              <button>📍 Ajouter un lieu <span>›</span></button>
-              <button>🏷️ Taguer des personnes <span>›</span></button>
-              <button>😊 Humeur / Activité <span>›</span></button>
+
+              {/* Director → child selector + approval routing */}
+              {esIsDirector && (
+                <div style={{ margin: '4px 0 12px' }}>
+                  {esSelectedChild ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '11px' }}>
+                      <span style={{ width: 34, height: 34, borderRadius: '9px', overflow: 'hidden', flexShrink: 0, background: '#e0e7ff', display: 'grid', placeItems: 'center', fontSize: '15px' }}>{esSelectedChild.photo ? <img src={esSelectedChild.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🧒'}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#312e81' }}>{esChildName(esSelectedChild)}</div>
+                        <div style={{ fontSize: '11.5px', color: '#6366f1' }}>{esSelectedChild.uid}</div>
+                      </div>
+                      <button onClick={() => setEsSelectedChild(null)} style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+                    </div>
+                  ) : (
+                    <div style={{ position: 'relative' }}>
+                      <input value={esChildQuery} onChange={e => setEsChildQuery(e.target.value)}
+                        placeholder="🧒 Rechercher l'enfant concerné (nom ou code)…"
+                        style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '11px', border: '1px solid #e2e8f0', fontSize: '13.5px', outline: 'none', background: '#f8fafc' }} />
+                      {esChildResults.length > 0 && (
+                        <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 5, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '11px', boxShadow: '0 12px 30px rgba(15,23,42,0.14)', overflow: 'hidden', maxHeight: '220px', overflowY: 'auto' }}>
+                          {esChildResults.map(ch => (
+                            <button key={ch.id || ch.uid} onClick={() => { setEsSelectedChild(ch); setEsChildQuery(''); setEsChildResults([]) }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '9px 12px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                              onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                              <span style={{ width: 30, height: 30, borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: '#e0e7ff', display: 'grid', placeItems: 'center', fontSize: '13px' }}>{ch.photo ? <img src={ch.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🧒'}</span>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>{esChildName(ch)}</div>
+                                <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>{ch.uid}</div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <textarea placeholder={esIsDirector ? 'Rédigez l\'information (scolarité, santé, projet, activité…)' : 'Quoi de neuf ?'} rows={3} value={esPostText} onChange={e => setEsPostText(e.target.value)}></textarea>
+
+              {esIsDirector && esSelectedChild && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', marginTop: '12px', padding: '11px 13px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '11px' }}>
+                  <span style={{ fontSize: '16px' }}>🛡️</span>
+                  <span style={{ fontSize: '12.5px', color: '#92400e', lineHeight: 1.45 }}>Cette information ne sera <strong>pas publiée immédiatement</strong>. Elle sera envoyée à l'ambassadeur assigné à cet enfant pour validation.</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
