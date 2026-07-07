@@ -70,6 +70,48 @@ class ChannelMessage(models.Model):
         return f"#{self.channel.slug} — {self.sender.full_name}"
 
 
+def _attachment_kind(name, mime=""):
+    name = (name or "").lower()
+    mime = (mime or "").lower()
+    ext = name.rsplit(".", 1)[-1] if "." in name else ""
+    if mime.startswith("image/") or ext in ("jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"):
+        return "image"
+    if mime.startswith("video/") or ext in ("mp4", "webm", "mov", "avi", "mkv"):
+        return "video"
+    if mime.startswith("audio/") or ext in ("mp3", "wav", "ogg", "m4a", "webm", "oga"):
+        return "audio"
+    if ext in ("pdf",):
+        return "pdf"
+    if ext in ("doc", "docx", "odt"):
+        return "word"
+    if ext in ("xls", "xlsx", "ods", "csv"):
+        return "excel"
+    if ext in ("ppt", "pptx", "odp"):
+        return "powerpoint"
+    if ext in ("zip", "rar", "7z", "tar", "gz"):
+        return "archive"
+    return "file"
+
+
+class ChannelAttachment(models.Model):
+    message = models.ForeignKey(
+        ChannelMessage, on_delete=models.CASCADE, related_name="attachments", verbose_name="Message"
+    )
+    file = models.FileField(upload_to="channel_files/%Y/%m/", verbose_name="Fichier")
+    original_name = models.CharField(max_length=255, verbose_name="Nom d'origine")
+    size = models.PositiveIntegerField(default=0, verbose_name="Taille (octets)")
+    mime = models.CharField(max_length=120, blank=True, verbose_name="Type MIME")
+    kind = models.CharField(max_length=20, default="file", verbose_name="Catégorie")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Pièce jointe"
+        verbose_name_plural = "Pièces jointes"
+
+    def __str__(self):
+        return self.original_name
+
+
 class ChannelReaction(models.Model):
     message = models.ForeignKey(
         ChannelMessage, on_delete=models.CASCADE, related_name="reactions", verbose_name="Message"

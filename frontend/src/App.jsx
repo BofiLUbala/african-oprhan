@@ -1124,7 +1124,16 @@ const ES_ICON_PATHS = {
   plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
   folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
   user: '<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>',
+  paperclip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+  mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
+  file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/>',
+  image: '<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>',
+  video: '<path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/>',
+  archive: '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
 }
+const esAttachIconName = (kind) => ({ image: 'image', video: 'video', audio: 'mic', pdf: 'file', word: 'file', excel: 'file', powerpoint: 'file', archive: 'archive' }[kind] || 'file')
 
 function EsIcon({ name, size = 18, stroke = 2, style, className }) {
   return (
@@ -1172,6 +1181,11 @@ function EclatSocialApp({ user, onReturn }) {
   const [esActiveChannel, setEsActiveChannel] = React.useState(null)
   const [esChannelMsgs, setEsChannelMsgs] = React.useState([])
   const [esChannelInput, setEsChannelInput] = React.useState('')
+  const [esChannelFiles, setEsChannelFiles] = React.useState([])
+  const [esRecording, setEsRecording] = React.useState(false)
+  const esFileInputRef = React.useRef(null)
+  const esRecorderRef = React.useRef(null)
+  const esChunksRef = React.useRef([])
   const [esSideSearch, setEsSideSearch] = React.useState('')
   const [esSecOpen, setEsSecOpen] = React.useState({ channels: true, dms: true })
   const esChannelEndRef = React.useRef(null)
@@ -1183,23 +1197,56 @@ function EclatSocialApp({ user, onReturn }) {
     setEsNavActive('channel')
     setEsView('channel')
     setEsChannelMsgs([])
+    setEsChannelFiles([]); setEsChannelInput('')
     apiFetch(`${API}/channels/${ch.slug}/messages/`, {}, onReturn)
       .then(r => r && r.ok ? r.json() : null)
       .then(data => { if (data) setEsChannelMsgs(Array.isArray(data) ? data : []) })
       .catch(() => {})
   }
 
+  const esMediaUrl = (u) => (u && u.startsWith('http')) ? u : `${API.replace(/\/api$/, '')}${u || ''}`
+  const esFmtSize = (b) => b < 1024 ? `${b} o` : b < 1048576 ? `${(b / 1024).toFixed(0)} Ko` : `${(b / 1048576).toFixed(1)} Mo`
+
+  const esPickFiles = (e) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length) setEsChannelFiles(prev => [...prev, ...files])
+    e.target.value = ''
+  }
+
+  const esToggleRecord = async () => {
+    if (esRecording) { esRecorderRef.current?.stop(); return }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const rec = new MediaRecorder(stream)
+      esChunksRef.current = []
+      rec.ondataavailable = e => { if (e.data.size) esChunksRef.current.push(e.data) }
+      rec.onstop = () => {
+        const blob = new Blob(esChunksRef.current, { type: 'audio/webm' })
+        const file = new File([blob], `note-vocale-${Date.now()}.webm`, { type: 'audio/webm' })
+        setEsChannelFiles(prev => [...prev, file])
+        stream.getTracks().forEach(t => t.stop())
+        setEsRecording(false)
+      }
+      rec.start(); esRecorderRef.current = rec; setEsRecording(true)
+    } catch (_) { setEsRecording(false) }
+  }
+
   const esSendChannelMsg = async () => {
-    if (!esChannelInput.trim() || !esActiveChannel) return
-    const res = await apiFetch(`${API}/channels/${esActiveChannel.slug}/messages/`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: esChannelInput.trim() })
-    }, onReturn)
+    const hasText = esChannelInput.trim()
+    const hasFiles = esChannelFiles.length > 0
+    if ((!hasText && !hasFiles) || !esActiveChannel) return
+    const fd = new FormData()
+    if (hasText) fd.append('content', esChannelInput.trim())
+    esChannelFiles.forEach(f => fd.append('files', f))
+    const res = await apiFetch(`${API}/channels/${esActiveChannel.slug}/messages/`, { method: 'POST', body: fd }, onReturn)
     if (res && res.ok) {
       const msg = await res.json()
       setEsChannelMsgs(prev => [...prev, msg])
-      setEsChannelInput('')
+      setEsChannelInput(''); setEsChannelFiles([])
       setEsChannels(prev => prev.map(c => c.slug === esActiveChannel.slug ? { ...c, messages_count: (c.messages_count || 0) + 1 } : c))
+    } else if (res) {
+      const err = await res.json().catch(() => null)
+      if (err?.error) alert(err.error)
     }
   }
 
@@ -1920,6 +1967,34 @@ function EclatSocialApp({ user, onReturn }) {
                           {m.edited && <span style={{ fontSize: '10.5px', color: '#94a3b8', marginLeft: '6px' }}>(modifié)</span>}
                         </div>
                       )}
+                      {/* Attachments */}
+                      {m.attachments && m.attachments.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: m.content ? '8px' : '2px' }}>
+                          {m.attachments.map(a => {
+                            const url = esMediaUrl(a.url)
+                            if (a.kind === 'image') return (
+                              <a key={a.id} href={url} target="_blank" rel="noreferrer"><img src={url} alt={a.name} style={{ maxWidth: 240, maxHeight: 220, borderRadius: 12, display: 'block', objectFit: 'cover', border: '1px solid var(--border-card,#e2e8f0)' }} /></a>
+                            )
+                            if (a.kind === 'video') return (
+                              <video key={a.id} src={url} controls style={{ maxWidth: 280, borderRadius: 12, display: 'block' }} />
+                            )
+                            if (a.kind === 'audio') return (
+                              <audio key={a.id} src={url} controls style={{ height: 40 }} />
+                            )
+                            return (
+                              <a key={a.id} href={url} target="_blank" rel="noreferrer" download
+                                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '11px', border: '1px solid var(--border-card,#e2e8f0)', background: 'var(--bg-card,#f8fafc)', textDecoration: 'none', maxWidth: 260 }}>
+                                <span style={{ width: 34, height: 34, borderRadius: '9px', flexShrink: 0, background: 'rgba(99,102,241,0.1)', color: '#6366f1', display: 'grid', placeItems: 'center' }}><EsIcon name={esAttachIconName(a.kind)} size={17} /></span>
+                                <span style={{ minWidth: 0, flex: 1 }}>
+                                  <span style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-heading,#1e293b)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</span>
+                                  <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8' }}>{a.kind.toUpperCase()} · {esFmtSize(a.size)}</span>
+                                </span>
+                                <span style={{ color: '#94a3b8', flexShrink: 0 }}><EsIcon name="download" size={16} /></span>
+                              </a>
+                            )
+                          })}
+                        </div>
+                      )}
                       {/* Reaction chips — real reactor names in tooltip */}
                       {m.reactions && m.reactions.length > 0 && (
                         <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginTop: '5px' }}>
@@ -1952,13 +2027,34 @@ function EclatSocialApp({ user, onReturn }) {
             {/* Composer */}
             <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border-card,#e2e8f0)' }}>
               {esActiveChannel.can_post ? (
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <input value={esChannelInput} onChange={e => setEsChannelInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && esSendChannelMsg()}
-                    placeholder={`Écrire dans ${esActiveChannel.name}…`}
-                    style={{ flex: 1, padding: '11px 15px', borderRadius: '13px', border: '1.5px solid var(--border-card,#e2e8f0)', background: 'var(--bg-card,#f8fafc)', fontSize: '14px', outline: 'none' }} />
-                  <button onClick={esSendChannelMsg} disabled={!esChannelInput.trim()}
-                    style={{ padding: '11px 20px', borderRadius: '13px', background: esChannelInput.trim() ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : '#e2e8f0', color: esChannelInput.trim() ? '#fff' : '#94a3b8', border: 'none', fontWeight: 700, cursor: esChannelInput.trim() ? 'pointer' : 'default', fontSize: '14px', transition: 'all .2s' }}>Envoyer</button>
+                <div>
+                  {/* Pending attachments preview */}
+                  {esChannelFiles.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                      {esChannelFiles.map((f, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', borderRadius: '10px', background: 'rgba(99,102,241,0.08)', border: '1px solid #c7d2fe', fontSize: '12.5px', fontWeight: 600, color: '#4338ca' }}>
+                          <EsIcon name={f.type.startsWith('image') ? 'image' : f.type.startsWith('audio') ? 'mic' : f.type.startsWith('video') ? 'video' : 'file'} size={14} />
+                          <span style={{ maxWidth: 150, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</span>
+                          <span style={{ color: '#94a3b8', fontWeight: 500 }}>{esFmtSize(f.size)}</span>
+                          <button onClick={() => setEsChannelFiles(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0 }}><EsIcon name="x" size={13} /></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input type="file" multiple hidden ref={esFileInputRef} onChange={esPickFiles}
+                      accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z,.txt,.csv" />
+                    <button onClick={() => esFileInputRef.current?.click()} title="Joindre un fichier (image, PDF, Office, ZIP…)" aria-label="Joindre un fichier"
+                      style={{ width: 42, height: 42, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: '12px', border: '1px solid var(--border-card,#e2e8f0)', background: 'var(--bg-card,#f8fafc)', color: '#475569', cursor: 'pointer' }}><EsIcon name="paperclip" size={19} /></button>
+                    <button onClick={esToggleRecord} title={esRecording ? 'Arrêter l\'enregistrement' : 'Enregistrer une note vocale'} aria-label="Note vocale"
+                      style={{ width: 42, height: 42, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: '12px', border: '1px solid ' + (esRecording ? '#fca5a5' : 'var(--border-card,#e2e8f0)'), background: esRecording ? 'rgba(239,68,68,0.1)' : 'var(--bg-card,#f8fafc)', color: esRecording ? '#dc2626' : '#475569', cursor: 'pointer', animation: esRecording ? 'esPulse 1.4s infinite' : 'none' }}><EsIcon name="mic" size={19} /></button>
+                    <input value={esChannelInput} onChange={e => setEsChannelInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && esSendChannelMsg()}
+                      placeholder={esRecording ? '● Enregistrement en cours…' : `Écrire dans ${esActiveChannel.name}…`}
+                      style={{ flex: 1, padding: '11px 15px', borderRadius: '13px', border: '1.5px solid var(--border-card,#e2e8f0)', background: 'var(--bg-card,#f8fafc)', fontSize: '14px', outline: 'none' }} />
+                    <button onClick={esSendChannelMsg} disabled={!esChannelInput.trim() && esChannelFiles.length === 0}
+                      style={{ padding: '11px 20px', borderRadius: '13px', background: (esChannelInput.trim() || esChannelFiles.length) ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : '#e2e8f0', color: (esChannelInput.trim() || esChannelFiles.length) ? '#fff' : '#94a3b8', border: 'none', fontWeight: 700, cursor: (esChannelInput.trim() || esChannelFiles.length) ? 'pointer' : 'default', fontSize: '14px', transition: 'all .2s' }}>Envoyer</button>
+                  </div>
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', fontSize: '13px', color: '#94a3b8', padding: '8px', background: 'var(--bg-card,#f8fafc)', borderRadius: '11px' }}>

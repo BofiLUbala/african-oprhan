@@ -4,7 +4,13 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Channel, ChannelMessage, ChannelReaction, Conversation, Message, Notification
+from .models import (
+    Channel, ChannelAttachment, ChannelMessage, ChannelReaction,
+    Conversation, Message, Notification, _attachment_kind,
+)
+
+# Limite de taille par fichier : 25 Mo
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 from .serializers import (
     ConversationSerializer, MessageSerializer,
     NotificationSerializer, ChatUserSerializer,
@@ -47,6 +53,17 @@ def _channel_message_payload(m, user=None):
         "content": m.content,
         "edited": m.edited,
         "reactions": list(grouped.values()),
+        "attachments": [
+            {
+                "id": a.pk,
+                "url": a.file.url,
+                "name": a.original_name,
+                "size": a.size,
+                "mime": a.mime,
+                "kind": a.kind,
+            }
+            for a in m.attachments.all()
+        ],
         "created_at": m.created_at,
     }
 
@@ -71,17 +88,29 @@ def channel_messages(request, slug):
         return Response({'error': 'Accès refusé à ce canal.'}, status=status.HTTP_403_FORBIDDEN)
 
     if request.method == 'GET':
-        msgs = ch.messages.select_related('sender').prefetch_related('reactions__user').order_by('created_at')[:200]
+        msgs = ch.messages.select_related('sender').prefetch_related('reactions__user', 'attachments').order_by('created_at')[:200]
         return Response([_channel_message_payload(m, request.user) for m in msgs])
 
     if not ch.can_post(request.user):
         return Response({'error': 'Votre rôle ne peut pas publier dans ce canal.'}, status=status.HTTP_403_FORBIDDEN)
 
     content = request.data.get('content', '').strip()
-    if not content:
-        return Response({'error': 'Contenu requis.'}, status=status.HTTP_400_BAD_REQUEST)
+    files = request.FILES.getlist('files')
+
+    for f in files:
+        if f.size > MAX_UPLOAD_BYTES:
+            return Response({'error': f"« {f.name} » dépasse la taille maximale de 25 Mo."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not content and not files:
+        return Response({'error': 'Un message ou une pièce jointe est requis.'}, status=status.HTTP_400_BAD_REQUEST)
 
     m = ChannelMessage.objects.create(channel=ch, sender=request.user, content=content)
+    for f in files:
+        ChannelAttachment.objects.create(
+            message=m, file=f, original_name=f.name[:255], size=f.size,
+            mime=getattr(f, 'content_type', '') or '',
+            kind=_attachment_kind(f.name, getattr(f, 'content_type', '')),
+        )
     return Response(_channel_message_payload(m, request.user), status=status.HTTP_201_CREATED)
 
 
