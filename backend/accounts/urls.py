@@ -8,4 +8,5 @@ urlpatterns = [
     path("me/avatar/", views.update_avatar, name="update-avatar"),
     path("users/", views.user_list, name="user-list"),
     path("stats/", views.dashboard_stats, name="dashboard-stats"),
+    path("executive/", views.executive_stats, name="executive-stats"),
 ]

@@ -15,6 +15,7 @@ from finances.models import Donation, Income, Expense
 from finances.views import _visible_orphanage_ids
 from orphanages.models import Orphanage
 from sponsorships.models import Sponsorship
+from needs.models import Need
 
 from .serializers import SignupSerializer
 from .utils import send_activation_email, is_token_valid
@@ -151,6 +152,139 @@ def _avatar_url(request, u):
         except Exception:
             return u.avatar.url
     return None
+
+
+def _six_months():
+    """Yield (year, month, label, start_date, end_date) for the last 6 months."""
+    today = timezone.now().date()
+    for i in range(5, -1, -1):
+        year, month = today.year, today.month - i
+        while month <= 0:
+            month += 12
+            year -= 1
+        last_day = calendar.monthrange(year, month)[1]
+        yield (
+            year, month, MONTH_LABELS_FR[month - 1],
+            today.replace(year=year, month=month, day=1),
+            today.replace(year=year, month=month, day=last_day),
+        )
+
+
+def _monthly_new(model, field="created_at"):
+    """Last 6 months of new-record counts for a model with a date/datetime field."""
+    out = []
+    for _y, _m, label, start, end in _six_months():
+        n = model.objects.filter(**{f"{field}__date__gte": start, f"{field}__date__lte": end}).count()
+        out.append({"month": label, "value": n})
+    return out
+
+
+def _revenue_monthly():
+    """Last 6 months of real revenue = donations + recorded income."""
+    out = []
+    for _y, _m, label, start, end in _six_months():
+        don = float(Donation.objects.filter(date__date__gte=start, date__date__lte=end)
+                    .aggregate(t=dj_models.Sum("amount"))["t"] or 0)
+        inc = float(Income.objects.filter(date__gte=start, date__lte=end)
+                    .aggregate(t=dj_models.Sum("amount"))["t"] or 0)
+        out.append({"month": label, "total": round(don + inc, 2)})
+    return out
+
+
+@api_view(["GET"])
+def executive_stats(request):
+    """Global executive metrics for the Super Master — 100% real DB aggregates."""
+    user = request.user
+    if not user.is_authenticated or user.role not in ("supermaster", "federation"):
+        return Response({"error": "Accès réservé à la Super Direction."}, status=status.HTTP_403_FORBIDDEN)
+
+    now = timezone.now()
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    d30 = now - timedelta(days=30)
+
+    role_counts = {r["role"]: r["n"] for r in User.objects.values("role").annotate(n=dj_models.Count("id"))}
+    rc = lambda *roles: sum(role_counts.get(r, 0) for r in roles)
+
+    users_total = User.objects.count()
+    users_active = User.objects.filter(is_active=True).count()
+    users_new = User.objects.filter(created_at__gte=month_start).count()
+    recent_logins = User.objects.filter(last_login__gte=d30).count()
+
+    donations_total = Donation.objects.count()
+    donations_sum = float(Donation.objects.aggregate(t=dj_models.Sum("amount"))["t"] or 0)
+    income_sum = float(Income.objects.aggregate(t=dj_models.Sum("amount"))["t"] or 0)
+    expense_sum = float(Expense.objects.aggregate(t=dj_models.Sum("amount"))["t"] or 0)
+    revenue_total = round(donations_sum + income_sum, 2)
+    revenue_month = round(
+        float(Donation.objects.filter(date__gte=month_start).aggregate(t=dj_models.Sum("amount"))["t"] or 0)
+        + float(Income.objects.filter(date__gte=month_start.date()).aggregate(t=dj_models.Sum("amount"))["t"] or 0), 2)
+
+    orgs_total = Orphanage.objects.count()
+    children_total = Child.objects.count()
+    sponsorships_active = Sponsorship.objects.filter(status="active").count()
+    pending_needs = Need.objects.filter(status="open").count()
+
+    kpis = [
+        {"label": "Organisations", "value": orgs_total, "sub": "orphelinats", "color": "#6366f1", "icon": "building"},
+        {"label": "Enfants", "value": children_total, "sub": "enregistrés", "color": "#f59e0b", "icon": "child"},
+        {"label": "Utilisateurs", "value": users_total, "sub": f"{users_active} actifs", "color": "#3b82f6", "icon": "users"},
+        {"label": "Revenus totaux", "value": revenue_total, "sub": "USD", "color": "#22c55e", "icon": "revenue", "money": True},
+        {"label": "Revenus du mois", "value": revenue_month, "sub": "USD", "color": "#10b981", "icon": "trend", "money": True},
+        {"label": "Dons", "value": donations_total, "sub": f"{int(donations_sum)} USD", "color": "#ec4899", "icon": "gift"},
+        {"label": "Parrainages actifs", "value": sponsorships_active, "sub": "en cours", "color": "#a855f7", "icon": "heart"},
+        {"label": "Nouveaux (mois)", "value": users_new, "sub": "inscriptions", "color": "#0ea5e9", "icon": "sparkle"},
+        {"label": "Demandes en attente", "value": pending_needs, "sub": "besoins ouverts", "color": "#ef4444", "icon": "alert"},
+    ]
+
+    roles_fr = {
+        "supermaster": "Super Master", "federation": "Confédération", "ambassador": "Ambassadeurs",
+        "director": "Chefs d'orphelinat", "staff": "Personnel", "partner": "Partenaires",
+        "sponsor": "Parrains", "auditor": "Auditeurs",
+    }
+    role_distribution = [
+        {"name": roles_fr.get(r, r), "value": n}
+        for r, n in sorted(role_counts.items(), key=lambda kv: -kv[1]) if n > 0
+    ]
+
+    # Real-time activity feed — most recent real records across the platform
+    activities = []
+    for c in Child.objects.order_by("-created_at")[:4]:
+        activities.append({"type": "child", "text": f"Nouvel enfant enregistré : {c.prenom} {c.nom}".strip(), "at": c.created_at})
+    for o in Orphanage.objects.order_by("-created_at")[:2]:
+        activities.append({"type": "org", "text": f"Nouvel orphelinat : {o.name}", "at": o.created_at})
+    for u in User.objects.order_by("-created_at")[:3]:
+        activities.append({"type": "user", "text": f"Nouvel utilisateur : {u.full_name} ({roles_fr.get(u.role, u.role)})", "at": u.created_at})
+    for d in Donation.objects.order_by("-date")[:3]:
+        activities.append({"type": "donation", "text": f"Don reçu : {int(d.amount)} {d.currency}", "at": d.date})
+    activities.sort(key=lambda a: a["at"], reverse=True)
+    activities = [{"type": a["type"], "text": a["text"], "at": a["at"].isoformat()} for a in activities[:8]]
+
+    health = {
+        "database": "operational",
+        "api": "operational",
+        "active_sessions": recent_logins,
+        "pending_requests": pending_needs,
+    }
+
+    return Response({
+        "kpis": kpis,
+        "charts": {
+            "revenue_monthly": _revenue_monthly(),
+            "users_monthly": _monthly_new(User),
+            "children_monthly": _monthly_new(Child),
+            "orgs_monthly": _monthly_new(Orphanage),
+            "donations_monthly": _donations_monthly(None),
+            "role_distribution": role_distribution,
+        },
+        "activities": activities,
+        "health": health,
+        "finance": {
+            "donations_sum": round(donations_sum, 2),
+            "income_sum": round(income_sum, 2),
+            "expense_sum": round(expense_sum, 2),
+            "net": round(donations_sum + income_sum - expense_sum, 2),
+        },
+    })
 
 
 @api_view(["GET"])

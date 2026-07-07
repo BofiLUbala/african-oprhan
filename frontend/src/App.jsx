@@ -530,6 +530,7 @@ const ROLE_NAV = {
   ],
   supermaster: [
     { label: 'Tableau de bord', key: 'dashboard' },
+    { label: 'Direction générale', key: 'executive' },
     { label: 'Système', key: 'systeme' },
     { label: 'Utilisateurs', key: 'users' },
     { label: 'Orphelinats', key: 'orphelinats' },
@@ -1162,7 +1163,15 @@ const ES_ICON_PATHS = {
   archive: '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
   download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
   x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  trend: '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+  gift: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8"/><path d="M16.5 8a2.5 2.5 0 0 0 0-5C13 3 12 8 12 8"/>',
+  star: '<polygon points="12 2 15 9 22 9.5 17 14.5 18.5 21.5 12 18 5.5 21.5 7 14.5 2 9.5 9 9"/>',
+  dollar: '<line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  child: '<circle cx="12" cy="7" r="4"/><path d="M5 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/>',
+  alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
 }
+const esKpiIcon = (name) => ({ revenue: 'dollar', sparkle: 'star', child: 'child' }[name] || name)
 const esAttachIconName = (kind) => ({ image: 'image', video: 'video', audio: 'mic', pdf: 'file', word: 'file', excel: 'file', powerpoint: 'file', archive: 'archive' }[kind] || 'file')
 
 function EsIcon({ name, size = 18, stroke = 2, style, className }) {
@@ -1179,6 +1188,183 @@ const esChannelIconName = (ch) => ({
   ambassadeurs: 'award', 'chefs-orphelinat': 'building', confederation: 'landmark',
   administration: 'shield', orphanage: 'heart',
 }[ch?.slug] || (ch?.kind === 'project' ? 'folder' : 'hash'))
+
+/* ═══════════ SUPER MASTER — GLOBAL EXECUTIVE DASHBOARD ═══════════ */
+function ExecutiveDashboard({ onLogout }) {
+  const [data, setData] = React.useState(null)
+  const [loading, setLoading] = React.useState(true)
+  const [err, setErr] = React.useState(false)
+
+  const load = React.useCallback(() => {
+    setLoading(true); setErr(false)
+    apiFetch(`${API}/auth/executive/`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : Promise.reject())
+      .then(d => { setData(d); setLoading(false) })
+      .catch(() => { setErr(true); setLoading(false) })
+  }, [onLogout])
+  React.useEffect(() => { load() }, [load])
+
+  const fmt = (n) => {
+    const v = Number(n) || 0
+    if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M'
+    if (v >= 1000) return (v / 1000).toFixed(1) + 'k'
+    return v.toLocaleString('fr-FR')
+  }
+  const timeAgo = (iso) => {
+    const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+    if (s < 60) return "à l'instant"
+    if (s < 3600) return `il y a ${Math.floor(s / 60)} min`
+    if (s < 86400) return `il y a ${Math.floor(s / 3600)} h`
+    return `il y a ${Math.floor(s / 86400)} j`
+  }
+
+  // ── SVG chart builders ──
+  const AreaChart = ({ series, color = '#6366f1', valueKey = 'total' }) => {
+    const w = 520, h = 150, pad = 8
+    const vals = series.map(s => Number(s[valueKey]) || 0)
+    const max = Math.max(...vals, 1)
+    const stepX = (w - pad * 2) / Math.max(series.length - 1, 1)
+    const pts = vals.map((v, i) => [pad + i * stepX, h - pad - (v / max) * (h - pad * 2)])
+    const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')
+    const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${h - pad} L${pts[0][0].toFixed(1)},${h - pad} Z`
+    const gid = `exg-${color.replace('#', '')}`
+    return (
+      <svg viewBox={`0 0 ${w} ${h}`} className="exec-chart-svg" preserveAspectRatio="none">
+        <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={color} stopOpacity="0.28" /><stop offset="1" stopColor={color} stopOpacity="0" /></linearGradient></defs>
+        <path d={area} fill={`url(#${gid})`} />
+        <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        {pts.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r="3" fill="#fff" stroke={color} strokeWidth="2" />)}
+      </svg>
+    )
+  }
+  const BarChart = ({ series, color = '#3b82f6' }) => {
+    const max = Math.max(...series.map(s => s.value), 1)
+    return (
+      <div className="exec-bars">
+        {series.map((s, i) => (
+          <div key={i} className="exec-bar-col">
+            <div className="exec-bar-track"><div className="exec-bar-fill" style={{ height: `${(s.value / max) * 100}%`, background: color }} title={s.value} /></div>
+            <span className="exec-bar-x">{s.month}</span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  const Donut = ({ series }) => {
+    const total = series.reduce((a, s) => a + s.value, 0) || 1
+    const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#22c55e', '#0ea5e9', '#ef4444', '#14b8a6']
+    let acc = 0
+    const R = 42, C = 2 * Math.PI * R
+    return (
+      <div className="exec-donut-wrap">
+        <svg viewBox="0 0 100 100" className="exec-donut">
+          <circle cx="50" cy="50" r={R} fill="none" stroke="var(--border-card,#e2e8f0)" strokeWidth="14" />
+          {series.map((s, i) => {
+            const frac = s.value / total
+            const dash = `${frac * C} ${C}`
+            const off = -acc * C
+            acc += frac
+            return <circle key={i} cx="50" cy="50" r={R} fill="none" stroke={colors[i % colors.length]} strokeWidth="14" strokeDasharray={dash} strokeDashoffset={off} transform="rotate(-90 50 50)" />
+          })}
+          <text x="50" y="47" textAnchor="middle" className="exec-donut-total">{total}</text>
+          <text x="50" y="60" textAnchor="middle" className="exec-donut-label">agents</text>
+        </svg>
+        <div className="exec-donut-legend">
+          {series.map((s, i) => (
+            <div key={i} className="exec-legend-item"><span className="exec-legend-dot" style={{ background: colors[i % colors.length] }} /><span className="exec-legend-name">{s.name}</span><span className="exec-legend-val">{s.value}</span></div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) return (
+    <div className="exec">
+      <div className="exec-head"><div><h1 className="exec-title">Direction générale</h1><p className="exec-sub">Chargement des indicateurs…</p></div></div>
+      <div className="exec-kpi-grid">{Array.from({ length: 9 }).map((_, i) => <div key={i} className="exec-kpi exec-skeleton" style={{ height: 104 }} />)}</div>
+      <div className="exec-charts"><div className="exec-card exec-skeleton" style={{ height: 240 }} /><div className="exec-card exec-skeleton" style={{ height: 240 }} /></div>
+    </div>
+  )
+  if (err || !data) return (
+    <div className="exec"><div className="exec-empty"><EsIcon name="alert" size={40} /><h3>Impossible de charger les indicateurs</h3><button className="exec-retry" onClick={load}>Réessayer</button></div></div>
+  )
+
+  const activityIcon = { child: 'child', org: 'building', user: 'users', donation: 'gift' }
+  return (
+    <div className="exec">
+      <div className="exec-head">
+        <div>
+          <h1 className="exec-title">Direction générale</h1>
+          <p className="exec-sub">Vue d'ensemble de l'écosystème · données en temps réel</p>
+        </div>
+        <div className="exec-head-actions">
+          <span className={`exec-health-pill${data.health.database === 'operational' ? ' ok' : ''}`}><span className="exec-health-dot" /> Plateforme opérationnelle</span>
+          <button className="exec-refresh" onClick={load} title="Actualiser"><EsIcon name="activity" size={16} /> Actualiser</button>
+        </div>
+      </div>
+
+      {/* KPI grid — real global metrics */}
+      <div className="exec-kpi-grid">
+        {data.kpis.map((k, i) => (
+          <div key={i} className="exec-kpi">
+            <div className="exec-kpi-icon" style={{ background: `${k.color}1a`, color: k.color }}><EsIcon name={esKpiIcon(k.icon)} size={20} /></div>
+            <div className="exec-kpi-body">
+              <span className="exec-kpi-value">{k.money ? '$' : ''}{fmt(k.value)}</span>
+              <span className="exec-kpi-label">{k.label}</span>
+              <span className="exec-kpi-sub">{k.sub}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts row 1 */}
+      <div className="exec-charts">
+        <div className="exec-card exec-card-wide">
+          <div className="exec-card-head"><h3>Revenus (6 mois)</h3><span className="exec-card-badge" style={{ color: '#22c55e' }}>${fmt(data.finance.donations_sum + data.finance.income_sum)} cumulés</span></div>
+          <AreaChart series={data.charts.revenue_monthly} color="#22c55e" valueKey="total" />
+        </div>
+        <div className="exec-card">
+          <div className="exec-card-head"><h3>Répartition des rôles</h3></div>
+          {data.charts.role_distribution.length ? <Donut series={data.charts.role_distribution} /> : <div className="exec-mini-empty">Aucun utilisateur.</div>}
+        </div>
+      </div>
+
+      {/* Charts row 2 — growth */}
+      <div className="exec-charts-3">
+        <div className="exec-card"><div className="exec-card-head"><h3>Nouveaux utilisateurs</h3></div><BarChart series={data.charts.users_monthly} color="#3b82f6" /></div>
+        <div className="exec-card"><div className="exec-card-head"><h3>Croissance enfants</h3></div><BarChart series={data.charts.children_monthly} color="#f59e0b" /></div>
+        <div className="exec-card"><div className="exec-card-head"><h3>Croissance organisations</h3></div><BarChart series={data.charts.orgs_monthly} color="#6366f1" /></div>
+      </div>
+
+      {/* Activity feed + finance summary */}
+      <div className="exec-bottom">
+        <div className="exec-card">
+          <div className="exec-card-head"><h3>Activité en temps réel</h3></div>
+          {data.activities.length === 0 ? <div className="exec-mini-empty">Aucune activité récente.</div> : (
+            <div className="exec-feed">
+              {data.activities.map((a, i) => (
+                <div key={i} className="exec-feed-item">
+                  <span className="exec-feed-icon" style={{ color: a.type === 'donation' ? '#ec4899' : a.type === 'org' ? '#6366f1' : a.type === 'child' ? '#f59e0b' : '#3b82f6' }}><EsIcon name={activityIcon[a.type] || 'activity'} size={16} /></span>
+                  <span className="exec-feed-text">{a.text}</span>
+                  <span className="exec-feed-time">{timeAgo(a.at)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="exec-card">
+          <div className="exec-card-head"><h3>Synthèse financière</h3></div>
+          <div className="exec-fin">
+            <div className="exec-fin-row"><span>Dons</span><b style={{ color: '#22c55e' }}>${fmt(data.finance.donations_sum)}</b></div>
+            <div className="exec-fin-row"><span>Revenus enregistrés</span><b style={{ color: '#3b82f6' }}>${fmt(data.finance.income_sum)}</b></div>
+            <div className="exec-fin-row"><span>Dépenses</span><b style={{ color: '#ef4444' }}>${fmt(data.finance.expense_sum)}</b></div>
+            <div className="exec-fin-row exec-fin-net"><span>Solde net</span><b style={{ color: data.finance.net >= 0 ? '#22c55e' : '#ef4444' }}>${fmt(data.finance.net)}</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function EclatSocialApp({ user, onReturn }) {
   const [esView, setEsView] = useState('home')
@@ -3538,7 +3724,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
           </div>
         )}
         <main className="dash-main">
-          {activeKey === 'dashboard' ? (
+          {activeKey === 'executive' ? (
+            <ExecutiveDashboard onLogout={logout} />
+          ) : activeKey === 'dashboard' ? (
             <div className="dash-dashboard">
               <div className="dash-dash-welcome">
                 <div className="dash-dash-welcome-left">
