@@ -53,6 +53,8 @@ class Orphanage(models.Model):
         ("pending", "En attente de validation"),
         ("approved", "Validé"),
         ("rejected", "Rejeté"),
+        ("suspended", "Suspendu"),
+        ("archived", "Archivé"),
     ]
 
     name = models.CharField(max_length=255, verbose_name="Nom de l'orphelinat")

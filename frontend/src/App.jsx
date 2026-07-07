@@ -531,6 +531,7 @@ const ROLE_NAV = {
   supermaster: [
     { label: 'Tableau de bord', key: 'dashboard' },
     { label: 'Direction générale', key: 'executive' },
+    { label: 'Organisations', key: 'organizations' },
     { label: 'Système', key: 'systeme' },
     { label: 'Utilisateurs', key: 'users' },
     { label: 'Orphelinats', key: 'orphelinats' },
@@ -1362,6 +1363,180 @@ function ExecutiveDashboard({ onLogout }) {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/* ═══════════ SUPER MASTER — ORGANIZATION MANAGEMENT (Module 2) ═══════════ */
+function OrganizationManagement({ onLogout }) {
+  const [msg, setMsg] = React.useState(null)
+  const toast = React.useMemo(() => ({
+    success: (t) => { setMsg({ t, ok: true }); setTimeout(() => setMsg(null), 2500) },
+    error: (t) => { setMsg({ t, ok: false }); setTimeout(() => setMsg(null), 3200) },
+  }), [])
+  const [rows, setRows] = React.useState([])
+  const [meta, setMeta] = React.useState({ total: 0, page: 1, pages: 1, status_counts: {} })
+  const [loading, setLoading] = React.useState(true)
+  const [search, setSearch] = React.useState('')
+  const [statusF, setStatusF] = React.useState('all')
+  const [page, setPage] = React.useState(1)
+  const [modal, setModal] = React.useState(null) // {mode:'create'|'edit', row}
+  const [form, setForm] = React.useState({ name: '', address: '', capacity: '' })
+  const [saving, setSaving] = React.useState(false)
+  const [confirm, setConfirm] = React.useState(null) // {row, action, label}
+
+  const load = React.useCallback(() => {
+    setLoading(true)
+    const q = new URLSearchParams({ page: String(page), page_size: '10', status: statusF, search })
+    apiFetch(`${API}/orphanages/admin/?${q}`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : Promise.reject())
+      .then(d => { setRows(d.results); setMeta(d); setLoading(false) })
+      .catch(() => { setLoading(false); toast?.error?.('Chargement impossible') })
+  }, [page, statusF, search, onLogout, toast])
+  React.useEffect(() => {
+    const t = setTimeout(load, search ? 300 : 0)
+    return () => clearTimeout(t)
+  }, [load, search])
+
+  const STATUS = {
+    approved: { label: 'Actif', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
+    pending: { label: 'En attente', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+    rejected: { label: 'Rejeté', color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
+    suspended: { label: 'Suspendu', color: '#f97316', bg: 'rgba(249,115,22,0.12)' },
+    archived: { label: 'Archivé', color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
+  }
+  const TABS = [['all', 'Toutes'], ['approved', 'Actives'], ['pending', 'En attente'], ['suspended', 'Suspendues'], ['archived', 'Archivées']]
+
+  const openCreate = () => { setForm({ name: '', address: '', capacity: '' }); setModal({ mode: 'create' }) }
+  const openEdit = (row) => { setForm({ name: row.name, address: row.address || '', capacity: row.capacity || '' }); setModal({ mode: 'edit', row }) }
+
+  const save = async () => {
+    if (!form.name.trim()) { toast?.error?.('Le nom est requis'); return }
+    setSaving(true)
+    const isEdit = modal.mode === 'edit'
+    const res = await apiFetch(`${API}/orphanages/admin/${isEdit ? modal.row.id + '/' : ''}`, {
+      method: isEdit ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: form.name.trim(), address: form.address.trim(), capacity: form.capacity || 0 })
+    }, onLogout)
+    setSaving(false)
+    if (res && res.ok) { toast?.success?.(isEdit ? 'Organisation mise à jour' : 'Organisation créée'); setModal(null); load() }
+    else toast?.error?.('Enregistrement impossible')
+  }
+
+  const doAction = async () => {
+    const { row, action } = confirm
+    if (action === 'delete') {
+      const res = await apiFetch(`${API}/orphanages/admin/${row.id}/`, { method: 'DELETE' }, onLogout)
+      if (res && (res.ok || res.status === 204)) { toast?.success?.('Organisation supprimée'); setConfirm(null); load() }
+      else toast?.error?.('Suppression impossible')
+      return
+    }
+    const res = await apiFetch(`${API}/orphanages/admin/${row.id}/status/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action })
+    }, onLogout)
+    if (res && res.ok) { toast?.success?.('Statut mis à jour'); setConfirm(null); load() }
+    else toast?.error?.('Action impossible')
+  }
+
+  return (
+    <div className="exec org-mgmt">
+      {msg && <div className={`org-toast${msg.ok ? ' ok' : ' err'}`}>{msg.t}</div>}
+      <div className="exec-head">
+        <div><h1 className="exec-title">Organisations</h1><p className="exec-sub">{meta.total} organisation(s) · gestion complète de l'écosystème</p></div>
+        <button className="org-btn-primary" onClick={openCreate}><EsIcon name="plus" size={16} /> Nouvelle organisation</button>
+      </div>
+
+      <div className="org-toolbar">
+        <div className="org-search">
+          <EsIcon name="hash" size={16} />
+          <input value={search} onChange={e => { setPage(1); setSearch(e.target.value) }} placeholder="Rechercher par nom, adresse, directeur…" />
+          {search && <button onClick={() => setSearch('')} aria-label="Effacer"><EsIcon name="x" size={14} /></button>}
+        </div>
+        <div className="org-tabs">
+          {TABS.map(([k, l]) => (
+            <button key={k} className={`org-tab${statusF === k ? ' active' : ''}`} onClick={() => { setPage(1); setStatusF(k) }}>
+              {l}{meta.status_counts[k] != null && k !== 'all' ? <span className="org-tab-count">{meta.status_counts[k]}</span> : null}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="org-card">
+        <table className="org-table">
+          <thead><tr><th>Organisation</th><th>Directeur</th><th>Statut</th><th className="org-num">Utilisateurs</th><th className="org-num">Enfants</th><th className="org-num">Dons</th><th></th></tr></thead>
+          <tbody>
+            {loading ? Array.from({ length: 6 }).map((_, i) => (
+              <tr key={i}><td colSpan={7}><div className="exec-skeleton" style={{ height: 28, margin: '6px 0' }} /></td></tr>
+            )) : rows.length === 0 ? (
+              <tr><td colSpan={7} className="org-empty">Aucune organisation trouvée.</td></tr>
+            ) : rows.map(row => {
+              const st = STATUS[row.status] || STATUS.pending
+              return (
+                <tr key={row.id}>
+                  <td>
+                    <div className="org-name-cell">
+                      <span className="org-avatar" style={{ background: `hsl(${(row.name || 'O').charCodeAt(0) * 37 % 360},55%,50%)` }}><EsIcon name="building" size={16} /></span>
+                      <div><div className="org-name">{row.name}</div><div className="org-addr">{row.address || '—'}</div></div>
+                    </div>
+                  </td>
+                  <td>{row.director_name ? <div><div className="org-dir">{row.director_name}</div><div className="org-addr">{row.director_email}</div></div> : <span className="org-addr">Non assigné</span>}</td>
+                  <td><span className="org-badge" style={{ color: st.color, background: st.bg }}>{st.label}</span></td>
+                  <td className="org-num">{row.users_count}</td>
+                  <td className="org-num">{row.children_count}</td>
+                  <td className="org-num">{row.donations_count}</td>
+                  <td>
+                    <div className="org-actions">
+                      <button title="Modifier" onClick={() => openEdit(row)}><EsIcon name="pencil" size={15} /></button>
+                      {row.status === 'suspended'
+                        ? <button title="Réactiver" onClick={() => setConfirm({ row, action: 'reactivate', label: `Réactiver « ${row.name} » ?` })} style={{ color: '#22c55e' }}><EsIcon name="activity" size={15} /></button>
+                        : <button title="Suspendre" onClick={() => setConfirm({ row, action: 'suspend', label: `Suspendre « ${row.name} » ? L'accès sera bloqué.` })} style={{ color: '#f97316' }}><EsIcon name="alert" size={15} /></button>}
+                      <button title="Archiver" onClick={() => setConfirm({ row, action: 'archive', label: `Archiver « ${row.name} » ?` })} style={{ color: '#64748b' }}><EsIcon name="archive" size={15} /></button>
+                      <button title="Supprimer" onClick={() => setConfirm({ row, action: 'delete', label: `Supprimer définitivement « ${row.name} » ? Cette action est irréversible.` })} style={{ color: '#ef4444' }}><EsIcon name="trash" size={15} /></button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+        {meta.pages > 1 && (
+          <div className="org-pagination">
+            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Précédent</button>
+            <span>Page {meta.page} / {meta.pages}</span>
+            <button disabled={page >= meta.pages} onClick={() => setPage(p => p + 1)}>Suivant</button>
+          </div>
+        )}
+      </div>
+
+      {/* Create/Edit modal */}
+      {modal && (
+        <div className="org-modal-overlay" onClick={() => setModal(null)}>
+          <div className="org-modal" onClick={e => e.stopPropagation()}>
+            <h3>{modal.mode === 'edit' ? 'Modifier l\'organisation' : 'Nouvelle organisation'}</h3>
+            <label className="org-field"><span>Nom *</span><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} autoFocus placeholder="Nom de l'orphelinat" /></label>
+            <label className="org-field"><span>Adresse</span><input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Ville, pays" /></label>
+            <label className="org-field"><span>Capacité d'accueil</span><input type="number" value={form.capacity} onChange={e => setForm(f => ({ ...f, capacity: e.target.value }))} placeholder="0" /></label>
+            <div className="org-modal-actions">
+              <button className="org-btn-ghost" onClick={() => setModal(null)}>Annuler</button>
+              <button className="org-btn-primary" onClick={save} disabled={saving}>{saving ? '…' : (modal.mode === 'edit' ? 'Enregistrer' : 'Créer')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation dialog */}
+      {confirm && (
+        <div className="org-modal-overlay" onClick={() => setConfirm(null)}>
+          <div className="org-modal org-confirm" onClick={e => e.stopPropagation()}>
+            <div className="org-confirm-icon" style={{ color: confirm.action === 'delete' ? '#ef4444' : '#f59e0b' }}><EsIcon name="alert" size={26} /></div>
+            <p>{confirm.label}</p>
+            <div className="org-modal-actions">
+              <button className="org-btn-ghost" onClick={() => setConfirm(null)}>Annuler</button>
+              <button className="org-btn-primary" style={{ background: confirm.action === 'delete' ? '#ef4444' : undefined }} onClick={doAction}>Confirmer</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -3726,6 +3901,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
         <main className="dash-main">
           {activeKey === 'executive' ? (
             <ExecutiveDashboard onLogout={logout} />
+          ) : activeKey === 'organizations' ? (
+            <OrganizationManagement onLogout={logout} />
           ) : activeKey === 'dashboard' ? (
             <div className="dash-dashboard">
               <div className="dash-dash-welcome">

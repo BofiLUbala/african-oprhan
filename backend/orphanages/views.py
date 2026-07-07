@@ -229,3 +229,130 @@ def orphanage_validate(request, orphanage_id):
     orphanage.validation_note = note
     orphanage.save(update_fields=update_fields)
     return Response(OrphanageSerializer(orphanage).data)
+
+
+# ═══════════ SUPER MASTER — ORGANIZATION MANAGEMENT (Module 2) ═══════════
+from django.db.models import Q, Count
+from children.models import Child
+from finances.models import Donation
+
+
+def _admin_orphanage_payload(o):
+    """Organization row with live counts — all real."""
+    return {
+        "id": o.pk,
+        "name": o.name,
+        "address": o.address,
+        "capacity": o.capacity,
+        "status": o.status,
+        "director_id": o.director_id,
+        "director_name": o.director.full_name if o.director else None,
+        "director_email": o.director.email if o.director else None,
+        "users_count": get_user_model().objects.filter(orphanage_id=o.pk).count(),
+        "children_count": Child.objects.filter(orphanage_id=o.pk).count(),
+        "donations_count": Donation.objects.filter(orphanage_id=o.pk).count(),
+        "latitude": float(o.latitude) if o.latitude is not None else None,
+        "longitude": float(o.longitude) if o.longitude is not None else None,
+        "created_at": o.created_at.isoformat(),
+        "updated_at": o.updated_at.isoformat(),
+    }
+
+
+@api_view(["GET", "POST"])
+def org_admin_list(request):
+    """Paginated, searchable, filterable organization list for the Super Master."""
+    if not _can_validate(request.user):
+        return Response({"error": "Accès réservé à la Super Direction."}, status=status.HTTP_403_FORBIDDEN)
+
+    if request.method == "POST":
+        name = (request.data.get("name") or "").strip()
+        if not name:
+            return Response({"error": "Le nom est requis."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            capacity = int(request.data.get("capacity") or 0)
+        except (ValueError, TypeError):
+            capacity = 0
+        o = Orphanage.objects.create(
+            name=name, address=(request.data.get("address") or ""),
+            capacity=capacity, status=request.data.get("status") or "approved",
+        )
+        return Response(_admin_orphanage_payload(o), status=status.HTTP_201_CREATED)
+
+    qs = Orphanage.objects.select_related("director").all().order_by("-created_at")
+    search = request.query_params.get("search", "").strip()
+    if search:
+        qs = qs.filter(Q(name__icontains=search) | Q(address__icontains=search) |
+                       Q(director__first_name__icontains=search) | Q(director__last_name__icontains=search))
+    status_f = request.query_params.get("status", "").strip()
+    if status_f and status_f != "all":
+        qs = qs.filter(status=status_f)
+
+    total = qs.count()
+    try:
+        page = max(1, int(request.query_params.get("page", 1)))
+        page_size = min(50, max(1, int(request.query_params.get("page_size", 10))))
+    except ValueError:
+        page, page_size = 1, 10
+    start = (page - 1) * page_size
+    rows = [_admin_orphanage_payload(o) for o in qs[start:start + page_size]]
+
+    counts_by_status = {r["status"]: r["n"] for r in Orphanage.objects.values("status").annotate(n=Count("id"))}
+    return Response({
+        "results": rows,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": (total + page_size - 1) // page_size,
+        "status_counts": counts_by_status,
+    })
+
+
+@api_view(["GET", "PATCH", "DELETE"])
+def org_admin_detail(request, orphanage_id):
+    if not _can_validate(request.user):
+        return Response({"error": "Accès réservé à la Super Direction."}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        o = Orphanage.objects.select_related("director").get(pk=orphanage_id)
+    except Orphanage.DoesNotExist:
+        return Response({"error": "Organisation introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == "DELETE":
+        o.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    if request.method == "PATCH":
+        for field in ("name", "address"):
+            if field in request.data:
+                setattr(o, field, request.data[field])
+        if "capacity" in request.data:
+            try:
+                o.capacity = int(request.data["capacity"])
+            except (ValueError, TypeError):
+                return Response({"error": "Capacité invalide."}, status=status.HTTP_400_BAD_REQUEST)
+        o.save()
+    return Response(_admin_orphanage_payload(o))
+
+
+@api_view(["POST"])
+def org_admin_status(request, orphanage_id):
+    """Lifecycle actions: approve / reject / suspend / reactivate / archive."""
+    if not _can_validate(request.user):
+        return Response({"error": "Accès réservé à la Super Direction."}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        o = Orphanage.objects.get(pk=orphanage_id)
+    except Orphanage.DoesNotExist:
+        return Response({"error": "Organisation introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+    action = request.data.get("action")
+    mapping = {"approve": "approved", "reject": "rejected", "suspend": "suspended",
+               "reactivate": "approved", "archive": "archived"}
+    if action not in mapping:
+        return Response({"error": "Action invalide."}, status=status.HTTP_400_BAD_REQUEST)
+    o.status = mapping[action]
+    if action in ("approve", "reactivate"):
+        o.validated_at = timezone.now()
+    note = request.data.get("note", "")
+    if note:
+        o.validation_note = note
+    o.save()
+    return Response(_admin_orphanage_payload(o))
