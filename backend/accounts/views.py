@@ -144,13 +144,24 @@ def dashboard_stats(request):
     return Response({'kpis': kpis, 'charts': charts})
 
 
+def _avatar_url(request, u):
+    if u.avatar:
+        try:
+            return request.build_absolute_uri(u.avatar.url)
+        except Exception:
+            return u.avatar.url
+    return None
+
+
 @api_view(["GET"])
 def user_list(request):
+    """Annuaire des agents — accessible à tout utilisateur authentifié pour la
+    messagerie (chacun peut voir et écrire à n'importe quel agent enregistré)."""
     user = request.user
-    if not user.is_authenticated or user.role not in ("federation", "supermaster"):
-        return Response({"error": "Accès refusé."}, status=status.HTTP_403_FORBIDDEN)
+    if not user.is_authenticated:
+        return Response({"error": "Non authentifié."}, status=status.HTTP_401_UNAUTHORIZED)
     role_filter = request.query_params.get("role")
-    qs = User.objects.all()
+    qs = User.objects.all().order_by("first_name", "last_name")
     if role_filter:
         qs = qs.filter(role=role_filter)
     return Response([
@@ -163,6 +174,7 @@ def user_list(request):
             "country": u.country,
             "role": u.role,
             "is_active": u.is_active,
+            "avatar": _avatar_url(request, u),
         }
         for u in qs
     ])
@@ -182,7 +194,24 @@ def me(request):
         "country": user.country,
         "role": user.role,
         "is_active": user.is_active,
+        "avatar": _avatar_url(request, user),
     })
+
+
+@api_view(["POST"])
+def update_avatar(request):
+    """Téléverser/mettre à jour sa photo de profil (synchronisée partout)."""
+    user = request.user
+    if user.is_anonymous:
+        return Response({"error": "Non authentifié."}, status=status.HTTP_401_UNAUTHORIZED)
+    f = request.FILES.get("avatar")
+    if not f:
+        return Response({"error": "Aucune image fournie."}, status=status.HTTP_400_BAD_REQUEST)
+    if f.size > 5 * 1024 * 1024:
+        return Response({"error": "Image trop volumineuse (max 5 Mo)."}, status=status.HTTP_400_BAD_REQUEST)
+    user.avatar = f
+    user.save(update_fields=["avatar"])
+    return Response({"avatar": _avatar_url(request, user)})
 
 
 @api_view(["POST"])

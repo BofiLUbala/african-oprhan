@@ -54,7 +54,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     role = models.CharField(max_length=20, choices=ROLES, verbose_name="Rôle")
     is_active = models.BooleanField(default=False, verbose_name="Compte activé")
     is_staff = models.BooleanField(default=False, verbose_name="Staff")
-    
+
+    avatar = models.ImageField(
+        upload_to="avatars/", null=True, blank=True, verbose_name="Photo de profil"
+    )
+
     orphanage = models.ForeignKey(
         "orphanages.Orphanage",
         on_delete=models.SET_NULL,

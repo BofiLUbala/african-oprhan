@@ -12,6 +12,12 @@ class ChatUserSerializer(serializers.Serializer):
     initials = serializers.CharField()
 
     def to_representation(self, user):
+        avatar = None
+        if getattr(user, 'avatar', None):
+            try:
+                avatar = user.avatar.url
+            except Exception:
+                avatar = None
         return {
             'id': user.id,
             'first_name': user.first_name or '',
@@ -20,6 +26,7 @@ class ChatUserSerializer(serializers.Serializer):
             'role': getattr(user, 'role', ''),
             'full_name': f"{user.first_name or ''} {user.last_name or ''}".strip() or user.email,
             'initials': user_initials(user),
+            'avatar': avatar,
         }
 
 

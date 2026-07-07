@@ -31,6 +31,17 @@ async function apiFetch(url, options = {}, onLogout) {
   return res
 }
 
+// Upload the profile photo to the backend so it syncs everywhere (dashboard + communication).
+async function esUploadAvatar(file) {
+  try {
+    const fd = new FormData()
+    fd.append('avatar', file)
+    const res = await apiFetch(`${API}/auth/me/avatar/`, { method: 'POST', body: fd })
+    if (res && res.ok) { const d = await res.json(); return d.avatar || null }
+  } catch (_) { /* offline / ignore — localStorage still holds the preview */ }
+  return null
+}
+
 const AFRICAN_COUNTRIES = [
   { code: "AO", name: "Angola" }, { code: "BJ", name: "Bénin" }, { code: "BW", name: "Botswana" },
   { code: "BF", name: "Burkina Faso" }, { code: "BI", name: "Burundi" }, { code: "CM", name: "Cameroun" },
@@ -923,6 +934,7 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
         localStorage.setItem('cdo_profile_img', dataUrl)
       }
       reader.readAsDataURL(file)
+      esUploadAvatar(file) // persist to backend → visible to all agents
     }
   }
 
@@ -1174,7 +1186,9 @@ function EclatSocialApp({ user, onReturn }) {
   const [esSearchResults, setEsSearchResults] = React.useState([])
   const [esSearchLoading, setEsSearchLoading] = React.useState(false)
   const [esOnline, setEsOnline] = React.useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
+  const [esOnlineOpen, setEsOnlineOpen] = React.useState(false)
   const esSearchRef = React.useRef(null)
+  const esOnlineRef = React.useRef(null)
 
   // ── Channels (Slack-like, role-based) ──────────────────────────────
   const [esChannels, setEsChannels] = React.useState([])
@@ -1338,12 +1352,21 @@ function EclatSocialApp({ user, onReturn }) {
     localStorage.setItem('cdo_theme', next)
   }
 
-  // Close search/filter popovers on outside click
+  // Close search/filter/online popovers on outside click
   React.useEffect(() => {
-    const handler = (e) => { if (esSearchRef.current && !esSearchRef.current.contains(e.target)) { setEsSearchOpen(false); setEsFilterOpen(false) } }
+    const handler = (e) => {
+      if (esSearchRef.current && !esSearchRef.current.contains(e.target)) { setEsSearchOpen(false); setEsFilterOpen(false) }
+      if (esOnlineRef.current && !esOnlineRef.current.contains(e.target)) { setEsOnlineOpen(false) }
+    }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  // Auto-scroll the DM thread to the latest message
+  const esThreadRef = React.useRef(null)
+  React.useEffect(() => {
+    if (esThreadRef.current) esThreadRef.current.scrollTop = esThreadRef.current.scrollHeight
+  }, [esMessages, esActiveConv])
 
   const ES_SEARCH_FILTERS = [
     { key: 'all', label: 'Tout', icon: '🔎' },
@@ -1579,19 +1602,44 @@ function EclatSocialApp({ user, onReturn }) {
 
   const initials = (user.first_name?.[0] || '') + (user.last_name?.[0] || '')
   const hue = user.first_name ? user.first_name.charCodeAt(0) * 37 % 360 : 200
-  // Synchronise avec la photo de profil du tableau de bord (même source).
-  const esDashPhoto = (typeof localStorage !== 'undefined' && localStorage.getItem('cdo_profile_img')) || null
+  // Resolve a media path to the backend origin (photos live on :8000).
+  const esAbs = (u_url) => !u_url ? null : (u_url.startsWith('http') || u_url.startsWith('data:')) ? u_url : `${API.replace(/\/api$/, '')}${u_url}`
+  // Current user's photo: backend avatar → dashboard localStorage → initials.
+  const esDashPhoto = esAbs(user?.avatar) || (typeof localStorage !== 'undefined' && localStorage.getItem('cdo_profile_img')) || null
   const esInitialsSvg = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" rx="20" fill="hsl(${hue},50%,45%)"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700" font-family="system-ui">${initials}</text></svg>`)}`
   const avatarSvg = esDashPhoto || esInitialsSvg
   const displayName = user.first_name ? `${user.first_name} ${user.last_name?.[0] || ''}`.trim() : 'DarloK'
 
-  // Avatar generator for a real agent (initials + deterministic hue)
+  // Avatar for a real agent: real photo if uploaded, else initials + deterministic hue.
   const esAgentAvatar = (u, size = 64) => {
+    if (u?.avatar) return esAbs(u.avatar)
     const initials = ((u.first_name?.[0] || '') + (u.last_name?.[0] || '')).toUpperCase() || (u.full_name?.[0] || '?').toUpperCase()
     const hue = (u.first_name || u.full_name || 'U').charCodeAt(0) * 37 % 360
     return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><rect width="${size}" height="${size}" rx="${size / 2}" fill="hsl(${hue},55%,50%)"/><text x="${size / 2}" y="${size / 2}" dominant-baseline="central" text-anchor="middle" fill="white" font-size="${Math.round(size * 0.38)}" font-weight="700">${initials}</text></svg>`)}`
   }
   const esOtherAgents = esUsers.filter(u => u.id !== user?.id)
+
+  // Open an existing conversation (and mark it read).
+  const esOpenConv = (conv) => {
+    esNavigate('messages'); setEsActiveConv(conv)
+    apiFetch(`${API}/conversations/${conv.id}/read/`, { method: 'POST' }, onReturn).catch(() => {})
+    setEsConversations(prev => prev.map(c => c.id === conv.id ? { ...c, unread_count: 0 } : c))
+  }
+
+  // Find-or-create a direct conversation with ANY registered agent, then open it.
+  const esStartDM = async (other) => {
+    if (!other?.id || other.id === user?.id) return
+    esNavigate('messages'); setEsOnlineOpen(false)
+    const res = await apiFetch(`${API}/conversations/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participant_id: other.id })
+    }, onReturn)
+    if (res && res.ok) {
+      const conv = await res.json()
+      setEsConversations(prev => prev.some(c => c.id === conv.id) ? prev : [conv, ...prev])
+      setEsActiveConv(conv)
+    }
+  }
 
   // Real registered agents — no placeholder accounts
   const ES_STORIES = [
@@ -1735,15 +1783,37 @@ function EclatSocialApp({ user, onReturn }) {
           </div>
 
           {esUsers.length > 0 && (
-            <div className="es-online" title={`${esUsers.length} agents enregistrés`}>
-              <div className="es-online-stack">
-                {esUsers.slice(0, 4).map(u => (
-                  <span key={u.id} className="es-online-ava" style={{ background: `hsl(${(u.first_name || 'U').charCodeAt(0) * 37 % 360},55%,50%)` }}>
-                    {((u.first_name?.[0] || '') + (u.last_name?.[0] || '')).toUpperCase() || '?'}
-                  </span>
-                ))}
-              </div>
-              <span className="es-online-count">{esUsers.length}</span>
+            <div className="es-online-wrap" ref={esOnlineRef}>
+              <button className="es-online" title="Voir tous les agents · démarrer une discussion"
+                onClick={() => setEsOnlineOpen(o => !o)} aria-haspopup="listbox" aria-expanded={esOnlineOpen}>
+                <div className="es-online-stack">
+                  {esUsers.slice(0, 4).map(u => (
+                    u.avatar
+                      ? <img key={u.id} className="es-online-ava" src={esAbs(u.avatar)} alt="" />
+                      : <span key={u.id} className="es-online-ava" style={{ background: `hsl(${(u.first_name || 'U').charCodeAt(0) * 37 % 360},55%,50%)` }}>
+                          {((u.first_name?.[0] || '') + (u.last_name?.[0] || '')).toUpperCase() || '?'}
+                        </span>
+                  ))}
+                </div>
+                <span className="es-online-count">{esUsers.length}</span>
+              </button>
+              {esOnlineOpen && (
+                <div className="es-online-menu" role="listbox">
+                  <div className="es-online-menu-head">Agents enregistrés · {esOtherAgents.length}</div>
+                  <div className="es-online-menu-list">
+                    {esOtherAgents.map(u => (
+                      <button key={u.id} className="es-online-menu-item" onClick={() => esStartDM(u)} title={`Discuter avec ${u.full_name || u.first_name}`}>
+                        <img className="es-online-menu-ava" src={esAgentAvatar(u, 36)} alt="" />
+                        <span className="es-online-menu-info">
+                          <span className="es-online-menu-name">{u.full_name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email}</span>
+                          <span className="es-online-menu-role">{esRoleLabel(u.role)}</span>
+                        </span>
+                        <EsIcon name="message" size={15} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1871,11 +1941,12 @@ function EclatSocialApp({ user, onReturn }) {
                 .map(({ conv, other, name }) => (
                   <button key={conv.id}
                     className={`es-side-item${esView === 'messages' && esActiveConv?.id === conv.id ? ' active' : ''}`}
-                    onClick={() => { esNavigate('messages'); setEsActiveConv(conv) }} title={name}>
-                    <span className="es-side-dm-ava" style={{ background: `hsl(${(other?.first_name || 'U').charCodeAt(0) * 37 % 360},55%,50%)` }}>
-                      {(other?.first_name?.[0] || '?').toUpperCase()}
-                    </span>
+                    onClick={() => esOpenConv(conv)} title={name}>
+                    {other?.avatar
+                      ? <img className="es-side-dm-ava" src={esAbs(other.avatar)} alt="" />
+                      : <span className="es-side-dm-ava" style={{ background: `hsl(${(other?.first_name || 'U').charCodeAt(0) * 37 % 360},55%,50%)` }}>{(other?.first_name?.[0] || '?').toUpperCase()}</span>}
                     <span className="es-side-item-label">{name}</span>
+                    {conv.unread_count > 0 && <span className="es-side-badge es-side-badge-hot">{conv.unread_count}</span>}
                   </button>
                 ))}
               <button className="es-side-item es-side-new" onClick={() => esNavigate('messages')}>
@@ -2067,60 +2138,76 @@ function EclatSocialApp({ user, onReturn }) {
 
         {/* MESSAGES VIEW */}
         {esView === 'messages' && (
-          <div style={{ display: 'flex', height: 'calc(100vh - 120px)', gap: 0 }}>
+          <div className="es-dm">
             {/* Conversation list */}
-            <div style={{ width: '280px', borderRight: '1px solid var(--border-card,#e2e8f0)', overflowY: 'auto', flexShrink: 0 }}>
-              <div style={{ padding: '16px', fontWeight: 700, fontSize: '16px', borderBottom: '1px solid var(--border-card,#e2e8f0)' }}>💬 Conversations</div>
+            <div className="es-dm-list">
+              <div className="es-dm-list-head">Messages</div>
               {esConversations.length === 0 ? (
-                <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>Aucune conversation</div>
+                <div className="es-dm-empty">Aucune conversation.<br/>Cliquez sur un agent pour démarrer.</div>
               ) : esConversations.map(conv => {
                 const other = conv.participants?.find(p => p.id !== user?.id) || conv.participants?.[0]
                 const name = other ? `${other.first_name || ''} ${other.last_name || ''}`.trim() || other.email : `Conv #${conv.id}`
                 return (
-                  <div key={conv.id} onClick={() => setEsActiveConv(conv)}
-                    style={{ padding: '14px 16px', cursor: 'pointer', background: esActiveConv?.id === conv.id ? 'var(--accent-bg,#eff6ff)' : 'transparent', borderBottom: '1px solid var(--border-card,#f1f5f9)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>
-                      {(other?.first_name?.[0] || '?').toUpperCase()}
+                  <div key={conv.id} onClick={() => esOpenConv(conv)}
+                    className={`es-dm-conv${esActiveConv?.id === conv.id ? ' active' : ''}`}>
+                    <img className="es-dm-conv-ava" src={esAgentAvatar(other || {}, 46)} alt="" />
+                    <div className="es-dm-conv-body">
+                      <div className="es-dm-conv-top"><span className="es-dm-conv-name">{name}</span>{conv.last_message && <span className="es-dm-conv-time">{esTimeAgo(conv.last_message.created_at)}</span>}</div>
+                      <div className="es-dm-conv-preview">{conv.last_message?.content?.slice(0, 42) || 'Démarrer la conversation'}</div>
                     </div>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '14px' }}>{name}</div>
-                      <div style={{ fontSize: '12px', color: '#94a3b8' }}>{conv.last_message?.content?.slice(0,40) || 'Démarrer la conversation'}</div>
-                    </div>
+                    {conv.unread_count > 0 && <span className="es-dm-conv-badge">{conv.unread_count}</span>}
                   </div>
                 )
               })}
             </div>
-            {/* Chat area */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* Chat area — WhatsApp-style */}
+            <div className="es-dm-chat">
               {!esActiveConv ? (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '15px' }}>Sélectionnez une conversation</div>
-              ) : (
+                <div className="es-dm-placeholder">
+                  <div className="es-dm-placeholder-icon"><EsIcon name="message" size={34} /></div>
+                  <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-heading,#334155)' }}>Vos messages</div>
+                  <div style={{ fontSize: '13px', marginTop: '3px' }}>Sélectionnez une conversation ou un agent.</div>
+                </div>
+              ) : (() => {
+                const o = esActiveConv.participants?.find(p => p.id !== user?.id) || esActiveConv.participants?.[0]
+                const oname = o ? `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email : `Conv #${esActiveConv.id}`
+                return (
                 <>
-                  <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-card,#e2e8f0)', fontWeight: 600, fontSize: '15px' }}>
-                    {(() => { const o = esActiveConv.participants?.find(p => p.id !== user?.id) || esActiveConv.participants?.[0]; return o ? `${o.first_name||''} ${o.last_name||''}`.trim() || o.email : `Conv #${esActiveConv.id}` })()}
+                  <div className="es-dm-chat-head">
+                    <img className="es-dm-chat-ava" src={esAgentAvatar(o || {}, 42)} alt="" />
+                    <div className="es-dm-chat-head-info">
+                      <span className="es-dm-chat-name">{oname}</span>
+                      <span className="es-dm-chat-role">{esRoleLabel(o?.role)}</span>
+                    </div>
                   </div>
-                  <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {esMessages.length === 0 && <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '14px', marginTop: '40px' }}>Aucun message. Commencez la conversation !</div>}
+                  <div className="es-dm-thread" ref={esThreadRef}>
+                    {esMessages.length === 0 && <div className="es-dm-thread-empty">Aucun message. Dites bonjour 👋</div>}
                     {esMessages.map((msg, i) => {
-                      const isMe = msg.sender === user?.id || msg.sender?.id === user?.id
+                      const sid = msg.sender?.id ?? msg.sender
+                      const isMe = sid === user?.id
+                      const prev = esMessages[i - 1]
+                      const grouped = prev && (prev.sender?.id ?? prev.sender) === sid
                       return (
-                        <div key={i} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
-                          <div style={{ maxWidth: '65%', padding: '10px 14px', borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px', background: isMe ? '#3b82f6' : 'var(--bg-card,#f1f5f9)', color: isMe ? '#fff' : 'inherit', fontSize: '14px' }}>
-                            {msg.content}
+                        <div key={msg.id || i} className={`es-bubble-row${isMe ? ' me' : ''}`} style={{ marginTop: grouped ? '2px' : '10px' }}>
+                          <div className={`es-bubble${isMe ? ' me' : ''}`}>
+                            <span className="es-bubble-text">{msg.content}</span>
+                            <span className="es-bubble-meta">{esTimeAgo(msg.created_at)}{isMe && <span className={`es-bubble-tick${msg.is_read ? ' read' : ''}`}>✓✓</span>}</span>
                           </div>
                         </div>
                       )
                     })}
                   </div>
-                  <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-card,#e2e8f0)', display: 'flex', gap: '10px' }}>
+                  <div className="es-dm-composer">
                     <input value={esMsgInput} onChange={e => setEsMsgInput(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && esSendMessage()}
-                      placeholder="Écrire un message..."
-                      style={{ flex: 1, padding: '10px 14px', borderRadius: '24px', border: '1px solid var(--border-card,#e2e8f0)', background: 'var(--bg-card,#f8fafc)', fontSize: '14px', outline: 'none' }} />
-                    <button onClick={esSendMessage} style={{ padding: '10px 20px', borderRadius: '24px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>Envoyer</button>
+                      placeholder="Écrire un message…" autoFocus />
+                    <button onClick={esSendMessage} disabled={!esMsgInput.trim()} aria-label="Envoyer" title="Envoyer">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                    </button>
                   </div>
                 </>
-              )}
+                )
+              })()}
             </div>
           </div>
         )}
@@ -2385,26 +2472,25 @@ function EclatSocialApp({ user, onReturn }) {
 
       {/* RIGHT SIDEBAR */}
       <aside className="es-right-sidebar">
-        {ES_SUGGESTIONS.length > 0 ? (
-          <div className="es-suggestions-widget">
-            <h3>Membres de la fédération</h3>
-            {ES_SUGGESTIONS.map((s) => (
-              <div key={s.id} className="es-suggestion" style={{ cursor: 'pointer' }} onClick={() => esNavigate('messages')} title={`Discuter avec ${s.name}`}>
-                <img src={s.avatar} alt={s.name} className="es-avatar-sm" />
-                <div className="es-suggestion-info">
-                  <span className="es-sugg-name">{s.name}</span>
-                  <span className="es-sugg-mutual">{s.role}</span>
-                </div>
-                <button className="es-sugg-add" onClick={(e) => { e.stopPropagation(); esNavigate('messages') }} title="Envoyer un message"><EsIcon name="message" size={15} /></button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="es-suggestions-widget">
-            <h3>Membres de la fédération</h3>
+        <div className="es-suggestions-widget">
+          <h3>Membres de la fédération {esOtherAgents.length > 0 && <span className="es-members-count">{esOtherAgents.length}</span>}</h3>
+          {esOtherAgents.length === 0 ? (
             <div style={{ padding: '16px 4px', color: '#94a3b8', fontSize: '13px' }}>Chargement des agents…</div>
-          </div>
-        )}
+          ) : (
+            <div className="es-members-list">
+              {esOtherAgents.map((u) => (
+                <div key={u.id} className="es-suggestion" style={{ cursor: 'pointer' }} onClick={() => esStartDM(u)} title={`Discuter avec ${u.full_name || u.first_name}`}>
+                  <img src={esAgentAvatar(u, 40)} alt="" className="es-avatar-sm" />
+                  <div className="es-suggestion-info">
+                    <span className="es-sugg-name">{u.full_name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email}</span>
+                    <span className="es-sugg-mutual">{esRoleLabel(u.role)}</span>
+                  </div>
+                  <button className="es-sugg-add" onClick={(e) => { e.stopPropagation(); esStartDM(u) }} title="Envoyer un message"><EsIcon name="message" size={15} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </aside>
       </div>{/* /es-body */}
 
@@ -4410,6 +4496,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 setProfileImg(ev.target.result)
                               }
                               reader.readAsDataURL(file)
+                              esUploadAvatar(file)
                             }
                           }} />
                         </div>
@@ -4520,6 +4607,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 setProfileImg(ev.target.result)
                               }
                               reader.readAsDataURL(file)
+                              esUploadAvatar(file)
                             }
                           }} />
                         </div>
