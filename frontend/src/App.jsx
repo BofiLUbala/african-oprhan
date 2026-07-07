@@ -113,7 +113,25 @@ export default function App() {
       headers: { Authorization: `Bearer ${access}` },
     })
       .then(r => r.ok ? r.json() : null)
-      .then(data => data && setUser(data))
+      .then(data => {
+        if (!data) return
+        setUser(data)
+        // One-time sync: if this user has a dashboard photo saved only in the
+        // browser (localStorage) but no backend avatar yet, push it to the
+        // backend so it shows in Communication for every agent.
+        try {
+          const local = localStorage.getItem('cdo_profile_img')
+          if (!data.avatar && local && local.startsWith('data:')) {
+            fetch(local).then(r => r.blob()).then(blob => {
+              const fd = new FormData()
+              fd.append('avatar', new File([blob], 'avatar.png', { type: blob.type || 'image/png' }))
+              return fetch(`${API}/auth/me/avatar/`, { method: 'POST', headers: { Authorization: `Bearer ${access}` }, body: fd })
+            }).then(r => r && r.ok ? r.json() : null)
+              .then(d => { if (d && d.avatar) setUser(u => u ? { ...u, avatar: d.avatar } : u) })
+              .catch(() => {})
+          }
+        } catch (_) { /* ignore */ }
+      })
       .catch(() => {})
   }, [])
 
