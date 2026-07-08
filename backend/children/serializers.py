@@ -78,6 +78,36 @@ class ChildSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+class ChildPublicSerializer(serializers.ModelSerializer):
+    age = serializers.SerializerMethodField()
+    photo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Child
+        fields = ["id", "uid", "nom", "prenom", "age", "nationalite", "sexe", "photo_url"]
+
+    def get_age(self, obj):
+        if not obj.date_naissance:
+            return None
+        from datetime import date
+        today = date.today()
+        return today.year - obj.date_naissance.year - (
+            (today.month, today.day) < (obj.date_naissance.month, obj.date_naissance.day)
+        )
+
+    def get_photo_url(self, obj):
+        if obj.photo:
+            try:
+                url = obj.photo.url
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(url)
+                return url
+            except Exception:
+                return None
+        return None
+
+
 class ChildUpdateSerializer(serializers.ModelSerializer):
     child_name = serializers.SerializerMethodField()
     created_by_name = serializers.SerializerMethodField()

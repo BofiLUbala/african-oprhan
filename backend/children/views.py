@@ -7,7 +7,8 @@ from django.db import IntegrityError
 from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 import hashlib
@@ -20,6 +21,7 @@ from django.template.loader import render_to_string
 from .models import Child, ChildUpdate, ChildHistory, ChildAssignment, ConsultationHistorique, FichierJoint
 from .serializers import (
     ChildSerializer,
+    ChildPublicSerializer,
     ChildUpdateSerializer,
     ChildHistorySerializer,
     ChildHistoryCreateSerializer,
@@ -104,6 +106,14 @@ def child_list(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     return Response({"error": "Méthode non autorisée"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def child_public_list(request):
+    enfants = Child.objects.all().order_by("?")[:30]
+    serializer = ChildPublicSerializer(enfants, many=True, context={"request": request})
+    return Response(serializer.data)
 
 
 @api_view(["GET", "PUT", "DELETE"])

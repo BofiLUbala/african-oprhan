@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import './index.css'
 import App from './App'
 
 // In dev mode React prints a "Download the React DevTools" tip when the browser

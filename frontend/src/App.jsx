@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { LangProvider, useTranslation } from './i18n'
+import SystemConfigurationPage from './components/SystemConfigurationPage'
+import UserManagementPage from './components/UserManagementPage'
+import ReportsPage from './components/ReportsPage'
+import ProfilesSection from './components/ProfilesSection'
 import './App.css'
 
 const API = 'http://localhost:8000/api'
@@ -98,6 +102,14 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [activeKey, setActiveKey] = useState('dashboard')
   const [subKey, setSubKey] = useState(null)
+  const [landingChildren, setLandingChildren] = useState([])
+
+  useEffect(() => {
+    fetch(`${API}/enfants/public/`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (Array.isArray(data)) setLandingChildren(data) })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -161,8 +173,8 @@ export default function App() {
       <div className="app">
         <Header onLoginClick={() => setShowLogin(true)} onSignupClick={() => setShowSignup(true)} onVirtualAssist={() => setChatbotCollapsed(false)} />
         <main>
-          <Hero />
-          <Profiles />
+          <Hero children={landingChildren} />
+          <ProfilesSection children={landingChildren} />
           <Support />
           <Stats />
           <Contact />
@@ -237,17 +249,18 @@ const youthData = [
   { name: 'Fatou', age: 8, country: 'RDC', code: 'CD', color: '#ef4444', img: svgUrl('F', '#ef4444', 500, 600) },
 ]
 
-function Hero() {
+function Hero({ children: heroChildren }) {
   const { t } = useTranslation()
+  const heroData = heroChildren.length > 0 ? heroChildren : youthData
   const [slide, setSlide] = useState(0)
-  const len = youthData.length
+  const len = heroData.length
 
   useEffect(() => {
-    const t = setInterval(() => setSlide(s => (s + 1) % len), 5000)
+    const t = setInterval(() => setSlide(s => (s + 1) % len), 18000)
     return () => clearInterval(t)
   }, [len])
 
-  const youth = youthData[slide]
+  const hues = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316']
 
   return (
     <section className="hero" id="hero">
@@ -255,21 +268,29 @@ function Hero() {
         <div className="hero-image-card">
           <div className="mock-img">
             <div className="hero-slide">
-              {youthData.map((y, i) => (
-                <div key={i} className={`hero-slide-img${i === slide ? ' active' : ''}`}>
-                  <img src={y.img} alt={y.name} />
-                  <div className="hero-slide-overlay" style={{ background: `linear-gradient(transparent 50%, ${y.color}dd 100%)` }}>
-                    <div className="hero-slide-info">
-                      <span className="hero-slide-name">{y.name}</span>
-                      <span className="hero-slide-age">{y.age} ans &middot; {flagImg(y.code, y.country)} {y.country}</span>
+              {heroData.map((y, i) => {
+                const photoUrl = (y.photo_url || y.photo || '').startsWith('http') ? (y.photo_url || y.photo) : ''
+                const initial = (y.prenom?.[0] || y.nom?.[0] || '?').toUpperCase()
+                const color = hues[(y.prenom?.charCodeAt(0) || 0) % hues.length] || y.color
+                const name = y.prenom ? `${y.prenom} ${y.nom || ''}`.trim() : y.name
+                const age = y.age
+                const country = y.nationalite || y.country || ''
+                return (
+                  <div key={i} className={`hero-slide-img${i === slide ? ' active' : ''}`}>
+                    {photoUrl ? <img src={photoUrl} alt={name} /> : <div className="hero-slide-placeholder" style={{background:`linear-gradient(135deg,${color}dd,${color}88)`}}><span className="hero-slide-initial">{initial}</span></div>}
+                    <div className="hero-slide-overlay" style={{ background: `linear-gradient(transparent 50%, ${color}dd 100%)` }}>
+                      <div className="hero-slide-info">
+                        <span className="hero-slide-name">{name}</span>
+                        {age != null && <span className="hero-slide-age">{age} ans{country ? ` · ${country}` : ''}</span>}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
             <div className="hero-dots">
-              {youthData.map((y, i) => (
-                <button key={i} className={`hdot${i === slide ? ' active' : ''}`} onClick={() => setSlide(i)} style={i === slide ? { background: y.color } : {}} />
+              {heroData.map((y, i) => (
+                <button key={i} className={`hdot${i === slide ? ' active' : ''}`} onClick={() => setSlide(i)} style={i === slide ? { background: hues[(y.prenom?.charCodeAt(0) || 0) % hues.length] || '#f59e0b' } : {}} />
               ))}
             </div>
             <div className="mock-badge">
@@ -296,65 +317,7 @@ function Hero() {
   )
 }
 
-const childrenGrid = [
-  [
-    { name: 'Aminata', color: '#f59e0b', img: svgUrl('A', '#f59e0b', 200, 250) },
-    { name: 'Kofi', color: '#22c55e', img: svgUrl('K', '#22c55e', 200, 250) },
-    { name: 'Zara', color: '#a855f7', img: svgUrl('Z', '#a855f7', 200, 250) },
-  ],
-  [
-    { name: 'Moussa', color: '#3b82f6', img: svgUrl('M', '#3b82f6', 200, 250) },
-    { name: 'Fatou', color: '#ef4444', img: svgUrl('F', '#ef4444', 200, 250) },
-    { name: 'Ekua', color: '#06b6d4', img: svgUrl('E', '#06b6d4', 200, 250) },
-  ],
-  [
-    { name: 'Thabo', color: '#eab308', img: svgUrl('T', '#eab308', 200, 250) },
-    { name: 'Aminata', color: '#f59e0b', img: svgUrl('A', '#f59e0b', 200, 250) },
-    { name: 'Kofi', color: '#22c55e', img: svgUrl('K', '#22c55e', 200, 250) },
-  ],
-]
 
-function Profiles() {
-  const { t } = useTranslation()
-  const [gridIdx, setGridIdx] = useState(0)
-
-  useEffect(() => {
-    const t = setInterval(() => setGridIdx(g => (g + 1) % childrenGrid.length), 5000)
-    return () => clearInterval(t)
-  }, [])
-
-  return (
-    <section className="profiles" id="profiles">
-      <div className="container">
-        <div className="profiles-card">
-          <div className="profiles-content">
-            <span className="section-tag">{t('profiles_tag')}</span>
-            <h2>{t('profiles_title_1')} <span className="accent">{t('profiles_title_2')}</span></h2>
-            <p>{t('profiles_desc')}</p>
-            <button className="btn btn-primary btn-xl">{t('profiles_btn')}</button>
-          </div>
-          <div className="profiles-visual">
-            <div className="profile-stack">
-              {childrenGrid[gridIdx].map((c, i) => (
-                <div key={i} className="profile-card-sm" style={{ '--i': i, '--card-accent': c.color }}>
-                  <div className="profile-sm-img">
-                    <img src={c.img} alt={c.name} />
-                  </div>
-                  <div className="profile-sm-name">{c.name}</div>
-                </div>
-              ))}
-            </div>
-            <div className="profile-dots">
-              {childrenGrid.map((_, i) => (
-                <span key={i} className={`pdot${i === gridIdx ? ' active' : ''}`} onClick={() => setGridIdx(i)} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
 
 function Support() {
   const { t } = useTranslation()
@@ -3066,6 +3029,17 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       if (photo) { localStorage.setItem('cdo_child_photo_' + newUid, photo); localStorage.removeItem('cdo_child_photo_' + oldUid) }
     }
   }
+  const getChildPhotoUrl = (child) => {
+    const lp = localStorage.getItem('cdo_child_photo_' + child?.uid)
+    if (lp) return lp
+    if (child?.photo) {
+      if (child.photo.startsWith('http') || child.photo.startsWith('data:')) return child.photo
+      const base = API.replace('/api', '')
+      if (child.photo.startsWith('/')) return base + child.photo
+      return base + '/' + child.photo
+    }
+    return null
+  }
   const [dashTime, setDashTime] = useState(new Date())
   const [fedTab, setFedTab] = useState('pending')
   const [fedDocTab, setFedDocTab] = useState('dossiers')
@@ -3153,6 +3127,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [hcHistoryChild, setHcHistoryChild] = useState(null)
   const [hcCalendarData, setHcCalendarData] = useState([])
   const [hcViewMode, setHcViewMode] = useState('timeline')
+  const [hcCategory, setHcCategory] = useState('')
 
   /* Update Center v2 state */
   const [updateChild, setUpdateChild] = useState(null)
@@ -3602,6 +3577,50 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     return () => clearTimeout(t)
   }, [childSearchQuery, onLogout])
 
+  useEffect(() => {
+    if (!hcHistoryChild?.id) { setHcEvents([]); return }
+    let cancelled = false
+    ;(async () => {
+      let apiEvents = []
+      try {
+        const res = await apiFetch(`${API}/enfants/${hcHistoryChild.id}/history/`, {}, onLogout)
+        if (!cancelled && res && res.ok) {
+          const data = await res.json()
+          apiEvents = Array.isArray(data) ? data : (data.results || data.events || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch history:', err)
+      }
+      if (cancelled) return
+      const stored = JSON.parse(localStorage.getItem('cdo_updates_' + hcHistoryChild.uid) || '[]')
+      const localEvents = stored.map(s => ({
+        id: s.id,
+        event_type: s.event_type || 'update_added',
+        category: s.category,
+        update_type: s.update_type,
+        title: s.title,
+        description: s.description,
+        old_value: s.previous_value || '',
+        new_value: s.new_value || '',
+        reason: s.reason || '',
+        priority: s.priority || 'normal',
+        source_module: s.source_module || 'update_center',
+        attachments: s.attachments || [],
+        performed_by_name: s.created_by || s.created_by_name || '',
+        department: s.department || '',
+        event_date: s.event_date || s.created_at,
+      }))
+      const merged = [...apiEvents.map(e => ({ ...e, event_type: e.event_type || 'update_added', performed_by_name: e.performed_by_name || '', department: e.department || '', priority: e.priority || 'normal', source_module: e.source_module || 'update_center', attachments: e.attachments || [] }))]
+      for (const le of localEvents) {
+        const exists = merged.find(m => m.id === le.id || (m.title === le.title && m.event_date === le.event_date && m.event_type === le.event_type))
+        if (!exists) merged.push(le)
+      }
+      merged.sort((a, b) => new Date(b.event_date||0) - new Date(a.event_date||0))
+      setHcEvents(merged)
+    })()
+    return () => { cancelled = true }
+  }, [hcHistoryChild?.id])
+
   const deleteChild = async (child) => {
     try {
       const res = await apiFetch(`${API}/enfants/${child.id}/`, { method: 'DELETE' }, onLogout)
@@ -3900,9 +3919,15 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
         )}
         <main className="dash-main">
           {activeKey === 'executive' ? (
-            <ExecutiveDashboard onLogout={logout} />
+            <ExecutiveDashboard onLogout={onLogout} />
           ) : activeKey === 'organizations' ? (
-            <OrganizationManagement onLogout={logout} />
+            <OrganizationManagement onLogout={onLogout} />
+          ) : activeKey === 'systeme' && role === 'supermaster' ? (
+            <SystemConfigurationPage onLogout={onLogout} />
+          ) : activeKey === 'users' && role === 'supermaster' ? (
+            <UserManagementPage onLogout={onLogout} />
+          ) : activeKey === 'rapports' && role === 'supermaster' ? (
+            <ReportsPage onLogout={onLogout} />
           ) : activeKey === 'dashboard' ? (
             <div className="dash-dashboard">
               <div className="dash-dash-welcome">
@@ -7935,7 +7960,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             if (list.length === 0) return <div className="uc2-premium-empty"><span className="uc2-premium-empty-icon">👶</span><p>{t('uc_no_results')||'Aucun enfant trouvé'}</p></div>
                             return list.map(child => {
                               const age = child.date_naissance ? Math.floor((Date.now()-new Date(child.date_naissance).getTime())/31557600000) : null
-                              const photo = localStorage.getItem('cdo_child_photo_'+child.uid)
+                              const photo = getChildPhotoUrl(child)
                               const lastMed = child.extra_data?.medical?.lastCheckup || null
                               const crit = ['hospitalized','missing']
                               const bc = crit.includes(child.status) ? 'rgba(239,68,68,0.3)' : child.status === 'sick' ? 'rgba(245,158,11,0.3)' : 'rgba(20,184,166,0.25)'
@@ -8011,7 +8036,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {(registeredChildren.length > 0 ? registeredChildren : []).filter(c => !uc2Search || (c.prenom||'').toLowerCase().includes(uc2Search.toLowerCase()) || (c.nom||'').toLowerCase().includes(uc2Search.toLowerCase()) || (c.uid||'').toLowerCase().includes(uc2Search.toLowerCase())).map(child => (
                               <button key={child.id} className={`uc2-left-item${updateChild?.id === child.id ? ' active' : ''}`} onClick={() => { setUpdateChild(child); setUc2Category(null); setUc2Type(''); setUc2FormData({}); setUc2Priority('normal'); setUc2Reason(''); setUc2Comment(''); setUc2Files([]); setUc2Step(0) }}>
                                 <div className="uc2-left-item-avatar">
-                                  {(() => { const lp = localStorage.getItem('cdo_child_photo_'+child.uid); if (lp) return <img src={lp} alt="" />; return <span>{child.prenom?.[0]||child.nom?.[0]||'?'}</span> })()}
+                                  {(() => { const pu = getChildPhotoUrl(child); if (pu) return <img src={pu} alt="" />; return <span>{child.prenom?.[0]||child.nom?.[0]||'?'}</span> })()}
                                   {['missing','hospitalized','at_risk'].includes(child.status) && <span className="uc2-left-item-alert">!</span>}
                                 </div>
                                 <div className="uc2-left-item-info">
@@ -8029,7 +8054,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* Hero Card */}
                           <div className="uc2-hero">
                             <div className="uc2-hero-avatar">
-                              {(() => { const lp = localStorage.getItem('cdo_child_photo_' + updateChild.uid); if (lp) return <img src={lp} alt="" />; if (updateChild.photo) return <img src={updateChild.photo} alt="" />; return <span>{updateChild.prenom?.[0] || updateChild.nom?.[0] || '?'}</span> })()}
+                              {(() => { const pu = getChildPhotoUrl(updateChild); if (pu) return <img src={pu} alt="" />; return <span>{updateChild.prenom?.[0] || updateChild.nom?.[0] || '?'}</span> })()}
                             </div>
                             <div className="uc2-hero-info">
                               <div className="uc2-hero-name">{updateChild.prenom || ''} {updateChild.nom || ''} <span className="uc2-hero-uid">#{updateChild.uid}</span></div>
@@ -8181,7 +8206,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       const payload = { category: uc2Category, update_type: uc2Type, title: (t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' '))+' - '+updateChild.prenom+' '+updateChild.nom, description: JSON.stringify(uc2FormData), previous_value: '', new_value: JSON.stringify(uc2FormData), reason: uc2Reason+' | Priorité: '+uc2Priority+(uc2Comment ? ' | '+uc2Comment : ''), attachments: uc2Files.map(f => f.name) }
                                       try {
                                         const res = await apiFetch(`${API}/enfants/${updateChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(payload) }, onLogout)
-                                        if (res && res.ok) { setUc2Saving(false); setUc2Success(true) }
+                                        if (res && res.ok) {
+                                          const updates = JSON.parse(localStorage.getItem('cdo_updates_'+updateChild.uid)||'[]')
+                                          updates.unshift({ id:Date.now(), ...payload, created_at: new Date().toISOString(), created_by: (user?.first_name||'')+' '+(user?.last_name||'') })
+                                          localStorage.setItem('cdo_updates_'+updateChild.uid, JSON.stringify(updates))
+                                          setUc2Saving(false); setUc2Success(true)
+                                        }
                                         else throw new Error()
                                       } catch {
                                         const updates = JSON.parse(localStorage.getItem('cdo_updates_'+updateChild.uid)||'[]')
@@ -8207,7 +8237,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div className="uc2-right-card-header">{t('form_summary')||'Résumé'}</div>
                             <div className="uc2-right-child">
                               <div className="uc2-right-avatar">
-                                {(() => { const lp = localStorage.getItem('cdo_child_photo_'+updateChild.uid); if (lp) return <img src={lp} alt="" />; return <span>{updateChild.prenom?.[0]||updateChild.nom?.[0]||'?'}</span> })()}
+                                {(() => { const pu = getChildPhotoUrl(updateChild); if (pu) return <img src={pu} alt="" />; return <span>{updateChild.prenom?.[0]||updateChild.nom?.[0]||'?'}</span> })()}
                               </div>
                               <div>
                                 <div className="uc2-right-name">{updateChild.prenom||''} {updateChild.nom||''}</div>
@@ -8283,7 +8313,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <div className="hc-standalone-main">
                           {/* Header */}
                           <div className="hc-standalone-header">
-                            <button className="dash-back-btn" onClick={() => { setHcHistoryChild(null); setHcEvents([]); setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcSearch(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false); setHcExpanded(null); setHcSelectedEvent(null) }}>{'\u2190'} {t('form_back')}</button>
+                             <button className="dash-back-btn" onClick={() => { setHcHistoryChild(null); setHcEvents([]); setHcCategory(''); setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcSearch(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false); setHcExpanded(null); setHcSelectedEvent(null) }}>{'\u2190'} {t('form_back')}</button>
                             <div className="hc-standalone-title">
                               <span className="hc-standalone-icon">📜</span>
                               <span>{t('hc_title')||'Centre d\'Historique'}</span>
@@ -8293,7 +8323,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* Child Summary Card */}
                           <div className="hc-child-summary">
                             <div className="hc-child-summary-avatar">
-                              {(() => { const lp = localStorage.getItem('cdo_child_photo_' + hcHistoryChild.uid); if (lp) return <img src={lp} alt="" />; if (hcHistoryChild.photo) return <img src={hcHistoryChild.photo} alt="" />; return <span>{hcHistoryChild.prenom?.[0] || hcHistoryChild.nom?.[0] || '?'}</span> })()}
+                              {(() => { const pu = getChildPhotoUrl(hcHistoryChild); if (pu) return <img src={pu} alt="" />; return <span>{hcHistoryChild.prenom?.[0] || hcHistoryChild.nom?.[0] || '?'}</span> })()}
                             </div>
                             <div className="hc-child-summary-info">
                               <div className="hc-child-summary-name">{hcHistoryChild.prenom||''} {hcHistoryChild.nom||''}</div>
@@ -8307,307 +8337,114 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <span className="hc-child-summary-status" style={{background:hcHistoryChild.status === 'active' ? 'rgba(34,197,94,0.15)' : hcHistoryChild.status === 'hospitalized'||hcHistoryChild.status === 'missing' ? 'rgba(239,68,68,0.15)' : 'rgba(100,116,139,0.15)', color:hcHistoryChild.status === 'active' ? '#22c55e' : hcHistoryChild.status === 'hospitalized'||hcHistoryChild.status === 'missing' ? '#ef4444' : '#94a3b8'}}>{hcHistoryChild.status ? (t('child_status_'+hcHistoryChild.status)||hcHistoryChild.status) : (t('form_active')||'Actif')}</span>
                           </div>
 
-                          {/* History content using same logic as profile tab */}
+                          {/* History content — Category Card Layout */}
                           {(() => {
-                            const hcIcons = {
-                              created:'✅', updated:'✏️', update_added:'📝',
-                              document_added:'📄', document_verified:'✅', document_replaced:'🔄', document_expired:'⏰',
-                              health_update:'💉', vaccination_added:'💉', illness_added:'🤒',
-                              treatment_started:'💊', treatment_ended:'✅', consultation_added:'🩺',
-                              hospitalization_added:'🏥', allergy_added:'🤧',
-                              education_update:'📚', school_enrolled:'🏫', school_changed:'🔄',
-                              grade_added:'📊', exam_result_added:'📝',
-                              family_update:'👨‍👩‍👧‍👦', guardian_assigned:'👤', parent_identified:'🔍',
-                              family_reunified:'🤗', foster_placement:'🏡', adoption_progress:'📋',
-                              social_update:'🤝', social_note_added:'📝', home_visit:'🏠',
-                              counseling_session:'💬', incident_reported:'⚠️', protection_concern:'🛡️',
-                              status_change:'🔄', alert_triggered:'🚨', note_added:'💬', case_note:'📌',
-                              file_downloaded:'⬇️', record_approved:'✅', record_rejected:'❌',
-                              notification_sent:'🔔', child_archived:'📦', child_restored:'♻️',
-                              follow_up:'📋', observation_added:'👁️', transfer_initiated:'🚚', exit_registered:'🚪',
-                            }
-                            const hcColors = { general:'#64748b', registration:'#22c55e', identity:'#3b82f6', status:'#f59e0b', health:'#22c55e', education:'#3b82f6', family:'#a855f7', documents:'#f59e0b', social:'#ef4444', protection:'#ef4444', alert:'#ef4444', system:'#64748b', follow_up:'#06b6d4' }
-                            const criticalEventTypes = ['alert_triggered','protection_concern','incident_reported','hospitalization_added','exit_registered','child_archived','transfer_initiated']
-                            const criticalPriorities = ['critical','high']
-                            const hcLoad = (child) => {
-                              const stored = JSON.parse(localStorage.getItem('cdo_updates_' + child.uid) || '[]')
-                              const med = child.extra_data?.medical
-                              const vax = med?.vaccinations?.filter(v => v.done).map(v => ({ event_type:'vaccination_added', category:'health', title:`Vaccination ${v.name}`, description:'', old_value:'Non administré', new_value:'Administré le '+(v.dateAdmin||'—'), performed_by_name:'', performed_role:'', department:'', attachments:[], priority:'normal', source_module:'health', event_date:v.dateAdmin||child.created_at })) || []
-                              const edu = child.extra_data?.education
-                              const grades = edu?.subjects?.filter(s => s.grade).map(s => ({ event_type:'grade_added', category:'education', title:`Note ${s.name}`, description:'', old_value:'', new_value:`${s.grade}/20`, performed_by_name:'', performed_role:'', department:'', attachments:[], priority:'normal', source_module:'education', event_date:child.updated_at })) || []
-                              return [...stored.map(s => ({ ...s, event_type:s.event_type||'update_added', performed_by_name:s.created_by||s.created_by_name||'', department:s.department||'', priority:s.priority||'normal', source_module:s.source_module||'update_center', attachments:s.attachments||[], event_date:s.event_date||s.created_at })), ...vax, ...grades, { event_type:'created', category:'registration', title:t('pd_registered')||'Enfant enregistré', description:'Nouvel enregistrement dans le système', old_value:'', new_value:`UID: ${child.uid}`, performed_by_name:(user?.first_name||'')+' '+(user?.last_name||''), performed_role:user?.role||'', department:'', attachments:[], priority:'normal', source_module:'registration', event_date:child.created_at }].sort((a, b) => new Date(b.event_date||0) - new Date(a.event_date||0))
-                            }
-                            const hcLocal = hcLoad(hcHistoryChild)
-                            const hcFiltered = hcLocal.filter(e => {
-                              if (hcFilterCategory && e.category !== hcFilterCategory) return false
-                              if (hcFilterType && e.event_type !== hcFilterType) return false
-                              if (hcFilterPriority && e.priority !== hcFilterPriority) return false
-                              if (hcFilterSource && e.source_module !== hcFilterSource) return false
-                              if (hcStatusOnly && e.event_type !== 'status_change') return false
-                              if (hcDateFrom && new Date(e.event_date||0) < new Date(hcDateFrom)) return false
-                              if (hcDateTo && new Date(e.event_date||0) > new Date(hcDateTo+'T23:59:59')) return false
-                              if (hcSearch && !(e.title||'').toLowerCase().includes(hcSearch.toLowerCase()) && !(e.description||'').toLowerCase().includes(hcSearch.toLowerCase()) && !(e.performed_by_name||'').toLowerCase().includes(hcSearch.toLowerCase()) && !(e.reason||'').toLowerCase().includes(hcSearch.toLowerCase())) return false
-                              return true
-                            })
-                            const hcStats = { total:hcLocal.length, status_changes:hcLocal.filter(e => e.event_type === 'status_change').length, health_events:hcLocal.filter(e => e.category === 'health').length, education_events:hcLocal.filter(e => e.category === 'education').length, family_events:hcLocal.filter(e => e.category === 'family').length, document_events:hcLocal.filter(e => e.category === 'documents').length, alert_events:hcLocal.filter(e => e.category === 'alert'||e.category === 'protection'||e.priority === 'critical').length }
-                            const hcGrouped = (() => { const today=new Date(); today.setHours(0,0,0,0); const yesterday=new Date(today); yesterday.setDate(yesterday.getDate()-1); const ws=new Date(today); ws.setDate(ws.getDate()-ws.getDay()); const ms=new Date(today.getFullYear(),today.getMonth(),1); const g={today:[],yesterday:[],thisWeek:[],thisMonth:[],older:[]}; hcFiltered.forEach(e=>{const d=new Date(e.event_date||0); d.setHours(0,0,0,0); if(d.getTime()===today.getTime()) g.today.push(e); else if(d.getTime()===yesterday.getTime()) g.yesterday.push(e); else if(d>=ws) g.thisWeek.push(e); else if(d>=ms) g.thisMonth.push(e); else g.older.push(e)}); return g })()
-                            const hcGL = { today:t('hc_group_today')||"Aujourd'hui", yesterday:t('hc_group_yesterday')||'Hier', thisWeek:t('hc_group_this_week')||'Cette semaine', thisMonth:t('hc_group_this_month')||'Ce mois-ci', older:t('hc_group_older')||'Plus ancien' }
-                            const hcDC = hcDensity === 'compact' ? ' hc-density-compact' : hcDensity === 'audit' ? ' hc-density-audit' : ''
-                            return (
+                            const hcSections = [
+                              { key:'identity', icon:'👤', label:(t('hc_section_identity')||'Identité'), color:'#3b82f6', desc:(t('hc_section_identity_desc')||'Informations personnelles') },
+                              { key:'health', icon:'💉', label:(t('uc_category_health')||'Santé'), color:'#22c55e', desc:(t('uc_category_desc_health')||'Vaccinations, maladies, examens') },
+                              { key:'family', icon:'👨‍👩‍👧‍👦', label:(t('uc_category_family')||'Famille'), color:'#a855f7', desc:(t('uc_category_desc_family')||'Tuteurs, parents, réunification') },
+                              { key:'education', icon:'📚', label:(t('uc_category_education')||'Scolarité'), color:'#3b82f6', desc:(t('uc_category_desc_education')||'Inscription, notes, examens') },
+                              { key:'social', icon:'🤝', label:(t('uc_category_social')||'Social'), color:'#ef4444', desc:(t('uc_category_desc_social')||'Suivi social, visites, rapports') },
+                              { key:'documents', icon:'📄', label:(t('uc_category_documents')||'Documents'), color:'#f59e0b', desc:(t('uc_category_desc_documents')||'Ajout, remplacement, vérification') },
+                            ]
+                            const catEvents = hcCategory && hcCategory !== 'identity' ? hcEvents.filter(e => e.category === hcCategory) : []
+                            const catTypeDefs = hcCategory && hcCategory !== 'identity' ? (UC_CATEGORIES.find(c => c.key === hcCategory)?.types || []) : []
+                            const parseDesc = (desc) => { try { const d = JSON.parse(desc); if (typeof d === 'object' && d !== null) return d } catch {} return null }
+                            const fieldLabels = {}
+                            catTypeDefs.forEach(t => t.fields.forEach(f => { fieldLabels[f.key] = f.label }))
+                            const ucIcons = {}
+                            UC_CATEGORIES.forEach(c => c.types.forEach(t => { ucIcons[t.key] = t.icon }))
+                            const hues = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316']
+                            return hcCategory ? (
                               <div className="hc-standalone-body">
-                                {/* Stats */}
-                                <div className="hc-kpi-row">
-                                  {[
-                                    { label:t('hc_total_events')||'Événements', value:hcStats.total, icon:'📊', color:'#3b82f6' },
-                                    { label:t('hc_status_changes')||'Statuts', value:hcStats.status_changes, icon:'🔄', color:'#f59e0b' },
-                                    { label:t('hc_health_events')||'Santé', value:hcStats.health_events, icon:'💉', color:'#22c55e' },
-                                    { label:t('hc_education_events')||'Éducation', value:hcStats.education_events, icon:'📚', color:'#3b82f6' },
-                                    { label:t('hc_family_events')||'Famille', value:hcStats.family_events, icon:'👨‍👩‍👧‍👦', color:'#a855f7' },
-                                    { label:t('hc_alert_events')||'Alertes', value:hcStats.alert_events, icon:'🚨', color:'#ef4444' },
-                                  ].map((kpi, i) => (
-                                    <div key={i} className="hc-kpi" style={{borderLeftColor:kpi.color}}>
-                                      <span className="hc-kpi-icon">{kpi.icon}</span>
-                                      <div className="hc-kpi-info"><span className="hc-kpi-value">{kpi.value}</span><span className="hc-kpi-label">{kpi.label}</span></div>
+                                <button className="hc-cat-back" onClick={() => setHcCategory('')}>← {t('form_back')||'Retour'}</button>
+                                <div className="hc-cat-header">
+                                  <span className="hc-cat-header-icon" style={{background:hcSections.find(s=>s.key===hcCategory)?.color+'20',color:hcSections.find(s=>s.key===hcCategory)?.color}}>{hcSections.find(s=>s.key===hcCategory)?.icon}</span>
+                                  <div>
+                                    <div className="hc-cat-header-title">{hcSections.find(s=>s.key===hcCategory)?.label}</div>
+                                    <div className="hc-cat-header-count">{catEvents.length} {t('hc_events_count')||'événements'}</div>
+                                  </div>
+                                </div>
+                                {hcCategory === 'identity' ? (
+                                  <div className="hc-identity-detail">
+                                    <div className="hc-identity-photo">
+                                      {(() => { const pu = getChildPhotoUrl(hcHistoryChild); if (pu) return <img src={pu} alt="" />; return <span className="hc-identity-initial">{hcHistoryChild.prenom?.[0] || hcHistoryChild.nom?.[0] || '?'}</span> })()}
                                     </div>
-                                  ))}
-                                </div>
-
-                                {/* Toolbar */}
-                                <div className="hc-toolbar">
-                                  <div className="hc-view-tabs">
-                                    {[{ key:'timeline', icon:'📋', label:t('hc_timeline')||'Chronologie' }, { key:'audit', icon:'📋', label:t('hc_audit_log')||'Audit' }, { key:'calendar', icon:'📅', label:t('hc_calendar')||'Calendrier' }, { key:'analytics', icon:'📊', label:t('hc_analytics')||'Analytiques' }].map(v => (
-                                      <button key={v.key} className={`hc-view-tab${hcView === v.key ? ' active' : ''}`} onClick={() => setHcView(v.key)}>{v.icon} {v.label}</button>
-                                    ))}
-                                  </div>
-                                  <div className="hc-toolbar-actions">
-                                    {hcView === 'timeline' && ['comfortable','compact','audit'].map(d => (
-                                      <button key={d} className={`hc-density-btn${hcDensity === d ? ' active' : ''}`} onClick={() => setHcDensity(d)}>
-                                        {d === 'comfortable' ? '⋅⋅' : d === 'compact' ? '··' : '━━'} {t('hc_density_'+d)||d}
-                                      </button>
-                                    ))}
-                                    <button className="hc-export-btn" onClick={() => { const csv = [['Date','Catégorie','Type','Titre','Ancien','Nouveau','Par','Motif'].join(',')].concat(hcFiltered.map(e => [e.event_date||'',e.category||'',e.event_type||'',`"${(e.title||'').replace(/"/g,'""')}"`,`"${(e.old_value||'').replace(/"/g,'""')}"`,`"${(e.new_value||'').replace(/"/g,'""')}"`,e.performed_by_name||'',`"${(e.reason||'').replace(/"/g,'""')}"`].join(','))).join('\n'); const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `historique_${hcHistoryChild.uid}.csv`; a.click() }}>{t('hc_export')||'Exporter'} ⬇️</button>
-                                  </div>
-                                </div>
-
-                                {/* Filters */}
-                                <div className="hc-filters">
-                                  <select className="hc-filter-select" value={hcFilterCategory} onChange={e => setHcFilterCategory(e.target.value)}>
-                                    <option value="">{t('hc_all_categories')||'Toutes'}</option>
-                                    {Object.keys(hcColors).map(c => <option key={c} value={c}>{t('uc_category_'+c)||c}</option>)}
-                                  </select>
-                                  <select className="hc-filter-select" value={hcFilterType} onChange={e => setHcFilterType(e.target.value)}>
-                                    <option value="">{t('hc_all_types')||'Tous'}</option>
-                                    {Object.entries(hcIcons).map(([k, icon]) => <option key={k} value={k}>{icon} {t('hc_event_'+k)||k}</option>)}
-                                  </select>
-                                  <select className="hc-filter-select" value={hcFilterPriority} onChange={e => setHcFilterPriority(e.target.value)}>
-                                    <option value="">{t('hc_select_priority')||'Priorité'}</option>
-                                    {['low','normal','high','critical'].map(p => <option key={p} value={p}>{t('hc_priority_'+p)||p}</option>)}
-                                  </select>
-                                  <select className="hc-filter-select" value={hcFilterSource} onChange={e => setHcFilterSource(e.target.value)}>
-                                    <option value="">{t('hc_filter_source')||'Module'}</option>
-                                    {['registration','child_profile','health','education','family','documents','social','update_center','status','system','alert','follow_up'].map(s => <option key={s} value={s}>{t('hc_source_'+s)||s}</option>)}
-                                  </select>
-                                  <input type="date" className="hc-filter-date" value={hcDateFrom} onChange={e => setHcDateFrom(e.target.value)} title={t('hc_date_from')||'Du'} />
-                                  <input type="date" className="hc-filter-date" value={hcDateTo} onChange={e => setHcDateTo(e.target.value)} title={t('hc_date_to')||'Au'} />
-                                  <div className="hc-date-presets">
-                                    {[
-                                      { key:'7d', label:t('hc_preset_7d')||'7 jours', days:7 },
-                                      { key:'30d', label:t('hc_preset_30d')||'30 jours', days:30 },
-                                      { key:'tm', label:t('hc_preset_this_month')||'Ce mois', fn:()=>{const d=new Date(),y=d.getFullYear(),m=d.getMonth();return{from:new Date(y,m,1).toISOString().split('T')[0],to:d.toISOString().split('T')[0]}} },
-                                      { key:'lm', label:t('hc_preset_last_month')||'Mois dernier', fn:()=>{const d=new Date(),y=d.getFullYear(),m=d.getMonth();return{from:new Date(y,m-1,1).toISOString().split('T')[0],to:new Date(y,m,0).toISOString().split('T')[0]}} },
-                                    ].map(p => (
-                                      <button key={p.key} className="hc-preset-btn" onClick={() => {
-                                        if (p.fn) { const r=p.fn(); setHcDateFrom(r.from); setHcDateTo(r.to) }
-                                        else { const d=new Date(),f=new Date(d); f.setDate(d.getDate()-p.days); setHcDateFrom(f.toISOString().split('T')[0]); setHcDateTo(d.toISOString().split('T')[0]) }
-                                      }}>{p.label}</button>
-                                    ))}
-                                  </div>
-                                  <div className="hc-search-wrap">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                                    <input className="hc-search-input" value={hcSearch} onChange={e => setHcSearch(e.target.value)} placeholder={t('hc_search_events')||'Rechercher...'} />
-                                  </div>
-                                  <label className="hc-status-toggle"><input type="checkbox" checked={hcStatusOnly} onChange={e => setHcStatusOnly(e.target.checked)} /><span>{t('hc_filter_status_only')||'Statuts'}</span></label>
-                                  {(hcFilterCategory||hcFilterType||hcFilterPriority||hcFilterSource||hcSearch||hcDateFrom||hcDateTo||hcStatusOnly) && <button className="hc-clear-btn" onClick={() => { setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcSearch(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false) }}>{t('hc_clear_filters')||'✕'}</button>}
-                                  <span className="hc-filter-count">{hcFiltered.length} / {hcLocal.length}</span>
-                                </div>
-
-                                {/* Timeline */}
-                                {hcView === 'timeline' && (
-                                  <div className={`hc-timeline${hcDC}`}>
-                                    {hcFiltered.length === 0 && <div className="hc-empty"><span className="hc-empty-icon">📭</span><p>{t('hc_no_events')||'Aucun événement'}</p></div>}
-                                    {hcDensity === 'comfortable' ? Object.entries(hcGrouped).filter(([_,evs])=>evs.length).map(([gk,evs]) => (
-                                      <div key={gk} className="hc-tl-group">
-                                        <div className="hc-tl-group-header"><span className="hc-tl-group-label">{hcGL[gk]||gk}</span><span className="hc-tl-group-count">{evs.length}</span></div>
-                                        {evs.map((e,i) => (
-                                          <div key={i} className={`hc-tl-item${hcExpanded===gk+'_'+i?' expanded':''}${criticalEventTypes.includes(e.event_type)||criticalPriorities.includes(e.priority)?' hc-tl-critical':''}${e.event_type==='status_change'?' hc-tl-status-change':''}`} onClick={()=>{setHcExpanded(hcExpanded===gk+'_'+i?null:gk+'_'+i);setHcSelectedEvent(e)}}>
-                                            <div className="hc-tl-line" />
-                                            <div className="hc-tl-dot" style={{background:hcColors[e.category]||'#64748b'}}>{hcIcons[e.event_type]||'📌'}</div>
-                                            <div className="hc-tl-card">
-                                              <div className="hc-tl-card-top">
-                                                <span className="hc-tl-badge" style={{background:hcColors[e.category]||'#64748b'}}>{e.category?t('uc_category_'+e.category)||e.category:''}</span>
-                                                {e.priority&&e.priority!=='normal'&&<span className={`hc-tl-priority hc-tl-priority-${e.priority}`}>{t('hc_priority_'+e.priority)||e.priority}</span>}
-                                                <span className="hc-tl-time">{e.event_date?new Date(e.event_date).toLocaleDateString(lang==='en'?'en-US':'fr-FR',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}</span>
-                                              </div>
-                                              <div className="hc-tl-title">{e.title}</div>
-                                              {e.event_type==='status_change'&&e.old_value&&e.new_value&&<div className="hc-tl-status-beforeafter"><span className="hc-tl-status-badge hc-tl-status-old">{e.old_value}</span><span className="hc-tl-arrow">→</span><span className="hc-tl-status-badge hc-tl-status-new">{e.new_value}</span></div>}
-                                              {e.performed_by_name&&<div className="hc-tl-meta">{t('hc_performed_by')||'Par'}: {e.performed_by_name}{e.performed_role?' ('+e.performed_role+')':''}</div>}
-                                              {hcExpanded===gk+'_'+i&&<div className="hc-tl-details">
-                                                {e.description&&<div className="hc-tl-detail-row"><strong>{t('form_description')||'Description'}:</strong><span>{e.description}</span></div>}
-                                                {e.old_value&&e.event_type!=='status_change'&&<div className="hc-tl-detail-row"><strong style={{color:'#ef4444'}}>{t('hc_old_value')||'Ancien'}:</strong><span>{e.old_value}</span></div>}
-                                                {e.new_value&&e.event_type!=='status_change'&&<div className="hc-tl-detail-row"><strong style={{color:'#22c55e'}}>{t('hc_new_value')||'Nouveau'}:</strong><span>{e.new_value}</span></div>}
-                                                {e.reason&&<div className="hc-tl-detail-row"><strong>{t('hc_reason')||'Motif'}:</strong><span>{e.reason}</span></div>}
-                                                {e.department&&<div className="hc-tl-detail-row"><strong>{t('hc_department')||'Département'}:</strong><span>{e.department}</span></div>}
-                                                {e.source_module&&<div className="hc-tl-detail-row"><strong>{t('hc_source_module')||'Module'}:</strong><span>{t('hc_source_'+e.source_module)||e.source_module}</span></div>}
-                                                {e.attachments?.length>0&&<div className="hc-tl-detail-row"><strong>{t('hc_attachments')||'Fichiers'}:</strong><span>{e.attachments.map((a,ai)=><span key={ai} className="hc-tl-attach-file">📎 {a}</span>)}</span></div>}
-                                              </div>}
-                                              <div className="hc-tl-expand">{hcExpanded===gk+'_'+i?'▲':'▼'}</div>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )) : hcFiltered.map((e,i) => (
-                                      <div key={i} className={`hc-tl-item${hcExpanded===i?' expanded':''}${criticalEventTypes.includes(e.event_type)||criticalPriorities.includes(e.priority)?' hc-tl-critical':''}${e.event_type==='status_change'?' hc-tl-status-change':''}`} onClick={()=>{setHcExpanded(hcExpanded===i?null:i);setHcSelectedEvent(e)}}>
-                                        <div className="hc-tl-line" />
-                                        <div className="hc-tl-dot" style={{background:hcColors[e.category]||'#64748b'}}>{hcIcons[e.event_type]||'📌'}</div>
-                                        <div className="hc-tl-card">
-                                          <div className="hc-tl-card-top">
-                                            <span className="hc-tl-badge" style={{background:hcColors[e.category]||'#64748b'}}>{e.category||''}</span>
-                                            {e.priority&&e.priority!=='normal'&&<span className={`hc-tl-priority hc-tl-priority-${e.priority}`}>{e.priority}</span>}
-                                            <span className="hc-tl-time">{e.event_date?new Date(e.event_date).toLocaleDateString(lang==='en'?'en-US':'fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</span>
-                                          </div>
-                                          <div className="hc-tl-title">{e.title}</div>
-                                          {e.event_type==='status_change'&&e.old_value&&e.new_value&&<div className="hc-tl-status-beforeafter"><span className="hc-tl-status-badge hc-tl-status-old">{e.old_value}</span><span className="hc-tl-arrow">→</span><span className="hc-tl-status-badge hc-tl-status-new">{e.new_value}</span></div>}
-                                          {e.performed_by_name&&<div className="hc-tl-meta">{e.performed_by_name}</div>}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-
-                                {/* Audit */}
-                                {hcView === 'audit' && (
-                                  <div className="hc-audit">
-                                    <div className="hc-audit-table">
-                                      <div className="hc-audit-header">
-                                        <span className="hc-audit-col-date">{t('form_date')||'Date'}</span>
-                                        <span className="hc-audit-col-event">{t('form_type')||'Événement'}</span>
-                                        <span className="hc-audit-col-cat">{t('uc_category')||'Catégorie'}</span>
-                                        <span className="hc-audit-col-priority">{t('hc_priority')||'Priorité'}</span>
-                                        <span className="hc-audit-col-user">{t('hc_performed_by')||'Utilisateur'}</span>
-                                        <span className="hc-audit-col-role">{t('form_role')||'Rôle'}</span>
-                                        <span className="hc-audit-col-source">{t('hc_source_module')||'Module'}</span>
-                                        <span className="hc-audit-col-old">{t('hc_old_value')||'Ancien'}</span>
-                                        <span className="hc-audit-col-new">{t('hc_new_value')||'Nouveau'}</span>
-                                        <span className="hc-audit-col-reason">{t('hc_reason')||'Motif'}</span>
-                                      </div>
-                                      {hcFiltered.length===0&&<div className="hc-empty"><p>{t('hc_no_events')||'Aucun'}</p></div>}
-                                      {hcFiltered.map((e,i)=>(
-                                        <div key={i} className={`hc-audit-row${criticalEventTypes.includes(e.event_type)||criticalPriorities.includes(e.priority)?' hc-audit-critical':''}`}>
-                                          <span className="hc-audit-col-date">{e.event_date?new Date(e.event_date).toLocaleDateString(lang==='en'?'en-US':'fr-FR',{day:'2-digit',month:'short'}):'—'}</span>
-                                          <span className="hc-audit-col-event"><span className="hc-event-badge" style={{background:hcColors[e.category]||'#64748b'}}>{hcIcons[e.event_type]||'📌'} {t('hc_event_'+e.event_type)||e.event_type}</span></span>
-                                          <span className="hc-audit-col-cat">{e.category?t('uc_category_'+e.category)||e.category:'—'}</span>
-                                          <span className="hc-audit-col-priority">{e.priority?<span className={`hc-tl-priority hc-tl-priority-${e.priority}`}>{t('hc_priority_'+e.priority)||e.priority}</span>:'—'}</span>
-                                          <span className="hc-audit-col-user">{e.performed_by_name||'—'}</span>
-                                          <span className="hc-audit-col-role">{e.performed_role||'—'}</span>
-                                          <span className="hc-audit-col-source">{e.source_module?t('hc_source_'+e.source_module)||e.source_module:'—'}</span>
-                                          <span className="hc-audit-col-old" style={{color:'#ef4444',maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={e.old_value}>{e.old_value||'—'}</span>
-                                          <span className="hc-audit-col-new" style={{color:'#22c55e',maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={e.new_value}>{e.new_value||'—'}</span>
-                                          <span className="hc-audit-col-reason" style={{maxWidth:100,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={e.reason}>{e.reason||'—'}</span>
+                                    <div className="hc-identity-fields">
+                                      {[
+                                        { label:t('form_firstname')||'Prénom', value:hcHistoryChild.prenom },
+                                        { label:t('form_lastname')||'Nom', value:hcHistoryChild.nom },
+                                        { label:t('form_dob')||'Date de naissance', value:hcHistoryChild.date_naissance ? new Date(hcHistoryChild.date_naissance).toLocaleDateString(lang==='en'?'en-US':'fr-FR',{day:'numeric',month:'long',year:'numeric'}) : '—' },
+                                        { label:t('form_age')||'Âge', value:hcHistoryChild.date_naissance ? Math.floor((Date.now()-new Date(hcHistoryChild.date_naissance).getTime())/31557600000)+' '+(t('form_years')||'ans') : '—' },
+                                        { label:t('form_gender')||'Sexe', value:hcHistoryChild.sexe === 'M' ? (t('form_male')||'Masculin') : hcHistoryChild.sexe === 'F' ? (t('form_female')||'Féminin') : '—' },
+                                        { label:t('form_nationality')||'Nationalité', value:hcHistoryChild.nationalite || '—' },
+                                        { label:t('form_uid')||'UID', value:'#'+hcHistoryChild.uid },
+                                        { label:t('form_status')||'Statut', value:t('child_status_'+hcHistoryChild.status)||hcHistoryChild.status||(t('form_active')||'Actif') },
+                                        { label:t('form_address')||'Adresse', value:hcHistoryChild.adresse || '—' },
+                                      ].map((f, fi) => (
+                                        <div key={fi} className="hc-identity-field">
+                                          <span className="hc-identity-field-label">{f.label}</span>
+                                          <span className="hc-identity-field-value">{f.value}</span>
                                         </div>
                                       ))}
                                     </div>
                                   </div>
-                                )}
-
-                                {/* Calendar */}
-                                  {hcView === 'calendar' && (
-                                    <div className="hc-calendar">
-                                      <div className="hc-cal-title">{t('hc_calendar_view')||'Calendrier'}</div>
-                                      <div className="hc-cal-grid">
-                                        {(() => {
-                                          const today = new Date()
-                                          const year = today.getFullYear()
-                                          const month = today.getMonth()
-                                          const firstDay = new Date(year, month, 1).getDay()
-                                          const daysInMonth = new Date(year, month + 1, 0).getDate()
-                                          const dayNames = lang === 'en' ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] : ['Dim','Lun','Mar','Mer','Jeu','Ven','Sat']
-                                          const eventMap = {}
-                                          hcFiltered.forEach(e => { if (!e.event_date) return; const d = new Date(e.event_date); const k = d.getDate(); if (!eventMap[k]) eventMap[k] = []; eventMap[k].push(e) })
-                                          const cells = dayNames.map(d => ({ type: 'header', label: d }))
-                                          for (let i = 0; i < firstDay; i++) cells.push({ type: 'empty' })
-                                          for (let d = 1; d <= daysInMonth; d++) cells.push({ type: 'day', day: d, events: eventMap[d] || [] })
-                                          return cells.map((cell, i) => {
-                                            if (cell.type === 'header') return <div key={'h'+i} className="hc-cal-day-header">{cell.label}</div>
-                                            if (cell.type === 'empty') return <div key={'e'+i} className="hc-cal-day hc-cal-day-empty" />
-                                            const hasCritical = cell.events.some(e => criticalEventTypes.includes(e.event_type))
-                                            return (
-                                              <div key={'d'+i} className={`hc-cal-day${cell.events.length ? ' hc-cal-day-has' : ''}${hasCritical ? ' hc-cal-day-critical' : ''}`}>
-                                                <span className="hc-cal-day-num">{cell.day}</span>
-                                                {cell.events.length > 0 && (
-                                                  <div className="hc-cal-day-events">
-                                                    {cell.events.slice(0, 3).map((e, ei) => (
-                                                      <div key={ei} className="hc-cal-day-event" style={{background:hcColors[e.category]||'#64748b'}} title={e.title} onClick={() => setHcSelectedEvent(e)}>{hcIcons[e.event_type]||'📌'}</div>
-                                                    ))}
-                                                    {cell.events.length > 3 && <span className="hc-cal-day-more">+{cell.events.length - 3}</span>}
-                                                  </div>
-                                                )}
-                                              </div>
-                                            )
-                                          })
-                                        })()}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                {/* Analytics */}
-                                {hcView === 'analytics' && (
-                                  <div className="hc-analytics">
-                                    <div className="hc-analytics-grid">
-                                      {Object.entries(hcColors).filter(([k])=>k!=='alert'&&k!=='protection'&&k!=='system'&&k!=='follow_up').map(([ck,color])=>{const ct=hcLocal.filter(e=>e.category===ck).length;if(!ct)return null;return(<div key={ck} className="hc-analytics-card" style={{borderLeftColor:color}}><div className="hc-analytics-card-top"><span className="hc-analytics-icon" style={{background:color+'20'}}>{hcIcons[Object.keys(hcIcons).find(k=>k.startsWith(ck))]||'📊'}</span><span className="hc-analytics-count">{ct}</span></div><span className="hc-analytics-label">{t('uc_category_'+ck)||ck}</span><div className="hc-analytics-bar" style={{background:color+'20'}}><div className="hc-analytics-bar-fill" style={{width:hcLocal.length?(ct/hcLocal.length*100)+'%':'0%',background:color}}/></div></div>)})}
-                                      {hcLocal.filter(e=>e.category==='alert'||e.category==='protection').length>0&&<div className="hc-analytics-card" style={{borderLeftColor:'#ef4444'}}><div className="hc-analytics-card-top"><span className="hc-analytics-icon" style={{background:'rgba(239,68,68,0.12)'}}>🚨</span><span className="hc-analytics-count">{hcLocal.filter(e=>e.category==='alert'||e.category==='protection').length}</span></div><span className="hc-analytics-label">{t('hc_alert_events')||'Alertes'}</span><div className="hc-analytics-bar" style={{background:'rgba(239,68,68,0.12)'}}><div className="hc-analytics-bar-fill" style={{width:hcLocal.length?(hcLocal.filter(e=>e.category==='alert'||e.category==='protection').length/hcLocal.length*100)+'%':'0%',background:'#ef4444'}}/></div></div>}
-                                    </div>
-                                    <div className="hc-analytics-summary">
-                                      <div className="hc-analytics-summary-item"><span>{t('hc_total_events')||'Total'}</span><strong>{hcLocal.length}</strong></div>
-                                      <div className="hc-analytics-summary-item"><span>{t('hc_total_updates')||'Updates'}</span><strong>{hcLocal.filter(e=>e.event_type==='update_added').length}</strong></div>
-                                      <div className="hc-analytics-summary-item"><span>{t('hc_events_today')||"Aujourd'hui"}</span><strong>{hcGrouped.today.length}</strong></div>
-                                      <div className="hc-analytics-summary-item"><span>{t('hc_events_this_week')||'Semaine'}</span><strong>{hcGrouped.thisWeek.length}</strong></div>
-                                      <div className="hc-analytics-summary-item"><span>{t('hc_events_this_month')||'Mois'}</span><strong>{hcGrouped.thisMonth.length}</strong></div>
-                                    </div>
+                                ) : catEvents.length === 0 ? (
+                                  <div className="hc-empty" style={{gridColumn:'1/-1',textAlign:'center',padding:'40px 0'}}><span className="hc-empty-icon" style={{fontSize:'40px',display:'block',marginBottom:'12px'}}>📭</span><p style={{color:'#64748b',fontSize:'14px'}}>{t('hc_no_events')||'Aucune mise à jour dans cette catégorie'}</p></div>
+                                ) : (
+                                  <div className="hc-cat-events" style={{'--cat-color':hcSections.find(s=>s.key===hcCategory)?.color}}>
+                                    {catEvents.map((evt, ei) => {
+                                      const descObj = parseDesc(evt.description)
+                                      const typeDef = catTypeDefs.find(t => t.key === evt.update_type) || catTypeDefs.find(t => evt.title?.toLowerCase().includes(t.label?.toLowerCase() || ''))
+                                      const expanded = hcExpanded === ei
+                                      return (
+                                        <div key={ei} className={`hc-cat-event${expanded ? ' expanded' : ''}`} onClick={() => setHcExpanded(expanded ? null : ei)}>
+                                          <div className="hc-cat-event-top">
+                                            <span className="hc-cat-event-type">{ucIcons[evt.update_type]||'📌'} {typeDef?.label || evt.update_type || evt.event_type}</span>
+                                            <span className="hc-cat-event-date">{evt.event_date ? new Date(evt.event_date).toLocaleDateString(lang==='en'?'en-US':'fr-FR',{day:'numeric',month:'short',year:'numeric'}) : '—'}</span>
+                                            <span className="hc-cat-event-expand">{expanded ? '▲' : '▼'}</span>
+                                          </div>
+                                          <div className="hc-cat-event-title">{evt.title}</div>
+                                          {expanded && (
+                                            <div className="hc-cat-event-details">
+                                              {descObj && Object.entries(descObj).filter(([_,v]) => v).map(([fk, fv]) => (
+                                                <div key={fk} className="hc-cat-detail-row">
+                                                  <span className="hc-cat-detail-label">{fieldLabels[fk] || fk}</span>
+                                                  <span className="hc-cat-detail-value">{fv}</span>
+                                                </div>
+                                              ))}
+                                              {evt.reason && <div className="hc-cat-detail-row full"><span className="hc-cat-detail-label">{t('hc_reason')||'Motif'}</span><span className="hc-cat-detail-value">{evt.reason}</span></div>}
+                                              {evt.attachments?.length > 0 && <div className="hc-cat-detail-row full"><span className="hc-cat-detail-label">{t('hc_attachments')||'Pièces jointes'}</span><span className="hc-cat-detail-value">{evt.attachments.map((a,i) => <span key={i} className="hc-cat-attach">📎 {a}</span>)}</span></div>}
+                                              {evt.performed_by_name && <div className="hc-cat-detail-row full"><span className="hc-cat-detail-label">{t('hc_performed_by')||'Par'}</span><span className="hc-cat-detail-value">{evt.performed_by_name}{evt.performed_role ? ` (${evt.performed_role})` : ''}</span></div>}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )
+                                    })}
                                   </div>
                                 )}
-
-                                {/* Event Detail Drawer */}
-                                {hcSelectedEvent && (
-                                  <div className="hc-drawer-overlay" onClick={() => setHcSelectedEvent(null)}>
-                                    <div className="hc-drawer" onClick={e => e.stopPropagation()}>
-                                      <button className="hc-drawer-close" onClick={() => setHcSelectedEvent(null)}>✕</button>
-                                      <div className="hc-drawer-title">{t('hc_event_detail_title')||"Détails de l'événement"}</div>
-                                      <div className="hc-drawer-section">
-                                        <div className="hc-drawer-section-title">{t('hc_event_info')||'Événement'}</div>
-                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_type')||'Type'}</span><span className="hc-drawer-value">{hcIcons[hcSelectedEvent.event_type]||''} {t('hc_event_'+hcSelectedEvent.event_type)||hcSelectedEvent.event_type}</span></div>
-                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('uc_category')||'Catégorie'}</span><span className="hc-drawer-value"><span className="hc-tl-badge" style={{background:hcColors[hcSelectedEvent.category]||'#64748b'}}>{t('uc_category_'+hcSelectedEvent.category)||hcSelectedEvent.category}</span></span></div>
-                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_title')||'Titre'}</span><span className="hc-drawer-value">{hcSelectedEvent.title}</span></div>
-                                        {hcSelectedEvent.description&&<div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_description')||'Description'}</span><span className="hc-drawer-value">{hcSelectedEvent.description}</span></div>}
-                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_date')||'Date'}</span><span className="hc-drawer-value">{hcSelectedEvent.event_date?new Date(hcSelectedEvent.event_date).toLocaleDateString(lang==='en'?'en-US':'fr-FR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}</span></div>
-                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_priority')||'Priorité'}</span><span className="hc-drawer-value">{hcSelectedEvent.priority?<span className={`hc-tl-priority hc-tl-priority-${hcSelectedEvent.priority}`}>{t('hc_priority_'+hcSelectedEvent.priority)||hcSelectedEvent.priority}</span>:'—'}</span></div>
-                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_source_module')||'Module'}</span><span className="hc-drawer-value">{hcSelectedEvent.source_module?t('hc_source_'+hcSelectedEvent.source_module)||hcSelectedEvent.source_module:'—'}</span></div>
-                                      </div>
-                                      {(hcSelectedEvent.old_value||hcSelectedEvent.new_value)&&<div className="hc-drawer-section"><div className="hc-drawer-section-title">{t('hc_old_value')||'Valeurs'}</div>
-                                        {hcSelectedEvent.old_value&&<div className="hc-drawer-row"><span className="hc-drawer-label" style={{color:'#ef4444'}}>{t('hc_old_value')||'Ancien'}</span><span className="hc-drawer-value">{hcSelectedEvent.old_value}</span></div>}
-                                        {hcSelectedEvent.new_value&&<div className="hc-drawer-row"><span className="hc-drawer-label" style={{color:'#22c55e'}}>{t('hc_new_value')||'Nouveau'}</span><span className="hc-drawer-value">{hcSelectedEvent.new_value}</span></div>}
-                                        {hcSelectedEvent.reason&&<div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_reason')||'Motif'}</span><span className="hc-drawer-value">{hcSelectedEvent.reason}</span></div>}
-                                      </div>}
-                                      <div className="hc-drawer-section"><div className="hc-drawer-section-title">{t('hc_performed_by')||'Effectué par'}</div>
-                                        <div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_name')||'Nom'}</span><span className="hc-drawer-value">{hcSelectedEvent.performed_by_name||'—'}</span></div>
-                                        {hcSelectedEvent.performed_role&&<div className="hc-drawer-row"><span className="hc-drawer-label">{t('form_role')||'Rôle'}</span><span className="hc-drawer-value">{hcSelectedEvent.performed_role}</span></div>}
-                                        {hcSelectedEvent.department&&<div className="hc-drawer-row"><span className="hc-drawer-label">{t('hc_department')||'Département'}</span><span className="hc-drawer-value">{hcSelectedEvent.department}</span></div>}
-                                      </div>
-                                      {hcSelectedEvent.attachments?.length>0&&<div className="hc-drawer-section"><div className="hc-drawer-section-title">{t('hc_attachments')||'Pièces jointes'} ({hcSelectedEvent.attachments.length})</div>
-                                        <div className="hc-drawer-attachments">{hcSelectedEvent.attachments.map((a,ai)=><div key={ai} className="hc-drawer-attach">📎 {a}</div>)}</div>
-                                      </div>}
-                                    </div>
-                                  </div>
-                                )}
+                              </div>
+                            ) : (
+                              <div className="hc-standalone-body">
+                                <div className="hc-cat-grid">
+                                  {hcSections.map(sec => {
+                                    const count = sec.key === 'identity' ? 1 : hcEvents.filter(e => e.category === sec.key).length
+                                    const color = sec.color
+                                    const icon = sec.key === 'identity' ? getChildPhotoUrl(hcHistoryChild) || hcHistoryChild?.prenom?.[0] || '👤' : sec.icon
+                                    return (
+                                      <button key={sec.key} className="hc-cat-card" style={{'--cat-color':color}} onClick={() => sec.key === 'identity' ? setHcCategory('identity') : count > 0 ? setHcCategory(sec.key) : null}>
+                                        <div className="hc-cat-card-icon" style={{background:color+'20',color}}>
+                                          {sec.key === 'identity' && typeof icon === 'string' && (icon.startsWith('data:') || icon.startsWith('http')) ? <img src={icon} alt="" className="hc-cat-card-photo" /> : sec.key === 'identity' ? <span style={{fontSize:'28px',fontWeight:'700',color}}>{hcHistoryChild?.prenom?.[0] || hcHistoryChild?.nom?.[0] || '👤'}</span> : <span>{icon}</span>}
+                                        </div>
+                                        <div className="hc-cat-card-info">
+                                          <div className="hc-cat-card-name">{sec.label}</div>
+                                          <div className="hc-cat-card-desc">{sec.desc}</div>
+                                        </div>
+                                        <div className="hc-cat-card-count" style={{background:color+'20',color}}>{count} {count > 1 ? (t('hc_events_count')||'éléments') : (t('hc_event_singular')||'élément')}</div>
+                                      </button>
+                                    )
+                                  })}
+                                </div>
                               </div>
                             )
                           })()}
@@ -8720,7 +8557,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       <span className="uc2-premium-micro-value">{lastMed ? new Date(lastMed).toLocaleDateString() : '—'}</span>
                                     </div>
                                   </div>
-                                  <button className="uc2-premium-card-select" onClick={() => { setHcHistoryChild(child); setHcSearch(''); setHcGender(''); setHcAgeRange(''); setHcRegion(''); setHcSortStatus(''); setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false); setHcEvents([]); setHcExpanded(null); setHcSelectedEvent(null); setHcView('timeline') }}>
+                                  <button className="uc2-premium-card-select" onClick={() => { setHcHistoryChild(child); setHcCategory(''); setHcSearch(''); setHcGender(''); setHcAgeRange(''); setHcRegion(''); setHcSortStatus(''); setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false); setHcEvents([]); setHcExpanded(null); setHcSelectedEvent(null); setHcView('timeline') }}>
                                     {t('uc_select_btn')||'Sélectionner'} →
                                   </button>
                                 </div>

@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/frontend",
+      "port": 5173,
+      "autoPort": false
+    },
+    {
+      "name": "Backend",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["manage.py", "runserver", "8000"],
+      "cwd": "${workspaceFolder}/backend",
+      "port": 8000
+    }
+  ]
+}

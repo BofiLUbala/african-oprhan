@@ -21,9 +21,9 @@ def _resoudre_auteur(instance, auteur=None):
 def _creer_evenement(child, event_type, performed_by=None, old_value="", new_value="",
                      title="", description="", reason="", status_before="",
                      status_after="", note="", source_module="", metadata=None,
-                     linked_update=None):
+                     linked_update=None, force_category=None):
     classification = CLASSIFICATION_EVENEMENTS.get(event_type, {})
-    categorie = classification.get('categorie', 'SYSTEME')
+    categorie = force_category or classification.get('categorie', 'SYSTEME')
     priorite = classification.get('priorite', 'INFO')
     module = classification.get('module', source_module or 'system')
 
@@ -38,6 +38,8 @@ def _creer_evenement(child, event_type, performed_by=None, old_value="", new_val
     mapping_categorie = {
         'SANTE': 'health', 'SCOLARITE': 'education', 'FAMILLE': 'family',
         'DOCUMENTS': 'documents', 'SOCIAL': 'social', 'SYSTEME': 'system',
+        'HEALTH': 'health', 'EDUCATION': 'education', 'FAMILY': 'family',
+        'DOCUMENTS': 'documents', 'SOCIAL': 'social',
     }
     mapping_priorite = {'INFO': 'low', 'IMPORTANT': 'high', 'CRITIQUE': 'critical'}
 
@@ -175,6 +177,7 @@ def child_update_post_save(sender, instance, created, **kwargs):
         new_value=instance.new_value or "",
         reason=instance.reason or "",
         source_module='update_center',
+        force_category=instance.category.upper(),
         metadata={'categorie_update': instance.category,
                   'type_update': instance.update_type},
         linked_update=instance,
