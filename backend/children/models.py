@@ -89,6 +89,24 @@ class Child(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active", verbose_name="Statut")
     extra_data = models.JSONField(default=dict, blank=True, verbose_name="Données supplémentaires")
 
+    biography = models.TextField(blank=True, default="", verbose_name="Biographie")
+    dream = models.TextField(blank=True, default="", verbose_name="Rêve")
+    skills = models.JSONField(default=list, blank=True, verbose_name="Talents")
+    interests = models.JSONField(default=list, blank=True, verbose_name="Centres d'intérêt")
+
+    school_name = models.CharField(max_length=255, blank=True, default="", verbose_name="Nom de l'école")
+    school_level = models.CharField(max_length=100, blank=True, default="", verbose_name="Niveau scolaire")
+    school_progress = models.CharField(max_length=100, blank=True, default="", verbose_name="Progrès scolaire")
+
+    medical_info = models.JSONField(default=dict, blank=True, verbose_name="Informations médicales")
+
+    followers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="followed_children",
+        verbose_name="Followers",
+    )
+
     orphanage = models.ForeignKey(
         "orphanages.Orphanage",
         on_delete=models.SET_NULL,

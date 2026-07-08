@@ -364,3 +364,18 @@ def project_history(request, project_id):
     historique = projet.historique.all()
     serializer = ProjetHistorySerializer(historique, many=True)
     return Response(serializer.data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def project_follow(request, project_id):
+    try:
+        projet = Project.objects.get(pk=project_id)
+    except Project.DoesNotExist:
+        return Response({"error": "Projet introuvable."}, status=status.HTTP_404_NOT_FOUND)
+    user = request.user
+    if projet.followers.filter(pk=user.pk).exists():
+        projet.followers.remove(user)
+        return Response({"following": False})
+    projet.followers.add(user)
+    return Response({"following": True})

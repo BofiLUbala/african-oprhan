@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { LangProvider, useTranslation } from './i18n'
 import SystemConfigurationPage from './components/SystemConfigurationPage'
 import UserManagementPage from './components/UserManagementPage'
 import ReportsPage from './components/ReportsPage'
 import ProfilesSection from './components/ProfilesSection'
+import useLiveChildren from './hooks/useLiveChildren'
+import useNotifications from './hooks/useNotifications'
 import './App.css'
 
 const API = 'http://localhost:8000/api'
@@ -102,14 +104,7 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [activeKey, setActiveKey] = useState('dashboard')
   const [subKey, setSubKey] = useState(null)
-  const [landingChildren, setLandingChildren] = useState([])
-
-  useEffect(() => {
-    fetch(`${API}/enfants/public/`)
-      .then(r => r.ok ? r.json() : [])
-      .then(data => { if (Array.isArray(data)) setLandingChildren(data) })
-      .catch(() => {})
-  }, [])
+  const { pool: liveChildren, reportBroken: reportBrokenChildPhoto } = useLiveChildren()
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -173,8 +168,8 @@ export default function App() {
       <div className="app">
         <Header onLoginClick={() => setShowLogin(true)} onSignupClick={() => setShowSignup(true)} onVirtualAssist={() => setChatbotCollapsed(false)} />
         <main>
-          <Hero children={landingChildren} />
-          <ProfilesSection children={landingChildren} />
+          <Hero pool={liveChildren} onBroken={reportBrokenChildPhoto} />
+          <ProfilesSection pool={liveChildren} onBroken={reportBrokenChildPhoto} />
           <Support />
           <Stats />
           <Contact />
@@ -241,24 +236,20 @@ function svgUrl(letter, bg, w, h) {
   return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${bg}dd"/><stop offset="100%" stop-color="${bg}88"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#g)" rx="${Math.round(Math.min(w,h)*0.08)}"/><text x="${w/2}" y="${h*0.58}" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="${Math.round(Math.min(w,h)*0.45)}" font-weight="bold" font-family="Arial,sans-serif">${letter}</text></svg>`)}`
 }
 
-const youthData = [
-  { name: 'Aminata', age: 7, country: 'Sénégal', code: 'SN', color: '#f59e0b', img: svgUrl('A', '#f59e0b', 500, 600) },
-  { name: 'Kofi', age: 10, country: 'Ghana', code: 'GH', color: '#22c55e', img: svgUrl('K', '#22c55e', 500, 600) },
-  { name: 'Zara', age: 6, country: 'Éthiopie', code: 'ET', color: '#a855f7', img: svgUrl('Z', '#a855f7', 500, 600) },
-  { name: 'Moussa', age: 12, country: 'Mali', code: 'ML', color: '#3b82f6', img: svgUrl('M', '#3b82f6', 500, 600) },
-  { name: 'Fatou', age: 8, country: 'RDC', code: 'CD', color: '#ef4444', img: svgUrl('F', '#ef4444', 500, 600) },
-]
-
-function Hero({ children: heroChildren }) {
+function Hero({ pool, onBroken }) {
   const { t } = useTranslation()
-  const heroData = heroChildren.length > 0 ? heroChildren : youthData
   const [slide, setSlide] = useState(0)
-  const len = heroData.length
+  const len = pool.length
 
   useEffect(() => {
-    const t = setInterval(() => setSlide(s => (s + 1) % len), 18000)
-    return () => clearInterval(t)
+    if (len === 0) return
+    const id = setInterval(() => setSlide(s => (s + 1) % len), 18000)
+    return () => clearInterval(id)
   }, [len])
+
+  useEffect(() => {
+    if (slide >= len) setSlide(0)
+  }, [len, slide])
 
   const hues = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316']
 
@@ -268,7 +259,7 @@ function Hero({ children: heroChildren }) {
         <div className="hero-image-card">
           <div className="mock-img">
             <div className="hero-slide">
-              {heroData.map((y, i) => {
+              {pool.map((y, i) => {
                 const photoUrl = (y.photo_url || y.photo || '').startsWith('http') ? (y.photo_url || y.photo) : ''
                 const initial = (y.prenom?.[0] || y.nom?.[0] || '?').toUpperCase()
                 const color = hues[(y.prenom?.charCodeAt(0) || 0) % hues.length] || y.color
@@ -276,8 +267,8 @@ function Hero({ children: heroChildren }) {
                 const age = y.age
                 const country = y.nationalite || y.country || ''
                 return (
-                  <div key={i} className={`hero-slide-img${i === slide ? ' active' : ''}`}>
-                    {photoUrl ? <img src={photoUrl} alt={name} /> : <div className="hero-slide-placeholder" style={{background:`linear-gradient(135deg,${color}dd,${color}88)`}}><span className="hero-slide-initial">{initial}</span></div>}
+                  <div key={y.id || y.uid || i} className={`hero-slide-img${i === slide ? ' active' : ''}`}>
+                    {photoUrl ? <img src={photoUrl} alt={name} onError={() => onBroken?.(photoUrl)} onLoad={e => { if (e.currentTarget.naturalWidth < 120 || e.currentTarget.naturalHeight < 120) onBroken?.(photoUrl) }} /> : <div className="hero-slide-placeholder" style={{background:`linear-gradient(135deg,${color}dd,${color}88)`}}><span className="hero-slide-initial">{initial}</span></div>}
                     <div className="hero-slide-overlay" style={{ background: `linear-gradient(transparent 50%, ${color}dd 100%)` }}>
                       <div className="hero-slide-info">
                         <span className="hero-slide-name">{name}</span>
@@ -289,8 +280,8 @@ function Hero({ children: heroChildren }) {
               })}
             </div>
             <div className="hero-dots">
-              {heroData.map((y, i) => (
-                <button key={i} className={`hdot${i === slide ? ' active' : ''}`} onClick={() => setSlide(i)} style={i === slide ? { background: hues[(y.prenom?.charCodeAt(0) || 0) % hues.length] || '#f59e0b' } : {}} />
+              {pool.map((y, i) => (
+                <button key={y.id || y.uid || i} className={`hdot${i === slide ? ' active' : ''}`} onClick={() => setSlide(i)} style={i === slide ? { background: hues[(y.prenom?.charCodeAt(0) || 0) % hues.length] || '#f59e0b' } : {}} />
               ))}
             </div>
             <div className="mock-badge">
@@ -516,10 +507,10 @@ const ROLE_NAV = {
   ],
   partner: [
     { label: 'Tableau de bord', key: 'dashboard' },
-    { label: 'Besoins', key: 'besoins' },
+    { label: 'Opportunités', key: 'opportunites' },
+    { label: 'Enfants', key: 'enfants' },
     { label: 'Projets', key: 'projets' },
-    { label: 'Parrainages', key: 'parrainages' },
-    { label: 'Rapports', key: 'rapports' },
+    { label: 'Impact', key: 'impact' },
     { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
   ],
@@ -705,11 +696,15 @@ const ROLE_PAGES = {
       { id: 'D3', title: 'Besoins urgents', subtitle: '5 Nouveaux', count: 5 },
       { id: 'D4', title: 'Rapports disponibles', subtitle: '8 Documents', count: 8 },
     ]},
-    besoins: { title: 'Consultation des besoins', subtitle: "Consulter les besoins des orphelinats.", categories: [
-      { id: 'N1', title: 'Besoins matériels', subtitle: '15 Demandes', count: 15 },
-      { id: 'N2', title: "Besoins financiers", subtitle: '8 Projets', count: 8 },
-      { id: 'N3', title: 'Urgences', subtitle: '3 Critiques', count: 3 },
-      { id: 'N4', title: "Appels aux dons", subtitle: '2 Campagnes', count: 2 },
+    opportunites: { title: 'Centre des Opportunités', subtitle: "Découvrez comment soutenir enfants et projets.", categories: [
+      { id: 'O1', title: 'Toutes les opportunités', subtitle: 'Consulter', count: 0 },
+      { id: 'O2', title: 'Urgent', subtitle: 'Priorité haute', count: 0 },
+      { id: 'O3', title: 'Financement', subtitle: "Besoin d'aide", count: 0 },
+      { id: 'O4', title: 'Terminé', subtitle: 'Réalisations', count: 0 },
+    ]},
+    enfants: { title: 'Profils Enfants', subtitle: "Découvrez les enfants soutenus.", categories: [
+      { id: 'E1', title: 'Tous les profils', subtitle: 'Liste complète', count: 0 },
+      { id: 'E2', title: 'Rechercher', subtitle: 'Par nom ou pays', count: 0 },
     ]},
     projets: { title: 'Financement de projets', subtitle: 'Contribuer aux projets locaux.', categories: [
       { id: 'P1', title: 'Projets ouverts', subtitle: '6 Disponibles', count: 6 },
@@ -717,17 +712,11 @@ const ROLE_PAGES = {
       { id: 'P3', title: "Rapports d'impact", subtitle: '8 Reçus', count: 8 },
       { id: 'P4', title: "Propositions", subtitle: '2 Nouvelles', count: 2 },
     ]},
-    parrainages: { title: 'Parrainage', subtitle: "Parrainer un enfant à distance.", categories: [
-      { id: 'F1', title: 'Enfants disponibles', subtitle: '18 Profils', count: 18 },
-      { id: 'F2', title: 'Mes filleuls', subtitle: '3 Enfants', count: 3 },
-      { id: 'F3', title: 'Échanges reçus', subtitle: '6 Messages', count: 6 },
-      { id: 'F4', title: "Photos et rapports", subtitle: '9 Documents', count: 9 },
-    ]},
-    rapports: { title: 'Rapports et documents', subtitle: 'Télécharger les rapports.', categories: [
-      { id: 'R1', title: "Rapports d'impact", subtitle: '8 Documents', count: 8 },
-      { id: 'R2', title: "Rapports financiers", subtitle: '4 Documents', count: 4 },
-      { id: 'R3', title: 'Attestations fiscales', subtitle: '3 Disponibles', count: 3 },
-      { id: 'R4', title: "Suivi des contributions", subtitle: '12 Mois', count: 12 },
+    impact: { title: "Tableau d'Impact", subtitle: 'Mesurez votre impact réel.', categories: [
+      { id: 'I1', title: 'Statistiques', subtitle: 'Indicateurs clés', count: 0 },
+      { id: 'I2', title: 'Par type', subtitle: "Répartition d'opportunités", count: 0 },
+      { id: 'I3', title: 'Par pays', subtitle: "Répartition géographique", count: 0 },
+      { id: 'I4', title: 'Récentes', subtitle: 'Dernières opportunités', count: 0 },
     ]},
     parametres: { title: 'Paramètres', subtitle: 'Configuration du compte.', categories: [
       { id: 'S4', title: 'Configuration', subtitle: 'Préférences', count: 2 },
@@ -761,10 +750,10 @@ const ROLE_STATS = {
     { label: 'VALIDATIONS', value: '8', sub: 'EN ATTENTE', color: '#ef4444' },
   ],
   partner: [
-    { label: 'CONTRIBUTIONS', value: '12', sub: 'PROJETS', color: '#f59e0b' },
-    { label: 'PARRAINAGES', value: '3', sub: 'ENFANTS', color: '#3b82f6' },
-    { label: 'DONS', value: '5', sub: 'CETTE ANNÉE', color: '#22c55e' },
-    { label: 'RAPPORTS', value: '8', sub: 'DISPO.', color: '#a855f7' },
+    { label: 'OPPORTUNITÉS', value: '0', sub: 'ACTIVES', color: '#f59e0b' },
+    { label: 'ENFANTS', value: '0', sub: 'SOUTENUS', color: '#3b82f6' },
+    { label: 'PROJETS', value: '0', sub: 'FINANCÉS', color: '#22c55e' },
+    { label: 'URGENTS', value: '0', sub: 'CRITIQUES', color: '#ef4444' },
   ],
 }
 
@@ -787,7 +776,7 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
   const [time, setTime] = useState(new Date())
   const [profileImg, setProfileImg] = useState(localStorage.getItem('cdo_profile_img') || null)
   const [localOrpName, setLocalOrpName] = useState(localStorage.getItem('cdo_orphanage_name') || '')
-  const [notifications, setNotifications] = useState([])
+  const { notifications, unreadCount: notifCount, markRead: markNotifRead, markAllRead: markAllRead } = useNotifications()
   const [notifOpen, setNotifOpen] = useState(false)
   const [theme, setTheme] = useState(localStorage.getItem('cdo_theme') || 'dark')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -819,22 +808,6 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(timer)
-  }, [])
-
-  /* ── Fetch notifications from API ── */
-  const notifFetchRef = useRef(false)
-  const fetchNotifications = async () => {
-    try {
-      const res = await apiFetch(`${API}/notifications/`, {}, onLogout)
-      if (res && res.ok) setNotifications(await res.json())
-    } catch {}
-  }
-  useEffect(() => {
-    if (notifFetchRef.current) return
-    notifFetchRef.current = true
-    fetchNotifications()
-    const poll = setInterval(fetchNotifications, 30000)
-    return () => clearInterval(poll)
   }, [])
 
   // Close dropdowns on outside click
@@ -921,22 +894,6 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
     }
   }
 
-  const markNotifRead = (nid) => {
-    apiFetch(`${API}/notifications/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: nid }),
-    }, onLogout).then(r => { if (r) setNotifications(prev => prev.map(n => n.id === nid ? { ...n, is_read: true } : n)) }).catch(() => {})
-  }
-  const markAllRead = () => {
-    apiFetch(`${API}/notifications/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mark_read: true }),
-    }, onLogout).then(r => { if (r) setNotifications(prev => prev.map(n => ({ ...n, is_read: true }))) }).catch(() => {})
-  }
-
-  const notifCount = notifications.filter(n => !n.is_read).length
   const notifIcon = (title) => {
     if (title.includes('Refusé') || title.includes('rejet')) return '❌'
     if (title.includes('Modification')) return '🔄'
@@ -1148,10 +1105,19 @@ function EsIcon({ name, size = 18, stroke = 2, style, className }) {
 }
 
 const esChannelIconName = (ch) => ({
-  public: 'globe', annonces: 'megaphone', urgences: 'siren',
+  annonces: 'megaphone', urgences: 'siren',
   ambassadeurs: 'award', 'chefs-orphelinat': 'building', confederation: 'landmark',
   administration: 'shield', orphanage: 'heart',
 }[ch?.slug] || (ch?.kind === 'project' ? 'folder' : 'hash'))
+
+const STATIC_CHANNELS = [
+  { slug: 'annonces', name: 'Annonces', kind: 'channel', description: "Canal d'annonces", messages_count: 0 },
+  { slug: 'urgences', name: 'Urgences', kind: 'channel', description: "Canal d'urgences", messages_count: 0 },
+  { slug: 'ambassadeurs', name: 'Ambassadeurs', kind: 'channel', description: 'Canal des ambassadeurs', messages_count: 0 },
+  { slug: 'chefs-orphelinat', name: "Chefs d'Orphelinat", kind: 'channel', description: "Canal des chefs d'orphelinat", messages_count: 0 },
+  { slug: 'confederation', name: 'Confédération', kind: 'channel', description: 'Canal de la confédération', messages_count: 0 },
+  { slug: 'administration', name: 'Administration', kind: 'channel', description: "Canal de l'administration", messages_count: 0 },
+]
 
 /* ═══════════ SUPER MASTER — GLOBAL EXECUTIVE DASHBOARD ═══════════ */
 function ExecutiveDashboard({ onLogout }) {
@@ -1514,12 +1480,19 @@ function EclatSocialApp({ user, onReturn }) {
   const [esMessages, setEsMessages] = React.useState([])
   const [esMsgInput, setEsMsgInput] = React.useState('')
   const [esUsers, setEsUsers] = React.useState([])
-  const [esNotifs, setEsNotifs] = React.useState([])
   const [esPosts, setEsPosts] = React.useState([])
   const [esPostText, setEsPostText] = React.useState('')
   const [esPosting, setEsPosting] = React.useState(false)
+  const [esHomeFiles, setEsHomeFiles] = React.useState([])
+  const [esHomeRecording, setEsHomeRecording] = React.useState(false)
+  const [esHomeRecordingVideo, setEsHomeRecordingVideo] = React.useState(false)
+  const esHomeFileInputRef = React.useRef(null)
+  const esHomeRecorderRef = React.useRef(null)
+  const esHomeChunksRef = React.useRef([])
   const [esComments, setEsComments] = React.useState([])
   const [esCommentInput, setEsCommentInput] = React.useState('')
+  const [esShareModal, setEsShareModal] = React.useState(false)
+  const [esSharePost, setEsSharePost] = React.useState(null)
   // ── Header state ──────────────────────────────────────────────
   const [esSearchQuery, setEsSearchQuery] = React.useState('')
   const [esSearchType, setEsSearchType] = React.useState('all')
@@ -1533,7 +1506,7 @@ function EclatSocialApp({ user, onReturn }) {
   const esOnlineRef = React.useRef(null)
 
   // ── Channels (Slack-like, role-based) ──────────────────────────────
-  const [esChannels, setEsChannels] = React.useState([])
+  const [esChannels, setEsChannels] = React.useState(STATIC_CHANNELS)
   const [esActiveChannel, setEsActiveChannel] = React.useState(null)
   const [esChannelMsgs, setEsChannelMsgs] = React.useState([])
   const [esChannelInput, setEsChannelInput] = React.useState('')
@@ -1556,7 +1529,10 @@ function EclatSocialApp({ user, onReturn }) {
     setEsChannelFiles([]); setEsChannelInput('')
     apiFetch(`${API}/channels/${ch.slug}/messages/`, {}, onReturn)
       .then(r => r && r.ok ? r.json() : null)
-      .then(data => { if (data) setEsChannelMsgs(Array.isArray(data) ? data : []) })
+      .then(data => {
+        if (data) setEsChannelMsgs(Array.isArray(data) ? data : [])
+        esRefreshNotifs() // le backend vient de marquer les notifs du canal comme lues
+      })
       .catch(() => {})
   }
 
@@ -1609,7 +1585,13 @@ function EclatSocialApp({ user, onReturn }) {
   React.useEffect(() => {
     apiFetch(`${API}/channels/`, {}, onReturn)
       .then(r => r && r.ok ? r.json() : null)
-      .then(data => { if (Array.isArray(data)) setEsChannels(data) })
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const filtered = data.filter(c => c.slug !== 'public')
+          const seen = new Set(filtered.map(c => c.slug))
+          setEsChannels([...filtered, ...STATIC_CHANNELS.filter(sc => !seen.has(sc.slug))])
+        }
+      })
       .catch(() => {})
   }, [])
 
@@ -1660,29 +1642,23 @@ function EclatSocialApp({ user, onReturn }) {
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
   }, [])
 
-  // Load real registered agents + notifications once
+  // Load real registered agents once
   React.useEffect(() => {
     apiFetch(`${API}/auth/users/`, {}, onReturn)
       .then(r => r && r.ok ? r.json() : null)
       .then(data => { if (Array.isArray(data)) setEsUsers(data) })
       .catch(() => {})
-    apiFetch(`${API}/notifications/`, {}, onReturn)
-      .then(r => r && r.ok ? r.json() : null)
-      .then(data => { if (data) setEsNotifs(Array.isArray(data) ? data : (data.results || [])) })
-      .catch(() => {})
   }, [])
 
-  const esUnreadNotifs = esNotifs.filter(n => n && n.is_read === false).length
-
-  // Notifications actions (real backend)
-  const esMarkNotif = async (nid) => {
-    const res = await apiFetch(`${API}/notifications/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: nid }) }, onReturn)
-    if (res && res.ok) setEsNotifs(prev => prev.map(n => n.id === nid ? { ...n, is_read: true } : n))
-  }
-  const esMarkAllNotifs = async () => {
-    const res = await apiFetch(`${API}/notifications/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mark_read: true }) }, onReturn)
-    if (res && res.ok) setEsNotifs(prev => prev.map(n => ({ ...n, is_read: true })))
-  }
+  // Notifications : store partagé avec le Dashboard — les deux badges
+  // affichent toujours le même compteur, mis à jour en quasi temps réel.
+  const {
+    notifications: esNotifs,
+    unreadCount: esUnreadNotifs,
+    refresh: esRefreshNotifs,
+    markRead: esMarkNotif,
+    markAllRead: esMarkAllNotifs,
+  } = useNotifications()
 
   // Settings — theme + language (shared with dashboard via same storage/context)
   const { lang: esLang, setLang: esSetLang } = useTranslation()
@@ -1884,11 +1860,52 @@ function EclatSocialApp({ user, onReturn }) {
   }
 
   const esToggleLike = async (postId) => {
-    const res = await apiFetch(`${API}/posts/${postId}/like/`, { method: 'POST' }, onReturn)
-    if (res && res.ok) {
-      const data = await res.json()
-      setEsPosts(prev => prev.map(p => p.id === postId ? { ...p, is_liked: data.liked, likes_count: data.likes_count } : p))
+    try {
+      const res = await apiFetch(`${API}/posts/${postId}/like/`, { method: 'POST' }, onReturn)
+      if (res && res.ok) {
+        const data = await res.json()
+        setEsPosts(prev => prev.map(p => p.id === postId ? { ...p, is_liked: data.liked, likes_count: data.likes_count } : p))
+      }
+    } catch (_) {}
+  }
+
+  const esToggleDislike = async (postId) => {
+    try {
+      const res = await apiFetch(`${API}/posts/${postId}/dislike/`, { method: 'POST' }, onReturn)
+      if (res && res.ok) {
+        const data = await res.json()
+        setEsPosts(prev => prev.map(p => p.id === postId ? { ...p, is_disliked: data.disliked, dislikes_count: data.dislikes_count } : p))
+      }
+    } catch (_) {}
+  }
+
+  const esHandleShare = (post) => {
+    setEsSharePost(post)
+    setEsShareModal(true)
+  }
+
+  const esShareToFeed = async () => {
+    if (!esSharePost) return
+    const fd = new FormData()
+    fd.append('content', esSharePost.content)
+    fd.append('audience', 'public')
+    const res1 = await apiFetch(`${API}/posts/`, { method: 'POST', body: fd }, onReturn)
+    if (res1 && res1.ok) {
+      await apiFetch(`${API}/notifications/broadcast/`, { method: 'POST' }, onReturn)
+      esLoadPosts()
     }
+    setEsShareModal(false)
+    setEsSharePost(null)
+  }
+
+  const esCopyShareLink = () => {
+    if (!esSharePost) return
+    const url = `${window.location.origin}/communication/post/${esSharePost.id}`
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).catch(() => {})
+    }
+    setEsShareModal(false)
+    setEsSharePost(null)
   }
 
   const esLoadComments = (postId) => {
@@ -1964,7 +1981,9 @@ function EclatSocialApp({ user, onReturn }) {
   // Open an existing conversation (and mark it read).
   const esOpenConv = (conv) => {
     esNavigate('messages'); setEsActiveConv(conv)
-    apiFetch(`${API}/conversations/${conv.id}/read/`, { method: 'POST' }, onReturn).catch(() => {})
+    apiFetch(`${API}/conversations/${conv.id}/read/`, { method: 'POST' }, onReturn)
+      .then(() => esRefreshNotifs())
+      .catch(() => {})
     setEsConversations(prev => prev.map(c => c.id === conv.id ? { ...c, unread_count: 0 } : c))
   }
 
@@ -2667,11 +2686,97 @@ function EclatSocialApp({ user, onReturn }) {
             ))}
           </div>
 
-          {/* QUICK CREATE */}
-          <div className="es-quick-create" onClick={() => setEsModal('create')}>
-            <img src={avatarSvg} alt="" className="es-avatar-sm" />
-            <div className="es-quick-input">Quoi de neuf ?</div>
-            <button className="es-publish-btn" style={{ fontSize: '13px' }}>Publier</button>
+          {/* PUBLIC COMPOSER — inline */}
+          <div className="es-home-composer">
+            {esHomeFiles.length > 0 && (
+              <div className="dash-pub-attachments">
+                {esHomeFiles.map((f, i) => (
+                  <div key={i} className="dash-pub-attachment-chip">
+                    <EsIcon name={f.type?.startsWith('image') ? 'image' : f.type?.startsWith('audio') ? 'mic' : f.type?.startsWith('video') ? 'video' : 'file'} size={14} />
+                    <span>{f.name}</span>
+                    <button onClick={() => setEsHomeFiles(prev => prev.filter((_, j) => j !== i))}><EsIcon name="x" size={13} /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="es-home-composer-input">
+              <img src={avatarSvg} alt="" className="es-avatar-sm" />
+              <textarea rows={2} value={esPostText} onChange={e => setEsPostText(e.target.value)} placeholder="Quoi de neuf ?" className="es-home-textarea" />
+            </div>
+            <div className="es-home-composer-toolbar">
+              <div className="es-home-composer-left">
+                <input type="file" multiple hidden ref={esHomeFileInputRef} onChange={e => { setEsHomeFiles(prev => [...prev, ...Array.from(e.target.files||[])]); e.target.value = '' }}
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z,.txt,.csv" />
+                <button className="dash-pub-tool-btn" onClick={() => esHomeFileInputRef.current?.click()} title="Joindre un fichier">
+                  <EsIcon name="paperclip" size={17} />
+                </button>
+                <button className={`dash-pub-tool-btn${esHomeRecording ? ' recording' : ''}`} onClick={async () => {
+                  if (esHomeRecording) { esHomeRecorderRef.current?.stop(); return }
+                  try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+                    const rec = new MediaRecorder(stream)
+                    esHomeChunksRef.current = []
+                    rec.ondataavailable = e => { if (e.data.size) esHomeChunksRef.current.push(e.data) }
+                    rec.onstop = () => {
+                      const blob = new Blob(esHomeChunksRef.current, { type: 'audio/webm' })
+                      const file = new File([blob], `audio-${Date.now()}.webm`, { type: 'audio/webm' })
+                      setEsHomeFiles(prev => [...prev, file])
+                      stream.getTracks().forEach(t => t.stop())
+                      setEsHomeRecording(false)
+                    }
+                    rec.start(); esHomeRecorderRef.current = rec; setEsHomeRecording(true)
+                  } catch (_) {}
+                }} title={esHomeRecording ? 'Arrêter' : 'Enregistrement audio'}>
+                  <EsIcon name="mic" size={17} />
+                </button>
+                <button className="dash-pub-tool-btn" onClick={async () => {
+                  if (esHomeRecordingVideo) { esHomeRecorderRef.current?.stop(); return }
+                  try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                    const rec = new MediaRecorder(stream)
+                    esHomeChunksRef.current = []
+                    rec.ondataavailable = e => { if (e.data.size) esHomeChunksRef.current.push(e.data) }
+                    rec.onstop = () => {
+                      const blob = new Blob(esHomeChunksRef.current, { type: 'video/webm' })
+                      const file = new File([blob], `video-${Date.now()}.webm`, { type: 'video/webm' })
+                      setEsHomeFiles(prev => [...prev, file])
+                      stream.getTracks().forEach(t => t.stop())
+                      setEsHomeRecordingVideo(false)
+                    }
+                    rec.start(); esHomeRecorderRef.current = rec; setEsHomeRecordingVideo(true)
+                  } catch (_) {}
+                }} title={esHomeRecordingVideo ? 'Arrêter' : 'Enregistrement vidéo'}>
+                  <EsIcon name="video" size={17} />
+                </button>
+              </div>
+              <button className="es-publish-btn" disabled={esPosting || (!esPostText.trim() && esHomeFiles.length === 0)} onClick={async () => {
+                if (esPosting || (!esPostText.trim() && esHomeFiles.length === 0)) return
+                setEsPosting(true)
+                try {
+                  const fd = new FormData()
+                  fd.append('content', esPostText.trim())
+                  fd.append('audience', 'public')
+                  fd.append('post_type', esHomeFiles.some(f => f.type?.startsWith('video')) ? 'video' : esHomeFiles.some(f => f.type?.startsWith('image')) ? 'image' : 'text')
+                  esHomeFiles.forEach(f => fd.append('media', f))
+                  const res = await apiFetch(`${API}/posts/`, { method: 'POST', body: fd }, onReturn)
+                  if (res && res.ok) {
+                    const created = await res.json()
+                    apiFetch(`${API}/notifications/broadcast/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Nouvelle publication', content: esPostText.trim().substring(0, 200), link: created?.id ? `/posts/${created.id}` : '' }) }, () => {})
+                    setEsPostText(''); setEsHomeFiles([])
+                    if (created?.status === 'pending') {
+                      setEsPostNotice(created.child_info?.ambassador_name
+                        ? `Publication envoyée à ${created.child_info.ambassador_name} (ambassadeur assigné) pour validation.`
+                        : 'Publication soumise pour validation. Aucun ambassadeur assigné.')
+                      setTimeout(() => setEsPostNotice(''), 8000)
+                    }
+                    esLoadPosts()
+                  }
+                } catch (_) {}
+                setEsPosting(false)
+              }}>
+                {esPosting ? '...' : 'Publier'}
+              </button>
+            </div>
           </div>
 
           {/* WORKFLOW NOTICE (after a director submits) */}
@@ -2768,7 +2873,7 @@ function EclatSocialApp({ user, onReturn }) {
             </div>
           )}
 
-          {/* POSTS */}
+          {/* POSTS — Facebook-style */}
           <div className="es-posts">
             {esPosts.length === 0 && (
               <div style={{ textAlign: 'center', color: '#94a3b8', padding: '32px 16px', fontSize: '14px' }}>Aucune publication pour le moment.</div>
@@ -2783,9 +2888,9 @@ function EclatSocialApp({ user, onReturn }) {
                     <img src={postAvatar} alt={post.author_name} className="es-avatar-sm" />
                     <div className="es-post-meta">
                       <span className="es-post-author">{post.author_name}</span>
-                      <span className="es-author-time">{esTimeAgo(post.created_at)}</span>
+                      <span className="es-author-time">{esTimeAgo(post.created_at)}{post.location ? ` · ${post.location}` : ''}</span>
                     </div>
-                    <button className="es-post-options">⋮</button>
+                    <button className="es-post-options" onClick={e => { e.stopPropagation(); esHandleShare(post) }}>···</button>
                   </div>
                   <div className="es-post-content" onClick={() => openPostDetail(post)}>
                     <p>{post.content}</p>
@@ -2796,14 +2901,33 @@ function EclatSocialApp({ user, onReturn }) {
                           <span className="es-play-icon">▶</span>
                         </div>
                       ) : (
-                        <img src={media.url} alt="Post" className="es-post-image" />
+                        <div className="es-image-wrap">
+                          <img src={media.url} alt="Post" className="es-post-image" />
+                        </div>
                       )
                     )}
                   </div>
+                  <div className="es-post-stats">
+                    <span className="es-stat-likes">{post.likes_count > 0 ? `👍 ${post.likes_count}` : ''}</span>
+                    <span>{post.comments_count > 0 ? `${post.comments_count} commentaire${post.comments_count > 1 ? 's' : ''}` : ''} {post.shares_count > 0 ? ` · ${post.shares_count} partage${post.shares_count > 1 ? 's' : ''}` : ''}</span>
+                  </div>
                   <div className="es-post-actions-bar">
-                    <button onClick={() => esToggleLike(post.id)}>{post.is_liked ? '❤️' : '🤍'} {post.likes_count || 0}</button>
-                    <button onClick={() => openPostDetail(post)}>💬 {post.comments_count || 0}</button>
-                    <button>➦ Partager</button>
+                    <button className={`es-action-btn ${post.is_liked ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); esToggleLike(post.id) }}>
+                      <span className="es-action-icon">{post.is_liked ? '👍' : '👍'}</span>
+                      <span>J'aime</span>
+                    </button>
+                    <button className={`es-action-btn ${post.is_disliked ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); esToggleDislike(post.id) }}>
+                      <span className="es-action-icon">👎</span>
+                      <span>Je n'aime pas</span>
+                    </button>
+                    <button className="es-action-btn" onClick={() => openPostDetail(post)}>
+                      <span className="es-action-icon">💬</span>
+                      <span>Commenter</span>
+                    </button>
+                    <button className="es-action-btn" onClick={(e) => { e.stopPropagation(); esHandleShare(post) }}>
+                      <span className="es-action-icon">➦</span>
+                      <span>Partager</span>
+                    </button>
                   </div>
                 </article>
               )
@@ -2964,10 +3088,15 @@ function EclatSocialApp({ user, onReturn }) {
                           <img src={media.url} alt="" className="es-media-img" />
                         </div>
                       )}
-                      <div className="es-post-actions-bar" style={{ borderTop: 'none', padding: '16px 0' }}>
-                        <button onClick={() => esToggleLike(esSelectedPost.id)}>{esSelectedPost.is_liked ? '❤️' : '🤍'} {esSelectedPost.likes_count || 0}</button>
-                        <button>💬 {esComments.length}</button>
-                        <button>➦ Partager</button>
+                      <div className="es-post-stats" style={{ padding: '10px 0 4px' }}>
+                        <span className="es-stat-likes">{esSelectedPost.likes_count > 0 ? `👍 ${esSelectedPost.likes_count}` : ''}</span>
+                        <span>{esComments.length > 0 ? `${esComments.length} commentaire${esComments.length > 1 ? 's' : ''}` : ''} {esSelectedPost.shares_count > 0 ? ` · ${esSelectedPost.shares_count} partage${esSelectedPost.shares_count > 1 ? 's' : ''}` : ''}</span>
+                      </div>
+                      <div className="es-post-actions-bar" style={{ borderTop: '1px solid #e2e8f0', padding: '6px 0' }}>
+                        <button className={`es-action-btn ${esSelectedPost.is_liked ? 'active' : ''}`} onClick={() => { esToggleLike(esSelectedPost.id); setEsSelectedPost(prev => prev ? { ...prev, is_liked: !prev.is_liked } : prev) }}><span className="es-action-icon">👍</span><span>J'aime</span></button>
+                        <button className={`es-action-btn ${esSelectedPost.is_disliked ? 'active' : ''}`} onClick={() => { esToggleDislike(esSelectedPost.id); setEsSelectedPost(prev => prev ? { ...prev, is_disliked: !prev.is_disliked } : prev) }}><span className="es-action-icon">👎</span><span>Je n'aime pas</span></button>
+                        <button className="es-action-btn"><span className="es-action-icon">💬</span><span>Commenter</span></button>
+                        <button className="es-action-btn" onClick={() => esHandleShare(esSelectedPost)}><span className="es-action-icon">➦</span><span>Partager</span></button>
                       </div>
                     </>
                   )
@@ -3007,6 +3136,44 @@ function EclatSocialApp({ user, onReturn }) {
           </div>
         </div>
       )}
+
+      {/* SHARE MODAL — Facebook-style */}
+      {esShareModal && esSharePost && (
+        <div className="es-modal-overlay" onClick={() => { setEsShareModal(false); setEsSharePost(null) }}>
+          <div className="es-share-modal" onClick={e => e.stopPropagation()}>
+            <div className="es-share-header">
+              <h3>Partager</h3>
+              <button className="es-share-close" onClick={() => { setEsShareModal(false); setEsSharePost(null) }}>✕</button>
+            </div>
+            <div className="es-share-body">
+              <div className="es-share-preview">
+                <div className="es-share-preview-header">
+                  <span className="es-share-preview-icon">📄</span>
+                  <div>
+                    <div className="es-share-preview-name">{esSharePost.author_name}</div>
+                    <div className="es-share-preview-time">{esTimeAgo(esSharePost.created_at)}</div>
+                  </div>
+                </div>
+                <p className="es-share-preview-text">{esSharePost.content}</p>
+              </div>
+              <button className="es-share-option" onClick={esShareToFeed}>
+                <span className="es-share-option-icon">📝</span>
+                <div>
+                  <div className="es-share-option-title">Partager sur votre fil</div>
+                  <div className="es-share-option-desc">Publier cette information sur votre propre fil d'actualité</div>
+                </div>
+              </button>
+              <button className="es-share-option" onClick={esCopyShareLink}>
+                <span className="es-share-option-icon">🔗</span>
+                <div>
+                  <div className="es-share-option-title">Copier le lien</div>
+                  <div className="es-share-option-desc">Copier l'adresse de cette publication dans le presse-papier</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -3041,6 +3208,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     return null
   }
   const [dashTime, setDashTime] = useState(new Date())
+  const [dashChannels, setDashChannels] = useState(STATIC_CHANNELS)
+  const [dashChannelSearch, setDashChannelSearch] = useState('')
+  /* ── Public message composer ── */
   const [fedTab, setFedTab] = useState('pending')
   const [fedDocTab, setFedDocTab] = useState('dossiers')
   const [fedDocTypes, setFedDocTypes] = useState([])
@@ -3128,6 +3298,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [hcCalendarData, setHcCalendarData] = useState([])
   const [hcViewMode, setHcViewMode] = useState('timeline')
   const [hcCategory, setHcCategory] = useState('')
+  const [hcSubcategory, setHcSubcategory] = useState('')
 
   /* Update Center v2 state */
   const [updateChild, setUpdateChild] = useState(null)
@@ -3598,6 +3769,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
         event_type: s.event_type || 'update_added',
         category: s.category,
         update_type: s.update_type,
+        subcategory: s.subcategory || '',
         title: s.title,
         description: s.description,
         old_value: s.previous_value || '',
@@ -3609,6 +3781,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
         performed_by_name: s.created_by || s.created_by_name || '',
         department: s.department || '',
         event_date: s.event_date || s.created_at,
+        metadata: s.metadata || {},
       }))
       const merged = [...apiEvents.map(e => ({ ...e, event_type: e.event_type || 'update_added', performed_by_name: e.performed_by_name || '', department: e.department || '', priority: e.priority || 'normal', source_module: e.source_module || 'update_center', attachments: e.attachments || [] }))]
       for (const le of localEvents) {
@@ -3664,6 +3837,18 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     apiFetch(`${API}/auth/stats/`, {}, onLogout)
       .then(r => r && r.ok ? r.json() : null)
       .then(data => { if (data?.kpis) setLiveStats(data.kpis) })
+      .catch(() => {})
+  }, [role])
+  React.useEffect(() => {
+    apiFetch(`${API}/channels/`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : null)
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const filtered = data.filter(c => c.slug !== 'public')
+          const seen = new Set(filtered.map(c => c.slug))
+          setDashChannels([...filtered, ...STATIC_CHANNELS.filter(sc => !seen.has(sc.slug))])
+        }
+      })
       .catch(() => {})
   }, [role])
   const statCards = liveStats || ROLE_STATS[role] || ROLE_STATS.director
@@ -4053,6 +4238,28 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           <span className="dash-dash-notif-text">{notif.text}</span>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                  {/* ── Communication Channels ── */}
+                  <div className="dash-dash-card dash-dash-channels">
+                    <div className="dash-dash-channel-search">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                      <input className="dash-dash-channel-input" type="text" placeholder={t('hc_filter_placeholder')||'Filtrer canaux, messages\u2026'} value={dashChannelSearch} onChange={e => setDashChannelSearch(e.target.value)} />
+                    </div>
+                    <div className="dash-dash-card-header">
+                      <span className="dash-dash-card-title">{t('dash_channels')||'Canaux'}</span>
+                      <span className="dash-dash-card-badge">{dashChannels.length}</span>
+                    </div>
+                    <div className="dash-dash-card-body" style={{paddingTop:0}}>
+                      {dashChannels.filter(c => !dashChannelSearch || c.name.toLowerCase().includes(dashChannelSearch.toLowerCase())).map((ch, i) => (
+                        <div key={ch.slug || i} className="dash-dash-channel-item" onClick={() => { setActiveKey('communication'); }}>
+                          <span className="dash-dash-channel-icon"><EsIcon name={esChannelIconName(ch)} size={16} /></span>
+                          <span className="dash-dash-channel-name">{ch.name}</span>
+                        </div>
+                      ))}
+                      {dashChannels.length === 0 && (
+                        <div className="dash-dash-empty" style={{fontSize:'12px',padding:'16px 0'}}>{t('dash_no_channels')||'Aucun canal disponible'}</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -6813,9 +7020,19 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     </div>
                                     <button className="uc-btn-primary uc-btn-save" onClick={async () => {
                                       setUcSaving(true)
-                                      const body = JSON.stringify({ category: ucCategory, update_type: ucType, title: ucTitle, description: ucDescription, previous_value: ucPrevValue, new_value: ucNewValue, reason: ucReason, attachments: ucFiles.map(f => f.name) })
+                                      const fields = { category: ucCategory, update_type: ucType, title: ucTitle, description: ucDescription, previous_value: ucPrevValue, new_value: ucNewValue, reason: ucReason }
+                                      const hasFiles = ucFiles.some(f => f.file)
+                                      let fetchOptions
+                                      if (hasFiles) {
+                                        const fd = new FormData()
+                                        Object.entries(fields).forEach(([k, v]) => fd.append(k, v ?? ''))
+                                        ucFiles.forEach(f => { if (f.file) fd.append('attachments', f.file, f.name) })
+                                        fetchOptions = { method: 'POST', body: fd }
+                                      } else {
+                                        fetchOptions = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...fields, attachments: [] }) }
+                                      }
                                       try {
-                                        const res = await apiFetch(`${API}/enfants/${selectedRegChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body }, onLogout)
+                                        const res = await apiFetch(`${API}/enfants/${selectedRegChild.id}/updates/`, fetchOptions, onLogout)
                                         if (res && res.ok) { setUcSaving(false); setUcSuccess(true); setUcStep(4) }
                                         else throw new Error()
                                       } catch {
@@ -7887,6 +8104,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       </>
                     )}
                   </div>
+                ) : activeKey === 'opportunites' && role === 'partner' ? (
+                  <OpportunityCenter user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} />
+                ) : activeKey === 'enfants' && role === 'partner' ? (
+                  <PartnerChildren user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} countryName={countryName} flagImg={flagImg} />
+                ) : activeKey === 'impact' && role === 'partner' ? (
+                  <PartnerImpactDashboard user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} />
                 ) : activeKey === 'update-center' ? (
                   <div className="uc2-wrap">
                     {!updateChild ? (
@@ -8187,7 +8410,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       <div className="uc2-field">
                                         <label className="uc2-field-label">{t('uc_attachments') || 'Pièces jointes'}</label>
                                         <div className="uc2-dropzone" onClick={() => document.getElementById('uc2-files')?.click()}>
-                                          <input id="uc2-files" type="file" multiple hidden onChange={e => { setUc2Files(prev => [...prev, ...Array.from(e.target.files||[]).map(f => ({ name: f.name, size: f.size, type: f.type }))]) }} />
+                                          <input id="uc2-files" type="file" multiple hidden onChange={e => { setUc2Files(prev => [...prev, ...Array.from(e.target.files||[]).map(f => ({ name: f.name, size: f.size, type: f.type, file: f }))]) }} />
                                           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                                           <p>{t('uc_drag_drop')||'Glissez-déposez'}</p>
                                           <span>{t('uc_click_browse')||'ou cliquez'}</span>
@@ -8203,9 +8426,19 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       for (const rf of requiredFields) { if (!uc2FormData[rf.key]?.trim()) { alert(rf.label + ' ' + (t('form_required')||'est requis')); return } }
                                       if (!uc2Reason.trim()) { alert(t('uc_required')||'Motif requis'); return }
                                       setUc2Saving(true)
-                                      const payload = { category: uc2Category, update_type: uc2Type, title: (t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' '))+' - '+updateChild.prenom+' '+updateChild.nom, description: JSON.stringify(uc2FormData), previous_value: '', new_value: JSON.stringify(uc2FormData), reason: uc2Reason+' | Priorité: '+uc2Priority+(uc2Comment ? ' | '+uc2Comment : ''), attachments: uc2Files.map(f => f.name) }
+                                      const payload = { category: uc2Category, update_type: uc2Type, subcategory: uc2Type, title: (t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' '))+' - '+updateChild.prenom+' '+updateChild.nom, description: JSON.stringify(uc2FormData), previous_value: '', new_value: JSON.stringify(uc2FormData), reason: uc2Reason+' | Priorité: '+uc2Priority+(uc2Comment ? ' | '+uc2Comment : ''), attachments: uc2Files.map(f => f.name) }
+                                      const hasFiles = uc2Files.some(f => f.file)
+                                      let fetchOptions
+                                      if (hasFiles) {
+                                        const fd = new FormData()
+                                        Object.entries(payload).forEach(([k, v]) => { if (k !== 'attachments') fd.append(k, v ?? '') })
+                                        uc2Files.forEach(f => { if (f.file) fd.append('attachments', f.file, f.name) })
+                                        fetchOptions = { method: 'POST', body: fd }
+                                      } else {
+                                        fetchOptions = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
+                                      }
                                       try {
-                                        const res = await apiFetch(`${API}/enfants/${updateChild.id}/updates/`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(payload) }, onLogout)
+                                        const res = await apiFetch(`${API}/enfants/${updateChild.id}/updates/`, fetchOptions, onLogout)
                                         if (res && res.ok) {
                                           const updates = JSON.parse(localStorage.getItem('cdo_updates_'+updateChild.uid)||'[]')
                                           updates.unshift({ id:Date.now(), ...payload, created_at: new Date().toISOString(), created_by: (user?.first_name||'')+' '+(user?.last_name||'') })
@@ -8313,7 +8546,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <div className="hc-standalone-main">
                           {/* Header */}
                           <div className="hc-standalone-header">
-                             <button className="dash-back-btn" onClick={() => { setHcHistoryChild(null); setHcEvents([]); setHcCategory(''); setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcSearch(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false); setHcExpanded(null); setHcSelectedEvent(null) }}>{'\u2190'} {t('form_back')}</button>
+                             <button className="dash-back-btn" onClick={() => { setHcHistoryChild(null); setHcEvents([]); setHcCategory(''); setHcSubcategory(''); setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcSearch(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false); setHcExpanded(null); setHcSelectedEvent(null) }}>{'\u2190'} {t('form_back')}</button>
                             <div className="hc-standalone-title">
                               <span className="hc-standalone-icon">📜</span>
                               <span>{t('hc_title')||'Centre d\'Historique'}</span>
@@ -8337,40 +8570,85 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <span className="hc-child-summary-status" style={{background:hcHistoryChild.status === 'active' ? 'rgba(34,197,94,0.15)' : hcHistoryChild.status === 'hospitalized'||hcHistoryChild.status === 'missing' ? 'rgba(239,68,68,0.15)' : 'rgba(100,116,139,0.15)', color:hcHistoryChild.status === 'active' ? '#22c55e' : hcHistoryChild.status === 'hospitalized'||hcHistoryChild.status === 'missing' ? '#ef4444' : '#94a3b8'}}>{hcHistoryChild.status ? (t('child_status_'+hcHistoryChild.status)||hcHistoryChild.status) : (t('form_active')||'Actif')}</span>
                           </div>
 
-                          {/* History content — Category Card Layout */}
+                          {/* History content — Full-page entries layout */}
                           {(() => {
                             const hcSections = [
-                              { key:'identity', icon:'👤', label:(t('hc_section_identity')||'Identité'), color:'#3b82f6', desc:(t('hc_section_identity_desc')||'Informations personnelles') },
-                              { key:'health', icon:'💉', label:(t('uc_category_health')||'Santé'), color:'#22c55e', desc:(t('uc_category_desc_health')||'Vaccinations, maladies, examens') },
-                              { key:'family', icon:'👨‍👩‍👧‍👦', label:(t('uc_category_family')||'Famille'), color:'#a855f7', desc:(t('uc_category_desc_family')||'Tuteurs, parents, réunification') },
-                              { key:'education', icon:'📚', label:(t('uc_category_education')||'Scolarité'), color:'#3b82f6', desc:(t('uc_category_desc_education')||'Inscription, notes, examens') },
-                              { key:'social', icon:'🤝', label:(t('uc_category_social')||'Social'), color:'#ef4444', desc:(t('uc_category_desc_social')||'Suivi social, visites, rapports') },
-                              { key:'documents', icon:'📄', label:(t('uc_category_documents')||'Documents'), color:'#f59e0b', desc:(t('uc_category_desc_documents')||'Ajout, remplacement, vérification') },
+                              { key:'identity', icon:'👤', label:(t('hc_section_identity')||'Identité'), color:'#3b82f6' },
+                              { key:'health', icon:'💉', label:(t('uc_category_health')||'Santé'), color:'#22c55e' },
+                              { key:'education', icon:'📚', label:(t('uc_category_education')||'Scolarité'), color:'#3b82f6' },
+                              { key:'family', icon:'👨‍👩‍👧‍👦', label:(t('uc_category_family')||'Famille'), color:'#a855f7' },
+                              { key:'social', icon:'🤝', label:(t('uc_category_social')||'Social'), color:'#ef4444' },
+                              { key:'documents', icon:'📄', label:(t('uc_category_documents')||'Documents'), color:'#f59e0b' },
                             ]
+                            const catColor = hcSections.find(s=>s.key===hcCategory)?.color || '#3b82f6'
+                            const catIcon = hcSections.find(s=>s.key===hcCategory)?.icon || '📌'
+                            const catLabel = hcSections.find(s=>s.key===hcCategory)?.label || ''
+
                             const catEvents = hcCategory && hcCategory !== 'identity' ? hcEvents.filter(e => e.category === hcCategory) : []
                             const catTypeDefs = hcCategory && hcCategory !== 'identity' ? (UC_CATEGORIES.find(c => c.key === hcCategory)?.types || []) : []
+
                             const parseDesc = (desc) => { try { const d = JSON.parse(desc); if (typeof d === 'object' && d !== null) return d } catch {} return null }
                             const fieldLabels = {}
                             catTypeDefs.forEach(t => t.fields.forEach(f => { fieldLabels[f.key] = f.label }))
                             const ucIcons = {}
                             UC_CATEGORIES.forEach(c => c.types.forEach(t => { ucIcons[t.key] = t.icon }))
-                            const hues = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316']
-                            return hcCategory ? (
-                              <div className="hc-standalone-body">
-                                <button className="hc-cat-back" onClick={() => setHcCategory('')}>← {t('form_back')||'Retour'}</button>
-                                <div className="hc-cat-header">
-                                  <span className="hc-cat-header-icon" style={{background:hcSections.find(s=>s.key===hcCategory)?.color+'20',color:hcSections.find(s=>s.key===hcCategory)?.color}}>{hcSections.find(s=>s.key===hcCategory)?.icon}</span>
-                                  <div>
-                                    <div className="hc-cat-header-title">{hcSections.find(s=>s.key===hcCategory)?.label}</div>
-                                    <div className="hc-cat-header-count">{catEvents.length} {t('hc_events_count')||'événements'}</div>
-                                  </div>
+
+                            const fmtDate = (d) => d ? new Date(d).toLocaleDateString(lang==='en'?'en-US':'fr-FR',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'
+
+                            /* ── Build subfeature map once ── */
+                            const subfeatureMap = {}
+                            const legacyEvents = []
+                            catEvents.forEach(evt => {
+                              const sub = evt.subcategory
+                              if (sub && evt.metadata?.field_key) { // per-field record with field_key
+                                if (!subfeatureMap[sub]) subfeatureMap[sub] = []
+                                subfeatureMap[sub].push(evt)
+                              } else if (sub && !evt.metadata?.field_key) { // has subcategory but no field_key → localStorage-style, treat as legacy within subfeature
+                                const key = sub
+                                if (!subfeatureMap[key]) subfeatureMap[key] = []
+                                subfeatureMap[key].push({ ...evt, _legacyBundle: true })
+                              } else {
+                                legacyEvents.push({ ...evt, _legacyBundle: true })
+                              }
+                            })
+
+                            /* ── Tab Bar & Content ── */
+                            return (
+                              <div className="hc-entries-page">
+                                {/* Category Tabs */}
+                                <div className="hc-tab-bar" style={{display:'flex',gap:'4px',padding:'12px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',marginBottom:'16px',overflowX:'auto'}}>
+                                  {hcSections.map(sec => {
+                                    const isActive = hcCategory === sec.key
+                                    const count = sec.key === 'identity' ? 1 : hcEvents.filter(e => e.category === sec.key).length
+                                    return (
+                                      <button key={sec.key} className="hc-tab-btn" onClick={() => { setHcCategory(sec.key); setHcSubcategory('') }}
+                                        style={{padding:'10px 20px',borderRadius:'10px',border:'none',cursor:'pointer',fontSize:'13px',fontWeight:600,whiteSpace:'nowrap',transition:'all .2s',background:isActive ? sec.color+'22' : 'rgba(255,255,255,0.04)',color:isActive ? sec.color : '#94a3b8',display:'flex',alignItems:'center',gap:'8px',flexShrink:0}}>
+                                        <span>{sec.icon}</span>
+                                        <span>{sec.label}</span>
+                                        {count > 0 && <span style={{fontSize:'11px',background:isActive ? sec.color+'33' : 'rgba(255,255,255,0.08)',padding:'2px 8px',borderRadius:'10px'}}>{count}</span>}
+                                      </button>
+                                    )
+                                  })}
+                                  <button className="hc-tab-btn" onClick={() => { setHcHistoryChild(null); setHcCategory(''); setHcSubcategory('') }}
+                                    style={{marginLeft:'auto',padding:'10px 16px',borderRadius:'10px',border:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',fontSize:'12px',background:'rgba(255,255,255,0.03)',color:'#64748b',flexShrink:0}}>
+                                    ← {t('form_back')||'Retour'}
+                                  </button>
                                 </div>
-                                {hcCategory === 'identity' ? (
-                                  <div className="hc-identity-detail">
-                                    <div className="hc-identity-photo">
-                                      {(() => { const pu = getChildPhotoUrl(hcHistoryChild); if (pu) return <img src={pu} alt="" />; return <span className="hc-identity-initial">{hcHistoryChild.prenom?.[0] || hcHistoryChild.nom?.[0] || '?'}</span> })()}
+
+                                {!hcCategory ? (
+                                  /* ── No category selected: show a brief welcome + guide ── */
+                                  <div className="hc-entries-empty" style={{textAlign:'center',padding:'60px 24px'}}>
+                                    <span style={{fontSize:'48px',display:'block',marginBottom:'16px',opacity:0.5}}>📜</span>
+                                    <h3 style={{color:'#e2e8f0',fontSize:'18px',margin:'0 0 8px'}}>{t('hc_title')||'Centre d\'Historique'}</h3>
+                                    <p style={{color:'#64748b',fontSize:'14px',margin:0}}>{t('hc_select_tab')||'Sélectionnez une catégorie ci-dessus pour voir l\'historique'}</p>
+                                  </div>
+                                ) : hcCategory === 'identity' ? (
+                                  /* ── Identity: show child profile ── */
+                                  <div className="hc-identity-detail" style={{display:'flex',gap:'24px',padding:'12px 0'}}>
+                                    <div className="hc-identity-photo" style={{width:'120px',height:'120px',borderRadius:'16px',overflow:'hidden',border:'2px solid rgba(255,255,255,0.08)',flexShrink:0}}>
+                                      {(() => { const pu = getChildPhotoUrl(hcHistoryChild); if (pu) return <img src={pu} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} />; return <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'48px',fontWeight:700,color:'#ffffffd9',background:'linear-gradient(135deg,#3b82f699,#3b82f64d)'}}>{hcHistoryChild.prenom?.[0] || hcHistoryChild.nom?.[0] || '?'}</div> })()}
                                     </div>
-                                    <div className="hc-identity-fields">
+                                    <div style={{flex:1,display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',alignContent:'start'}}>
                                       {[
                                         { label:t('form_firstname')||'Prénom', value:hcHistoryChild.prenom },
                                         { label:t('form_lastname')||'Nom', value:hcHistoryChild.nom },
@@ -8382,69 +8660,175 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                         { label:t('form_status')||'Statut', value:t('child_status_'+hcHistoryChild.status)||hcHistoryChild.status||(t('form_active')||'Actif') },
                                         { label:t('form_address')||'Adresse', value:hcHistoryChild.adresse || '—' },
                                       ].map((f, fi) => (
-                                        <div key={fi} className="hc-identity-field">
-                                          <span className="hc-identity-field-label">{f.label}</span>
-                                          <span className="hc-identity-field-value">{f.value}</span>
+                                        <div key={fi} style={{padding:'8px 12px',background:'rgba(255,255,255,0.04)',borderRadius:'8px',display:'flex',flexDirection:'column',gap:'2px'}}>
+                                          <span style={{fontSize:'10px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.04em',color:'#64748b'}}>{f.label}</span>
+                                          <span style={{fontSize:'14px',fontWeight:600,color:'#e2e8f0'}}>{f.value}</span>
                                         </div>
                                       ))}
                                     </div>
                                   </div>
-                                ) : catEvents.length === 0 ? (
-                                  <div className="hc-empty" style={{gridColumn:'1/-1',textAlign:'center',padding:'40px 0'}}><span className="hc-empty-icon" style={{fontSize:'40px',display:'block',marginBottom:'12px'}}>📭</span><p style={{color:'#64748b',fontSize:'14px'}}>{t('hc_no_events')||'Aucune mise à jour dans cette catégorie'}</p></div>
+                                ) : Object.keys(subfeatureMap).length === 0 && legacyEvents.length === 0 ? (
+                                  /* ── Empty category ── */
+                                  <div style={{textAlign:'center',padding:'60px 24px'}}>
+                                    <span style={{fontSize:'40px',display:'block',marginBottom:'12px',opacity:0.5}}>📭</span>
+                                    <p style={{color:'#64748b',fontSize:'14px',margin:0}}>{t('hc_no_events')||'Aucune mise à jour dans cette catégorie'}</p>
+                                  </div>
                                 ) : (
-                                  <div className="hc-cat-events" style={{'--cat-color':hcSections.find(s=>s.key===hcCategory)?.color}}>
-                                    {catEvents.map((evt, ei) => {
-                                      const descObj = parseDesc(evt.description)
-                                      const typeDef = catTypeDefs.find(t => t.key === evt.update_type) || catTypeDefs.find(t => evt.title?.toLowerCase().includes(t.label?.toLowerCase() || ''))
-                                      const expanded = hcExpanded === ei
+                                  /* ── Category content: subfeature panels ── */
+                                  <div className="hc-subfeature-panels" style={{display:'flex',flexDirection:'column',gap:'20px',paddingBottom:'40px'}}>
+                                    {Object.entries(subfeatureMap).map(([subKey, events]) => {
+                                      const typeDef = catTypeDefs.find(t => t.key === subKey)
+                                      const icon = typeDef?.icon || ucIcons[subKey] || '📌'
+                                      const label = typeDef?.label || subKey.replace(/_/g, ' ')
                                       return (
-                                        <div key={ei} className={`hc-cat-event${expanded ? ' expanded' : ''}`} onClick={() => setHcExpanded(expanded ? null : ei)}>
-                                          <div className="hc-cat-event-top">
-                                            <span className="hc-cat-event-type">{ucIcons[evt.update_type]||'📌'} {typeDef?.label || evt.update_type || evt.event_type}</span>
-                                            <span className="hc-cat-event-date">{evt.event_date ? new Date(evt.event_date).toLocaleDateString(lang==='en'?'en-US':'fr-FR',{day:'numeric',month:'short',year:'numeric'}) : '—'}</span>
-                                            <span className="hc-cat-event-expand">{expanded ? '▲' : '▼'}</span>
-                                          </div>
-                                          <div className="hc-cat-event-title">{evt.title}</div>
-                                          {expanded && (
-                                            <div className="hc-cat-event-details">
-                                              {descObj && Object.entries(descObj).filter(([_,v]) => v).map(([fk, fv]) => (
-                                                <div key={fk} className="hc-cat-detail-row">
-                                                  <span className="hc-cat-detail-label">{fieldLabels[fk] || fk}</span>
-                                                  <span className="hc-cat-detail-value">{fv}</span>
-                                                </div>
-                                              ))}
-                                              {evt.reason && <div className="hc-cat-detail-row full"><span className="hc-cat-detail-label">{t('hc_reason')||'Motif'}</span><span className="hc-cat-detail-value">{evt.reason}</span></div>}
-                                              {evt.attachments?.length > 0 && <div className="hc-cat-detail-row full"><span className="hc-cat-detail-label">{t('hc_attachments')||'Pièces jointes'}</span><span className="hc-cat-detail-value">{evt.attachments.map((a,i) => <span key={i} className="hc-cat-attach">📎 {a}</span>)}</span></div>}
-                                              {evt.performed_by_name && <div className="hc-cat-detail-row full"><span className="hc-cat-detail-label">{t('hc_performed_by')||'Par'}</span><span className="hc-cat-detail-value">{evt.performed_by_name}{evt.performed_role ? ` (${evt.performed_role})` : ''}</span></div>}
+                                        <div key={subKey} className="hc-subfeature-panel" style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'14px',overflow:'hidden'}}>
+                                          {/* Panel Header */}
+                                          <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'16px 20px',borderBottom:'1px solid rgba(255,255,255,0.05)',background:'rgba(255,255,255,0.02)'}}>
+                                            <span style={{fontSize:'22px',width:'40px',height:'40px',display:'flex',alignItems:'center',justifyContent:'center',background:catColor+'18',borderRadius:'10px',flexShrink:0}}>{icon}</span>
+                                            <div style={{flex:1}}>
+                                              <div style={{fontSize:'15px',fontWeight:700,color:'#e2e8f0'}}>{label}</div>
+                                              <div style={{fontSize:'12px',color:catColor}}>{events.length} champ{events.length > 1 ? 's modifiés' : ' modifié'}</div>
                                             </div>
-                                          )}
+                                          </div>
+                                          {/* Timeline entries */}
+                                          <div style={{padding:'8px 20px 16px'}}>
+                                            {events.map((evt, ei) => {
+                                              const isBundle = evt._legacyBundle
+                                              const descObj = isBundle ? parseDesc(evt.description) : null
+                                              const fieldKey = evt.metadata?.field_key
+                                              const fieldLabel = fieldLabels[fieldKey] || evt.title
+                                              const expanded = hcExpanded === `${subKey}_${ei}`
+                                              return (
+                                                <div key={ei} style={{borderBottom:'1px solid rgba(255,255,255,0.04)',padding:'12px 0'}}>
+                                                  <div style={{display:'flex',alignItems:'flex-start',gap:'10px',cursor:'pointer'}} onClick={() => setHcExpanded(expanded ? null : `${subKey}_${ei}`)}>
+                                                    {/* Timeline dot */}
+                                                    <div style={{width:'8px',height:'8px',borderRadius:'50%',background:catColor+'99',marginTop:'6px',flexShrink:0}} />
+                                                    {/* Content */}
+                                                    <div style={{flex:1,minWidth:0}}>
+                                                      <div style={{display:'flex',alignItems:'center',gap:'10px',flexWrap:'wrap'}}>
+                                                        <span style={{fontSize:'13px',fontWeight:600,color:'#e2e8f0'}}>{isBundle ? (t('hc_update')||'Mise à jour') : fieldLabel}</span>
+                                                        <span style={{fontSize:'11px',color:'#64748b'}}>{fmtDate(evt.event_date)}</span>
+                                                        {evt.performed_by_name && <span style={{fontSize:'11px',color:'#64748b'}}>· {evt.performed_by_name}</span>}
+                                                        <span style={{fontSize:'10px',color:'#64748b',marginLeft:'auto'}}>{expanded ? '▲' : '▼'}</span>
+                                                      </div>
+                                                      {/* Value change */}
+                                                      <div style={{display:'flex',gap:'16px',marginTop:'4px',fontSize:'13px'}}>
+                                                        {!isBundle ? (
+                                                          <>
+                                                            {evt.old_value ? <div style={{flex:1}}><span style={{fontSize:'11px',color:'#94a3b8',display:'block'}}>{t('hc_old_value')||'Ancien'}</span><span style={{color:'#ef4444',wordBreak:'break-word'}}>{evt.old_value}</span></div> : null}
+                                                            <div style={{flex:1}}><span style={{fontSize:'11px',color:'#94a3b8',display:'block'}}>{evt.old_value ? (t('hc_new_value')||'Nouveau') : (t('hc_value')||'Valeur')}</span><span style={{color:'#22c55e',wordBreak:'break-word'}}>{evt.new_value || '—'}</span></div>
+                                                          </>
+                                                        ) : descObj && Object.keys(descObj).length > 0 ? (
+                                                          <div style={{display:'flex',flexWrap:'wrap',gap:'6px',width:'100%'}}>
+                                                            {Object.entries(descObj).filter(([_,v]) => v).slice(0,4).map(([fk, fv]) => (
+                                                              <span key={fk} style={{fontSize:'12px',background:'rgba(255,255,255,0.04)',padding:'3px 10px',borderRadius:'6px',color:'#cbd5e1'}}>
+                                                                <span style={{color:'#64748b'}}>{fieldLabels[fk] || fk}:</span> {String(fv).substring(0,50)}
+                                                              </span>
+                                                            ))}
+                                                          </div>
+                                                        ) : (
+                                                          <span style={{color:'#94a3b8',fontSize:'12px'}}>{evt.new_value}</span>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                  {/* Expanded details */}
+                                                  {expanded && (
+                                                    <div style={{marginTop:'10px',padding:'12px 0 0 18px',borderTop:'1px solid rgba(255,255,255,0.04)',display:'flex',flexDirection:'column',gap:'8px',fontSize:'13px'}}>
+                                                      {isBundle && descObj && Object.entries(descObj).filter(([_,v]) => v).map(([fk, fv]) => (
+                                                        <div key={fk} style={{display:'flex',gap:'10px'}}><span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{fieldLabels[fk] || fk}</span><span style={{color:'#e2e8f0'}}>{fv}</span></div>
+                                                      ))}
+                                                      {evt.reason && <div style={{display:'flex',gap:'10px'}}><span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{t('hc_reason')||'Motif'}</span><span style={{color:'#e2e8f0'}}>{evt.reason}</span></div>}
+                                                      {evt.attachments?.length > 0 && (
+                                                        <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
+                                                          <span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{t('hc_attachments')||'Fichiers'}</span>
+                                                          <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+                                                            {evt.attachments.map((a, ai) => (
+                                                              <span key={ai} style={{fontSize:'12px',background:'rgba(99,102,241,0.12)',color:'#818cf8',padding:'4px 12px',borderRadius:'6px',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'6px'}}
+                                                                onClick={(e) => { e.stopPropagation(); window.open(API.replace('/api','')+'/media/'+encodeURIComponent(a), '_blank') }}>
+                                                                📎 {a}
+                                                              </span>
+                                                            ))}
+                                                          </div>
+                                                        </div>
+                                                      )}
+                                                      {evt.performed_by_name && <div style={{display:'flex',gap:'10px'}}><span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{t('hc_performed_by')||'Par'}</span><span style={{color:'#e2e8f0'}}>{evt.performed_by_name}{evt.performed_role ? ` (${evt.performed_role})` : ''}</span></div>}
+                                                      {evt.event_date && <div style={{display:'flex',gap:'10px'}}><span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{t('hc_date')||'Date'}</span><span style={{color:'#e2e8f0'}}>{new Date(evt.event_date).toLocaleString(lang==='en'?'en-US':'fr-FR')}</span></div>}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )
+                                            })}
+                                          </div>
                                         </div>
                                       )
                                     })}
+                                    {/* Legacy panel (events without subcategory) */}
+                                    {legacyEvents.length > 0 && (
+                                      <div className="hc-subfeature-panel" style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'14px',overflow:'hidden'}}>
+                                        <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'16px 20px',borderBottom:'1px solid rgba(255,255,255,0.05)',background:'rgba(255,255,255,0.02)'}}>
+                                          <span style={{fontSize:'22px',width:'40px',height:'40px',display:'flex',alignItems:'center',justifyContent:'center',background:catColor+'18',borderRadius:'10px',flexShrink:0}}>📋</span>
+                                          <div style={{flex:1}}>
+                                            <div style={{fontSize:'15px',fontWeight:700,color:'#e2e8f0'}}>{t('hc_general')||'Général'}</div>
+                                            <div style={{fontSize:'12px',color:catColor}}>{legacyEvents.length} événement{legacyEvents.length > 1 ? 's' : ''}</div>
+                                          </div>
+                                        </div>
+                                        <div style={{padding:'8px 20px 16px'}}>
+                                          {legacyEvents.map((evt, ei) => {
+                                            const descObj = parseDesc(evt.description)
+                                            const expanded = hcExpanded === `_legacy_${ei}`
+                                            return (
+                                              <div key={ei} style={{borderBottom:'1px solid rgba(255,255,255,0.04)',padding:'12px 0'}}>
+                                                <div style={{display:'flex',alignItems:'flex-start',gap:'10px',cursor:'pointer'}} onClick={() => setHcExpanded(expanded ? null : `_legacy_${ei}`)}>
+                                                  <div style={{width:'8px',height:'8px',borderRadius:'50%',background:catColor+'99',marginTop:'6px',flexShrink:0}} />
+                                                  <div style={{flex:1,minWidth:0}}>
+                                                    <div style={{display:'flex',alignItems:'center',gap:'10px',flexWrap:'wrap'}}>
+                                                      <span style={{fontSize:'13px',fontWeight:600,color:'#e2e8f0'}}>{evt.title}</span>
+                                                      <span style={{fontSize:'11px',color:'#64748b'}}>{fmtDate(evt.event_date)}</span>
+                                                      {evt.performed_by_name && <span style={{fontSize:'11px',color:'#64748b'}}>· {evt.performed_by_name}</span>}
+                                                      <span style={{fontSize:'10px',color:'#64748b',marginLeft:'auto'}}>{expanded ? '▲' : '▼'}</span>
+                                                    </div>
+                                                    {descObj && Object.entries(descObj).filter(([_,v]) => v).length > 0 && (
+                                                      <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginTop:'4px'}}>
+                                                        {Object.entries(descObj).filter(([_,v]) => v).slice(0,4).map(([fk, fv]) => (
+                                                          <span key={fk} style={{fontSize:'12px',background:'rgba(255,255,255,0.04)',padding:'3px 10px',borderRadius:'6px',color:'#cbd5e1'}}>
+                                                            <span style={{color:'#64748b'}}>{fieldLabels[fk] || fk}:</span> {String(fv).substring(0,50)}
+                                                          </span>
+                                                        ))}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                                {expanded && (
+                                                  <div style={{marginTop:'10px',padding:'12px 0 0 18px',borderTop:'1px solid rgba(255,255,255,0.04)',display:'flex',flexDirection:'column',gap:'8px',fontSize:'13px'}}>
+                                                    {descObj && Object.entries(descObj).filter(([_,v]) => v).map(([fk, fv]) => (
+                                                      <div key={fk} style={{display:'flex',gap:'10px'}}><span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{fieldLabels[fk] || fk}</span><span style={{color:'#e2e8f0'}}>{fv}</span></div>
+                                                    ))}
+                                                    {evt.reason && <div style={{display:'flex',gap:'10px'}}><span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{t('hc_reason')||'Motif'}</span><span style={{color:'#e2e8f0'}}>{evt.reason}</span></div>}
+                                                    {evt.attachments?.length > 0 && (
+                                                      <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
+                                                        <span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{t('hc_attachments')||'Fichiers'}</span>
+                                                        <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+                                                          {evt.attachments.map((a, ai) => (
+                                                            <span key={ai} style={{fontSize:'12px',background:'rgba(99,102,241,0.12)',color:'#818cf8',padding:'4px 12px',borderRadius:'6px',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'6px'}}
+                                                              onClick={(e) => { e.stopPropagation(); window.open(API.replace('/api','')+'/media/'+encodeURIComponent(a), '_blank') }}>
+                                                              📎 {a}
+                                                            </span>
+                                                          ))}
+                                                        </div>
+                                                      </div>
+                                                    )}
+                                                    {evt.performed_by_name && <div style={{display:'flex',gap:'10px'}}><span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{t('hc_performed_by')||'Par'}</span><span style={{color:'#e2e8f0'}}>{evt.performed_by_name}{evt.performed_role ? ` (${evt.performed_role})` : ''}</span></div>}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
-                              </div>
-                            ) : (
-                              <div className="hc-standalone-body">
-                                <div className="hc-cat-grid">
-                                  {hcSections.map(sec => {
-                                    const count = sec.key === 'identity' ? 1 : hcEvents.filter(e => e.category === sec.key).length
-                                    const color = sec.color
-                                    const icon = sec.key === 'identity' ? getChildPhotoUrl(hcHistoryChild) || hcHistoryChild?.prenom?.[0] || '👤' : sec.icon
-                                    return (
-                                      <button key={sec.key} className="hc-cat-card" style={{'--cat-color':color}} onClick={() => sec.key === 'identity' ? setHcCategory('identity') : count > 0 ? setHcCategory(sec.key) : null}>
-                                        <div className="hc-cat-card-icon" style={{background:color+'20',color}}>
-                                          {sec.key === 'identity' && typeof icon === 'string' && (icon.startsWith('data:') || icon.startsWith('http')) ? <img src={icon} alt="" className="hc-cat-card-photo" /> : sec.key === 'identity' ? <span style={{fontSize:'28px',fontWeight:'700',color}}>{hcHistoryChild?.prenom?.[0] || hcHistoryChild?.nom?.[0] || '👤'}</span> : <span>{icon}</span>}
-                                        </div>
-                                        <div className="hc-cat-card-info">
-                                          <div className="hc-cat-card-name">{sec.label}</div>
-                                          <div className="hc-cat-card-desc">{sec.desc}</div>
-                                        </div>
-                                        <div className="hc-cat-card-count" style={{background:color+'20',color}}>{count} {count > 1 ? (t('hc_events_count')||'éléments') : (t('hc_event_singular')||'élément')}</div>
-                                      </button>
-                                    )
-                                  })}
-                                </div>
                               </div>
                             )
                           })()}
@@ -8557,7 +8941,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       <span className="uc2-premium-micro-value">{lastMed ? new Date(lastMed).toLocaleDateString() : '—'}</span>
                                     </div>
                                   </div>
-                                  <button className="uc2-premium-card-select" onClick={() => { setHcHistoryChild(child); setHcCategory(''); setHcSearch(''); setHcGender(''); setHcAgeRange(''); setHcRegion(''); setHcSortStatus(''); setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false); setHcEvents([]); setHcExpanded(null); setHcSelectedEvent(null); setHcView('timeline') }}>
+                                  <button className="uc2-premium-card-select" onClick={() => { setHcHistoryChild(child); setHcCategory(''); setHcSubcategory(''); setHcSearch(''); setHcGender(''); setHcAgeRange(''); setHcRegion(''); setHcSortStatus(''); setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false); setHcEvents([]); setHcExpanded(null); setHcSelectedEvent(null); setHcView('timeline') }}>
                                     {t('uc_select_btn')||'Sélectionner'} →
                                   </button>
                                 </div>
@@ -9832,6 +10216,239 @@ function WhatsAppFloat() {
         <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.554 4.122 1.525 5.852L.525 24l6.403-1.553A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.776 0-3.468-.494-4.94-1.42l-.36-.215-3.8.922.996-3.677-.25-.39A9.963 9.963 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/>
       </svg>
     </a>
+  )
+}
+
+/* ═══════════ PARTNER — OPPORTUNITY CENTER ═══════════ */
+function OpportunityCenter({ user, apiFetch, API, onLogout, t }) {
+  const [opportunities, setOpportunities] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedOpp, setSelectedOpp] = useState(null)
+
+  const load = useCallback(() => {
+    setLoading(true)
+    const q = new URLSearchParams()
+    if (filter === 'urgent') q.set('urgent', 'true')
+    else if (filter === 'funding') q.set('funding', 'open')
+    else if (filter === 'completed') q.set('status', 'completed')
+    if (searchQuery.trim()) q.set('search', searchQuery.trim())
+    apiFetch(`${API}/opportunities/?${q.toString()}`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(data => { setOpportunities(Array.isArray(data) ? data : []); setLoading(false) })
+      .catch(() => { setLoading(false) })
+  }, [filter, searchQuery])
+  useEffect(() => { load() }, [load])
+
+  const fmt = (n) => { const v = Number(n) || 0; return v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(1)+'k' : v.toLocaleString('fr-FR') }
+  const TYPE_ICONS = { child: '👶', project: '📋', orphanage_need: '📦', campaign: '📢', emergency: '🚨', education: '📚', healthcare: '🏥' }
+  const PRIORITY_COLORS = { normal: { bg: 'rgba(59,130,246,0.12)', color: '#3b82f6' }, urgent: { bg: 'rgba(249,115,22,0.12)', color: '#f97316' }, critical: { bg: 'rgba(239,68,68,0.12)', color: '#ef4444' } }
+
+  const FILTERS = [
+    { key: 'all', label: 'Toutes' },
+    { key: 'urgent', label: '⚠️ Urgentes' },
+    { key: 'funding', label: '💰 Financement' },
+    { key: 'completed', label: '✅ Terminées' },
+  ]
+
+  return (
+    <div className="opp-center">
+      <div className="opp-header">
+        <div><h2 className="opp-title">Centre des Opportunités</h2><p className="opp-sub">Découvrez comment soutenir enfants et projets</p></div>
+      </div>
+      <div className="opp-toolbar">
+        <div className="opp-search"><input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Rechercher opportunités..." /></div>
+        <div className="opp-filters">{FILTERS.map(f => <button key={f.key} className={`opp-filter${filter === f.key ? ' active' : ''}`} onClick={() => setFilter(f.key)}>{f.label}</button>)}</div>
+      </div>
+      <div className="opp-grid">
+        {loading ? Array.from({length:6}).map((_,i) => <div key={i} className="opp-card opp-skeleton" />) :
+          opportunities.length === 0 ? <div className="opp-empty">Aucune opportunité trouvée</div> :
+          opportunities.map(opp => (
+            <div key={opp.id} className={`opp-card${selectedOpp?.id === opp.id ? ' selected' : ''}`} onClick={() => setSelectedOpp(selectedOpp?.id === opp.id ? null : opp)}>
+              <div className="opp-card-top">
+                <span className="opp-type-badge">{TYPE_ICONS[opp.type] || '📌'} {opp.type_label}</span>
+                <span className={`opp-priority-badge`} style={PRIORITY_COLORS[opp.priority] || PRIORITY_COLORS.normal}>{opp.priority_label}</span>
+              </div>
+              <h3 className="opp-card-title">{opp.title}</h3>
+              <p className="opp-card-desc">{opp.summary || opp.description?.substring(0, 100) || ''}</p>
+              {opp.funding_goal > 0 && (
+                <div className="opp-funding-bar">
+                  <div className="opp-funding-track"><div className="opp-funding-fill" style={{ width: `${opp.funding_percentage}%` }} /></div>
+                  <span className="opp-funding-label">{fmt(opp.current_funding)} / {fmt(opp.funding_goal)} ({opp.funding_percentage}%)</span>
+                </div>
+              )}
+              <div className="opp-card-meta">
+                {opp.location && <span>📍 {opp.location}</span>}
+                {opp.days_remaining != null && <span>⏱ {opp.days_remaining > 0 ? `${opp.days_remaining}j restants` : 'Expiré'}</span>}
+                {opp.beneficiary_count > 0 && <span>👥 {opp.beneficiary_count}</span>}
+              </div>
+              {selectedOpp?.id === opp.id && (
+                <div className="opp-detail">
+                  <p>{opp.description}</p>
+                  <div className="opp-detail-actions">
+                    <button className="opp-btn-primary" onClick={e => { e.stopPropagation(); alert('Fonctionnalité à venir : soutenir cette opportunité') }}>Soutenir</button>
+                    <button className="opp-btn-ghost" onClick={e => { e.stopPropagation(); setSelectedOpp(null) }}>Fermer</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════ PARTNER — CHILDREN LIST ═══════════ */
+function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagImg }) {
+  const [children, setChildren] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [countryFilter, setCountryFilter] = useState('')
+  const [sexFilter, setSexFilter] = useState('')
+
+  const load = useCallback(() => {
+    setLoading(true)
+    const q = new URLSearchParams()
+    if (search.trim()) q.set('search', search.trim())
+    if (countryFilter) q.set('country', countryFilter)
+    if (sexFilter) q.set('sexe', sexFilter)
+    apiFetch(`${API}/partner/children/?${q.toString()}`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(data => { setChildren(Array.isArray(data) ? data : []); setLoading(false) })
+      .catch(() => { setLoading(false) })
+  }, [search, countryFilter, sexFilter])
+  useEffect(() => { load() }, [load])
+
+  return (
+    <div className="partner-children">
+      <div className="opp-header">
+        <div><h2 className="opp-title">Profils Enfants</h2><p className="opp-sub">Découvrez les enfants soutenus par la fédération</p></div>
+      </div>
+      <div className="opp-toolbar" style={{flexWrap:'wrap',gap:8}}>
+        <div className="opp-search"><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher par nom, prénom ou UID..." /></div>
+        <select className="opp-filter-select" value={countryFilter} onChange={e => setCountryFilter(e.target.value)}>
+          <option value="">Tous les pays</option>
+          {['CD','CI','CM','SN','BF','MG','ML','ET','GH'].map(code => <option key={code} value={code}>{countryName(code)}</option>)}
+        </select>
+        <select className="opp-filter-select" value={sexFilter} onChange={e => setSexFilter(e.target.value)}>
+          <option value="">Tous</option>
+          <option value="M">Masculin</option>
+          <option value="F">Féminin</option>
+        </select>
+      </div>
+      <div className="partner-children-grid">
+        {loading ? Array.from({length:8}).map((_,i) => <div key={i} className="partner-child-card opp-skeleton" />) :
+          children.length === 0 ? <div className="opp-empty">Aucun enfant trouvé</div> :
+          children.map(child => (
+            <div key={child.id || child.uid} className="partner-child-card">
+              <div className="partner-child-photo">
+                {child.photo_url ? <img src={child.photo_url} alt="" /> : <span className="partner-child-initial">{(child.prenom||'?')[0]}</span>}
+              </div>
+              <div className="partner-child-info">
+                <span className="partner-child-name">{child.prenom} {child.nom}</span>
+                <span className="partner-child-detail">{child.age != null ? `${child.age} ans` : ''} · {child.nationalite || ''} · {child.sexe === 'M' ? 'Garçon' : 'Fille'}</span>
+                <span className="partner-child-uid">UID: {child.uid}</span>
+              </div>
+            </div>
+          ))}
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════ PARTNER — IMPACT DASHBOARD ═══════════ */
+function PartnerImpactDashboard({ user, apiFetch, API, onLogout, t }) {
+  const [stats, setStats] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    apiFetch(`${API}/partner/impact/`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : null)
+      .then(data => { setStats(data); setLoading(false) })
+      .catch(() => { setLoading(false) })
+  }, [])
+
+  const fmt = (n) => { const v = Number(n) || 0; return v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(1)+'k' : v.toLocaleString('fr-FR') }
+
+  if (loading) return <div className="opp-center">{Array.from({length:4}).map((_,i) => <div key={i} className="opp-card opp-skeleton" style={{height:100,marginBottom:12}} />)}</div>
+  if (!stats) return <div className="opp-center opp-empty">Impossible de charger les données d'impact</div>
+
+  const KPI_COLORS = ['#f59e0b','#3b82f6','#22c55e','#ef4444','#a855f7']
+
+  return (
+    <div className="opp-center">
+      <div className="opp-header">
+        <div><h2 className="opp-title">📊 Tableau d'Impact</h2><p className="opp-sub">Mesurez l'impact de vos contributions</p></div>
+      </div>
+
+      <div className="impact-kpi-grid">
+        <div className="impact-kpi" style={{borderTopColor:KPI_COLORS[0]}}>
+          <span className="impact-kpi-value">{fmt(stats.active_opportunities)}</span>
+          <span className="impact-kpi-label">Opportunités actives</span>
+        </div>
+        <div className="impact-kpi" style={{borderTopColor:KPI_COLORS[1]}}>
+          <span className="impact-kpi-value">{fmt(stats.total_children)}</span>
+          <span className="impact-kpi-label">Enfants soutenus</span>
+        </div>
+        <div className="impact-kpi" style={{borderTopColor:KPI_COLORS[2]}}>
+          <span className="impact-kpi-value">{fmt(stats.project_funded)}</span>
+          <span className="impact-kpi-label">Projets financés</span>
+        </div>
+        <div className="impact-kpi" style={{borderTopColor:KPI_COLORS[3]}}>
+          <span className="impact-kpi-value">{fmt(stats.urgent_opportunities)}</span>
+          <span className="impact-kpi-label">Urgents</span>
+        </div>
+        <div className="impact-kpi" style={{borderTopColor:KPI_COLORS[4]}}>
+          <span className="impact-kpi-value">{fmt(stats.total_donations)}</span>
+          <span className="impact-kpi-label">Dons ({fmt(stats.donation_sum)} $)</span>
+        </div>
+      </div>
+
+      <div className="opp-header" style={{marginTop:24}}>
+        <div><h3 className="opp-title" style={{fontSize:17}}>Répartition par type</h3></div>
+      </div>
+      <div className="impact-type-grid">
+        {(stats.opportunities_by_type || []).map((item, i) => (
+          <div key={item.type} className="impact-type-card">
+            <span className="impact-type-count" style={{color:KPI_COLORS[i % KPI_COLORS.length]}}>{item.count}</span>
+            <span className="impact-type-label">{item.type}</span>
+          </div>
+        ))}
+        {(stats.opportunities_by_type || []).length === 0 && <div className="opp-empty">Aucune donnée</div>}
+      </div>
+
+      <div className="opp-header" style={{marginTop:24}}>
+        <div><h3 className="opp-title" style={{fontSize:17}}>Répartition par pays</h3></div>
+      </div>
+      <div className="impact-type-grid">
+        {(stats.children_by_country || []).map((item, i) => (
+          <div key={item.nationalite} className="impact-type-card">
+            <span className="impact-type-count" style={{color:KPI_COLORS[i % KPI_COLORS.length]}}>{item.count}</span>
+            <span className="impact-type-label">{item.nationalite || 'Non spécifié'}</span>
+          </div>
+        ))}
+        {(stats.children_by_country || []).length === 0 && <div className="opp-empty">Aucune donnée</div>}
+      </div>
+
+      <div className="opp-header" style={{marginTop:24}}>
+        <div><h3 className="opp-title" style={{fontSize:17}}>Opportunités récentes</h3></div>
+      </div>
+      <div className="opp-grid">
+        {(stats.recent_opportunities || []).map(opp => (
+          <div key={opp.id} className="opp-card" style={{cursor:'default'}}>
+            <div className="opp-card-top">
+              <span className="opp-type-badge">{opp.type_label}</span>
+              <span className="opp-priority-badge" style={{background: opp.is_urgent ? 'rgba(239,68,68,0.12)' : 'rgba(59,130,246,0.12)', color: opp.is_urgent ? '#ef4444' : '#3b82f6'}}>{opp.priority_label}</span>
+            </div>
+            <h3 className="opp-card-title">{opp.title}</h3>
+            <p className="opp-card-desc">{opp.summary || opp.description?.substring(0, 80) || ''}</p>
+            <div className="opp-card-meta"><span>{opp.time_ago}</span></div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 

@@ -21,4 +21,5 @@ urlpatterns = [
     path("assignments/bulk/", views.child_assignment_bulk, name="child-assignment-bulk"),
     path("assignments/<int:assignment_id>/", views.child_assignment_delete, name="child-assignment-delete"),
     path("assignments/by-orphanage/", views.child_assignments_by_orphanage, name="child-assignments-by-orphanage"),
+    path("enfants/<int:child_id>/follow/", views.child_follow, name="child-follow"),
 ]

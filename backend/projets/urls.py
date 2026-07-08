@@ -14,4 +14,5 @@ urlpatterns = [
     path("projets/<int:project_id>/candidature/", views.project_candidature_create, name="project-candidature-create"),
     path("projets/<int:project_id>/candidatures/<int:candidature_id>/repondre/", views.project_candidature_repondre, name="project-candidature-repondre"),
     path("projets/<int:project_id>/history/", views.project_history, name="project-history"),
+    path("projets/<int:project_id>/follow/", views.project_follow, name="project-follow"),
 ]

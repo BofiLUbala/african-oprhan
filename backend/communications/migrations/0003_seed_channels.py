@@ -3,7 +3,6 @@ from django.db import migrations
 
 STANDARD_CHANNELS = [
     # (slug, name, icon, description, kind, allowed_roles, post_roles, position)
-    ("public", "Public", "🌍", "Espace ouvert à tous les agents de la fédération.", "public", [], [], 1),
     ("annonces", "Annonces", "📢", "Annonces officielles — lecture pour tous, publication par l'administration.", "announcement", [], ["federation", "supermaster"], 2),
     ("urgences", "Urgences", "🚨", "Canal d'urgence — signalements prioritaires.", "emergency", [], [], 3),
     ("ambassadeurs", "Ambassadeurs", "🎗️", "Réservé aux ambassadeurs.", "role", ["ambassador"], [], 4),

@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.db.models import Q
 
-from .models import Post, PostLike, PostView, Comment, Story, StoryView
+from .models import Post, PostLike, PostDislike, PostView, Comment, Story, StoryView
 from .serializers import (
     PostListSerializer,
     PostDetailSerializer,
@@ -94,6 +94,23 @@ def toggle_like(request, post_id):
         like.delete()
         return Response({"liked": False, "likes_count": post.likes.count()})
     return Response({"liked": True, "likes_count": post.likes.count()})
+
+
+@api_view(["POST"])
+def toggle_dislike(request, post_id):
+    try:
+        post = Post.objects.get(pk=post_id)
+    except Post.DoesNotExist:
+        return Response(
+            {"error": "Publication introuvable."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    dislike, created = PostDislike.objects.get_or_create(post=post, user=request.user)
+    if not created:
+        dislike.delete()
+        return Response({"disliked": False, "dislikes_count": post.dislikes.count()})
+    return Response({"disliked": True, "dislikes_count": post.dislikes.count()})
 
 
 @api_view(["GET", "POST"])

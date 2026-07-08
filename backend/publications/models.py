@@ -83,6 +83,10 @@ class Post(models.Model):
     def views_count(self):
         return self.views.count()
 
+    @property
+    def dislikes_count(self):
+        return self.dislikes.count()
+
 
 class PostMedia(models.Model):
     MEDIA_TYPES = [
@@ -150,6 +154,27 @@ class PostLike(models.Model):
 
     def __str__(self):
         return f"{self.user.full_name} aime #{self.post.pk}"
+
+
+class PostDislike(models.Model):
+    post = models.ForeignKey(
+        Post, on_delete=models.CASCADE, related_name="dislikes", verbose_name="Publication"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="post_dislikes",
+        verbose_name="Utilisateur",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Détesté le")
+
+    class Meta:
+        verbose_name = "Je n'aime pas"
+        verbose_name_plural = "Je n'aime pas"
+        unique_together = ("post", "user")
+
+    def __str__(self):
+        return f"{self.user.full_name} n'aime pas #{self.post.pk}"
 
 
 class Comment(models.Model):

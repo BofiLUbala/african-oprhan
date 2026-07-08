@@ -63,13 +63,52 @@ class ConversationSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = serializers.SerializerMethodField()
+    attachments = serializers.SerializerMethodField()
+    reply_to = serializers.SerializerMethodField()
+    reactions = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
-        fields = ['id', 'conversation', 'sender', 'content', 'is_read', 'created_at']
+        fields = ['id', 'conversation', 'sender', 'content', 'reply_to',
+                  'attachments', 'reactions', 'is_read', 'read_at', 'created_at']
 
     def get_sender(self, obj):
         return ChatUserSerializer().to_representation(obj.sender)
+
+    def get_attachments(self, obj):
+        return [
+            {'id': a.pk, 'url': a.file.url, 'name': a.original_name,
+             'size': a.size, 'mime': a.mime, 'kind': a.kind}
+            for a in obj.attachments.all()
+        ]
+
+    def get_reply_to(self, obj):
+        r = obj.reply_to
+        if r is None:
+            return None
+        first_att = r.attachments.first()
+        return {
+            'id': r.pk,
+            'sender': r.sender_id,
+            'sender_name': f"{r.sender.first_name or ''} {r.sender.last_name or ''}".strip() or r.sender.email,
+            'content': (r.content or '')[:140],
+            'kind': first_att.kind if first_att else 'text',
+            'attachment_name': first_att.original_name if first_att else '',
+        }
+
+    def get_reactions(self, obj):
+        me = None
+        request = self.context.get('request')
+        if request is not None:
+            me = request.user.pk
+        grouped = {}
+        for r in obj.reactions.select_related('user').all():
+            g = grouped.setdefault(r.emoji, {'emoji': r.emoji, 'count': 0, 'users': [], 'me': False})
+            g['count'] += 1
+            g['users'].append(f"{r.user.first_name or ''} {r.user.last_name or ''}".strip() or r.user.email)
+            if me is not None and r.user_id == me:
+                g['me'] = True
+        return list(grouped.values())
 
 
 class NotificationSerializer(serializers.ModelSerializer):

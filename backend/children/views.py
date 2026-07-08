@@ -3,11 +3,12 @@ import random
 from datetime import datetime
 
 from django.contrib.auth import get_user_model
+from django.core.files.storage import default_storage
 from django.db import IntegrityError
 from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -110,8 +111,9 @@ def child_list(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@throttle_classes([])
 def child_public_list(request):
-    enfants = Child.objects.all().order_by("?")[:30]
+    enfants = Child.objects.all().order_by("-created_at")
     serializer = ChildPublicSerializer(enfants, many=True, context={"request": request})
     return Response(serializer.data)
 
@@ -183,8 +185,17 @@ def child_update_list(request, child_id):
         return Response(serializer.data)
 
     elif request.method == "POST":
+        uploaded_urls = []
+        for f in request.FILES.getlist("attachments"):
+            path = default_storage.save(f"update_attachments/{f.name}", f)
+            uploaded_urls.append(request.build_absolute_uri(default_storage.url(path)))
+
+        payload = dict(request.data.items())
+        if uploaded_urls:
+            payload["attachments"] = uploaded_urls
+
         serializer = ChildUpdateSerializer(
-            data=request.data, context={"request": request}
+            data=payload, context={"request": request}
         )
         if serializer.is_valid():
             update = serializer.save(child=enfant)
@@ -746,3 +757,17 @@ def child_history_consultations(request, child_id):
         "page_size": page_size,
         "total_pages": (total + page_size - 1) // page_size,
     })
+
+
+@api_view(["POST"])
+def child_follow(request, child_id):
+    try:
+        enfant = Child.objects.get(pk=child_id)
+    except Child.DoesNotExist:
+        return Response({"error": "Enfant introuvable."}, status=status.HTTP_404_NOT_FOUND)
+    user = request.user
+    if enfant.followers.filter(pk=user.pk).exists():
+        enfant.followers.remove(user)
+        return Response({"following": False})
+    enfant.followers.add(user)
+    return Response({"following": True})

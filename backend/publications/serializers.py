@@ -56,6 +56,8 @@ class PostListSerializer(serializers.ModelSerializer):
     comments_count = serializers.IntegerField(read_only=True)
     views_count = serializers.IntegerField(read_only=True)
     is_liked = serializers.SerializerMethodField()
+    is_disliked = serializers.SerializerMethodField()
+    dislikes_count = serializers.IntegerField(read_only=True)
     child_info = serializers.SerializerMethodField()
     review_ambassador_name = serializers.SerializerMethodField()
 
@@ -65,6 +67,7 @@ class PostListSerializer(serializers.ModelSerializer):
             "id", "author", "author_name", "author_id", "author_avatar",
             "content", "post_type", "audience", "location", "media",
             "likes_count", "comments_count", "views_count", "is_liked",
+            "is_disliked", "dislikes_count",
             "status", "rejection_reason", "child_info", "review_ambassador_name",
             "created_at",
         ]
@@ -92,6 +95,12 @@ class PostListSerializer(serializers.ModelSerializer):
             return obj.likes.filter(user=request.user).exists()
         return False
 
+    def get_is_disliked(self, obj):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            return obj.dislikes.filter(user=request.user).exists()
+        return False
+
     def get_child_info(self, obj):
         return _child_info(obj)
 
@@ -108,6 +117,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
     comments_count = serializers.IntegerField(read_only=True)
     views_count = serializers.IntegerField(read_only=True)
     is_liked = serializers.SerializerMethodField()
+    is_disliked = serializers.SerializerMethodField()
+    dislikes_count = serializers.IntegerField(read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
     viewers = serializers.SerializerMethodField()
     child_info = serializers.SerializerMethodField()
@@ -119,6 +130,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "id", "author", "author_name", "author_id", "author_avatar",
             "content", "post_type", "audience", "location", "media",
             "likes_count", "comments_count", "views_count", "is_liked",
+            "is_disliked", "dislikes_count",
             "status", "rejection_reason", "child_info", "review_ambassador_name",
             "comments", "viewers", "created_at",
         ]
@@ -150,6 +162,12 @@ class PostDetailSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if request and request.user.is_authenticated:
             return obj.likes.filter(user=request.user).exists()
+        return False
+
+    def get_is_disliked(self, obj):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            return obj.dislikes.filter(user=request.user).exists()
         return False
 
     def get_viewers(self, obj):

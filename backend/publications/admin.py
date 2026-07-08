@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Post, PostMedia, PostView, PostLike, Comment, Story, StoryView
+from .models import Post, PostMedia, PostView, PostLike, PostDislike, Comment, Story, StoryView
 
 
 class PostMediaInline(admin.TabularInline):
@@ -22,6 +22,11 @@ class PostViewAdmin(admin.ModelAdmin):
 
 @admin.register(PostLike)
 class PostLikeAdmin(admin.ModelAdmin):
+    list_display = ["post", "user", "created_at"]
+
+
+@admin.register(PostDislike)
+class PostDislikeAdmin(admin.ModelAdmin):
     list_display = ["post", "user", "created_at"]
 
 

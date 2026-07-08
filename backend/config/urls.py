@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/", include("sponsorships.urls")),
     path("api/", include("communications.urls")),
     path("api/", include("management.urls")),
+    path("api/", include("opportunities.urls")),
 ]
 
 if settings.DEBUG:

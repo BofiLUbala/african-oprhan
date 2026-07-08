@@ -40,6 +40,9 @@ class ChildSerializer(serializers.ModelSerializer):
             "orphanage", "orphanage_name",
             "created_by", "created_at", "updated_at",
             "status_label", "child_name", "age",
+            "biography", "dream", "skills", "interests",
+            "school_name", "school_level", "school_progress",
+            "medical_info", "followers",
         ]
         read_only_fields = ["created_by", "created_at", "updated_at"]
         extra_kwargs = {
@@ -48,6 +51,7 @@ class ChildSerializer(serializers.ModelSerializer):
             "prenom": {"allow_blank": True, "required": False},
             "nationalite": {"allow_blank": True, "required": False},
             "adresse": {"allow_blank": True, "required": False},
+            "followers": {"read_only": True},
         }
 
     def get_status_label(self, obj):
@@ -81,10 +85,23 @@ class ChildSerializer(serializers.ModelSerializer):
 class ChildPublicSerializer(serializers.ModelSerializer):
     age = serializers.SerializerMethodField()
     photo_url = serializers.SerializerMethodField()
+    orphanage_name = serializers.SerializerMethodField()
+    sponsorship_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Child
-        fields = ["id", "uid", "nom", "prenom", "age", "nationalite", "sexe", "photo_url"]
+        fields = [
+            "id", "uid", "nom", "prenom", "age", "nationalite", "sexe",
+            "photo_url", "orphanage_name", "status", "biography", "dream",
+            "skills", "interests", "sponsorship_status",
+        ]
+
+    def get_sponsorship_status(self, obj):
+        active = obj.sponsorships.filter(status="active").exists()
+        return {"sponsored": active}
+
+    def get_orphanage_name(self, obj):
+        return obj.orphanage.name if obj.orphanage else ""
 
     def get_age(self, obj):
         if not obj.date_naissance:
@@ -95,16 +112,24 @@ class ChildPublicSerializer(serializers.ModelSerializer):
             (today.month, today.day) < (obj.date_naissance.month, obj.date_naissance.day)
         )
 
+    IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.gif', '.webp')
+
     def get_photo_url(self, obj):
         if obj.photo:
             try:
                 url = obj.photo.url
                 request = self.context.get('request')
-                if request:
-                    return request.build_absolute_uri(url)
-                return url
+                return request.build_absolute_uri(url) if request else url
             except Exception:
-                return None
+                pass
+
+        # No registration photo: fall back to the most recent real photo
+        # uploaded through a chef d'orphelinat "update" for this child.
+        for update in obj.updates.order_by('-created_at')[:20]:
+            for attachment in (update.attachments or []):
+                if isinstance(attachment, str) and attachment.startswith('http') \
+                        and attachment.lower().endswith(self.IMAGE_EXTS):
+                    return attachment
         return None
 
 

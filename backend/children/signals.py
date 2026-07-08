@@ -1,3 +1,5 @@
+import json
+
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -21,7 +23,7 @@ def _resoudre_auteur(instance, auteur=None):
 def _creer_evenement(child, event_type, performed_by=None, old_value="", new_value="",
                      title="", description="", reason="", status_before="",
                      status_after="", note="", source_module="", metadata=None,
-                     linked_update=None, force_category=None):
+                     linked_update=None, force_category=None, subcategory=""):
     classification = CLASSIFICATION_EVENEMENTS.get(event_type, {})
     categorie = force_category or classification.get('categorie', 'SYSTEME')
     priorite = classification.get('priorite', 'INFO')
@@ -47,6 +49,7 @@ def _creer_evenement(child, event_type, performed_by=None, old_value="", new_val
         child=child,
         event_type=event_type,
         category=mapping_categorie.get(categorie, 'general'),
+        subcategory=subcategory,
         title=title or classification.get('module', 'Événement'),
         description=description or "",
         old_value=str(old_value) if old_value else "",
@@ -167,21 +170,60 @@ def child_pre_save(sender, instance, **kwargs):
 def child_update_post_save(sender, instance, created, **kwargs):
     if not created:
         return
-    _creer_evenement(
-        child=instance.child,
-        event_type='update_added',
-        performed_by=instance.created_by,
-        title=instance.title,
-        description=instance.description or "",
-        old_value=instance.previous_value or "",
-        new_value=instance.new_value or "",
-        reason=instance.reason or "",
-        source_module='update_center',
-        force_category=instance.category.upper(),
-        metadata={'categorie_update': instance.category,
-                  'type_update': instance.update_type},
-        linked_update=instance,
-    )
+
+    # Parse new_value as JSON to get per-field data
+    try:
+        fields_data = json.loads(instance.new_value) if instance.new_value else {}
+    except (json.JSONDecodeError, TypeError):
+        fields_data = {}
+
+    try:
+        prev_data = json.loads(instance.previous_value) if instance.previous_value else {}
+    except (json.JSONDecodeError, TypeError):
+        prev_data = {}
+
+    if fields_data and isinstance(fields_data, dict):
+        # Create one immutable history record per changed field
+        for field_key, new_val in fields_data.items():
+            old_val = prev_data.get(field_key, '')
+            field_label = field_key.replace('_', ' ').title()
+            _creer_evenement(
+                child=instance.child,
+                event_type='update_added',
+                performed_by=instance.created_by,
+                title=field_label,
+                description=f"{instance.update_type}: {field_label}",
+                old_value=str(old_val) if old_val else "",
+                new_value=str(new_val) if new_val else "",
+                reason=instance.reason or "",
+                source_module='update_center',
+                force_category=instance.category.upper(),
+                subcategory=instance.update_type,
+                metadata={
+                    'categorie_update': instance.category,
+                    'type_update': instance.update_type,
+                    'field_key': field_key,
+                },
+                linked_update=instance,
+            )
+    else:
+        # Fallback: single record per update (backward compat for non-JSON data)
+        _creer_evenement(
+            child=instance.child,
+            event_type='update_added',
+            performed_by=instance.created_by,
+            title=instance.title,
+            description=instance.description or "",
+            old_value=instance.previous_value or "",
+            new_value=instance.new_value or "",
+            reason=instance.reason or "",
+            source_module='update_center',
+            force_category=instance.category.upper(),
+            subcategory=instance.update_type,
+            metadata={'categorie_update': instance.category,
+                      'type_update': instance.update_type},
+            linked_update=instance,
+        )
 
 
 

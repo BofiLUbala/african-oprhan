@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "communications",
     "sponsorships",
     "management",
+    "opportunities",
 ]
 
 MIDDLEWARE = [

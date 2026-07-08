@@ -8,6 +8,7 @@ class ProjetListSerializer(serializers.ModelSerializer):
     createur_nom = serializers.SerializerMethodField()
     validateur_nom = serializers.SerializerMethodField()
     progression = serializers.SerializerMethodField()
+    followers_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -18,6 +19,7 @@ class ProjetListSerializer(serializers.ModelSerializer):
             "statut", "motif_rejet", "commentaire_modification",
             "budget_total", "montant_collecte", "progression",
             "beneficiaires", "date_debut", "date_fin",
+            "followers_count",
             "created_at", "updated_at",
         ]
 
@@ -31,6 +33,9 @@ class ProjetListSerializer(serializers.ModelSerializer):
         if obj.budget_total > 0:
             return round(float(obj.montant_collecte) / float(obj.budget_total) * 100, 1)
         return 0
+
+    def get_followers_count(self, obj):
+        return obj.followers.count()
 
 
 class ProjetCreateSerializer(serializers.ModelSerializer):

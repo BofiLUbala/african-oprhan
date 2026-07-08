@@ -1,10 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { io } from 'socket.io-client'
 import { useTranslation } from '../i18n'
 
-const WS_URL = 'http://localhost:8000'
+const TICK_MS = 6000
 
 const H = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316']
+
+const COUNTRY_CODES = [
+  { code: "AO", name: "Angola" }, { code: "BJ", name: "Bénin" }, { code: "BW", name: "Botswana" },
+  { code: "BF", name: "Burkina Faso" }, { code: "BI", name: "Burundi" }, { code: "CM", name: "Cameroun" },
+  { code: "CV", name: "Cap-Vert" }, { code: "CF", name: "République centrafricaine" },
+  { code: "KM", name: "Comores" }, { code: "CG", name: "Congo-Brazzaville" },
+  { code: "CD", name: "République démocratique du Congo" }, { code: "CI", name: "Côte d'Ivoire" },
+  { code: "DJ", name: "Djibouti" }, { code: "EG", name: "Égypte" }, { code: "GQ", name: "Guinée équatoriale" },
+  { code: "ER", name: "Érythrée" }, { code: "SZ", name: "Eswatini" }, { code: "ET", name: "Éthiopie" },
+  { code: "GA", name: "Gabon" }, { code: "GM", name: "Gambie" }, { code: "GH", name: "Ghana" },
+  { code: "GN", name: "Guinée" }, { code: "GW", name: "Guinée-Bissau" }, { code: "KE", name: "Kenya" },
+  { code: "LS", name: "Lesotho" }, { code: "LR", name: "Liberia" }, { code: "LY", name: "Libye" },
+  { code: "MG", name: "Madagascar" }, { code: "MW", name: "Malawi" }, { code: "ML", name: "Mali" },
+  { code: "MR", name: "Mauritanie" }, { code: "MU", name: "Maurice" }, { code: "MA", name: "Maroc" },
+  { code: "MZ", name: "Mozambique" }, { code: "NA", name: "Namibie" }, { code: "NE", name: "Niger" },
+  { code: "NG", name: "Nigeria" }, { code: "RW", name: "Rwanda" }, { code: "ST", name: "Sao Tomé-et-Principe" },
+  { code: "SN", name: "Sénégal" }, { code: "SC", name: "Seychelles" }, { code: "SL", name: "Sierra Leone" },
+  { code: "SO", name: "Somalie" }, { code: "ZA", name: "Afrique du Sud" }, { code: "SS", name: "Soudan du Sud" },
+  { code: "SD", name: "Soudan" }, { code: "TZ", name: "Tanzanie" }, { code: "TG", name: "Togo" },
+  { code: "TN", name: "Tunisie" }, { code: "UG", name: "Ouganda" }, { code: "ZM", name: "Zambie" },
+  { code: "ZW", name: "Zimbabwe" },
+]
 
 function hueIndex(str) {
   if (!str) return 0
@@ -12,207 +33,193 @@ function hueIndex(str) {
   return Math.abs(code % H.length)
 }
 
-function svgUrl(letter, bg, w, h) {
-  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${bg}dd"/><stop offset="100%" stop-color="${bg}88"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#g)" rx="8"/><text x="${w/2}" y="${h*0.58}" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="${Math.round(Math.min(w,h)*0.45)}" font-weight="bold" font-family="Arial,sans-serif">${letter}</text></svg>`)}`
+function countryCodeOf(child) {
+  if (child.code) return child.code
+  const name = child.nationalite || child.country || ''
+  const c = COUNTRY_CODES.find(c => c.name === name)
+  return c ? c.code : null
 }
 
-const fallbackData = [
-  { name: 'Aminata', age: 7, country: 'Sénégal', code: 'SN', color: '#f59e0b', img: svgUrl('A', '#f59e0b', 400, 500) },
-  { name: 'Kofi',    age: 10, country: 'Ghana', code: 'GH', color: '#22c55e', img: svgUrl('K', '#22c55e', 400, 500) },
-  { name: 'Zara',    age: 6, country: 'Éthiopie', code: 'ET', color: '#a855f7', img: svgUrl('Z', '#a855f7', 400, 500) },
-  { name: 'Moussa',  age: 12, country: 'Mali', code: 'ML', color: '#3b82f6', img: svgUrl('M', '#3b82f6', 400, 500) },
+function flagUrl(code) {
+  return code ? `https://flagcdn.com/24x18/${code.toLowerCase()}.png` : null
+}
+
+const STEPPED_CLIP = 'polygon(0% 0%, 100% 0%, 100% 90%, 80% 90%, 80% 100%, 0% 100%)'
+
+// layer positions: back (left tilt), middle (straight), front (right tilt, active)
+const LAYER_CONFIG = [
+  { key: 'back',   rotate: -45, x: -128, y: 34,  scale: 0.86, opacity: 0.55, z: 1 },
+  { key: 'middle', rotate: 0,   x: 0,    y: -22, scale: 0.95, opacity: 0.8,  z: 2 },
+  { key: 'front',  rotate: 45,  x: 128,  y: 34,  scale: 1,    opacity: 1,    z: 3 },
 ]
 
-const STEPPED_CLIP = 'polygon(0% 0%, 100% 0%, 100% 72%, 78% 72%, 78% 100%, 0% 100%)'
+function photoUrlOf(child) {
+  const url = child.photo_url || child.photo || ''
+  return typeof url === 'string' && url.startsWith('http') ? url : ''
+}
 
-const DECK_LAYERS = [
-  { rotate: '-3deg', x: '-6px', y: '-6px', z: 0 },
-  { rotate: '2deg',  x: '5px', y: '-3px', z: 1 },
-]
-
-function DeckCard({ child, color, index, isNew }) {
-  const photoUrl = (child.photo_url || child.photo || child.img || '').startsWith('http') || (child.img || '').startsWith('data:')
-    ? (child.photo_url || child.photo || child.img)
-    : ''
+function CardFace({ child, color, onBroken }) {
+  const photoUrl = photoUrlOf(child)
   const initial = (child.prenom?.[0] || child.nom?.[0] || child.name?.[0] || '?').toUpperCase()
   const name = child.prenom ? `${child.prenom} ${child.nom || ''}`.trim() : child.name
-  const nat = child.nationalite || child.country || ''
-  const age = child.age != null ? child.age : ''
+  const flag = flagUrl(countryCodeOf(child))
   const accent = color || H[0]
 
   return (
+    <>
+      <div className="deck-card-photo">
+        {photoUrl ? (
+          <img
+            src={photoUrl}
+            alt={name}
+            className="deck-card-img"
+            onError={() => onBroken?.(photoUrl)}
+            onLoad={e => {
+              // reject junk uploads (solid-color test squares are 50-100px)
+              if (e.currentTarget.naturalWidth < 120 || e.currentTarget.naturalHeight < 120) onBroken?.(photoUrl)
+            }}
+          />
+        ) : (
+          <div className="deck-card-avatar" style={{ background: `linear-gradient(135deg, ${accent}dd, ${accent}88)` }}>
+            <span>{initial}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="deck-card-info">
+        <div className="deck-card-name">
+          {flag && <img src={flag} alt="" className="deck-card-flag" />}
+          <span>{name}</span>
+        </div>
+      </div>
+
+      <div className="deck-card-glow" style={{ background: `linear-gradient(90deg, transparent, ${accent}99, transparent)` }} />
+    </>
+  )
+}
+
+function childKeyOf(c) {
+  return c.id || c.uid || c.prenom || c.name || 'x'
+}
+
+function DeckLayerCard({ child, color, layer, onBroken }) {
+  const [displayed, setDisplayed] = useState({ child, color })
+  const [incoming, setIncoming] = useState(null)
+  const [fadeIn, setFadeIn] = useState(false)
+  const timeoutRef = useRef(null)
+  const rafRef = useRef(null)
+
+  useEffect(() => {
+    if (childKeyOf(child) === childKeyOf(displayed.child)) return
+
+    setIncoming({ child, color })
+    setFadeIn(false)
+
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = requestAnimationFrame(() => setFadeIn(true))
+    })
+
+    timeoutRef.current = setTimeout(() => {
+      setDisplayed({ child, color })
+      setIncoming(null)
+      setFadeIn(false)
+    }, 2800)
+
+    return () => {
+      clearTimeout(timeoutRef.current)
+      cancelAnimationFrame(rafRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childKeyOf(child)])
+
+  return (
     <div
-      className={`relative w-[155px] h-[228px] sm:w-[172px] sm:h-[250px] ${isNew ? 'animate-card-entry' : ''}`}
+      className="deck-layer"
       style={{
-        animationDelay: isNew ? '0ms' : `${index * 90}ms`,
-        animationFillMode: 'backwards',
+        transform: `translate(${layer.x}px, ${layer.y}px) rotate(${layer.rotate}deg) scale(${layer.scale})`,
+        opacity: layer.opacity,
+        zIndex: layer.z,
       }}
     >
-      {DECK_LAYERS.map((layer, li) => (
-        <div
-          key={li}
-          className="absolute inset-0 rounded-[10px]"
-          style={{
-            background: 'linear-gradient(160deg, rgba(30,41,59,0.45), rgba(15,23,42,0.65))',
-            border: '1px solid rgba(255,255,255,0.04)',
-            transform: `rotate(${layer.rotate}) translateX(${layer.x}) translateY(${layer.y})`,
-            zIndex: layer.z,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-            backdropFilter: 'blur(4px)',
-          }}
-        />
-      ))}
-
-      <div
-        className="relative z-[2] w-full h-full rounded-[10px] flex flex-col overflow-hidden cursor-pointer"
-        style={{
-          background: 'linear-gradient(160deg, rgba(30,41,59,0.92), rgba(15,23,42,0.98))',
-          border: '1px solid rgba(255,255,255,0.07)',
-          boxShadow: `0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)`,
-          transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.transform = 'translateY(-3px)'
-          e.currentTarget.style.boxShadow = `0 14px 44px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)`
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.transform = ''
-          e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)`
-        }}
-      >
-        <div
-          className="w-full flex-shrink-0 overflow-hidden"
-          style={{ clipPath: STEPPED_CLIP, height: '158px' }}
-        >
-          {photoUrl ? (
-            <img
-              src={photoUrl}
-              alt={name}
-              className="w-full h-full object-cover"
-              style={{ transition: 'transform 0.6s cubic-bezier(0.16,1,0.3,1)' }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
-            />
-          ) : (
-            <div
-              className="w-full h-full flex items-center justify-center"
-              style={{ background: `linear-gradient(135deg, ${accent}dd, ${accent}88)` }}
-            >
-              <span
-                className="font-bold text-white/85 select-none"
-                style={{ fontSize: '52px', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
-              >
-                {initial}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex-1 flex flex-col items-center justify-center px-2.5 py-2 gap-0.5">
-          <div
-            className="font-semibold text-center truncate w-full text-[13px] sm:text-[14px]"
-            style={{ color: '#e2e8f0' }}
-          >
-            {name}
+      <div className="deck-card" style={{ clipPath: STEPPED_CLIP }}>
+        <CardFace child={displayed.child} color={displayed.color} onBroken={onBroken} />
+        {incoming && (
+          <div className="deck-card-crossfade" style={{ opacity: fadeIn ? 1 : 0 }}>
+            <CardFace child={incoming.child} color={incoming.color} onBroken={onBroken} />
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px]" style={{ color: '#94a3b8' }}>
-            {age != null && age !== '' && <span>{age} ans</span>}
-            {age != null && age !== '' && nat && <span>·</span>}
-            {nat && <span>{nat}</span>}
-          </div>
-        </div>
-
-        <div
-          className="absolute bottom-0 left-0 right-0 h-[2px]"
-          style={{ background: `linear-gradient(90deg, transparent, ${accent}99, transparent)` }}
-        />
+        )}
       </div>
     </div>
   )
 }
 
-export default function ProfilesSection({ children: initialChildren }) {
+export default function ProfilesSection({ pool, onBroken }) {
   const { t } = useTranslation()
-  const [children, setChildren] = useState([])
-  const [newIds, setNewIds] = useState(new Set())
-  const [mounted, setMounted] = useState(false)
-  const socketRef = useRef(null)
+  const [slots, setSlots] = useState([])
+  const poolRef = useRef([])
+  const cursorRef = useRef(0)
+  const nextSlotRef = useRef(0)
 
-  useEffect(() => { setMounted(true) }, [])
+  poolRef.current = pool
 
+  // Show at most 3 cards, but never more than there are distinct children —
+  // no child appears twice on screen at once.
+  const slotCount = Math.min(LAYER_CONFIG.length, pool.length)
+
+  // (Re)seed the visible slots whenever the number of available children
+  // crosses a card-count threshold (first photos arrive, or new children
+  // get registered while only 1-2 cards were showing).
   useEffect(() => {
-    if (initialChildren && initialChildren.length > 0) {
-      setChildren(prev => {
-        if (prev.length === 0) return initialChildren
-        const existing = new Map()
-        initialChildren.forEach(c => existing.set(c.id || c.uid, c))
-        const merged = [...initialChildren]
-        prev.forEach(c => { if (!existing.has(c.id || c.uid)) merged.unshift(c) })
-        return merged
-      })
+    if (slots.length !== slotCount && slotCount > 0) {
+      setSlots(pool.slice(0, slotCount))
+      cursorRef.current = slotCount
+      nextSlotRef.current = 0
     }
-  }, [initialChildren])
+  }, [slotCount, slots.length])
 
+  // Conveyor: every tick, pull ONE new child into ONE slot (round-robin),
+  // so only a single card crossfades at a time while the others hold
+  // still. The cursor walks the entire pool before wrapping, so every
+  // child from every chef d'orphelinat eventually pops up, then repeats.
   useEffect(() => {
-    let socket = null
-    try {
-      socket = io(WS_URL, {
-        transports: ['websocket', 'polling'],
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 2000,
-      })
-
-      socket.on('connect', () => {
-        console.log('[ProfilesSection] WebSocket connected')
-      })
-
-      socket.on('child_updated', (payload) => {
-        if (!payload || (!payload.id && !payload.uid)) return
-        setChildren(prev => {
-          const idx = prev.findIndex(c =>
-            (c.id != null && c.id === payload.id) ||
-            (c.uid != null && c.uid === payload.uid)
-          )
-          if (idx >= 0) {
-            const copy = [...prev]
-            copy[idx] = { ...copy[idx], ...payload }
-            return copy
+    const id = setInterval(() => {
+      const currentPool = poolRef.current
+      setSlots(prev => {
+        if (prev.length === 0 || currentPool.length <= prev.length) return prev
+        const slotIdx = nextSlotRef.current % prev.length
+        // skip children already visible in another slot
+        let next = null
+        for (let step = 0; step < currentPool.length; step++) {
+          const candidate = currentPool[(cursorRef.current + step) % currentPool.length]
+          const key = candidate.id ?? candidate.uid
+          if (!prev.some((s, si) => si !== slotIdx && (s.id ?? s.uid) === key)) {
+            next = candidate
+            cursorRef.current = (cursorRef.current + step + 1) % currentPool.length
+            break
           }
-          return [payload, ...prev]
-        })
+        }
+        if (!next) return prev
+        nextSlotRef.current = (slotIdx + 1) % prev.length
+        const copy = [...prev]
+        copy[slotIdx] = next
+        return copy
       })
-
-      socket.on('enfant_enregistre', (payload) => {
-        if (!payload || (!payload.id && !payload.uid)) return
-        const uid = payload.id || payload.uid
-        setChildren(prev => {
-          if (prev.some(c =>
-            (c.id != null && c.id === payload.id) ||
-            (c.uid != null && c.uid === payload.uid)
-          )) return prev
-          setNewIds(prevIds => new Set([...prevIds, uid]))
-          setTimeout(() => {
-            setNewIds(prevIds => { const next = new Set(prevIds); next.delete(uid); return next })
-          }, 800)
-          return [payload, ...prev]
-        })
-      })
-
-      socket.on('disconnect', () => {
-        console.log('[ProfilesSection] WebSocket disconnected')
-      })
-
-      socketRef.current = socket
-    } catch (err) {
-      console.warn('[ProfilesSection] WebSocket unavailable — offline mode', err)
-    }
-
-    return () => { if (socket) socket.disconnect() }
+    }, TICK_MS)
+    return () => clearInterval(id)
   }, [])
 
-  const pool = children.length > 0 ? children : fallbackData
-  const visible = pool.slice(0, 4)
+  // Pick layer poses that look right for the card count:
+  // 1 card → straight middle; 2 cards → back + front tilt; 3 → full deck.
+  const activeLayers = slotCount === 1 ? [LAYER_CONFIG[1]]
+    : slotCount === 2 ? [LAYER_CONFIG[0], LAYER_CONFIG[2]]
+    : LAYER_CONFIG
+
+  const deckChildren = slots.slice(0, slotCount).map((child, i) => {
+    if (!child) return null
+    const layer = activeLayers[i] || LAYER_CONFIG[i]
+    const color = child.color || H[(hueIndex(child.prenom || child.name) + i * 3) % H.length]
+    return { layer, child, color }
+  }).filter(Boolean)
 
   return (
     <section className="profiles" id="profiles">
@@ -225,22 +232,16 @@ export default function ProfilesSection({ children: initialChildren }) {
             <button className="btn btn-primary btn-xl">{t('profiles_btn')}</button>
           </div>
 
-          <div className="flex flex-col items-center">
-            <div className="flex flex-wrap justify-center gap-5 sm:gap-7 md:gap-9">
-              {visible.map((c, i) => {
-                const key = c.id || c.uid || i
-                const color = c.color || H[(hueIndex(c.prenom || c.name) + i * 3) % H.length]
-                return (
-                  <DeckCard
-                    key={key}
-                    child={c}
-                    color={color}
-                    index={i}
-                    isNew={mounted && newIds.has(c.id || c.uid)}
-                  />
-                )
-              })}
-            </div>
+          <div className="profiles-deck">
+            {deckChildren.map(({ layer, child, color }) => (
+              <DeckLayerCard
+                key={layer.key}
+                layer={layer}
+                child={child}
+                color={color}
+                onBroken={onBroken}
+              />
+            ))}
           </div>
         </div>
       </div>

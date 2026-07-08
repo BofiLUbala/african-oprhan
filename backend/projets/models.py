@@ -63,6 +63,13 @@ class Project(models.Model):
     documents = models.JSONField(default=dict, blank=True, verbose_name="Documents")
     pdf_file = models.FileField(upload_to="projets/", blank=True, null=True, verbose_name="Fichier PDF")
 
+    followers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="followed_projects",
+        verbose_name="Followers",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Créé le")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Modifié le")
 
