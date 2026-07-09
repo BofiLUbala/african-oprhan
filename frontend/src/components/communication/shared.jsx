@@ -1,4 +1,6 @@
 import React from 'react'
+import CIcon, { kindToIcon } from './icons'
+import './communication.css'
 
 export const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
 
@@ -19,8 +21,10 @@ export function dayLabel(iso) {
   return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
-const KIND_ICONS = { pdf: '📄', word: '📝', excel: '📊', powerpoint: '📽️', archive: '🗜️', audio: '🎙️', video: '🎬', image: '🖼️', file: '📎', text: '💬' }
-export const kindIcon = (k) => KIND_ICONS[k] || '📎'
+/** Petite icône de type de pièce jointe (SVG cohérent, plus d'emoji). */
+export function KindIcon({ kind, size = 15 }) {
+  return <CIcon name={kindToIcon(kind)} size={size} />
+}
 
 /** Sélecteur d'émoji façon WhatsApp (survol / clic droit / appui long). */
 export function ReactionPicker({ onPick, onClose, mine }) {
@@ -70,9 +74,10 @@ export function ReplyQuote({ reply, compact }) {
     <div className={`cmv2-quote${compact ? ' compact' : ''}`}>
       <span className="cmv2-quote-author">{reply.sender_name}</span>
       <span className="cmv2-quote-text">
-        {reply.kind && reply.kind !== 'text' ? `${kindIcon(reply.kind)} ${reply.attachment_name || reply.kind}` : ''}
-        {reply.content ? (reply.kind !== 'text' && reply.content ? ' — ' : '') + reply.content : ''}
-        {!reply.content && (!reply.kind || reply.kind === 'text') ? 'Message' : ''}
+        {reply.kind && reply.kind !== 'text' && <KindIcon kind={reply.kind} size={13} />}
+        {reply.content
+          ? reply.content
+          : (reply.kind && reply.kind !== 'text' ? (reply.attachment_name || reply.kind) : 'Message')}
       </span>
     </div>
   )
@@ -100,12 +105,12 @@ export function AttachmentList({ attachments, mediaUrl }) {
         if (a.kind === 'audio') return <audio key={a.id} src={url} controls preload="metadata" className="cmv2-att-audio" />
         return (
           <a key={a.id} href={url} target="_blank" rel="noreferrer" download className="cmv2-att-file">
-            <span className="cmv2-att-file-icon" aria-hidden="true">{kindIcon(a.kind)}</span>
+            <span className="cmv2-att-file-icon"><KindIcon kind={a.kind} size={20} /></span>
             <span className="cmv2-att-file-body">
               <span className="cmv2-att-file-name">{a.name}</span>
               <span className="cmv2-att-file-meta">{(a.kind || 'fichier').toUpperCase()}{a.size ? ` · ${fmtSize(a.size)}` : ''}</span>
             </span>
-            <span aria-hidden="true">⬇️</span>
+            <CIcon name="download" size={16} />
           </a>
         )
       })}
@@ -118,14 +123,17 @@ export function PendingFiles({ files, onRemove }) {
   if (!files || files.length === 0) return null
   return (
     <div className="cmv2-pending">
-      {files.map((f, i) => (
-        <span key={i} className="cmv2-pending-chip">
-          <span aria-hidden="true">{f.type?.startsWith('image') ? '🖼️' : f.type?.startsWith('audio') ? '🎙️' : f.type?.startsWith('video') ? '🎬' : '📎'}</span>
-          <span className="cmv2-pending-name">{f.name}</span>
-          <span className="cmv2-pending-size">{fmtSize(f.size)}</span>
-          <button onClick={() => onRemove(i)} aria-label={`Retirer ${f.name}`} className="cmv2-pending-x">✕</button>
-        </span>
-      ))}
+      {files.map((f, i) => {
+        const k = f.type?.startsWith('image') ? 'image' : f.type?.startsWith('audio') ? 'audio' : f.type?.startsWith('video') ? 'video' : 'file'
+        return (
+          <span key={i} className="cmv2-pending-chip">
+            <KindIcon kind={k} size={14} />
+            <span className="cmv2-pending-name">{f.name}</span>
+            <span className="cmv2-pending-size">{fmtSize(f.size)}</span>
+            <button onClick={() => onRemove(i)} aria-label={`Retirer ${f.name}`} className="cmv2-pending-x"><CIcon name="x" size={13} /></button>
+          </span>
+        )
+      })}
     </div>
   )
 }
@@ -138,10 +146,10 @@ export function ReplyBanner({ replyTo, onCancel }) {
       <div className="cmv2-replybar-body">
         <span className="cmv2-replybar-label">Répondre à {replyTo.sender_name}</span>
         <span className="cmv2-replybar-text">
-          {replyTo.content?.slice(0, 90) || `${kindIcon(replyTo.kind)} ${replyTo.attachment_name || 'Pièce jointe'}`}
+          {replyTo.content?.slice(0, 90) || (replyTo.attachment_name || 'Pièce jointe')}
         </span>
       </div>
-      <button onClick={onCancel} aria-label="Annuler la réponse" className="cmv2-replybar-x">✕</button>
+      <button onClick={onCancel} aria-label="Annuler la réponse" className="cmv2-replybar-x"><CIcon name="x" size={15} /></button>
     </div>
   )
 }

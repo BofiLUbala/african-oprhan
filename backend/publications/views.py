@@ -19,8 +19,9 @@ def visible_post_filter(user):
         return Q(audience="public")
 
     role = getattr(user, "role", "")
-    role_audience = "federation" if role == "supermaster" else role
-    return Q(audience="public") | Q(audience=role_audience)
+    if role == "supermaster":
+        return Q()  # Super Master voit toutes les publications, sans filtre
+    return Q(audience="public") | Q(audience=role)
 
 
 @api_view(["GET", "POST"])
@@ -38,6 +39,14 @@ def post_list(request):
             ).prefetch_related(
                 "media", "likes", "comments", "views"
             )
+        # Pagination optionnelle (rétro-compatible : sans paramètre → tout)
+        try:
+            limit = int(request.query_params.get("limit", 0))
+            offset = int(request.query_params.get("offset", 0))
+        except (ValueError, TypeError):
+            limit, offset = 0, 0
+        if limit > 0:
+            posts = posts[offset:offset + limit]
         serializer = PostListSerializer(posts, many=True, context={"request": request})
         return Response(serializer.data)
 

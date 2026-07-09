@@ -10,6 +10,7 @@ urlpatterns = [
     path('conversations/<int:conversation_id>/messages/', views.message_list, name='message-list'),
     path('conversations/<int:conversation_id>/read/', views.mark_read, name='mark-read'),
     path('conversations/messages/<int:message_id>/react/', views.message_react, name='message-react'),
+    path('conversations/messages/<int:message_id>/', views.message_detail, name='message-detail'),
     path('notifications/', views.notification_list, name='notification-list'),
     path('notifications/unread-count/', views.notification_unread_count, name='notification-unread-count'),
     path('notifications/broadcast/', views.notification_broadcast, name='notification-broadcast'),

@@ -3,7 +3,8 @@ from datetime import date
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Sum, Q, F
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from children.models import Child
@@ -178,3 +179,51 @@ def partner_child_list(request):
     from children.serializers import ChildPublicSerializer
     serializer = ChildPublicSerializer(children, many=True, context={"request": request})
     return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def partner_child_detail(request, uid):
+    try:
+        child = Child.objects.select_related("orphanage").get(uid=uid)
+    except Child.DoesNotExist:
+        return Response({"error": "Enfant introuvable."}, status=404)
+
+    from children.serializers import ChildPublicSerializer
+    from django.contrib.contenttypes.models import ContentType
+    from .models import Opportunity
+
+    serializer = ChildPublicSerializer(child, context={"request": request})
+    data = serializer.data
+
+    # ── Updates par catégorie (ChildUpdate) ──
+    updates = child.updates.all().values(
+        "id", "category", "update_type", "title",
+        "description", "previous_value", "new_value",
+        "reason", "attachments", "created_at",
+    ).order_by("-created_at")
+
+    grouped = {"health": [], "education": [], "family": [], "documents": [], "social": []}
+    for u in updates:
+        cat = u["category"]
+        if cat in grouped:
+            grouped[cat].append(u)
+        else:
+            grouped.setdefault(cat, []).append(u)
+    data["updates"] = grouped
+
+    # ── Opportunités ──
+    child_ct = ContentType.objects.get_for_model(Child)
+    data["opportunities"] = list(
+        Opportunity.objects.filter(
+            related_object_type=child_ct,
+            related_object_id=child.id,
+        ).values("id", "title", "type", "status", "priority", "summary")
+    )
+
+    # ── Projets ──
+    data["projects"] = list(
+        child.projets.all().values("id", "titre", "budget_total", "montant_collecte", "statut")
+    )
+
+    return Response(data)

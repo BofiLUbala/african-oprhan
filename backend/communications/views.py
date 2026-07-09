@@ -335,6 +335,25 @@ def message_react(request, message_id):
     return Response(MessageSerializer(m, context={'request': request}).data)
 
 
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def message_detail(request, message_id):
+    """Supprimer pour tout le monde son propre message privé (WhatsApp
+    « Supprimer pour tout le monde »). « Supprimer pour moi » reste côté client."""
+    try:
+        m = Message.objects.select_related('conversation').get(pk=message_id)
+    except Message.DoesNotExist:
+        return Response({'error': 'Message introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not m.conversation.participants.filter(pk=request.user.pk).exists():
+        return Response({'error': 'Accès refusé.'}, status=status.HTTP_403_FORBIDDEN)
+    if m.sender_id != request.user.pk:
+        return Response({'error': 'Vous ne pouvez supprimer que vos propres messages.'}, status=status.HTTP_403_FORBIDDEN)
+
+    m.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def chat_user_list(request):

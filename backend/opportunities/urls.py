@@ -6,4 +6,5 @@ urlpatterns = [
     path("opportunities/<int:pk>/", views.opportunity_detail, name="opportunity-detail"),
     path("partner/impact/", views.partner_impact_stats, name="partner-impact"),
     path("partner/children/", views.partner_child_list, name="partner-children"),
+    path("partner/children/<str:uid>/", views.partner_child_detail, name="partner-child-detail"),
 ]

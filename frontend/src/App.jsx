@@ -4,6 +4,9 @@ import SystemConfigurationPage from './components/SystemConfigurationPage'
 import UserManagementPage from './components/UserManagementPage'
 import ReportsPage from './components/ReportsPage'
 import ProfilesSection from './components/ProfilesSection'
+import PaymentManagementPage from './components/PaymentManagementPage'
+import ChannelFeed from './components/communication/ChannelFeed'
+import ChatThread from './components/communication/ChatThread'
 import useLiveChildren from './hooks/useLiveChildren'
 import useNotifications from './hooks/useNotifications'
 import './App.css'
@@ -142,11 +145,11 @@ export default function App() {
       .catch(() => {})
   }, [])
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     setUser(null)
-  }
+  }, [])
 
   if (user) {
     const roleLower = (user.role || '').toLowerCase()
@@ -486,6 +489,7 @@ const ROLE_NAV = {
     { label: 'Tableau de bord', key: 'dashboard' },
     { label: 'Direction générale', key: 'executive' },
     { label: 'Organisations', key: 'organizations' },
+    { label: 'Finances & Paiements', key: 'finances' },
     { label: 'Système', key: 'systeme' },
     { label: 'Utilisateurs', key: 'users' },
     { label: 'Orphelinats', key: 'orphelinats' },
@@ -496,6 +500,7 @@ const ROLE_NAV = {
   ],
   federation: [
     { label: 'Tableau de bord', key: 'dashboard' },
+    { label: 'Finances & Paiements', key: 'finances' },
     { label: 'Utilisateurs', key: 'users' },
     { label: 'Orphelinats', key: 'orphelinats' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
@@ -510,6 +515,7 @@ const ROLE_NAV = {
     { label: 'Opportunités', key: 'opportunites' },
     { label: 'Enfants', key: 'enfants' },
     { label: 'Projets', key: 'projets' },
+    { label: 'Transactions', key: 'transactions' },
     { label: 'Impact', key: 'impact' },
     { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
@@ -608,6 +614,10 @@ const ROLE_PAGES = {
     ]},
   },
   supermaster: {
+    finances: { title: 'Finances & Paiements', subtitle: 'Gestion des fournisseurs et transactions.', categories: [
+      { id: 'F1', title: 'Fournisseurs', subtitle: 'Configurer les moyens de paiement', count: 0 },
+      { id: 'F2', title: 'Transactions', subtitle: 'Toutes les transactions financières', count: 0 },
+    ]},
     dashboard: { title: 'Supervision générale', subtitle: "Administration centrale du système.", categories: [
       { id: 'D1', title: 'État du système', subtitle: 'Opérationnel', count: 100 },
       { id: 'D2', title: 'Utilisateurs actifs', subtitle: '42 Connectés', count: 42 },
@@ -649,6 +659,9 @@ const ROLE_PAGES = {
     ]},
   },
   federation: {
+    finances: { title: 'Finances & Paiements', subtitle: 'Suivi des transactions financières.', categories: [
+      { id: 'F1', title: 'Transactions', subtitle: 'Toutes les transactions', count: 0 },
+    ]},
     dashboard: { title: "Tableau de bord de la Fédération", subtitle: "Gouvernance centrale des orphelinats.", categories: [
       { id: 'D1', title: 'Activités en cours', subtitle: '32 Actions', count: 32 },
       { id: 'D2', title: 'Validations requises', subtitle: '8 En attente', count: 8 },
@@ -690,6 +703,9 @@ const ROLE_PAGES = {
     ]},
   },
   partner: {
+    transactions: { title: 'Mes Transactions', subtitle: "Historique de vos paiements et contributions.", categories: [
+      { id: 'T1', title: 'Toutes les transactions', subtitle: 'Dons, parrainages, financements', count: 0 },
+    ]},
     dashboard: { title: 'Tableau de bord', subtitle: "Vue d'ensemble des contributions.", categories: [
       { id: 'D1', title: 'Mes contributions', subtitle: '12 Projets financés', count: 12 },
       { id: 'D2', title: 'Parrainages en cours', subtitle: '3 Enfants', count: 3 },
@@ -793,7 +809,7 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
     const check = setInterval(() => {
       const v = localStorage.getItem('cdo_orphanage_name') || ''
       if (v !== localOrpName) setLocalOrpName(v)
-    }, 1000)
+    }, 8000)
     return () => clearInterval(check)
   }, [localOrpName])
 
@@ -801,7 +817,7 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
     const check = setInterval(() => {
       const v = localStorage.getItem('cdo_profile_img')
       if (v !== profileImg) setProfileImg(v)
-    }, 1000)
+    }, 8000)
     return () => clearInterval(check)
   }, [profileImg])
 
@@ -1091,6 +1107,10 @@ const ES_ICON_PATHS = {
   activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
   child: '<circle cx="12" cy="7" r="4"/><path d="M5 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/>',
   alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  thumbUp: '<path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/>',
+  thumbDown: '<path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/>',
+  share: '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/>',
+  smile: '<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/>',
 }
 const esKpiIcon = (name) => ({ revenue: 'dollar', sparkle: 'star', child: 'child' }[name] || name)
 const esAttachIconName = (kind) => ({ image: 'image', video: 'video', audio: 'mic', pdf: 'file', word: 'file', excel: 'file', powerpoint: 'file', archive: 'archive' }[kind] || 'file')
@@ -1124,8 +1144,11 @@ function ExecutiveDashboard({ onLogout }) {
   const [data, setData] = React.useState(null)
   const [loading, setLoading] = React.useState(true)
   const [err, setErr] = React.useState(false)
+  const fetchedRef = React.useRef(false)
 
   const load = React.useCallback(() => {
+    if (fetchedRef.current) return
+    fetchedRef.current = true
     setLoading(true); setErr(false)
     apiFetch(`${API}/auth/executive/`, {}, onLogout)
       .then(r => r && r.ok ? r.json() : Promise.reject())
@@ -1478,7 +1501,6 @@ function EclatSocialApp({ user, onReturn }) {
   const [esConversations, setEsConversations] = React.useState([])
   const [esActiveConv, setEsActiveConv] = React.useState(null)
   const [esMessages, setEsMessages] = React.useState([])
-  const [esMsgInput, setEsMsgInput] = React.useState('')
   const [esUsers, setEsUsers] = React.useState([])
   const [esPosts, setEsPosts] = React.useState([])
   const [esPostText, setEsPostText] = React.useState('')
@@ -1509,15 +1531,8 @@ function EclatSocialApp({ user, onReturn }) {
   const [esChannels, setEsChannels] = React.useState(STATIC_CHANNELS)
   const [esActiveChannel, setEsActiveChannel] = React.useState(null)
   const [esChannelMsgs, setEsChannelMsgs] = React.useState([])
-  const [esChannelInput, setEsChannelInput] = React.useState('')
-  const [esChannelFiles, setEsChannelFiles] = React.useState([])
-  const [esRecording, setEsRecording] = React.useState(false)
-  const esFileInputRef = React.useRef(null)
-  const esRecorderRef = React.useRef(null)
-  const esChunksRef = React.useRef([])
   const [esSideSearch, setEsSideSearch] = React.useState('')
   const [esSecOpen, setEsSecOpen] = React.useState({ channels: true, dms: true })
-  const esChannelEndRef = React.useRef(null)
 
   const esNavigate = (view) => { setEsNavActive(view); setEsView(view); setEsSearchOpen(false); if (view !== 'channel') setEsActiveChannel(null) }
 
@@ -1526,7 +1541,6 @@ function EclatSocialApp({ user, onReturn }) {
     setEsNavActive('channel')
     setEsView('channel')
     setEsChannelMsgs([])
-    setEsChannelFiles([]); setEsChannelInput('')
     apiFetch(`${API}/channels/${ch.slug}/messages/`, {}, onReturn)
       .then(r => r && r.ok ? r.json() : null)
       .then(data => {
@@ -1539,47 +1553,27 @@ function EclatSocialApp({ user, onReturn }) {
   const esMediaUrl = (u) => (u && u.startsWith('http')) ? u : `${API.replace(/\/api$/, '')}${u || ''}`
   const esFmtSize = (b) => b < 1024 ? `${b} o` : b < 1048576 ? `${(b / 1024).toFixed(0)} Ko` : `${(b / 1048576).toFixed(1)} Mo`
 
-  const esPickFiles = (e) => {
-    const files = Array.from(e.target.files || [])
-    if (files.length) setEsChannelFiles(prev => [...prev, ...files])
-    e.target.value = ''
-  }
 
-  const esToggleRecord = async () => {
-    if (esRecording) { esRecorderRef.current?.stop(); return }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const rec = new MediaRecorder(stream)
-      esChunksRef.current = []
-      rec.ondataavailable = e => { if (e.data.size) esChunksRef.current.push(e.data) }
-      rec.onstop = () => {
-        const blob = new Blob(esChunksRef.current, { type: 'audio/webm' })
-        const file = new File([blob], `note-vocale-${Date.now()}.webm`, { type: 'audio/webm' })
-        setEsChannelFiles(prev => [...prev, file])
-        stream.getTracks().forEach(t => t.stop())
-        setEsRecording(false)
-      }
-      rec.start(); esRecorderRef.current = rec; setEsRecording(true)
-    } catch (_) { setEsRecording(false) }
-  }
-
-  const esSendChannelMsg = async () => {
-    const hasText = esChannelInput.trim()
-    const hasFiles = esChannelFiles.length > 0
-    if ((!hasText && !hasFiles) || !esActiveChannel) return
+  // Publier dans le canal actif (texte, fichiers, réponse citée).
+  // Retourne true si l'envoi a réussi — le composeur (ChannelFeed) se vide alors.
+  const esSendChannelMsg = async ({ content, files = [], replyTo = null }) => {
+    if ((!content && files.length === 0) || !esActiveChannel) return false
     const fd = new FormData()
-    if (hasText) fd.append('content', esChannelInput.trim())
-    esChannelFiles.forEach(f => fd.append('files', f))
+    if (content) fd.append('content', content)
+    if (replyTo) fd.append('reply_to', replyTo)
+    files.forEach(f => fd.append('files', f))
     const res = await apiFetch(`${API}/channels/${esActiveChannel.slug}/messages/`, { method: 'POST', body: fd }, onReturn)
     if (res && res.ok) {
       const msg = await res.json()
       setEsChannelMsgs(prev => [...prev, msg])
-      setEsChannelInput(''); setEsChannelFiles([])
       setEsChannels(prev => prev.map(c => c.slug === esActiveChannel.slug ? { ...c, messages_count: (c.messages_count || 0) + 1 } : c))
-    } else if (res) {
+      return true
+    }
+    if (res) {
       const err = await res.json().catch(() => null)
       if (err?.error) alert(err.error)
     }
+    return false
   }
 
   React.useEffect(() => {
@@ -1596,8 +1590,6 @@ function EclatSocialApp({ user, onReturn }) {
   }, [])
 
   // ── Channel message actions: react / edit / delete ────────────────
-  const ES_REACT_EMOJIS = ['👍', '❤️', '🎉', '🙏']
-  const [esEditingMsg, setEsEditingMsg] = React.useState(null) // {id, content}
 
   const esReactToMsg = async (msgId, emoji) => {
     const res = await apiFetch(`${API}/channels/messages/${msgId}/react/`, {
@@ -1618,20 +1610,20 @@ function EclatSocialApp({ user, onReturn }) {
     }
   }
 
-  const esSaveEditedMsg = async () => {
-    if (!esEditingMsg || !esEditingMsg.content.trim()) return
-    const res = await apiFetch(`${API}/channels/messages/${esEditingMsg.id}/`, {
+  const esEditChannelMsg = async (msgId, content) => {
+    if (!content || !content.trim()) return false
+    const res = await apiFetch(`${API}/channels/messages/${msgId}/`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: esEditingMsg.content.trim() })
+      body: JSON.stringify({ content: content.trim() })
     }, onReturn)
     if (res && res.ok) {
       const updated = await res.json()
-      setEsChannelMsgs(prev => prev.map(m => m.id === esEditingMsg.id ? updated : m))
-      setEsEditingMsg(null)
+      setEsChannelMsgs(prev => prev.map(m => m.id === msgId ? updated : m))
+      return true
     }
+    return false
   }
 
-  React.useEffect(() => { esChannelEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [esChannelMsgs])
 
   // Live browser connection status
   React.useEffect(() => {
@@ -1680,11 +1672,6 @@ function EclatSocialApp({ user, onReturn }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Auto-scroll the DM thread to the latest message
-  const esThreadRef = React.useRef(null)
-  React.useEffect(() => {
-    if (esThreadRef.current) esThreadRef.current.scrollTop = esThreadRef.current.scrollHeight
-  }, [esMessages, esActiveConv])
 
   const ES_SEARCH_FILTERS = [
     { key: 'all', label: 'Tout', icon: '🔎' },
@@ -1765,11 +1752,24 @@ function EclatSocialApp({ user, onReturn }) {
     channel: { label: 'Canal', channel: 'Canal', icon: '#' },
   }
 
-  const esLoadPosts = () => {
-    apiFetch(`${API}/posts/`, {}, onReturn)
+  // Fil Accueil paginé (15 par page) avec « Charger plus » infini.
+  const ES_FEED_PAGE = 15
+  const [esFeedHasMore, setEsFeedHasMore] = React.useState(true)
+  const [esFeedLoading, setEsFeedLoading] = React.useState(false)
+
+  const esLoadPosts = (reset = true) => {
+    const offset = reset ? 0 : esPosts.length
+    setEsFeedLoading(true)
+    apiFetch(`${API}/posts/?limit=${ES_FEED_PAGE}&offset=${offset}`, {}, onReturn)
       .then(r => r && r.ok ? r.json() : null)
-      .then(data => { if (data) setEsPosts(Array.isArray(data) ? data : (data.results || [])) })
+      .then(data => {
+        if (!data) return
+        const page = Array.isArray(data) ? data : (data.results || [])
+        setEsFeedHasMore(page.length === ES_FEED_PAGE)
+        setEsPosts(prev => reset ? page : [...prev, ...page.filter(p => !prev.some(x => x.id === p.id))])
+      })
       .catch(() => {})
+      .finally(() => setEsFeedLoading(false))
   }
 
   React.useEffect(() => {
@@ -1946,17 +1946,75 @@ function EclatSocialApp({ user, onReturn }) {
       .catch(() => {})
   }, [esActiveConv])
 
-  const esSendMessage = async () => {
-    if (!esMsgInput.trim() || !esActiveConv) return
-    const res = await apiFetch(`${API}/conversations/${esActiveConv.id}/messages/`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: esMsgInput })
-    }, onReturn)
+  // Envoyer un message privé (texte, fichiers, réponse citée). Retourne true si OK.
+  const esSendMessage = async ({ content, files = [], replyTo = null }) => {
+    if ((!content && files.length === 0) || !esActiveConv) return false
+    let options
+    if (files.length > 0) {
+      const fd = new FormData()
+      if (content) fd.append('content', content)
+      if (replyTo) fd.append('reply_to', replyTo)
+      files.forEach(f => fd.append('files', f))
+      options = { method: 'POST', body: fd }
+    } else {
+      options = {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, reply_to: replyTo }),
+      }
+    }
+    const res = await apiFetch(`${API}/conversations/${esActiveConv.id}/messages/`, options, onReturn)
     if (res && res.ok) {
       const msg = await res.json()
       setEsMessages(prev => [...prev, msg])
-      setEsMsgInput('')
+      setEsConversations(prev => prev.map(c => c.id === esActiveConv.id ? { ...c, last_message: { content: msg.content, created_at: msg.created_at, sender_id: user?.id } } : c))
+      return true
     }
+    if (res) {
+      const err = await res.json().catch(() => null)
+      if (err?.error) alert(err.error)
+    }
+    return false
+  }
+
+  // Réaction WhatsApp sur un message privé (une seule par utilisateur).
+  const esReactToDm = async (msgId, emoji) => {
+    const res = await apiFetch(`${API}/conversations/messages/${msgId}/react/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emoji }),
+    }, onReturn)
+    if (res && res.ok) {
+      const updated = await res.json()
+      setEsMessages(prev => prev.map(m => m.id === msgId ? updated : m))
+    }
+  }
+
+  // Charger l'historique plus ancien (scroll vers le haut). Retourne le nb reçu.
+  const esLoadOlderMessages = async (beforeId) => {
+    if (!esActiveConv || !beforeId) return 0
+    const res = await apiFetch(`${API}/conversations/${esActiveConv.id}/messages/?before_id=${beforeId}`, {}, onReturn)
+    if (res && res.ok) {
+      const older = await res.json()
+      if (Array.isArray(older) && older.length > 0) {
+        setEsMessages(prev => [...older, ...prev])
+        return older.length
+      }
+    }
+    return 0
+  }
+
+  // Supprimer pour tout le monde son propre message privé.
+  const esDeleteMessage = async (msgId) => {
+    const res = await apiFetch(`${API}/conversations/messages/${msgId}/`, { method: 'DELETE' }, onReturn)
+    if (res && (res.ok || res.status === 204)) {
+      setEsMessages(prev => prev.filter(m => m.id !== msgId))
+    }
+  }
+
+  // Transférer : pré-remplit le composeur du canal Accueil (simple, sans casser l'archi).
+  const esForwardMessage = (msg) => {
+    const text = msg.content || (msg.attachments?.[0]?.name ? `[${msg.attachments[0].name}]` : '')
+    if (text) { try { navigator.clipboard.writeText(text) } catch {} }
+    alert('Message copié — collez-le dans la conversation de votre choix pour le transférer.')
   }
 
   const initials = (user.first_name?.[0] || '') + (user.last_name?.[0] || '')
@@ -2339,162 +2397,19 @@ function EclatSocialApp({ user, onReturn }) {
 
         {/* CHANNEL VIEW — Slack-like role-based channel chat */}
         {esView === 'channel' && esActiveChannel && (
-          <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 210px)', minHeight: '420px' }}>
-            {/* Channel header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 22px', borderBottom: '1px solid var(--border-card,#e2e8f0)' }}>
-              <span style={{ width: 40, height: 40, borderRadius: '11px', background: 'linear-gradient(135deg,#eef2ff,#f5f3ff)', display: 'grid', placeItems: 'center', color: '#6366f1', flexShrink: 0 }}><EsIcon name={esChannelIconName(esActiveChannel)} size={21} stroke={2.1} /></span>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontWeight: 800, fontSize: '15.5px', letterSpacing: '-0.2px', display: 'flex', alignItems: 'center', gap: '7px' }}>
-                  {esActiveChannel.name}
-                  {esActiveChannel.restricted && (
-                    <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: '#7c3aed', background: 'rgba(139,92,246,0.1)', padding: '3px 8px', borderRadius: '6px' }}>🔒 Réservé</span>
-                  )}
-                </div>
-                <div style={{ fontSize: '12.5px', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{esActiveChannel.description}</div>
-              </div>
-              <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600, flexShrink: 0 }}>{esChannelMsgs.length} message{esChannelMsgs.length > 1 ? 's' : ''}</span>
-            </div>
-
-            {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {esChannelMsgs.length === 0 && (
-                <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '48px' }}>
-                  <div style={{ width: 64, height: 64, margin: '0 auto 12px', borderRadius: '18px', background: 'linear-gradient(135deg,#eef2ff,#f5f3ff)', display: 'grid', placeItems: 'center', color: '#6366f1' }}><EsIcon name={esChannelIconName(esActiveChannel)} size={30} stroke={1.9} /></div>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading,#334155)' }}>Bienvenue dans {esActiveChannel.name}</div>
-                  <div style={{ fontSize: '13px', marginTop: '4px' }}>{esActiveChannel.description || 'Soyez le premier à écrire ici.'}</div>
-                </div>
-              )}
-              {esChannelMsgs.map((m, i) => {
-                const isMe = m.sender === user?.id
-                const prev = esChannelMsgs[i - 1]
-                const grouped = prev && prev.sender === m.sender
-                const isEditing = esEditingMsg?.id === m.id
-                return (
-                  <div key={m.id} className="es-chmsg" style={{ display: 'flex', gap: '11px', marginTop: grouped ? '-8px' : 0 }}>
-                    {grouped ? <span style={{ width: 36, flexShrink: 0 }} /> : (
-                      <span style={{ width: 36, height: 36, borderRadius: '50%', background: `hsl(${m.sender_hue},55%,50%)`, color: '#fff', display: 'grid', placeItems: 'center', fontSize: '13px', fontWeight: 700, flexShrink: 0 }}>{m.sender_initials}</span>
-                    )}
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      {!grouped && (
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '3px' }}>
-                          <span style={{ fontSize: '13.5px', fontWeight: 700, color: isMe ? '#4f46e5' : 'var(--text-heading,#0f172a)' }}>{m.sender_name}{isMe ? ' (vous)' : ''}</span>
-                          <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>{esRoleLabel(m.sender_role)}</span>
-                          <span style={{ fontSize: '11px', color: '#cbd5e1' }}>{esTimeAgo(m.created_at)}</span>
-                        </div>
-                      )}
-                      {isEditing ? (
-                        <div>
-                          <textarea value={esEditingMsg.content} autoFocus rows={2}
-                            onChange={e => setEsEditingMsg(v => ({ ...v, content: e.target.value }))}
-                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); esSaveEditedMsg() } if (e.key === 'Escape') setEsEditingMsg(null) }}
-                            style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', borderRadius: '10px', border: '1.5px solid #6366f1', fontSize: '14px', fontFamily: 'inherit', outline: 'none', resize: 'vertical' }} />
-                          <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                            <button onClick={esSaveEditedMsg} style={{ background: '#6366f1', color: '#fff', border: 'none', padding: '5px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Enregistrer</button>
-                            <button onClick={() => setEsEditingMsg(null)} style={{ background: 'transparent', color: '#64748b', border: 'none', padding: '5px 10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Annuler (Échap)</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: '14px', color: 'var(--text-body,#334155)', lineHeight: 1.55, wordBreak: 'break-word' }}>
-                          {m.content}
-                          {m.edited && <span style={{ fontSize: '10.5px', color: '#94a3b8', marginLeft: '6px' }}>(modifié)</span>}
-                        </div>
-                      )}
-                      {/* Attachments */}
-                      {m.attachments && m.attachments.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: m.content ? '8px' : '2px' }}>
-                          {m.attachments.map(a => {
-                            const url = esMediaUrl(a.url)
-                            if (a.kind === 'image') return (
-                              <a key={a.id} href={url} target="_blank" rel="noreferrer"><img src={url} alt={a.name} style={{ maxWidth: 240, maxHeight: 220, borderRadius: 12, display: 'block', objectFit: 'cover', border: '1px solid var(--border-card,#e2e8f0)' }} /></a>
-                            )
-                            if (a.kind === 'video') return (
-                              <video key={a.id} src={url} controls style={{ maxWidth: 280, borderRadius: 12, display: 'block' }} />
-                            )
-                            if (a.kind === 'audio') return (
-                              <audio key={a.id} src={url} controls style={{ height: 40 }} />
-                            )
-                            return (
-                              <a key={a.id} href={url} target="_blank" rel="noreferrer" download
-                                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '11px', border: '1px solid var(--border-card,#e2e8f0)', background: 'var(--bg-card,#f8fafc)', textDecoration: 'none', maxWidth: 260 }}>
-                                <span style={{ width: 34, height: 34, borderRadius: '9px', flexShrink: 0, background: 'rgba(99,102,241,0.1)', color: '#6366f1', display: 'grid', placeItems: 'center' }}><EsIcon name={esAttachIconName(a.kind)} size={17} /></span>
-                                <span style={{ minWidth: 0, flex: 1 }}>
-                                  <span style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-heading,#1e293b)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</span>
-                                  <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8' }}>{a.kind.toUpperCase()} · {esFmtSize(a.size)}</span>
-                                </span>
-                                <span style={{ color: '#94a3b8', flexShrink: 0 }}><EsIcon name="download" size={16} /></span>
-                              </a>
-                            )
-                          })}
-                        </div>
-                      )}
-                      {/* Reaction chips — real reactor names in tooltip */}
-                      {m.reactions && m.reactions.length > 0 && (
-                        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginTop: '5px' }}>
-                          {m.reactions.map(r => (
-                            <button key={r.emoji} onClick={() => esReactToMsg(m.id, r.emoji)}
-                              title={r.users.join(', ')}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 9px', borderRadius: '12px', fontSize: '12.5px', cursor: 'pointer', border: r.me ? '1.5px solid #6366f1' : '1px solid var(--border-card,#e2e8f0)', background: r.me ? 'rgba(99,102,241,0.1)' : 'var(--bg-card,#f8fafc)', color: r.me ? '#4f46e5' : '#475569', fontWeight: 700 }}>
-                              {r.emoji} {r.count}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {/* Hover action toolbar */}
-                    {!isEditing && (
-                      <div className="es-chmsg-actions">
-                        {ES_REACT_EMOJIS.map(em => (
-                          <button key={em} onClick={() => esReactToMsg(m.id, em)} title={`Réagir ${em}`}>{em}</button>
-                        ))}
-                        {isMe && <button onClick={() => setEsEditingMsg({ id: m.id, content: m.content })} title="Modifier"><EsIcon name="pencil" size={15} /></button>}
-                        {isMe && <button onClick={() => esDeleteChannelMsg(m.id)} title="Supprimer" style={{ color: '#ef4444' }}><EsIcon name="trash" size={15} /></button>}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-              <div ref={esChannelEndRef} />
-            </div>
-
-            {/* Composer */}
-            <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border-card,#e2e8f0)' }}>
-              {esActiveChannel.can_post ? (
-                <div>
-                  {/* Pending attachments preview */}
-                  {esChannelFiles.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-                      {esChannelFiles.map((f, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', borderRadius: '10px', background: 'rgba(99,102,241,0.08)', border: '1px solid #c7d2fe', fontSize: '12.5px', fontWeight: 600, color: '#4338ca' }}>
-                          <EsIcon name={f.type.startsWith('image') ? 'image' : f.type.startsWith('audio') ? 'mic' : f.type.startsWith('video') ? 'video' : 'file'} size={14} />
-                          <span style={{ maxWidth: 150, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</span>
-                          <span style={{ color: '#94a3b8', fontWeight: 500 }}>{esFmtSize(f.size)}</span>
-                          <button onClick={() => setEsChannelFiles(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0 }}><EsIcon name="x" size={13} /></button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input type="file" multiple hidden ref={esFileInputRef} onChange={esPickFiles}
-                      accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z,.txt,.csv" />
-                    <button onClick={() => esFileInputRef.current?.click()} title="Joindre un fichier (image, PDF, Office, ZIP…)" aria-label="Joindre un fichier"
-                      style={{ width: 42, height: 42, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: '12px', border: '1px solid var(--border-card,#e2e8f0)', background: 'var(--bg-card,#f8fafc)', color: '#475569', cursor: 'pointer' }}><EsIcon name="paperclip" size={19} /></button>
-                    <button onClick={esToggleRecord} title={esRecording ? 'Arrêter l\'enregistrement' : 'Enregistrer une note vocale'} aria-label="Note vocale"
-                      style={{ width: 42, height: 42, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: '12px', border: '1px solid ' + (esRecording ? '#fca5a5' : 'var(--border-card,#e2e8f0)'), background: esRecording ? 'rgba(239,68,68,0.1)' : 'var(--bg-card,#f8fafc)', color: esRecording ? '#dc2626' : '#475569', cursor: 'pointer', animation: esRecording ? 'esPulse 1.4s infinite' : 'none' }}><EsIcon name="mic" size={19} /></button>
-                    <input value={esChannelInput} onChange={e => setEsChannelInput(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && esSendChannelMsg()}
-                      placeholder={esRecording ? '● Enregistrement en cours…' : `Écrire dans ${esActiveChannel.name}…`}
-                      style={{ flex: 1, padding: '11px 15px', borderRadius: '13px', border: '1.5px solid var(--border-card,#e2e8f0)', background: 'var(--bg-card,#f8fafc)', fontSize: '14px', outline: 'none' }} />
-                    <button onClick={esSendChannelMsg} disabled={!esChannelInput.trim() && esChannelFiles.length === 0}
-                      style={{ padding: '11px 20px', borderRadius: '13px', background: (esChannelInput.trim() || esChannelFiles.length) ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : '#e2e8f0', color: (esChannelInput.trim() || esChannelFiles.length) ? '#fff' : '#94a3b8', border: 'none', fontWeight: 700, cursor: (esChannelInput.trim() || esChannelFiles.length) ? 'pointer' : 'default', fontSize: '14px', transition: 'all .2s' }}>Envoyer</button>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', fontSize: '13px', color: '#94a3b8', padding: '8px', background: 'var(--bg-card,#f8fafc)', borderRadius: '11px' }}>
-                  🔒 Lecture seule — votre rôle ne peut pas publier dans ce canal.
-                </div>
-              )}
-            </div>
-          </div>
+          <ChannelFeed
+            channel={esActiveChannel}
+            messages={esChannelMsgs}
+            user={user}
+            onSend={esSendChannelMsg}
+            onReact={esReactToMsg}
+            onEdit={esEditChannelMsg}
+            onDelete={esDeleteChannelMsg}
+            mediaUrl={esMediaUrl}
+            roleLabel={esRoleLabel}
+            timeAgo={esTimeAgo}
+            avatarUrl={avatarSvg}
+          />
         )}
 
         {/* MESSAGES VIEW */}
@@ -2529,46 +2444,22 @@ function EclatSocialApp({ user, onReturn }) {
                   <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-heading,#334155)' }}>Vos messages</div>
                   <div style={{ fontSize: '13px', marginTop: '3px' }}>Sélectionnez une conversation ou un agent.</div>
                 </div>
-              ) : (() => {
-                const o = esActiveConv.participants?.find(p => p.id !== user?.id) || esActiveConv.participants?.[0]
-                const oname = o ? `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email : `Conv #${esActiveConv.id}`
-                return (
-                <>
-                  <div className="es-dm-chat-head">
-                    <img className="es-dm-chat-ava" src={esAgentAvatar(o || {}, 42)} alt="" />
-                    <div className="es-dm-chat-head-info">
-                      <span className="es-dm-chat-name">{oname}</span>
-                      <span className="es-dm-chat-role">{esRoleLabel(o?.role)}</span>
-                    </div>
-                  </div>
-                  <div className="es-dm-thread" ref={esThreadRef}>
-                    {esMessages.length === 0 && <div className="es-dm-thread-empty">Aucun message. Dites bonjour 👋</div>}
-                    {esMessages.map((msg, i) => {
-                      const sid = msg.sender?.id ?? msg.sender
-                      const isMe = sid === user?.id
-                      const prev = esMessages[i - 1]
-                      const grouped = prev && (prev.sender?.id ?? prev.sender) === sid
-                      return (
-                        <div key={msg.id || i} className={`es-bubble-row${isMe ? ' me' : ''}`} style={{ marginTop: grouped ? '2px' : '10px' }}>
-                          <div className={`es-bubble${isMe ? ' me' : ''}`}>
-                            <span className="es-bubble-text">{msg.content}</span>
-                            <span className="es-bubble-meta">{esTimeAgo(msg.created_at)}{isMe && <span className={`es-bubble-tick${msg.is_read ? ' read' : ''}`}>✓✓</span>}</span>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  <div className="es-dm-composer">
-                    <input value={esMsgInput} onChange={e => setEsMsgInput(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && esSendMessage()}
-                      placeholder="Écrire un message…" autoFocus />
-                    <button onClick={esSendMessage} disabled={!esMsgInput.trim()} aria-label="Envoyer" title="Envoyer">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-                    </button>
-                  </div>
-                </>
-                )
-              })()}
+              ) : (
+                <ChatThread
+                  conversation={esActiveConv}
+                  other={esActiveConv.participants?.find(p => p.id !== user?.id) || esActiveConv.participants?.[0]}
+                  messages={esMessages}
+                  user={user}
+                  onSend={esSendMessage}
+                  onReact={esReactToDm}
+                  onLoadOlder={esLoadOlderMessages}
+                  onDelete={esDeleteMessage}
+                  onForward={esForwardMessage}
+                  mediaUrl={esMediaUrl}
+                  roleLabel={esRoleLabel}
+                  avatarUrl={esAgentAvatar}
+                />
+              )}
             </div>
           </div>
         )}
@@ -2912,26 +2803,29 @@ function EclatSocialApp({ user, onReturn }) {
                     <span>{post.comments_count > 0 ? `${post.comments_count} commentaire${post.comments_count > 1 ? 's' : ''}` : ''} {post.shares_count > 0 ? ` · ${post.shares_count} partage${post.shares_count > 1 ? 's' : ''}` : ''}</span>
                   </div>
                   <div className="es-post-actions-bar">
-                    <button className={`es-action-btn ${post.is_liked ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); esToggleLike(post.id) }}>
-                      <span className="es-action-icon">{post.is_liked ? '👍' : '👍'}</span>
-                      <span>J'aime</span>
+                    <button className={`es-action-btn ${post.is_liked ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); esToggleLike(post.id) }} aria-label="J'aime" title="J'aime">
+                      <EsIcon name="thumbUp" size={19} />
                     </button>
-                    <button className={`es-action-btn ${post.is_disliked ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); esToggleDislike(post.id) }}>
-                      <span className="es-action-icon">👎</span>
-                      <span>Je n'aime pas</span>
+                    <button className={`es-action-btn ${post.is_disliked ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); esToggleDislike(post.id) }} aria-label="Je n'aime pas" title="Je n'aime pas">
+                      <EsIcon name="thumbDown" size={19} />
                     </button>
-                    <button className="es-action-btn" onClick={() => openPostDetail(post)}>
-                      <span className="es-action-icon">💬</span>
-                      <span>Commenter</span>
+                    <button className="es-action-btn" onClick={() => openPostDetail(post)} aria-label="Commenter" title="Commenter">
+                      <EsIcon name="message" size={19} />
                     </button>
-                    <button className="es-action-btn" onClick={(e) => { e.stopPropagation(); esHandleShare(post) }}>
-                      <span className="es-action-icon">➦</span>
-                      <span>Partager</span>
+                    <button className="es-action-btn" onClick={(e) => { e.stopPropagation(); esHandleShare(post) }} aria-label="Partager" title="Partager">
+                      <EsIcon name="share" size={19} />
                     </button>
                   </div>
                 </article>
               )
             })}
+            {esPosts.length > 0 && esFeedHasMore && (
+              <div style={{ textAlign: 'center', padding: '14px 0 22px' }}>
+                <button className="cmv2-send" onClick={() => esLoadPosts(false)} disabled={esFeedLoading} aria-label="Charger plus de publications">
+                  {esFeedLoading ? 'Chargement…' : 'Charger plus'}
+                </button>
+              </div>
+            )}
           </div>
         </div>}
       </main>
@@ -3092,11 +2986,11 @@ function EclatSocialApp({ user, onReturn }) {
                         <span className="es-stat-likes">{esSelectedPost.likes_count > 0 ? `👍 ${esSelectedPost.likes_count}` : ''}</span>
                         <span>{esComments.length > 0 ? `${esComments.length} commentaire${esComments.length > 1 ? 's' : ''}` : ''} {esSelectedPost.shares_count > 0 ? ` · ${esSelectedPost.shares_count} partage${esSelectedPost.shares_count > 1 ? 's' : ''}` : ''}</span>
                       </div>
-                      <div className="es-post-actions-bar" style={{ borderTop: '1px solid #e2e8f0', padding: '6px 0' }}>
-                        <button className={`es-action-btn ${esSelectedPost.is_liked ? 'active' : ''}`} onClick={() => { esToggleLike(esSelectedPost.id); setEsSelectedPost(prev => prev ? { ...prev, is_liked: !prev.is_liked } : prev) }}><span className="es-action-icon">👍</span><span>J'aime</span></button>
-                        <button className={`es-action-btn ${esSelectedPost.is_disliked ? 'active' : ''}`} onClick={() => { esToggleDislike(esSelectedPost.id); setEsSelectedPost(prev => prev ? { ...prev, is_disliked: !prev.is_disliked } : prev) }}><span className="es-action-icon">👎</span><span>Je n'aime pas</span></button>
-                        <button className="es-action-btn"><span className="es-action-icon">💬</span><span>Commenter</span></button>
-                        <button className="es-action-btn" onClick={() => esHandleShare(esSelectedPost)}><span className="es-action-icon">➦</span><span>Partager</span></button>
+                      <div className="es-post-actions-bar" style={{ borderTop: '1px solid var(--border-card,#e2e8f0)', padding: '6px 0' }}>
+                        <button className={`es-action-btn ${esSelectedPost.is_liked ? 'active' : ''}`} onClick={() => { esToggleLike(esSelectedPost.id); setEsSelectedPost(prev => prev ? { ...prev, is_liked: !prev.is_liked } : prev) }} aria-label="J'aime" title="J'aime"><EsIcon name="thumbUp" size={19} /></button>
+                        <button className={`es-action-btn ${esSelectedPost.is_disliked ? 'active' : ''}`} onClick={() => { esToggleDislike(esSelectedPost.id); setEsSelectedPost(prev => prev ? { ...prev, is_disliked: !prev.is_disliked } : prev) }} aria-label="Je n'aime pas" title="Je n'aime pas"><EsIcon name="thumbDown" size={19} /></button>
+                        <button className="es-action-btn" aria-label="Commenter" title="Commenter"><EsIcon name="message" size={19} /></button>
+                        <button className="es-action-btn" onClick={() => esHandleShare(esSelectedPost)} aria-label="Partager" title="Partager"><EsIcon name="share" size={19} /></button>
                       </div>
                     </>
                   )
@@ -4107,6 +4001,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
             <ExecutiveDashboard onLogout={onLogout} />
           ) : activeKey === 'organizations' ? (
             <OrganizationManagement onLogout={onLogout} />
+          ) : activeKey === 'finances' && (role === 'supermaster' || role === 'federation') ? (
+            <PaymentManagementPage onLogout={onLogout} role={role} />
           ) : activeKey === 'systeme' && role === 'supermaster' ? (
             <SystemConfigurationPage onLogout={onLogout} />
           ) : activeKey === 'users' && role === 'supermaster' ? (
@@ -8108,6 +8004,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   <OpportunityCenter user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} />
                 ) : activeKey === 'enfants' && role === 'partner' ? (
                   <PartnerChildren user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} countryName={countryName} flagImg={flagImg} />
+                ) : activeKey === 'transactions' && role === 'partner' ? (
+                  <PartnerTransactions apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} />
                 ) : activeKey === 'impact' && role === 'partner' ? (
                   <PartnerImpactDashboard user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} />
                 ) : activeKey === 'update-center' ? (
@@ -10306,6 +10204,9 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
   const [search, setSearch] = useState('')
   const [countryFilter, setCountryFilter] = useState('')
   const [sexFilter, setSexFilter] = useState('')
+  const [selectedChild, setSelectedChild] = useState(null)
+  const [detailTab, setDetailTab] = useState('overview')
+  const [detailLoading, setDetailLoading] = useState(false)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -10319,6 +10220,48 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
       .catch(() => { setLoading(false) })
   }, [search, countryFilter, sexFilter])
   useEffect(() => { load() }, [load])
+
+  const openDetail = (child) => {
+    setSelectedChild(null)
+    setDetailLoading(true)
+    setDetailTab('overview')
+    apiFetch(`${API}/partner/children/${child.uid}/`, {}, onLogout)
+      .then(r => { if (!r || !r.ok) throw new Error(r?.status || 'network'); return r.json() })
+      .then(data => {
+        setSelectedChild(data)
+        setDetailLoading(false)
+      })
+      .catch(err => {
+        setDetailLoading(false)
+        console.error('Failed to load child detail:', err)
+        alert('Erreur lors du chargement du profil enfant. Vérifiez la console.')
+      })
+  }
+
+  const N = selectedChild?.prenom || ''
+  const ages = selectedChild?.date_naissance ? Math.floor((Date.now() - new Date(selectedChild.date_naissance).getTime()) / 31557600000) : null
+  const updates = selectedChild?.updates || {}
+  const opportunities = selectedChild?.opportunities || []
+  const projects = selectedChild?.projets || []
+
+  const renderUpdates = (list) => {
+    if (!list || list.length === 0) return <p className="partner-empty-text">Aucune information enregistrée.</p>
+    return list.map((u,i) => (
+      <div key={u.id || i} className="partner-card">
+        <h4>{u.title}</h4>
+        {u.description && <p style={{fontSize:13,color:'var(--text-secondary,#94a3b8)',marginBottom:8}}>{u.description}</p>}
+        {u.new_value && <div className="partner-field"><span>Valeur:</span> {u.new_value}</div>}
+        {u.reason && <div className="partner-field"><span>Raison:</span> {u.reason}</div>}
+        {u.update_type && <div className="partner-field"><span>Type:</span> {u.update_type.replace(/_/g,' ')}</div>}
+        {u.created_at && <div className="partner-field"><span>Date:</span> {new Date(u.created_at).toLocaleDateString('fr-FR', {day:'numeric',month:'short',year:'numeric'})}</div>}
+        {u.attachments?.length > 0 && (
+          <div className="partner-sub-section">
+            <h5>Pièces jointes ({u.attachments.length})</h5>
+          </div>
+        )}
+      </div>
+    ))
+  }
 
   return (
     <div className="partner-children">
@@ -10337,22 +10280,310 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
           <option value="F">Féminin</option>
         </select>
       </div>
-      <div className="partner-children-grid">
-        {loading ? Array.from({length:8}).map((_,i) => <div key={i} className="partner-child-card opp-skeleton" />) :
-          children.length === 0 ? <div className="opp-empty">Aucun enfant trouvé</div> :
-          children.map(child => (
-            <div key={child.id || child.uid} className="partner-child-card">
-              <div className="partner-child-photo">
-                {child.photo_url ? <img src={child.photo_url} alt="" /> : <span className="partner-child-initial">{(child.prenom||'?')[0]}</span>}
+
+      {selectedChild ? (
+        /* ── FULL PROFILE VIEW ── */
+        <div className="partner-detail">
+          <div className="partner-detail-top">
+            <button className="partner-back-btn" onClick={() => setSelectedChild(null)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6"/></svg>
+              Retour
+            </button>
+          </div>
+
+          {/* HERO */}
+          <div className="partner-hero">
+            <div className="partner-hero-avatar">
+              {selectedChild.photo_url ? <img src={selectedChild.photo_url} alt="" /> : <span className="partner-hero-initial">{N[0] || '?'}</span>}
+            </div>
+            <div className="partner-hero-info">
+              <div className="partner-hero-name">{selectedChild.prenom || ''} {selectedChild.nom || ''}</div>
+              <div className="partner-hero-meta">
+                <span>{ages != null ? `${ages} ans` : ''}</span>
+                <span>·</span>
+                <span>{selectedChild.nationalite || ''}</span>
+                <span>·</span>
+                <span>{selectedChild.sexe === 'M' ? 'Garçon' : 'Fille'}</span>
+                <span>·</span>
+                <span className="partner-hero-uid">#{selectedChild.uid}</span>
               </div>
-              <div className="partner-child-info">
-                <span className="partner-child-name">{child.prenom} {child.nom}</span>
-                <span className="partner-child-detail">{child.age != null ? `${child.age} ans` : ''} · {child.nationalite || ''} · {child.sexe === 'M' ? 'Garçon' : 'Fille'}</span>
-                <span className="partner-child-uid">UID: {child.uid}</span>
+              {selectedChild.orphanage_name && <div style={{fontSize:13,color:'var(--text-muted,#94a3b8)',marginTop:4}}>🏫 {selectedChild.orphanage_name}</div>}
+            </div>
+            {selectedChild.sponsorship_status?.sponsored && (
+              <div className="partner-sponsored-badge">✅ Parrainé</div>
+            )}
+          </div>
+
+          {/* TABS */}
+          <div className="partner-tabs">
+            {[
+              { key:'overview', label:'Aperçu', icon:'📊' },
+              { key:'health', label:'Santé', icon:'❤️' },
+              { key:'education', label:'Éducation', icon:'🏫' },
+              { key:'family', label:'Famille', icon:'👪' },
+              { key:'documents', label:'Documentation', icon:'📄' },
+              { key:'social', label:'Social', icon:'🤝' },
+              { key:'opportunities', label:'Opportunités', icon:'🎯' },
+              { key:'projects', label:'Projets', icon:'📋' },
+            ].map(tab => (
+              <button key={tab.key} className={`partner-tab${detailTab === tab.key ? ' active' : ''}`} onClick={() => setDetailTab(tab.key)}>
+                <span>{tab.icon}</span> {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* TAB CONTENT */}
+          <div className="partner-content">
+            {detailTab === 'overview' && (
+              <div className="partner-section-grid">
+                <div className="partner-card">
+                  <h4>À propos de {selectedChild.prenom || selectedChild.nom}</h4>
+                  <div className="partner-field"><span>UID:</span> {selectedChild.uid}</div>
+                  {selectedChild.orphanage_name && <div className="partner-field"><span>Orphelinat:</span> {selectedChild.orphanage_name}</div>}
+                  {selectedChild.status && <div className="partner-field"><span>Statut:</span> {selectedChild.status}</div>}
+                  {selectedChild.biography && <div className="partner-field" style={{display:'block',marginTop:8}}><span>Biographie:</span><br/>{selectedChild.biography}</div>}
+                  {selectedChild.dream && <div className="partner-field" style={{display:'block',marginTop:8}}><span>Rêve:</span><br/>{selectedChild.dream}</div>}
+                </div>
+              </div>
+            )}
+
+            {detailTab === 'health' && (
+              <div className="partner-section-grid">
+                {renderUpdates(updates.health)}
+                <div className="partner-sponsor-row" style={{marginTop:8}}>
+                  <button className="partner-sponsor-btn" onClick={() => alert('Parrainer pour la santé')}>Parrainer pour la santé</button>
+                </div>
+              </div>
+            )}
+
+            {detailTab === 'education' && (
+              <div className="partner-section-grid">
+                {renderUpdates(updates.education)}
+                <div className="partner-sponsor-row" style={{marginTop:8}}>
+                  <button className="partner-sponsor-btn" onClick={() => alert('Parrainer pour l\'éducation')}>Parrainer pour l'éducation</button>
+                </div>
+              </div>
+            )}
+
+            {detailTab === 'family' && (
+              <div className="partner-section-grid">
+                {renderUpdates(updates.family)}
+                <div className="partner-sponsor-row" style={{marginTop:8}}>
+                  <button className="partner-sponsor-btn" onClick={() => alert('Parrainer pour le soutien familial')}>Parrainer pour la famille</button>
+                </div>
+              </div>
+            )}
+
+            {detailTab === 'documents' && (
+              <div className="partner-section-grid">
+                {renderUpdates(updates.documents)}
+                <div className="partner-sponsor-row" style={{marginTop:8}}>
+                  <button className="partner-sponsor-btn" onClick={() => alert('Soutenir pour la documentation')}>Soutenir</button>
+                </div>
+              </div>
+            )}
+
+            {detailTab === 'social' && (
+              <div className="partner-section-grid">
+                {renderUpdates(updates.social)}
+                <div className="partner-sponsor-row" style={{marginTop:8}}>
+                  <button className="partner-sponsor-btn" onClick={() => alert('Soutenir pour le suivi social')}>Soutenir</button>
+                </div>
+              </div>
+            )}
+
+            {detailTab === 'opportunities' && (
+              <div className="partner-section-grid">
+                {opportunities.length === 0 ? <div className="partner-card"><h4>Opportunités</h4><p className="partner-empty-text">Aucune opportunité disponible.</p></div> :
+                  opportunities.map((o,i) => (
+                    <div key={o.id || i} className="partner-card">
+                      <h4>{o.title}</h4>
+                      <div className="partner-field"><span>Type:</span> {o.type}</div>
+                      <div className="partner-field"><span>Statut:</span> {o.status}</div>
+                      <p>{o.summary || ''}</p>
+                      <div className="partner-sponsor-row">
+                        <button className="partner-sponsor-btn" onClick={() => alert(`Soutenir : ${o.title}`)}>🎯 Soutenir cette opportunité</button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {detailTab === 'projects' && (
+              <div className="partner-section-grid">
+                {projects.length === 0 ? <div className="partner-card"><h4>Projets</h4><p className="partner-empty-text">Aucun projet associé.</p></div> :
+                  projects.map((p,i) => (
+                    <div key={p.id || i} className="partner-card">
+                      <h4>{p.titre}</h4>
+                      <div className="partner-project-bar"><div className="partner-project-fill" style={{width:p.budget_total > 0 ? `${Math.min(100,Math.round((p.montant_collecte||0)/p.budget_total*100))}%` : '0%'}} /></div>
+                      <div className="partner-field"><span>Objectif:</span> {Number(p.budget_total||0).toLocaleString('fr-FR')} USD</div>
+                      <div className="partner-field"><span>Collecté:</span> {Number(p.montant_collecte||0).toLocaleString('fr-FR')} USD</div>
+                      <div className="partner-field"><span>Statut:</span> {p.statut}</div>
+                      <div className="partner-sponsor-row">
+                        <button className="partner-sponsor-btn" onClick={() => alert(`Financer le projet : ${p.titre}`)}>💰 Financer ce projet</button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* ── GRID VIEW ── */
+        <div className="partner-children-grid">
+          {loading ? Array.from({length:8}).map((_,i) => <div key={i} className="partner-child-card opp-skeleton" />) :
+            children.length === 0 ? <div className="opp-empty">Aucun enfant trouvé</div> :
+            children.map(child => (
+              <div key={child.id || child.uid} className="partner-child-card" onClick={() => openDetail(child)} style={{cursor:'pointer'}}>
+                <div className="partner-child-photo">
+                  {child.photo_url ? <img src={child.photo_url} alt="" /> : <span className="partner-child-initial">{(child.prenom||'?')[0]}</span>}
+                </div>
+                <div className="partner-child-info">
+                  <span className="partner-child-name">{child.prenom} {child.nom}</span>
+                  <span className="partner-child-detail">{child.age != null ? `${child.age} ans` : ''} · {child.nationalite || ''} · {child.sexe === 'M' ? 'Garçon' : 'Fille'}</span>
+                  <span className="partner-child-uid">UID: {child.uid}</span>
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
+      <style>{`
+        .partner-detail { max-width:960px; margin:0 auto; }
+        .partner-detail-top { margin-bottom:16px; }
+        .partner-back-btn { display:inline-flex; align-items:center; gap:4px; padding:6px 14px; border:1px solid var(--border-card,#334155); border-radius:8px; background:transparent; color:var(--text-muted,#64748b); font-size:13px; cursor:pointer; }
+        .partner-back-btn:hover { color:var(--text-primary,#f1f5f9); background:rgba(255,255,255,0.04); }
+        .partner-hero { display:flex; align-items:center; gap:20px; padding:20px 24px; background:var(--bg-card,#1e293b); border-radius:14px; border:1px solid var(--border-card,#334155); margin-bottom:16px; }
+        .partner-hero-avatar { width:72px; height:72px; border-radius:16px; overflow:hidden; flex-shrink:0; background:linear-gradient(135deg,#f59e0bdd,#f59e0b88); display:flex; align-items:center; justify-content:center; }
+        .partner-hero-avatar img { width:100%; height:100%; object-fit:cover; }
+        .partner-hero-initial { font-size:32px; font-weight:700; color:#fff; }
+        .partner-hero-info { flex:1; }
+        .partner-hero-name { font-size:20px; font-weight:700; color:var(--text-primary,#f1f5f9); margin-bottom:4px; }
+        .partner-hero-meta { display:flex; gap:6px; font-size:13px; color:var(--text-muted,#64748b); flex-wrap:wrap; }
+        .partner-hero-uid { font-family:monospace; color:var(--text-muted,#94a3b8); }
+        .partner-sponsored-badge { padding:6px 14px; border-radius:100px; background:rgba(34,197,94,0.12); color:#22c55e; font-size:12px; font-weight:600; }
+        .partner-tabs { display:flex; gap:4px; margin-bottom:16px; background:var(--bg-card,#1e293b); border-radius:10px; padding:4px; overflow-x:auto; }
+        .partner-tab { display:flex; align-items:center; gap:6px; padding:8px 14px; border:none; background:transparent; color:var(--text-muted,#64748b); font-size:12px; font-weight:500; border-radius:8px; cursor:pointer; white-space:nowrap; transition:all 0.15s; }
+        .partner-tab.active { background:var(--bg-active,#334155); color:var(--text-primary,#f1f5f9); }
+        .partner-content { }
+        .partner-section-grid { display:flex; flex-direction:column; gap:12px; }
+        .partner-card { padding:18px 20px; background:var(--bg-card,#1e293b); border-radius:12px; border:1px solid var(--border-card,#334155); }
+        .partner-card h4 { font-size:14px; font-weight:600; color:var(--text-primary,#f1f5f9); margin:0 0 10px; }
+        .partner-card p { font-size:13px; color:var(--text-primary,#f1f5f9); line-height:1.6; margin:0 0 8px; }
+        .partner-empty-text { color:var(--text-muted,#64748b); font-style:italic; }
+        .partner-tags { display:flex; flex-wrap:wrap; gap:6px; }
+        .partner-tag { padding:3px 10px; border-radius:100px; font-size:12px; background:rgba(99,102,241,0.12); color:#818cf8; }
+        .partner-field { font-size:13px; color:var(--text-primary,#f1f5f9); margin-bottom:4px; }
+        .partner-field span { color:var(--text-muted,#64748b); margin-right:4px; }
+        .partner-sub-section { margin-top:12px; padding-top:12px; border-top:1px solid var(--border-card,#334155); }
+        .partner-sub-section h5 { font-size:12px; font-weight:600; color:var(--text-primary,#f1f5f9); margin:0 0 8px; }
+        .partner-sponsor-row { margin-top:14px; padding-top:14px; border-top:1px solid var(--border-card,#334155); }
+        .partner-sponsor-btn { padding:10px 24px; border:none; border-radius:8px; background:linear-gradient(135deg,#f59e0b,#eab308); color:#1e293b; font-size:13px; font-weight:700; cursor:pointer; transition:all 0.15s; width:100%; }
+        .partner-sponsor-btn:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(245,158,11,0.3); }
+        .partner-need-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+        .partner-need-header h4 { margin-bottom:0; }
+        .partner-need-status { padding:3px 10px; border-radius:100px; font-size:11px; font-weight:500; }
+        .partner-need-status.urgent { background:rgba(239,68,68,0.12); color:#ef4444; }
+        .partner-need-status.open { background:rgba(245,158,11,0.12); color:#f59e0b; }
+        .partner-need-status.completed { background:rgba(34,197,94,0.12); color:#22c55e; }
+        .partner-project-bar { height:8px; background:rgba(255,255,255,0.06); border-radius:100px; overflow:hidden; margin-bottom:8px; }
+        .partner-project-fill { height:100%; background:linear-gradient(90deg,#6366f1,#818cf8); border-radius:100px; transition:width 0.3s; }
+        @media (max-width:700px) { .partner-stats { grid-template-columns:repeat(3,1fr); } }
+        .partner-children-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
+        .partner-child-card { background:var(--bg-card,#1e293b); border-radius:14px; border:1px solid var(--border-card,#334155); overflow:hidden; transition:all 0.15s; }
+        .partner-child-card:hover { border-color:var(--accent,#f59e0b); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.2); }
+        .partner-child-photo { width:100%; height:180px; overflow:hidden; background:linear-gradient(135deg,#1e293b,#334155); display:flex; align-items:center; justify-content:center; }
+        .partner-child-photo img { width:100%; height:100%; object-fit:cover; }
+        .partner-child-initial { font-size:48px; font-weight:700; color:var(--text-muted,#64748b); }
+        .partner-child-info { padding:14px 16px; }
+        .partner-child-name { display:block; font-size:15px; font-weight:600; color:var(--text-primary,#f1f5f9); margin-bottom:4px; }
+        .partner-child-detail { display:block; font-size:12px; color:var(--text-muted,#64748b); margin-bottom:2px; }
+        .partner-child-uid { display:block; font-size:11px; font-family:monospace; color:var(--text-muted,#94a3b8); }
+      `}</style>
+    </div>
+  )
+}
+
+/* ═══════════ PARTNER — TRANSACTIONS ═══════════ */
+function PartnerTransactions({ apiFetch, API, onLogout, t }) {
+  const [txns, setTxns] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [statusF, setStatusF] = useState('')
+  const [typeF, setTypeF] = useState('')
+
+  const load = useCallback(() => {
+    setLoading(true)
+    const q = new URLSearchParams()
+    if (statusF) q.set('status', statusF)
+    if (typeF) q.set('type', typeF)
+    apiFetch(`${API}/transactions/?${q.toString()}`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(data => { setTxns(Array.isArray(data) ? data : []); setLoading(false) })
+      .catch(() => { setLoading(false) })
+  }, [statusF, typeF])
+  useEffect(() => { load() }, [load])
+
+  const statusLabel = (s) => ({ pending:'En attente', processing:'En cours', completed:'Complété', failed:'Échoué', refunded:'Remboursé' })[s] || s
+  const statusColor = (s) => ({ pending:'#f59e0b', processing:'#3b82f6', completed:'#22c55e', failed:'#ef4444', refunded:'#94a3b8' })[s] || '#94a3b8'
+  const typeLabel = (t) => ({ donation:'Don', sponsorship:'Parrainage', project_financing:'Financement projet', healthcare:'Santé', education:'Éducation' })[t] || t
+  const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'
+  const fmtAmount = (v,c) => `${(Number(v)||0).toLocaleString('fr-FR')} ${c||'USD'}`
+
+  return (
+    <div className="partner-txns">
+      <div className="opp-header">
+        <div><h2 className="opp-title">Mes Transactions</h2><p className="opp-sub">Historique de vos paiements et contributions</p></div>
+      </div>
+      <div className="opp-toolbar">
+        <select className="opp-filter-select" value={statusF} onChange={e => setStatusF(e.target.value)}>
+          <option value="">Tous les statuts</option>
+          <option value="pending">En attente</option>
+          <option value="processing">En cours</option>
+          <option value="completed">Complété</option>
+          <option value="failed">Échoué</option>
+          <option value="refunded">Remboursé</option>
+        </select>
+        <select className="opp-filter-select" value={typeF} onChange={e => setTypeF(e.target.value)}>
+          <option value="">Tous les types</option>
+          <option value="donation">Don</option>
+          <option value="sponsorship">Parrainage</option>
+          <option value="project_financing">Financement projet</option>
+          <option value="healthcare">Santé</option>
+          <option value="education">Éducation</option>
+        </select>
+      </div>
+      <div className="txn-list">
+        {loading ? Array.from({length:4}).map((_,i) => <div key={i} className="opp-skeleton" style={{height:56,marginBottom:8}} />) :
+          txns.length === 0 ? <div className="opp-empty">Aucune transaction trouvée</div> :
+          txns.map(tx => (
+            <div key={tx.id} className="txn-card">
+              <div className="txn-left">
+                <span className="txn-type">{typeLabel(tx.transaction_type)}</span>
+                <span className="txn-ref">{tx.reference_number}</span>
+              </div>
+              <div className="txn-center">
+                <span className="txn-amount">{fmtAmount(tx.amount, tx.currency)}</span>
+                <span className="txn-date">{fmtDate(tx.created_at)}</span>
+              </div>
+              <div className="txn-right">
+                <span className="txn-status" style={{color:statusColor(tx.status),background:`${statusColor(tx.status)}1a`}}>{statusLabel(tx.status)}</span>
               </div>
             </div>
           ))}
       </div>
+      <style>{`
+        .partner-txns { padding:24px; max-width:960px; margin:0 auto; }
+        .txn-list { margin-top:16px; }
+        .txn-card { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-radius:10px; background:var(--bg-card,#1e293b); border:1px solid var(--border-card,#334155); margin-bottom:8px; gap:12px; flex-wrap:wrap; }
+        .txn-left { display:flex; flex-direction:column; gap:2px; min-width:140px; }
+        .txn-type { font-size:13px; font-weight:600; color:var(--text-primary,#f1f5f9); }
+        .txn-ref { font-family:monospace; font-size:11px; color:var(--text-muted,#94a3b8); }
+        .txn-center { text-align:right; }
+        .txn-amount { font-size:15px; font-weight:700; color:#22c55e; display:block; }
+        .txn-date { font-size:11px; color:var(--text-muted,#64748b); }
+        .txn-right { }
+        .txn-status { padding:4px 12px; border-radius:100px; font-size:11px; font-weight:500; white-space:nowrap; }
+      `}</style>
     </div>
   )
 }

@@ -145,6 +145,22 @@ class ConversationAPITest(TestCase):
         r = self.client.post(f'/api/conversations/messages/{msg.id}/react/', {'emoji': '👍'})
         self.assertEqual(r.status_code, 403)
 
+    def test_delete_own_dm_for_everyone(self):
+        conv = Conversation.objects.create()
+        conv.participants.set([self.alice, self.bob])
+        msg = Message.objects.create(conversation=conv, sender=self.alice, content='à supprimer')
+        r = self.client.delete(f'/api/conversations/messages/{msg.id}/')
+        self.assertEqual(r.status_code, 204)
+        self.assertFalse(Message.objects.filter(pk=msg.id).exists())
+
+    def test_cannot_delete_others_dm(self):
+        conv = Conversation.objects.create()
+        conv.participants.set([self.alice, self.bob])
+        msg = Message.objects.create(conversation=conv, sender=self.bob, content='pas la mienne')
+        r = self.client.delete(f'/api/conversations/messages/{msg.id}/')
+        self.assertEqual(r.status_code, 403)
+        self.assertTrue(Message.objects.filter(pk=msg.id).exists())
+
 
 class ChannelPermissionMatrixTest(TestCase):
     """Visibilité par message des canaux role_filtered :

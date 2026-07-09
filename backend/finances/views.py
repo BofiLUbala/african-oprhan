@@ -14,6 +14,7 @@ from .serializers import (
 
 FINANCE_MANAGER_ROLES = ("director", "federation", "supermaster", "auditor")
 FINANCE_WRITER_ROLES = ("director", "federation", "supermaster")
+ADMIN_ROLES = ("federation", "supermaster")
 
 
 def _visible_orphanage_ids(user):
@@ -120,7 +121,10 @@ def payment_confirm(request):
     if not ref:
         return Response({"error": "Numéro de référence requis."}, status=status.HTTP_400_BAD_REQUEST)
     try:
-        transaction = Transaction.objects.get(reference_number=ref, payer=request.user)
+        if request.user.role in ADMIN_ROLES:
+            transaction = Transaction.objects.get(reference_number=ref)
+        else:
+            transaction = Transaction.objects.get(reference_number=ref, payer=request.user)
     except Transaction.DoesNotExist:
         return Response({"error": "Transaction introuvable."}, status=status.HTTP_404_NOT_FOUND)
     if transaction.status != "pending":
@@ -144,18 +148,106 @@ def payment_confirm(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def transaction_list(request):
-    qs = Transaction.objects.filter(payer=request.user).order_by("-created_at")
+    user = request.user
+    if user.role in ADMIN_ROLES:
+        qs = Transaction.objects.select_related("payer").all().order_by("-created_at")
+    else:
+        qs = Transaction.objects.filter(payer=user).order_by("-created_at")
     status_f = request.query_params.get("status", "")
     if status_f:
         qs = qs.filter(status=status_f)
+    type_f = request.query_params.get("type", "")
+    if type_f:
+        qs = qs.filter(transaction_type=type_f)
     return Response(TransactionSerializer(qs, many=True).data)
 
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def transaction_detail(request, ref):
+    user = request.user
     try:
-        transaction = Transaction.objects.get(reference_number=ref, payer=request.user)
+        if user.role in ADMIN_ROLES:
+            transaction = Transaction.objects.get(reference_number=ref)
+        else:
+            transaction = Transaction.objects.get(reference_number=ref, payer=user)
     except Transaction.DoesNotExist:
         return Response({"error": "Transaction introuvable."}, status=status.HTTP_404_NOT_FOUND)
     return Response(TransactionSerializer(transaction).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def admin_provider_list(request):
+    if request.user.role not in ADMIN_ROLES:
+        return Response({"error": "Accès réservé à la direction."}, status=status.HTTP_403_FORBIDDEN)
+    providers = PaymentProvider.objects.all().order_by("sort_order")
+    return Response(PaymentProviderSerializer(providers, many=True).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def admin_provider_create(request):
+    if request.user.role != "supermaster":
+        return Response({"error": "Réservé au Super Master."}, status=status.HTTP_403_FORBIDDEN)
+    serializer = PaymentProviderSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def admin_provider_update(request, provider_id):
+    if request.user.role != "supermaster":
+        return Response({"error": "Réservé au Super Master."}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        provider = PaymentProvider.objects.get(pk=provider_id)
+    except PaymentProvider.DoesNotExist:
+        return Response({"error": "Fournisseur introuvable."}, status=status.HTTP_404_NOT_FOUND)
+    serializer = PaymentProviderSerializer(provider, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def admin_provider_toggle(request, provider_id):
+    if request.user.role != "supermaster":
+        return Response({"error": "Réservé au Super Master."}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        provider = PaymentProvider.objects.get(pk=provider_id)
+    except PaymentProvider.DoesNotExist:
+        return Response({"error": "Fournisseur introuvable."}, status=status.HTTP_404_NOT_FOUND)
+    provider.is_active = not provider.is_active
+    provider.save(update_fields=["is_active"])
+    return Response(PaymentProviderSerializer(provider).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def admin_transaction_list(request):
+    if request.user.role not in ADMIN_ROLES:
+        return Response({"error": "Accès réservé à la direction."}, status=status.HTTP_403_FORBIDDEN)
+    qs = Transaction.objects.select_related("payer").all().order_by("-created_at")
+    status_f = request.query_params.get("status", "")
+    if status_f:
+        qs = qs.filter(status=status_f)
+    type_f = request.query_params.get("type", "")
+    if type_f:
+        qs = qs.filter(transaction_type=type_f)
+    payer_id = request.query_params.get("payer_id", "")
+    if payer_id:
+        qs = qs.filter(payer_id=payer_id)
+    page = int(request.query_params.get("page", 1))
+    page_size = int(request.query_params.get("page_size", 20))
+    offset = (page - 1) * page_size
+    total = qs.count()
+    return Response({
+        "results": TransactionSerializer(qs[offset:offset + page_size], many=True).data,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": (total + page_size - 1) // page_size if page_size > 0 else 1,
+    })

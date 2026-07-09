@@ -91,9 +91,11 @@ class ChildPublicSerializer(serializers.ModelSerializer):
     class Meta:
         model = Child
         fields = [
-            "id", "uid", "nom", "prenom", "age", "nationalite", "sexe",
-            "photo_url", "orphanage_name", "status", "biography", "dream",
-            "skills", "interests", "sponsorship_status",
+            "id", "uid", "nom", "prenom", "date_naissance", "age",
+            "nationalite", "sexe", "photo_url", "orphanage_name",
+            "status", "biography", "dream", "skills", "interests",
+            "school_name", "school_level", "school_progress",
+            "medical_info", "sponsorship_status",
         ]
 
     def get_sponsorship_status(self, obj):
