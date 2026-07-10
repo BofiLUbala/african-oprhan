@@ -249,6 +249,8 @@
 .cmv2-rec-btn.ghost { background: transparent; color: #ef4444; border: 1px solid #fecaca; }
 .cmv2-rec-btn.stop { background: #ef4444; color: #fff; }
 .cmv2-rec-btn.send { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
+.cmv2-rec-error { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 30px 16px; color: #ef4444; }
+.cmv2-rec-error p { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--text-body, #475569); max-width: 260px; }
 .cmv2-vid-panel { width: 100%; max-width: 480px; background: var(--bg-card, #fff); border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(15,23,42,0.3); animation: cmv2Pop .24s cubic-bezier(0.16,1,0.3,1); }
 .cmv2-vid-head { display: flex; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border-card, #eef2f7); }
 .cmv2-vid-head .cmv2-sheet-title { flex: 1; }

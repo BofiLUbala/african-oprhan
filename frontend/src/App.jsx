@@ -12,6 +12,7 @@ import LikesPopover from './components/communication/LikesPopover'
 import ShareDialog from './components/communication/ShareDialog'
 import useLiveChildren from './hooks/useLiveChildren'
 import useNotifications from './hooks/useNotifications'
+import * as HumanizedIcons from './components/HumanizedIcons'
 import './App.css'
 
 const API = 'http://localhost:8000/api'
@@ -91,6 +92,25 @@ function countryCodeFromName(name) {
   const c = AFRICAN_COUNTRIES.find(c => c.name === name)
   return c ? c.code : null
 }
+
+const BACKGROUND_LIBRARY = [
+  { id: '', name: 'Default Dark', category: 'Minimal', tags: ['default','dark'], status: 'active', description: 'Le thème sombre par défaut' },
+  { id: '1', name: 'Cyber Blueprint', category: 'Enterprise', tags: ['cyber','grid','dark'], status: 'active', description: 'Esthétique réseau cybernétique' },
+  { id: '2', name: 'Frosted Carbon', category: 'Professional', tags: ['carbon','frosted','glass'], status: 'active', description: 'Carbone glacé et verre poli' },
+  { id: '3', name: 'Industrial Gold & Slate', category: 'Industrial', tags: ['gold','slate','premium'], status: 'active', description: 'Gris ardoise avec accents dorés' },
+  { id: '4', name: 'Tactical HUD', category: 'Enterprise', tags: ['tactical','hud','orange'], status: 'active', description: 'Interface tactique orangée' },
+  { id: '5', name: 'Pure Distraction-Free', category: 'Minimal', tags: ['pure','black','focus'], status: 'active', description: 'Noir pur sans distraction' },
+  { id: '6', name: 'Architectural Blueprint', category: 'Professional', tags: ['light','blueprint','architecture'], status: 'active', description: 'Plan d\'architecte (Thème clair)' },
+  { id: '7', name: 'Neon Pulse', category: 'AI / Innovation', tags: ['neon','pulse','cyan'], status: 'active', description: 'Néon pulsant et contrastes' },
+  { id: '8', name: 'Brushed Steel & Monotone', category: 'Industrial', tags: ['steel','monotone','light'], status: 'active', description: 'Acier brossé monochrome (Clair)' },
+  { id: '9', name: 'Abstract Topography', category: 'Professional', tags: ['topography','blue','abstract'], status: 'active', description: 'Topographie abstraite bleutée' },
+  { id: '10', name: 'Floating Depth Layers', category: 'AI / Innovation', tags: ['floating','layers','depth'], status: 'active', description: 'Couches de profondeur en lévitation' },
+  { id: '11', name: 'Ocean Depth Layers', category: 'Enterprise', tags: ['ocean','teal','waves','corporate'], status: 'active', description: 'Vagues océaniques en couches profondes' },
+  { id: '12', name: 'Digital Transformation', category: 'AI / Innovation', tags: ['holographic','pastel','futuristic','ai'], status: 'active', description: 'Flux de ruban holographique iridescent' },
+  { id: '13', name: 'Precision Engineering', category: 'Professional', tags: ['coral','sage','gradient','warm'], status: 'active', description: 'Dégradé organique corail et sauge' },
+  { id: '14', name: 'Industrial Intelligence', category: 'Industrial', tags: ['motion','blur','monochrome','bw'], status: 'active', description: 'Flou de mouvement monochrome dynamique' },
+  { id: '15', name: 'Smart Factory', category: 'Industrial', tags: ['concrete','grunge','factory','dark'], status: 'active', description: 'Ambiance usine béton sombre et grunge' },
+]
 
 const ROLES = [
   { value: 'ambassador', label: 'Ambassadeur' },
@@ -305,7 +325,7 @@ function Hero({ pool, onBroken }) {
               {t('hero_cta_primary')}
             </button>
             <button className="btn btn-ghost btn-lg" onClick={() => document.getElementById('profiles')?.scrollIntoView({ behavior: 'smooth' })}>
-              {t('hero_cta_secondary')}
+              {t('hero_cta_secondary')} <HumanizedIcons.HumanizedArrowRightIcon size={17} style={{verticalAlign:'-3px'}} />
             </button>
           </div>
         </div>
@@ -909,7 +929,7 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
         localStorage.setItem('cdo_profile_img', dataUrl)
       }
       reader.readAsDataURL(file)
-      esUploadAvatar(file) // persist to backend → visible to all agents
+      esUploadAvatar(file) // persist to backend -> visible to all agents
     }
   }
 
@@ -957,7 +977,7 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
                       window.dispatchEvent(new CustomEvent('cdo-navigate-child', { detail: { uid: child.uid } }))
                       setSearchOpen(false); setSearchQuery(''); setSearchResults([])
                     }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      <HumanizedIcons.HumanizedUserIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />
                       <span className="hd-search-item-name">{child.prenom || ''} {child.nom || ''}</span>
                       <span className="hd-search-item-uid">{child.uid}</span>
                     </div>
@@ -1840,7 +1860,7 @@ function EclatSocialApp({ user, onReturn }) {
     esLoadPosts()
   }, [esView])
 
-  // ── Approval workflow: Chef d'Orphelinat → Ambassadeur ─────────────
+  // -- Approval workflow: Chef d'Orphelinat -> Ambassadeur
   const esIsDirector = user?.role === 'director'
   const esIsReviewer = ['ambassador', 'federation', 'supermaster', 'admin'].includes(user?.role)
   const [esChildQuery, setEsChildQuery] = React.useState('')
@@ -2165,7 +2185,7 @@ function EclatSocialApp({ user, onReturn }) {
   const hue = user.first_name ? user.first_name.charCodeAt(0) * 37 % 360 : 200
   // Resolve a media path to the backend origin (photos live on :8000).
   const esAbs = (u_url) => !u_url ? null : (u_url.startsWith('http') || u_url.startsWith('data:')) ? u_url : `${API.replace(/\/api$/, '')}${u_url}`
-  // Current user's photo: backend avatar → dashboard localStorage → initials.
+  // Current user's photo: backend avatar -> dashboard localStorage -> initials.
   const esDashPhoto = esAbs(user?.avatar) || (typeof localStorage !== 'undefined' && localStorage.getItem('cdo_profile_img')) || null
   const esInitialsSvg = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" rx="20" fill="hsl(${hue},50%,45%)"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700" font-family="system-ui">${initials}</text></svg>`)}`
   const avatarSvg = esDashPhoto || esInitialsSvg
@@ -2296,7 +2316,7 @@ function EclatSocialApp({ user, onReturn }) {
               <button className="es-search-clear" onClick={() => { setEsSearchQuery(''); setEsSearchResults([]) }} aria-label="Effacer">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
-            ) : <kbd className="es-search-kbd">⌘K</kbd>}
+            ) : <kbd className="es-search-kbd">Ctrl K</kbd>}
           </div>
 
           {esFilterOpen && (
@@ -2447,7 +2467,6 @@ function EclatSocialApp({ user, onReturn }) {
 
         <nav className="es-nav" style={{ flex: 'none' }}>
           <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => esNavigate('home')}><span className="es-nav-icon"><EsIcon name="home" size={18} /></span> Accueil</button>
-          <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => esNavigate('notifs')}><span className="es-nav-icon"><EsIcon name="bell" size={18} /></span> Notifications {esUnreadNotifs > 0 && <span className="es-badge">{esUnreadNotifs}</span>}</button>
           <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => esNavigate('settings')}><span className="es-nav-icon"><EsIcon name="settings" size={18} /></span> Paramètres</button>
         </nav>
 
@@ -2536,7 +2555,7 @@ function EclatSocialApp({ user, onReturn }) {
           <button className="es-return-btn" onClick={onReturn} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><path d='M19 12H5'/><path d='m12 19-7-7 7-7'/></svg> Retourner au dashboard</button>
         </div>
       </aside>
-      {/* Resize handle: Sidebar ↔ Main */}
+      {/* Resize handle: Sidebar <-> Main */}
       <div className="es-resize-handle" onMouseDown={(e) => { e.preventDefault(); resizingRef.current = 'sidebar'; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none' }} />
 
 
@@ -2900,7 +2919,7 @@ function EclatSocialApp({ user, onReturn }) {
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', fontWeight: 700, color: badge.fg, background: badge.bg, padding: '4px 10px', borderRadius: '20px' }}><EsIcon name={badge.icon} size={13} /> {badge.label}</span>
                       <span style={{ fontSize: '11px', color: '#94a3b8' }}>{esTimeAgo(post.created_at)}</span>
                     </div>
-                    {post.child_info && <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#6366f1', fontWeight: 600, marginBottom: '4px' }}><EsIcon name="child" size={13} /> {post.child_info.name} · {post.child_info.uid}{post.review_ambassador_name ? ` → ${post.review_ambassador_name}` : ''}</div>}
+                    {post.child_info && <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#6366f1', fontWeight: 600, marginBottom: '4px' }}><EsIcon name="child" size={13} /> {post.child_info.name} · {post.child_info.uid}{post.review_ambassador_name ? ` — ${post.review_ambassador_name}` : ''}</div>}
                     <p style={{ fontSize: '13.5px', color: 'var(--text-body,#334155)', margin: '0 0 6px', lineHeight: 1.5 }}>{post.content}</p>
                     {(post.status === 'rejected' || post.status === 'needs_changes') && post.rejection_reason && (
                       <div style={{ fontSize: '12.5px', color: badge.fg, background: badge.bg, padding: '8px 11px', borderRadius: '9px', marginTop: '6px' }}>
@@ -2938,7 +2957,7 @@ function EclatSocialApp({ user, onReturn }) {
                       media.media_type === 'video' ? (
                         <div className="es-video-preview">
                           <video src={media.url} className="es-post-image" />
-                          <span className="es-play-icon">▶</span>
+                          <span className="es-play-icon"><HumanizedIcons.HumanizedPlayIcon size={16} /></span>
                         </div>
                       ) : (
                         <div className="es-image-wrap">
@@ -3069,7 +3088,7 @@ function EclatSocialApp({ user, onReturn }) {
                 </div>
               </div>
 
-              {/* Director → child selector + approval routing */}
+              {/* Director -> child selector + approval routing */}
               {esIsDirector && (
                 <div style={{ margin: '4px 0 12px' }}>
                   {esSelectedChild ? (
@@ -3597,36 +3616,36 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       { key:'illness', icon:'thermometer', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>, label:'Maladie', fields:[{key:'diagnosis',label:'Diagnostic',type:'text',required:true},{key:'date_diag',label:'Date du diagnostic',type:'date',required:true},{key:'severity',label:'Sévérité',type:'select',options:['Léger','Modéré','Grave','Critique']},{key:'symptoms',label:'Symptômes',type:'textarea'},{key:'treatment',label:'Traitement prescrit',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
       { key:'treatment', icon:'pill', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>, label:'Traitement', fields:[{key:'medication',label:'Médicament',type:'text',required:true},{key:'dosage',label:'Posologie',type:'text',required:true},{key:'frequency',label:'Fréquence',type:'select',options:['1x/jour','2x/jour','3x/jour','1x/semaine','Selon besoin']},{key:'start_date',label:'Date de début',type:'date',required:true},{key:'end_date',label:'Date de fin',type:'date'},{key:'prescribed_by',label:'Prescrit par',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
       { key:'consultation', icon:'stethoscope', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.3.3 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/></svg>, label:'Consultation', fields:[{key:'doctor',label:'Médecin',type:'text',required:true},{key:'specialty',label:'Spécialité',type:'select',options:['Généraliste','Pédiatre','Psychologue','Nutritionniste','Dentiste','Ophtalmologue','Autre']},{key:'date_consult',label:'Date',type:'date',required:true},{key:'reason',label:'Motif',type:'textarea',required:true},{key:'diagnosis',label:'Diagnostic',type:'textarea'},{key:'prescriptions',label:'Prescriptions',type:'textarea'},{key:'follow_up',label:'Suivi nécessaire',type:'select',options:['Oui','Non']}] },
-      { key:'hospitalization', icon:'hospital', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg>, label:'Hospitalisation', fields:[{key:'hospital',label:'Hôpital',type:'text',required:true},{key:'admit_date',label:'Date d\'admission',type:'date',required:true},{key:'discharge_date',label:'Date de sortie',type:'date'},{key:'reason',label:'Motif',type:'textarea',required:true},{key:'ward',label:'Service',type:'text'},{key:'doctor',label:'Médecin traitant',type:'text'},{key:'outcome',label:'Issue',type:'select',options:['Rétabli','En cours','Référé','Décédé']},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'hospitalization', icon:'hospital', iconSvg:<HumanizedIcons.HumanizedBuildingIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, label:'Hospitalisation', fields:[{key:'hospital',label:'Hôpital',type:'text',required:true},{key:'admit_date',label:'Date d\'admission',type:'date',required:true},{key:'discharge_date',label:'Date de sortie',type:'date'},{key:'reason',label:'Motif',type:'textarea',required:true},{key:'ward',label:'Service',type:'text'},{key:'doctor',label:'Médecin traitant',type:'text'},{key:'outcome',label:'Issue',type:'select',options:['Rétabli','En cours','Référé','Décédé']},{key:'notes',label:'Notes',type:'textarea'}] },
       { key:'allergy', icon:'sneeze', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 9h.01M16 9h.01"/><path d="M9 16c1.5 1.5 4 1.5 5.5 0"/></svg>, label:'Allergie', fields:[{key:'allergen',label:'Allergène',type:'text',required:true},{key:'reaction',label:'Réaction',type:'select',options:['Légère','Modérée','Grave','Anaphylaxie']},{key:'date_detected',label:'Date de détection',type:'date'},{key:'severity',label:'Sévérité',type:'select',options:['Faible','Moyenne','Haute','Critique']},{key:'treatment',label:'Traitement',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
     ]},
     { key:'education', icon:'books', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M4 11h16"/></svg>, label:t('uc_category_education')||'Éducation', desc:t('uc_category_desc_education')||'Inscription, notes, examens', color:'#3b82f6', types:[
       { key:'school_enrollment', icon:'school', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5"/><path d="M6 12v5h3v-3h6v3h3v-5"/></svg>, label:'Inscription scolaire', fields:[{key:'school_name',label:'Nom de l\'école',type:'text',required:true},{key:'school_type',label:'Type',type:'select',options:['Maternelle','Primaire','Secondaire','Lycée','Université','Formation pro']},{key:'class',label:'Classe/Niveau',type:'text',required:true},{key:'academic_year',label:'Année scolaire',type:'text',required:true},{key:'start_date',label:'Date de début',type:'date',required:true},{key:'school_address',label:'Adresse',type:'text'},{key:'contact',label:'Contact école',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
       { key:'school_transfer', icon:'refresh', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>, label:'Transfert scolaire', fields:[{key:'from_school',label:'École d\'origine',type:'text',required:true},{key:'to_school',label:'Nouvelle école',type:'text',required:true},{key:'reason',label:'Motif du transfert',type:'select',options:['Déménagement','Familial','Disciplinaire','Scolaire','Autre']},{key:'date_transfer',label:'Date',type:'date',required:true},{key:'class',label:'Classe',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'grade_update', icon:'bar-chart', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>, label:'Notes/Classe', fields:[{key:'subject',label:'Matière',type:'text',required:true},{key:'grade',label:'Note /20',type:'number',required:true},{key:'coefficient',label:'Coefficient',type:'number'},{key:'term',label:'Trimestre',type:'select',options:['1er Trimestre','2ème Trimestre','3ème Trimestre']},{key:'academic_year',label:'Année scolaire',type:'text'},{key:'appreciation',label:'Appréciation',type:'textarea'}] },
+      { key:'grade_update', icon:'bar-chart', iconSvg:<HumanizedIcons.HumanizedChartIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, label:'Notes/Classe', fields:[{key:'subject',label:'Matière',type:'text',required:true},{key:'grade',label:'Note /20',type:'number',required:true},{key:'coefficient',label:'Coefficient',type:'number'},{key:'term',label:'Trimestre',type:'select',options:['1er Trimestre','2ème Trimestre','3ème Trimestre']},{key:'academic_year',label:'Année scolaire',type:'text'},{key:'appreciation',label:'Appréciation',type:'textarea'}] },
       { key:'exam_result', icon:'edit', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg>, label:'Résultat examen', fields:[{key:'exam_name',label:'Nom de l\'examen',type:'text',required:true},{key:'subject',label:'Matière',type:'text'},{key:'score',label:'Note',type:'number',required:true},{key:'max_score',label:'Note maximale',type:'number'},{key:'date_exam',label:'Date',type:'date'},{key:'result',label:'Résultat',type:'select',options:['Réussi','Échoué','En attente']},{key:'notes',label:'Notes',type:'textarea'}] },
       { key:'attendance_update', icon:'clipboard', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>, label:'Présence', fields:[{key:'period',label:'Période',type:'text',required:true},{key:'days_present',label:'Jours présents',type:'number',required:true},{key:'days_absent',label:'Jours absents',type:'number'},{key:'days_total',label:'Total jours',type:'number'},{key:'absent_reason',label:'Motif absences',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
       { key:'academic_note', icon:'pin', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4.5l-4 4L7 10l-1.5 1.5 7 7L14 17l1.5-4 4-4"/><path d="M9 15l-5 5"/></svg>, label:'Note pédagogique', fields:[{key:'teacher',label:'Enseignant',type:'text'},{key:'subject',label:'Matière',type:'text'},{key:'observation',label:'Observation',type:'textarea',required:true},{key:'recommendation',label:'Recommandation',type:'textarea'},{key:'date',label:'Date',type:'date'}] },
     ]},
     { key:'family', icon:'users', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label:t('uc_category_family')||'Famille', desc:t('uc_category_desc_family')||'Tuteurs, parents, réunification', color:'#a855f7', types:[
-      { key:'guardian_assignment', icon:'user', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label:'Attribution tuteur', fields:[{key:'guardian_name',label:'Nom du tuteur',type:'text',required:true},{key:'relation',label:'Lien de parenté',type:'select',options:['Père','Mère','Grand-parent','Oncle/Tante','Frère/Soeur','Famille d\'accueil','Institution']},{key:'phone',label:'Téléphone',type:'text'},{key:'address',label:'Adresse',type:'text'},{key:'date_assigned',label:'Date d\'attribution',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'guardian_assignment', icon:'user', iconSvg:<HumanizedIcons.HumanizedUserIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, label:'Attribution tuteur', fields:[{key:'guardian_name',label:'Nom du tuteur',type:'text',required:true},{key:'relation',label:'Lien de parenté',type:'select',options:['Père','Mère','Grand-parent','Oncle/Tante','Frère/Soeur','Famille d\'accueil','Institution']},{key:'phone',label:'Téléphone',type:'text'},{key:'address',label:'Adresse',type:'text'},{key:'date_assigned',label:'Date d\'attribution',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
       { key:'parent_identification', icon:'search', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>, label:'Identification parent', fields:[{key:'parent_name',label:'Nom du parent',type:'text',required:true},{key:'parent_type',label:'Type',type:'select',options:['Père','Mère','Père biologique','Mère biologique']},{key:'status',label:'Statut',type:'select',options:['Identifié','Contacté','En recherche']},{key:'last_known',label:'Dernière adresse connue',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
       { key:'family_reunification', icon:'hug', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/><path d="M6 12c0-1.5.8-3 2-4"/></svg>, label:'Réunification', fields:[{key:'status',label:'Statut',type:'select',options:['En cours','Planifiée','Réalisée','Échouée']},{key:'date_planned',label:'Date prévue',type:'date'},{key:'date_completed',label:'Date réalisée',type:'date'},{key:'family_member',label:'Membre concerné',type:'text'},{key:'support_needed',label:'Soutien nécessaire',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
       { key:'foster_care', icon:'home', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>, label:'Placement familial', fields:[{key:'foster_family',label:'Famille d\'accueil',type:'text',required:true},{key:'address',label:'Adresse',type:'text'},{key:'start_date',label:'Date de début',type:'date',required:true},{key:'duration',label:'Durée prévue',type:'select',options:['Court terme','Long terme','Permanent']},{key:'social_worker',label:'Travailleur social',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
       { key:'adoption_progress', icon:'clipboard', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>, label:'Adoption', fields:[{key:'stage',label:'Étape',type:'select',options:['Pré-adoption','En cours','Finalisation','Finalisée']},{key:'agency',label:'Agence',type:'text'},{key:'adoptive_parents',label:'Parents adoptifs',type:'text'},{key:'date_started',label:'Date de début',type:'date'},{key:'expected_date',label:'Date prévue',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
       { key:'family_visit', icon:'wave', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 7a5 5 0 0 1 10 0"/><path d="M5 11a7 7 0 0 1 14 0"/><path d="M8 15a3 3 0 0 1 8 0"/><path d="M10 19a1 1 0 0 1 4 0"/></svg>, label:'Visite familiale', fields:[{key:'visitor',label:'Visiteur',type:'text',required:true},{key:'relation',label:'Lien',type:'text'},{key:'date_visit',label:'Date',type:'date',required:true},{key:'duration',label:'Durée',type:'select',options:['1-2h','Demi-journée','Journée','Week-end','Plusieurs jours']},{key:'observations',label:'Observations',type:'textarea'}] },
     ]},
-    { key:'documents', icon:'file', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, label:t('uc_category_documents')||'Documents', desc:t('uc_category_desc_documents')||'Ajout, remplacement, vérification', color:'#f59e0b', types:[
-      { key:'new_document', icon:'file', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, label:'Nouveau document', fields:[{key:'doc_type',label:'Type de document',type:'select',options:['Acte de naissance','CNI','Passeport','Photo','Rapport médical','Bulletin scolaire','Document judiciaire','Autre'],required:true},{key:'doc_number',label:'Numéro',type:'text'},{key:'issued_by',label:'Délivré par',type:'text'},{key:'issue_date',label:'Date de délivrance',type:'date'},{key:'expiry_date',label:'Date d\'expiration',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
+    { key:'documents', icon:'file', iconSvg:<HumanizedIcons.HumanizedDocumentIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, label:t('uc_category_documents')||'Documents', desc:t('uc_category_desc_documents')||'Ajout, remplacement, vérification', color:'#f59e0b', types:[
+      { key:'new_document', icon:'file', iconSvg:<HumanizedIcons.HumanizedDocumentIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, label:'Nouveau document', fields:[{key:'doc_type',label:'Type de document',type:'select',options:['Acte de naissance','CNI','Passeport','Photo','Rapport médical','Bulletin scolaire','Document judiciaire','Autre'],required:true},{key:'doc_number',label:'Numéro',type:'text'},{key:'issued_by',label:'Délivré par',type:'text'},{key:'issue_date',label:'Date de délivrance',type:'date'},{key:'expiry_date',label:'Date d\'expiration',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
       { key:'document_replacement', icon:'refresh', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>, label:'Remplacement', fields:[{key:'doc_type',label:'Type',type:'select',options:['Acte de naissance','CNI','Passeport','Photo','Rapport médical','Bulletin scolaire','Autre'],required:true},{key:'reason_replace',label:'Motif',type:'select',options:['Perte','Vol','Détérioration','Expiration','Mise à jour']},{key:'old_number',label:'Ancien numéro',type:'text'},{key:'new_number',label:'Nouveau numéro',type:'text'},{key:'date_replaced',label:'Date',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'document_verification', icon:'check', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>, label:'Vérification', fields:[{key:'doc_type',label:'Type',type:'select',options:['Acte de naissance','CNI','Passeport','Rapport médical','Bulletin scolaire','Document judiciaire','Autre'],required:true},{key:'verified_by',label:'Vérifié par',type:'text',required:true},{key:'verification_date',label:'Date',type:'date'},{key:'status',label:'Statut',type:'select',options:['Vérifié','En attente','Non conforme']},{key:'comments',label:'Commentaires',type:'textarea'}] },
+      { key:'document_verification', icon:'check', iconSvg:<HumanizedIcons.HumanizedCheckIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, label:'Vérification', fields:[{key:'doc_type',label:'Type',type:'select',options:['Acte de naissance','CNI','Passeport','Rapport médical','Bulletin scolaire','Document judiciaire','Autre'],required:true},{key:'verified_by',label:'Vérifié par',type:'text',required:true},{key:'verification_date',label:'Date',type:'date'},{key:'status',label:'Statut',type:'select',options:['Vérifié','En attente','Non conforme']},{key:'comments',label:'Commentaires',type:'textarea'}] },
     ]},
     { key:'social', icon:'handshake', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 17a1 1 0 0 1-1 1H5l-3-3 3-3h5a1 1 0 0 1 1 1v4Z"/><path d="M13 7a1 1 0 0 1 1-1h5l3 3-3 3h-5a1 1 0 0 1-1-1V7Z"/><path d="M6 14 3 11l3-3"/><path d="M18 10l3 3-3 3"/><path d="M6 14v4"/><path d="M18 10V6"/></svg>, label:t('uc_category_social')||'Social', desc:t('uc_category_desc_social')||'Suivi social, visites, rapports', color:'#ef4444', types:[
       { key:'social_worker_note', icon:'edit', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg>, label:'Note sociale', fields:[{key:'worker',label:'Intervenant',type:'text',required:true},{key:'date_intervention',label:'Date',type:'date',required:true},{key:'type',label:'Type',type:'select',options:['Visite','Entretien','Appel','Réunion','Suivi']},{key:'content',label:'Contenu',type:'textarea',required:true},{key:'recommendations',label:'Recommandations',type:'textarea'}] },
       { key:'home_visit', icon:'home', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>, label:'Visite domicile', fields:[{key:'address_visited',label:'Adresse visitée',type:'text',required:true},{key:'date_visit',label:'Date',type:'date',required:true},{key:'living_conditions',label:'Conditions de vie',type:'select',options:['Bonnes','Moyennes','Précaires','Critiques']},{key:'observations',label:'Observations',type:'textarea',required:true},{key:'recommendations',label:'Recommandations',type:'textarea'}] },
       { key:'counseling', icon:'message-circle', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>, label:'Counseling', fields:[{key:'counselor',label:'Conseiller',type:'text',required:true},{key:'date_session',label:'Date',type:'date',required:true},{key:'type',label:'Type',type:'select',options:['Individuel','Groupe','Familial','Crise']},{key:'theme',label:'Thème',type:'select',options:['Scolaire','Familial','Émotionnel','Comportemental','Orientation','Traumatisme','Autre']},{key:'notes',label:'Notes',type:'textarea',required:true},{key:'outcome',label:'Résultat',type:'textarea'}] },
       { key:'observation', icon:'eye', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>, label:'Observation', fields:[{key:'observer',label:'Observateur',type:'text',required:true},{key:'date_obs',label:'Date',type:'date',required:true},{key:'domain',label:'Domaine',type:'select',options:['Comportement','Santé','Éducation','Social','Émotionnel']},{key:'description',label:'Description',type:'textarea',required:true},{key:'concerns',label:'Préoccupations',type:'textarea'},{key:'actions',label:'Actions',type:'textarea'}] },
-      { key:'incident', icon:'alert-triangle', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>, label:'Incident', fields:[{key:'incident_type',label:"Type d'incident",type:'select',options:['Violence','Accident','Fuite','Conflit','Vol','Abus','Négligence','Autre'],required:true},{key:'date_incident',label:'Date',type:'date',required:true},{key:'location',label:'Lieu',type:'text'},{key:'description',label:'Description',type:'textarea',required:true},{key:'people_involved',label:'Personnes impliquées',type:'textarea'},{key:'actions_taken',label:'Actions prises',type:'textarea'},{key:'follow_up',label:'Suivi',type:'textarea'}] },
+      { key:'incident', icon:'alert-triangle', iconSvg:<HumanizedIcons.HumanizedWarningIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, label:'Incident', fields:[{key:'incident_type',label:"Type d'incident",type:'select',options:['Violence','Accident','Fuite','Conflit','Vol','Abus','Négligence','Autre'],required:true},{key:'date_incident',label:'Date',type:'date',required:true},{key:'location',label:'Lieu',type:'text'},{key:'description',label:'Description',type:'textarea',required:true},{key:'people_involved',label:'Personnes impliquées',type:'textarea'},{key:'actions_taken',label:'Actions prises',type:'textarea'},{key:'follow_up',label:'Suivi',type:'textarea'}] },
       { key:'protection', icon:'shield', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>, label:'Protection', fields:[{key:'concern_type',label:'Type',type:'select',options:['Risque de maltraitance','Exploitation','Discrimination','Mariage forcé','Travail enfant','Autre'],required:true},{key:'severity',label:'Gravité',type:'select',options:['Faible','Moyenne','Haute','Urgente']},{key:'date_reported',label:'Date signalement',type:'date',required:true},{key:'reported_by',label:'Signalé par',type:'text'},{key:'description',label:'Description',type:'textarea',required:true},{key:'measures',label:'Mesures prises',type:'textarea'}] },
     ]},
   ]
@@ -3689,6 +3708,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [selDocKey, setSelDocKey] = useState('')
   const [orpDraftSaved, setOrpDraftSaved] = useState(false)
   const [bgTheme, setBgTheme] = useState(localStorage.getItem('cdo_bg') || '')
+  const [bgLibSearch, setBgLibSearch] = useState('')
+  const [bgLibCat, setBgLibCat] = useState('All')
   const [gpsLoading, setGpsLoading] = useState(false)
   /* ── Document management (director + federation) ── */
   const [docTypes, setDocTypes] = useState([])
@@ -4148,7 +4169,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
         {toast && (
           <div className={`dash-toast dash-toast-${toast.type}`} onClick={() => setToast(null)}>
-            <span className="dash-toast-icon">{toast.type === 'success' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> : toast.type === 'error' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="M6 6 18 18"/></svg> : toast.type === 'warning' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg> : <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>}</span>
+            <span className="dash-toast-icon">{toast.type === 'success' ? <HumanizedIcons.HumanizedCheckIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> : toast.type === 'error' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="M6 6 18 18"/></svg> : toast.type === 'warning' ? <HumanizedIcons.HumanizedWarningIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> : <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>}</span>
             <span className="dash-toast-msg">{toast.message}</span>
           </div>
         )}
@@ -4380,7 +4401,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       {Object.entries(ambAssignments).map(([orpName, children]) => (
                         <div key={orpName} style={{marginBottom:20}}>
                           <h3 style={{fontSize:16,fontWeight:700,color:'#f59e0b',margin:'0 0 10px',display:'flex',alignItems:'center',gap:8}}>
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg> {orpName}
+                            <HumanizedIcons.HumanizedBuildingIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> {orpName}
                           </h3>
                           <div style={{display:'flex',flexDirection:'column',gap:8}}>
                             {children.map(a => (
@@ -4549,7 +4570,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                           <input className="dash-form-input" value={fedDocFeedback[`${orp.id}_${doc.id}`] || ''} onChange={e => setFedDocFeedback(p => ({...p,[`${orp.id}_${doc.id}`]: e.target.value}))} placeholder="Retour (optionnel)" style={{width:'100%',fontSize:11}} />
                                           <textarea className="dash-form-input" value={fedDocPoints[`${orp.id}_${doc.id}`] || ''} onChange={e => setFedDocPoints(p => ({...p,[`${orp.id}_${doc.id}`]: e.target.value}))} placeholder="Points à corriger (un par ligne)" rows={2} style={{width:'100%',fontSize:11,resize:'vertical',minHeight:36}} />
                                           <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                                            <button className="dash-form-save" onClick={() => reviewDocument(orp.id, doc.id, 'accept')} disabled={fedDocReviewLoading} style={{fontSize:11,padding:'5px 12px',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Accepter</button>
+                                            <button className="dash-form-save" onClick={() => reviewDocument(orp.id, doc.id, 'accept')} disabled={fedDocReviewLoading} style={{fontSize:11,padding:'5px 12px',display:'inline-flex',alignItems:'center',gap:4}}><HumanizedIcons.HumanizedCheckIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Accepter</button>
                                             <button className="dash-form-save" onClick={() => reviewDocument(orp.id, doc.id, 'request_changes')} disabled={fedDocReviewLoading} style={{fontSize:11,padding:'5px 12px',background:'rgba(245,158,11,0.15)',color:'#f59e0b',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg> Modifications</button>
                                             <button className="dash-orp-save-btn" onClick={() => reviewDocument(orp.id, doc.id, 'reject')} disabled={fedDocReviewLoading} style={{fontSize:11,padding:'5px 12px',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg> Refuser</button>
                                           </div>
@@ -4612,12 +4633,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const ORP_STEP_ICONS = ['building','user','bar-chart','file','help','check'];
                   const ORP_STEP_ICON_SVG = (i) => {
                     const m = [
-                      <svg key="step0" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg>,
-                      <svg key="step1" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-                      <svg key="step2" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>,
-                      <svg key="step3" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+                      <HumanizedIcons.HumanizedBuildingIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
+                      <HumanizedIcons.HumanizedUserIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
+                      <HumanizedIcons.HumanizedChartIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
+                      <HumanizedIcons.HumanizedDocumentIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
                       <svg key="step4" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
-                      <svg key="step5" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                      <HumanizedIcons.HumanizedCheckIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
                     ];
                     return m[i] || null;
                   };
@@ -4654,7 +4675,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   <div style={{padding:'0 8px'}}>
                     {/* ── TRUST SCORE CARDS ── */}
                     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:12,marginBottom:24}}>
-                      {[{label:'Verification',val:'Pending',color:'#f59e0b',iconSvg:<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>},{label:'Profile',val:profileCompletion+'%',color:'#3b82f6',iconSvg:<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>},{label:'Documents',val:docCompletion+'%',color:'#22c55e',iconSvg:<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>},{label:'Transparency',val:orphanageForm.donor_visible?'Public':'Private',color:'#a855f7',iconSvg:<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>}].map((c,i) => (
+                      {[{label:'Verification',val:'Pending',color:'#f59e0b',iconSvg:<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>},{label:'Profile',val:profileCompletion+'%',color:'#3b82f6',iconSvg:<HumanizedIcons.HumanizedUserIcon size={22} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />},{label:'Documents',val:docCompletion+'%',color:'#22c55e',iconSvg:<HumanizedIcons.HumanizedDocumentIcon size={22} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />},{label:'Transparency',val:orphanageForm.donor_visible?'Public':'Private',color:'#a855f7',iconSvg:<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>}].map((c,i) => (
                         <div key={i} style={{background:'rgba(30,41,59,0.7)',backdropFilter:'blur(16px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'18px 16px',display:'flex',alignItems:'center',gap:14}}>
                           <div style={{width:48,height:48,borderRadius:12,background:`${c.color}18`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>{c.iconSvg}</div>
                           <div><div style={{fontSize:11,color:'#64748b',textTransform:'uppercase',letterSpacing:1,marginBottom:2}}>{c.label}</div><div style={{fontSize:18,fontWeight:700,color:'#e2e8f0'}}>{c.val}</div></div>
@@ -4667,7 +4688,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       {ORP_STEPS.map((s,i) => (
                         <React.Fragment key={i}>
                           <div onClick={() => setOrpWizStep(i)} style={{display:'flex',flexDirection:'column',alignItems:'center',cursor:'pointer',minWidth:80,opacity:orpWizStep===i?1:0.55,transition:'all .3s ease'}}>
-                            <div style={{width:38,height:38,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:700,background:orpWizStep>i?'#22c55e':orpWizStep===i?'linear-gradient(135deg,#f59e0b,#f97316)':'rgba(255,255,255,0.06)',color:orpWizStep>=i?'#fff':'#64748b',border:orpWizStep===i?'2px solid #f59e0b':'2px solid transparent',transition:'all .3s ease',boxShadow:orpWizStep===i?'0 0 20px rgba(245,158,11,0.3)':'none'}}>{orpWizStep>i?<svg key="check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>:ORP_STEP_ICON_SVG(i)}</div>
+                            <div style={{width:38,height:38,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:700,background:orpWizStep>i?'#22c55e':orpWizStep===i?'linear-gradient(135deg,#f59e0b,#f97316)':'rgba(255,255,255,0.06)',color:orpWizStep>=i?'#fff':'#64748b',border:orpWizStep===i?'2px solid #f59e0b':'2px solid transparent',transition:'all .3s ease',boxShadow:orpWizStep===i?'0 0 20px rgba(245,158,11,0.3)':'none'}}>{orpWizStep>i?<HumanizedIcons.HumanizedCheckIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />:ORP_STEP_ICON_SVG(i)}</div>
                             <span style={{fontSize:10,marginTop:6,color:orpWizStep===i?'#f59e0b':'#64748b',fontWeight:orpWizStep===i?700:500,textAlign:'center',maxWidth:80}}>{s}</span>
                           </div>
                           {i<ORP_STEPS.length-1 && <div style={{flex:1,height:2,background:orpWizStep>i?'#22c55e':'rgba(255,255,255,0.08)',margin:'0 4px',marginBottom:18,minWidth:16,transition:'background .3s ease'}} />}
@@ -4680,7 +4701,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                     {/* ══ STEP 0: GENERAL INFORMATION ══ */}
                     {orpWizStep === 0 && <>
-                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg> Orphanage Information</h3>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><HumanizedIcons.HumanizedBuildingIcon size={20} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Orphanage Information</h3>
                       <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Provide the general details about your orphanage.</p>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16}}>
                         <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Orphanage Name <span style={{color:'#ef4444'}}>*</span></label><input className="dash-form-input" value={orphanageForm.name} onChange={e=>orpUpd('name',e.target.value)} placeholder="Enter orphanage name" /></div>
@@ -4705,7 +4726,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                     {/* ══ STEP 1: MANAGEMENT ══ */}
                     {orpWizStep === 1 && <>
-                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Management & Contact Information</h3>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><HumanizedIcons.HumanizedUserIcon size={20} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Management & Contact Information</h3>
                       <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Director and key contact details for verification.</p>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16}}>
                         <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Director Full Name <span style={{color:'#ef4444'}}>*</span></label><input className="dash-form-input" value={orphanageForm.director_name} onChange={e=>orpUpd('director_name',e.target.value)} placeholder="Full name" /></div>
@@ -4719,7 +4740,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                     {/* ══ STEP 2: CAPACITY & STATISTICS ══ */}
                     {orpWizStep === 2 && <>
-                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg> Population Statistics</h3>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><HumanizedIcons.HumanizedChartIcon size={20} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Population Statistics</h3>
                       <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Detailed breakdown of children and staff.</p>
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
                         <div style={{background:'rgba(245,158,11,0.06)',borderRadius:14,padding:16,border:'1px solid rgba(245,158,11,0.15)'}}>
@@ -4728,12 +4749,23 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         </div>
                         <div style={{background:'rgba(59,130,246,0.06)',borderRadius:14,padding:16,border:'1px solid rgba(59,130,246,0.15)'}}>
                           <label style={{fontSize:12,color:'#3b82f6',fontWeight:600,marginBottom:6,display:'block'}}>Current Children</label>
+                          <input type="number" className="dash-form-input" value={orphanageForm.current_children} onChange={e=>orpUpd('current_children',e.target.value)} placeholder="0" style={{fontSize:22,fontWeight:700,textAlign:'center'}} />
+                        </div>
+                      </div>
+                      <div style={{fontSize:13,fontWeight:600,color:'#94a3b8',marginBottom:10}}>Children Breakdown</div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12,marginBottom:20}}>
+                        {[{k:'boys',l:'Boys',c:'#3b82f6',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M16 18v2M8 18v2M12 10v2"/><circle cx="12" cy="12" r="2"/></svg>},{k:'girls',l:'Girls',c:'#ec4899',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M9 18h6"/><path d="M12 10v6"/></svg>},{k:'children_disabled',l:'With Disabilities',c:'#a855f7',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="4" r="2"/><path d="M18 8h-3.87a2 2 0 0 0-1.74 1.05l-1.3 2.6a2 2 0 0 0 0 1.7l2.14 4.28"/><path d="M6 15l4 4"/><circle cx="18" cy="16" r="3"/></svg>},{k:'infants_0_5',l:'Infants (0-5)',c:'#22c55e',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M9 14h6"/><path d="M12 10v8"/></svg>},{k:'children_6_12',l:'Children (6-12)',c:'#f59e0b',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M12 10v6"/><path d="M8 18h8"/></svg>},{k:'teenagers_13_18',l:'Teenagers (13-18)',c:'#06b6d4',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M12 10v6"/><path d="M6 18h12"/></svg>}].map(f=>(
+                          <div key={f.k} style={{background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'12px',border:'1px solid rgba(255,255,255,0.06)'}}>
+                            <label style={{fontSize:11,color:f.c,marginBottom:6,fontWeight:600,display:'flex',alignItems:'center',gap:4}}>{f.iconSvg} {f.l}</label>
+                            <input type="number" className="dash-form-input" value={orphanageForm[f.k]} onChange={e=>orpUpd(f.k,e.target.value)} placeholder="0" style={{textAlign:'center'}} />
+                          </div>
+                        ))}
                       </div>
                       <div style={{fontSize:13,fontWeight:600,color:'#94a3b8',marginBottom:10}}>Staff Information</div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12}}>
-                        {[{k:'staff_permanent',l:'Permanent Staff',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg>},{k:'staff_volunteers',l:'Volunteers',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M18 20v-2a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4v2"/></svg>},{k:'staff_caregivers',l:'Caregivers',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M8 18h8"/><path d="M12 10v8"/></svg>},{k:'staff_teachers',l:'Teachers',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5"/><path d="M6 12v5h3v-3h6v3h3v-5"/></svg>}].map(f=>(
+                        {[{k:'staff_permanent',l:'Permanent Staff',iconSvg:<HumanizedIcons.HumanizedBuildingIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />},{k:'staff_volunteers',l:'Volunteers',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M18 20v-2a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4v2"/></svg>},{k:'staff_caregivers',l:'Caregivers',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M8 18h8"/><path d="M12 10v8"/></svg>},{k:'staff_teachers',l:'Teachers',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5"/><path d="M6 12v5h3v-3h6v3h3v-5"/></svg>}].map(f=>(
                           <div key={f.k} style={{background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'12px',border:'1px solid rgba(255,255,255,0.06)'}}>
-                            <label style={{fontSize:11,color:'#94a3b8',display:'block',marginBottom:6,fontWeight:600,display:'flex',alignItems:'center',gap:4}}>{f.iconSvg} {f.l}</label>
+                            <label style={{fontSize:11,color:'#94a3b8',marginBottom:6,fontWeight:600,display:'flex',alignItems:'center',gap:4}}>{f.iconSvg} {f.l}</label>
                             <input type="number" className="dash-form-input" value={orphanageForm[f.k]} onChange={e=>orpUpd(f.k,e.target.value)} placeholder="0" style={{textAlign:'center'}} />
                           </div>
                         ))}
@@ -4748,13 +4780,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                     {/* ══ STEP 3: DOCUMENTS ══ */}
                     {orpWizStep === 3 && <>
-                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Legal Documents</h3>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><HumanizedIcons.HumanizedDocumentIcon size={20} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Legal Documents</h3>
                       <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Upload required legal documents for verification.</p>
-                      <div style={{fontSize:13,fontWeight:600,color:'#22c55e',marginBottom:14,display:'flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Required Documents ({Object.entries(orpFiles).filter(([k])=>['registration_cert','operating_license','director_id','tax_doc','child_protection'].includes(k)).filter(([,v])=>v).length}/5)</div>
+                      <div style={{fontSize:13,fontWeight:600,color:'#22c55e',marginBottom:14,display:'flex',alignItems:'center',gap:4}}><HumanizedIcons.HumanizedCheckIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Required Documents ({Object.entries(orpFiles).filter(([k])=>['registration_cert','operating_license','director_id','tax_doc','child_protection'].includes(k)).filter(([,v])=>v).length}/5)</div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:14,marginBottom:24}}>
                         {[{k:'registration_cert',l:'Registration Certificate',req:true},{k:'operating_license',l:'Operating License',req:true},{k:'director_id',l:'Director Identification',req:true},{k:'tax_doc',l:'Tax Registration',req:true},{k:'child_protection',l:'Child Protection Policy',req:true}].map(d=>(
                           <div key={d.k} {...orpDragHandler(d.k)} style={{border:`2px dashed ${orpFiles[d.k]?'#22c55e':'rgba(255,255,255,0.1)'}`,borderRadius:14,padding:'20px 16px',textAlign:'center',cursor:'pointer',background:orpFiles[d.k]?'rgba(34,197,94,0.04)':'rgba(255,255,255,0.02)',transition:'all .2s ease'}} onClick={()=>document.getElementById('orp-file-'+d.k)?.click()}>
-                            <div style={{fontSize:28,marginBottom:6}}>{orpFiles[d.k]?<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>:<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>}</div>
+                            <div style={{fontSize:28,marginBottom:6}}>{orpFiles[d.k]?<HumanizedIcons.HumanizedCheckIcon size={28} color="#22c55e" style={{verticalAlign:'middle', marginRight:4}} />:<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>}</div>
                             <div style={{fontSize:12,fontWeight:600,color:orpFiles[d.k]?'#22c55e':'#94a3b8',marginBottom:4}}>{d.l}{d.req&&<span style={{color:'#ef4444'}}> *</span>}</div>
                             <div style={{fontSize:11,color:'#64748b'}}>{orpFiles[d.k]?orpFiles[d.k].name:'Drag & drop or click to upload'}</div>
                             <input id={'orp-file-'+d.k} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{display:'none'}} onChange={orpFileHandler(d.k)} />
@@ -4784,7 +4816,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           return (<button key={n} onClick={()=>orpToggleNeed(n)} style={{background:active?'rgba(245,158,11,0.12)':'rgba(255,255,255,0.03)',border:`1px solid ${active?'rgba(245,158,11,0.4)':'rgba(255,255,255,0.06)'}`,borderRadius:12,padding:'14px 10px',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:6,transition:'all .2s ease',transform:active?'scale(1.03)':'scale(1)'}}>
                             <span style={{fontSize:24}}>{ORP_NEEDS_ICON_SVG(i)}</span>
                             <span style={{fontSize:11,fontWeight:active?700:500,color:active?'#f59e0b':'#94a3b8'}}>{n}</span>
-                            {active && <span style={{fontSize:10,color:'#22c55e',display:'inline-flex',alignItems:'center',gap:2}}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Selected</span>}
+                            {active && <span style={{fontSize:10,color:'#22c55e',display:'inline-flex',alignItems:'center',gap:2}}><HumanizedIcons.HumanizedCheckIcon size={12} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Selected</span>}
                           </button>)
                         })}
                       </div>
@@ -4797,7 +4829,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                     {/* ══ STEP 5: VERIFICATION ══ */}
                     {orpWizStep === 5 && <>
-                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Verification & Submission</h3>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><HumanizedIcons.HumanizedCheckIcon size={20} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Verification & Submission</h3>
                       <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Review your submission and track verification status.</p>
 
                       {/* Status du dossier */}
@@ -4856,13 +4888,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     {/* ── BOTTOM ACTIONS ── */}
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap',marginBottom:20}}>
                       <div style={{display:'flex',gap:10}}>
-                        {orpWizStep > 0 && <button className="dash-form-save" onClick={()=>setOrpWizStep(s=>s-1)} style={{background:'rgba(255,255,255,0.06)',color:'#94a3b8'}}>← Previous</button>}
+                        {orpWizStep > 0 && <button className="dash-form-save" onClick={()=>setOrpWizStep(s=>s-1)} style={{background:'rgba(255,255,255,0.06)',color:'#94a3b8'}}><HumanizedIcons.HumanizedArrowLeftIcon size={15} style={{verticalAlign:'-2px'}} /> Previous</button>}
                       </div>
                       <div style={{display:'flex',gap:10,alignItems:'center'}}>
-                        {orpDraftSaved && <span style={{fontSize:11,color:'#22c55e',display:'inline-flex',alignItems:'center',gap:3}}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Draft saved</span>}
+                        {orpDraftSaved && <span style={{fontSize:11,color:'#22c55e',display:'inline-flex',alignItems:'center',gap:3}}><HumanizedIcons.HumanizedCheckIcon size={12} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Draft saved</span>}
                         <button className="dash-form-save" onClick={saveDraft} style={{background:'rgba(255,255,255,0.06)',color:'#94a3b8',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Draft</button>
                         {orpWizStep < 5 ? (
-                          <button className="dash-form-save" onClick={()=>setOrpWizStep(s=>s+1)} style={{background:'linear-gradient(135deg,#f59e0b,#f97316)',color:'#fff',fontWeight:700}}>Next Step →</button>
+                          <button className="dash-form-save" onClick={()=>setOrpWizStep(s=>s+1)} style={{background:'linear-gradient(135deg,#f59e0b,#f97316)',color:'#fff',fontWeight:700}}>Next Step <HumanizedIcons.HumanizedArrowRightIcon size={15} style={{verticalAlign:'-2px'}} /></button>
                         ) : directorOrp && !orphanageLoading ? (
                           (() => { const c = ORP_STATUS_BTN[directorOrp.status] || ORP_STATUS_BTN.pending; return <span style={{background:c.bg,color:'#fff',fontWeight:700,padding:'10px 28px',borderRadius:10,fontSize:13,display:'inline-flex',alignItems:'center',whiteSpace:'nowrap'}}>{c.iconSvg}{c.label}</span> })()
                         ) : (
@@ -5023,7 +5055,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {docUploading ? 'Envoi...' : <><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg> Téléverser</>}
                         </button>
                       </div>
-                      {docFile && <div style={{marginTop:10,fontSize:11,color:'#22c55e'}}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><polyline points="20 6 9 17 4 12"/></svg> {docFile.name} ({(docFile.size / 1024).toFixed(1)} KB)</div>}
+                      {docFile && <div style={{marginTop:10,fontSize:11,color:'#22c55e'}}><HumanizedIcons.HumanizedCheckIcon size={12} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> {docFile.name} ({(docFile.size / 1024).toFixed(1)} KB)</div>}
                     </div>
 
                     {/* List of submitted documents */}
@@ -5252,21 +5284,71 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           <option value="tl">Tshiluba</option>
                         </select>
                       </div>
-                      <div className="dash-form-field">
-                        <label className="dash-form-label">{t('settings_bg')}</label>
-                        <select className="dash-form-input" value={bgTheme} onChange={e => setBgTheme(e.target.value)}>
-                          <option value="">{t('settings_bg_default')}</option>
-                          <option value="1">Cyber Blueprint</option>
-                          <option value="2">Frosted Carbon</option>
-                          <option value="3">Industrial Gold & Slate</option>
-                          <option value="4">Tactical HUD</option>
-                          <option value="5">Pure Distraction-Free</option>
-                          <option value="6">Architectural Blueprint</option>
-                          <option value="7">Neon Pulse</option>
-                          <option value="8">Brushed Steel & Monotone</option>
-                          <option value="9">Abstract Topography</option>
-                          <option value="10">Floating Depth Layers</option>
-                        </select>
+                      <div className="dash-form-field" style={{ gridColumn: '1 / -1' }}>
+                        <label className="dash-form-label" style={{ marginBottom:'4px' }}>Background Library</label>
+                        <p style={{ margin:'0 0 16px', fontSize:'13px', color:'var(--text-muted)' }}>Personnalisez l'apparence de la plateforme avec notre collection de fonds d'écran.</p>
+                        
+                        <div className="bg-lib">
+                          <div className="bg-lib-search">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                            <input 
+                              type="text" 
+                              placeholder="Rechercher un thème..." 
+                              value={bgLibSearch} 
+                              onChange={e => setBgLibSearch(e.target.value)} 
+                            />
+                          </div>
+                          
+                          <div className="bg-lib-cats">
+                            {['All', 'Enterprise', 'Industrial', 'AI / Innovation', 'Professional', 'Minimal'].map(cat => (
+                              <button 
+                                key={cat} 
+                                className={`bg-lib-cat ${bgLibCat === cat ? 'active' : ''}`}
+                                onClick={() => setBgLibCat(cat)}
+                              >
+                                {cat === 'All' ? 'Tous' : cat}
+                              </button>
+                            ))}
+                          </div>
+                          
+                          <div className="bg-lib-grid">
+                            {BACKGROUND_LIBRARY.filter(bg => 
+                              (bgLibCat === 'All' || bg.category === bgLibCat) &&
+                              (bg.name.toLowerCase().includes(bgLibSearch.toLowerCase()) || bg.tags.some(t => t.includes(bgLibSearch.toLowerCase())))
+                            ).map(bg => (
+                              <div 
+                                key={bg.id} 
+                                className={`bg-lib-card ${bgTheme === bg.id ? 'selected' : ''}`}
+                                onClick={() => setBgTheme(bg.id)}
+                              >
+                                {bgTheme === bg.id && <div className="bg-lib-badge selected-badge">Actif</div>}
+                                
+                                <div className="bg-lib-preview" data-bg={bg.id}>
+                                  {Number(bg.id) >= 11 ? (
+                                    <img src={`/backgrounds/bg-${bg.id}-${bg.name.toLowerCase().split(' ')[0]}-${bg.name.toLowerCase().split(' ')[1] || ''}.png`.replace('--','.png').replace('.png.png','.png')} alt={bg.name} className="bg-lib-preview-img" onError={(e) => { 
+                                      e.target.style.display = 'none'; 
+                                      if(e.target.nextSibling) e.target.nextSibling.style.display = 'block'; 
+                                    }} />
+                                  ) : (
+                                    <div className="bg-lib-preview-css" style={{ background: 'var(--bg-overlay, var(--bg-body))' }} />
+                                  )}
+                                  {Number(bg.id) >= 11 && (
+                                    <div className="bg-lib-preview-css" style={{ background: 'var(--bg-overlay, var(--bg-body))', display: 'none' }} />
+                                  )}
+                                </div>
+                                
+                                <div className="bg-lib-info">
+                                  <span className="bg-lib-name">{bg.name}</span>
+                                  <span className="bg-lib-cat-tag">{bg.category}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {BACKGROUND_LIBRARY.filter(bg => (bgLibCat === 'All' || bg.category === bgLibCat) && (bg.name.toLowerCase().includes(bgLibSearch.toLowerCase()) || bg.tags.some(t => t.includes(bgLibSearch.toLowerCase())))).length === 0 && (
+                            <div className="bg-lib-empty">Aucun thème ne correspond à votre recherche.</div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -5774,7 +5856,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               }} />
                               {savedDoc ? (
                                 <div className="dash-docs-file-preview">
-                                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                  <HumanizedIcons.HumanizedDocumentIcon size={24} color="#f59e0b" style={{verticalAlign:'middle', marginRight:4}} />
                                   <span className="dash-docs-file-name">{t('form_docs_file_added') || 'Document ajouté'}</span>
                                   <button className="dash-docs-file-remove" onClick={e => { e.stopPropagation(); localStorage.removeItem('cdo_doc_' + uid + '_' + fieldKey); const zone = document.getElementById('dash-docs-zone-' + i); if (zone) zone.classList.remove('dash-docs-dropzone-has-file'); }}>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -5851,7 +5933,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div className="hm-summary-info">
                               <div className="hm-summary-name">{getFieldValue('Prénom') || 'Prénom'} {getFieldValue('Nom') || 'Nom'}</div>
                               <div className="hm-summary-meta">
-                                <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> {editingChild ? editingChild.uid : uidRef.current}</span>
+                                <span><HumanizedIcons.HumanizedUserIcon size={12} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> {editingChild ? editingChild.uid : uidRef.current}</span>
                                 <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16c2 .5 4 1.5 6 2 2-.5 4-1.5 6-2"/><path d="M12 3v3"/><path d="M9 4v3"/><path d="M15 4v3"/></svg> {(() => { const d = getFieldValue('Date de naissance'); if (!d) return '—'; const a = Math.floor((new Date()-new Date(d))/(365.25*86400000)); return a+' '+(t('prof_years')||'ans') })()}</span>
                                 <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> {getFieldValue('Sexe') === 'Masculin' ? 'M' : getFieldValue('Sexe') === 'Féminin' ? 'F' : '—'}</span>
                               </div>
@@ -5962,7 +6044,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <div className="hm-vax-list">
                                 {vaccinations.map((v, i) => (
                                   <div key={i} className="hm-vax-item">
-                                    <button className={`hm-vax-check${v.done ? ' done' : ''}`} onClick={() => { const nxt = [...vaccinations]; nxt[i] = {...nxt[i], done: !nxt[i].done }; setVaccinations(nxt) }}>{v.done ? <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> : ''}</button>
+                                    <button className={`hm-vax-check${v.done ? ' done' : ''}`} onClick={() => { const nxt = [...vaccinations]; nxt[i] = {...nxt[i], done: !nxt[i].done }; setVaccinations(nxt) }}>{v.done ? <HumanizedIcons.HumanizedCheckIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> : ''}</button>
                                     <span className="hm-vax-name">{v.name}</span>
                                     <input type="date" className="hm-vax-date" style={{background:'transparent',border:'none',color:'#F1F5F9',fontSize:'11px',outline:'none',width:'120px'}} value={v.dateAdmin} onChange={e => { const nxt = [...vaccinations]; nxt[i] = {...nxt[i], dateAdmin: e.target.value }; setVaccinations(nxt) }} />
                                     <input type="date" className="hm-vax-next" style={{background:'transparent',border:'none',color:'#f59e0b',fontSize:'11px',outline:'none',width:'120px'}} value={v.nextDose} onChange={e => { const nxt = [...vaccinations]; nxt[i] = {...nxt[i], nextDose: e.target.value }; setVaccinations(nxt) }} />
@@ -6008,7 +6090,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     <option value="severe">{t('hm_severity_severe') || 'Sévère'}</option>
                                   </select>
                                   <input id="hm-allergy-reaction" placeholder={t('hm_reaction') || 'Réaction'} style={{flex:1}} />
-                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('hm-allergy-name')?.value?.trim(); if (!name) return; setAllergies([...allergies, { type: document.getElementById('hm- allergy-type')?.value || 'food', name, severity: document.getElementById('hm-allergy-sev')?.value || 'mild', reaction: document.getElementById('hm-allergy-reaction')?.value || '' }]); setShowAllergyForm(false) }}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
+                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('hm-allergy-name')?.value?.trim(); if (!name) return; setAllergies([...allergies, { type: document.getElementById('hm- allergy-type')?.value || 'food', name, severity: document.getElementById('hm-allergy-sev')?.value || 'mild', reaction: document.getElementById('hm-allergy-reaction')?.value || '' }]); setShowAllergyForm(false) }}><HumanizedIcons.HumanizedCheckIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /></button>
                                   <button className="hm-inline-cancel" onClick={() => setShowAllergyForm(false)}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg></button>
                                 </div>
                               ) : (
@@ -6046,7 +6128,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <input id="hm-tx-start" type="date" style={{width:'110px'}} />
                                   <input id="hm-tx-end" type="date" style={{width:'110px'}} />
                                   <input id="hm-tx-doc" placeholder={t('hm_prescribing_doc') || 'Médecin'} style={{flex:1,minWidth:'100px'}} />
-                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('hm-tx-name')?.value?.trim(); if (!name) return; setTreatments([...treatments, { name, dosage: document.getElementById('hm-tx-dosage')?.value || '', frequency: document.getElementById('hm-tx-freq')?.value || '', startDate: document.getElementById('hm-tx-start')?.value || '', endDate: document.getElementById('hm-tx-end')?.value || '', doctor: document.getElementById('hm-tx-doc')?.value || '' }]); setShowTxForm(false) }}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
+                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('hm-tx-name')?.value?.trim(); if (!name) return; setTreatments([...treatments, { name, dosage: document.getElementById('hm-tx-dosage')?.value || '', frequency: document.getElementById('hm-tx-freq')?.value || '', startDate: document.getElementById('hm-tx-start')?.value || '', endDate: document.getElementById('hm-tx-end')?.value || '', doctor: document.getElementById('hm-tx-doc')?.value || '' }]); setShowTxForm(false) }}><HumanizedIcons.HumanizedCheckIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /></button>
                                   <button className="hm-inline-cancel" onClick={() => setShowTxForm(false)}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg></button>
                                 </div>
                               ) : (
@@ -6104,7 +6186,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     <div key={doc.id} className={`hm-doc-zone${saved ? ' has' : ''}`} onClick={() => document.getElementById('hm-md-' + doc.id)?.click()}>
                                       <div className="hm-doc-icon">{doc.icon}</div>
                                       <span className="hm-doc-label">{doc.label}</span>
-                                      {saved ? <span className="hm-doc-name"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><polyline points="20 6 9 17 4 12"/></svg> Fichier importé</span> : <span style={{fontSize:'10px',color:'#475569'}}>Cliquez pour uploader</span>}
+                                      {saved ? <span className="hm-doc-name"><HumanizedIcons.HumanizedCheckIcon size={12} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Fichier importé</span> : <span style={{fontSize:'10px',color:'#475569'}}>Cliquez pour uploader</span>}
                                       {saved && <span className="hm-doc-remove" onClick={e => { e.stopPropagation(); localStorage.removeItem('cdo_meddoc_' + uid + '_' + doc.id); setSavingHealth(v => !v) }}>Supprimer</span>}
                                       <input id={'hm-md-' + doc.id} type="file" accept="image/*,.pdf" hidden onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = ev => { localStorage.setItem('cdo_meddoc_' + uid + '_' + doc.id, ev.target.result); setSavingHealth(v => !v) }; r.readAsDataURL(f) } }} />
                                     </div>
@@ -6216,7 +6298,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div className="ed-hero-info">
                               <div className="ed-hero-name">{getFieldValue('Prénom') || 'Prénom'} {getFieldValue('Nom') || 'Nom'}</div>
                               <div className="ed-hero-meta">
-                                <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> {editingChild ? editingChild.uid : uidRef.current}</span>
+                                <span><HumanizedIcons.HumanizedUserIcon size={12} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> {editingChild ? editingChild.uid : uidRef.current}</span>
                                 <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16c2 .5 4 1.5 6 2 2-.5 4-1.5 6-2"/><path d="M12 3v3"/><path d="M9 4v3"/><path d="M15 4v3"/></svg> {(() => { const d = getFieldValue('Date de naissance'); if (!d) return '—'; const a = Math.floor((new Date()-new Date(d))/(365.25*86400000)); return a+' '+(t('prof_years')||'ans') })()}</span>
                                 <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> {document.getElementById('ed-class')?.value || (() => { const e = editingChild?.extra_data?.education; return e?.currentClass || '' })() || '—'}</span>
                               </div>
@@ -6343,7 +6425,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   </select>
                                   <input id="ed-beh-name" placeholder="Titre" style={{flex:1}} />
                                   <input id="ed-beh-notes" placeholder="Notes" style={{flex:1}} />
-                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('ed-beh-name')?.value?.trim(); if (!name) return; setBehaviorEntries([...behaviorEntries, { type: document.getElementById('ed-beh-type')?.value || 'observation', name, notes: document.getElementById('ed-beh-notes')?.value || '' }]); setShowBehaviorForm(false) }}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
+                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('ed-beh-name')?.value?.trim(); if (!name) return; setBehaviorEntries([...behaviorEntries, { type: document.getElementById('ed-beh-type')?.value || 'observation', name, notes: document.getElementById('ed-beh-notes')?.value || '' }]); setShowBehaviorForm(false) }}><HumanizedIcons.HumanizedCheckIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /></button>
                                   <button className="hm-inline-cancel" onClick={() => setShowBehaviorForm(false)}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg></button>
                                 </div>
                               ) : (
@@ -6382,7 +6464,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   { id:'report', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1"/></svg>, label: t('ed_report_card') || 'Bulletins' },
                                   { id:'cert', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><path d="M12 14v8"/><path d="m14.5 12.5-2.5 2-2.5-2"/><path d="M6 22h12"/></svg>, label: t('ed_certificate') || 'Certificats' },
                                   { id:'enroll', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>, label: t('ed_enrollment_letter') || 'Inscription' },
-                                  { id:'schoolid', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: t('ed_school_id') || "Carte d'Étudiant" },
+                                  { id:'schoolid', icon:<HumanizedIcons.HumanizedUserIcon size={20} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, label: t('ed_school_id') || "Carte d'Étudiant" },
                                   { id:'exams', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>, label: t('ed_exam_results') || 'Examens' },
                                   { id:'assess', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>, label: t('ed_assessments') || 'Évaluations' },
                                 ].map(doc => {
@@ -6392,7 +6474,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     <div key={doc.id} className={`ed-doc-zone${saved ? ' has' : ''}`} onClick={() => document.getElementById('ed-doc-' + doc.id)?.click()}>
                                       <div className="ed-doc-icon">{doc.icon}</div>
                                       <span className="ed-doc-label">{doc.label}</span>
-                                      {saved ? <span className="ed-doc-name"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><polyline points="20 6 9 17 4 12"/></svg> Fichier</span> : <span style={{fontSize:'10px',color:'#475569'}}>Upload</span>}
+                                      {saved ? <span className="ed-doc-name"><HumanizedIcons.HumanizedCheckIcon size={12} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Fichier</span> : <span style={{fontSize:'10px',color:'#475569'}}>Upload</span>}
                                       {saved && <span className="ed-doc-remove" onClick={e => { e.stopPropagation(); localStorage.removeItem('cdo_schooldoc_' + uid + '_' + doc.id); setSavingEdu(v => !v) }}>Suppr.</span>}
                                       <input id={'ed-doc-' + doc.id} type="file" accept="image/*,.pdf" hidden onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = ev => { localStorage.setItem('cdo_schooldoc_' + uid + '_' + doc.id, ev.target.result); setSavingEdu(v => !v) }; r.readAsDataURL(f) } }} />
                                     </div>
@@ -6434,7 +6516,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   </select>
                                   <input id="ed-act-name" placeholder="Nom" style={{flex:1,minWidth:'120px'}} />
                                   <input id="ed-act-detail" placeholder="Détail" style={{flex:1,minWidth:'120px'}} />
-                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('ed-act-name')?.value?.trim(); if (!name) return; setActivityEntries([...activityEntries, { category: document.getElementById('ed-act-cat')?.value || 'sports', name, detail: document.getElementById('ed-act-detail')?.value || '' }]); setShowActivityForm(false) }}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
+                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('ed-act-name')?.value?.trim(); if (!name) return; setActivityEntries([...activityEntries, { category: document.getElementById('ed-act-cat')?.value || 'sports', name, detail: document.getElementById('ed-act-detail')?.value || '' }]); setShowActivityForm(false) }}><HumanizedIcons.HumanizedCheckIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /></button>
                                   <button className="hm-inline-cancel" onClick={() => setShowActivityForm(false)}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg></button>
                                 </div>
                               ) : (
@@ -6718,14 +6800,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             </div>
                             <div className="pd-hero-actions">
                               <button className="pd-hero-btn primary" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey('Profil & identité'); setSelectedRegChild(null) }}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> {t('form_edit') || 'Modifier'}</button>
-                              <button className="pd-hero-btn ghost" onClick={() => setSelectedRegChild(null)}>← {t('form_back')}</button>
+                              <button className="pd-hero-btn ghost" onClick={() => setSelectedRegChild(null)}><HumanizedIcons.HumanizedArrowLeftIcon size={15} style={{verticalAlign:'-2px'}} /> {t('form_back')}</button>
                               <button className="pd-hero-btn danger" onClick={() => setDeleteConfirm(selectedRegChild)}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> {t('form_delete') || 'Supprimer'}</button>
                             </div>
                           </div>
                           <div className="pd-hero-right">
                             <span className="pd-hero-status active"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 18 9"/></svg> {t('child_status_active') || 'Actif'}</span>
                             <div className="pd-hero-id">
-                              <span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                              <span><HumanizedIcons.HumanizedUserIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /></span>
                               <span className="pd-hero-id-code">{selectedRegChild.uid}</span>
                               <span className="pd-hero-id-copy" onClick={() => { navigator.clipboard?.writeText(selectedRegChild.uid) }} title="Copier"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1"/></svg></span>
                             </div>
@@ -6746,7 +6828,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <div className="pd-tabs">
                           {[
                             { key:'overview', icon:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>, label: t('pd_overview') || 'Aperçu' },
-                            { key:'identity', icon:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: t('pd_identity') || 'Identité' },
+                            { key:'identity', icon:<HumanizedIcons.HumanizedUserIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, label: t('pd_identity') || 'Identité' },
                             { key:'family', icon:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: t('pd_family') || 'Famille' },
                             { key:'health', icon:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>, label: t('pd_health') || 'Santé' },
                             { key:'education', icon:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>, label: t('pd_education') || 'Scolarité' },
@@ -6832,7 +6914,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {/* ── IDENTITY TAB ── */}
                             {profileTab === 'identity' && (
                               <div className="pd-card">
-                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(59,130,246,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><span className="pd-card-title">{t('pd_identity') || 'Identité'}</span></div>
+                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(59,130,246,0.15)'}}><HumanizedIcons.HumanizedUserIcon size={20} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /></div><span className="pd-card-title">{t('pd_identity') || 'Identité'}</span></div>
                                 <div className="pd-card-body">
                                   {[
                                     { label: t('form_lastname') || 'Nom', value: selectedRegChild.nom },
@@ -6931,12 +7013,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {/* ── DOCUMENTS TAB ── */}
                             {profileTab === 'documents' && (
                               <div className="pd-card">
-                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(245,158,11,0.15)'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><span className="pd-card-title">{t('child_documents') || 'Documents'}</span></div>
+                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(245,158,11,0.15)'}}><HumanizedIcons.HumanizedDocumentIcon size={18} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /></div><span className="pd-card-title">{t('child_documents') || 'Documents'}</span></div>
                                 <div className="pd-card-body">
                                   <div className="pd-docs">
                                     {[
-                                      { id:'acte', icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>, label: t('doc_acte') || 'Acte de naissance', key:'cdo_doc_' + selectedRegChild.uid + '_Acte de naissance' },
-                                      { id:'identite', icon:'🆔', label: t('doc_identite') || "Documents d'identité", key:'cdo_doc_' + selectedRegChild.uid + "_Documents d'identité" },
+                                      { id:'acte', icon:<HumanizedIcons.HumanizedDocumentIcon size={18} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, label: t('doc_acte') || 'Acte de naissance', key:'cdo_doc_' + selectedRegChild.uid + '_Acte de naissance' },
+                                      { id:'identite', icon:<HumanizedIcons.HumanizedIdIcon size={16} style={{verticalAlign:'middle', marginRight:4}}/>, label: t('doc_identite') || "Documents d'identité", key:'cdo_doc_' + selectedRegChild.uid + "_Documents d'identité" },
                                       { id:'judiciaire', icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22V8"/><path d="M6 12V2"/><path d="M18 12V2"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M6 2h12"/><path d="M12 2v6"/></svg>, label: t('doc_judiciaire') || 'Décisions judiciaires', key:'cdo_doc_' + selectedRegChild.uid + '_Décisions judiciaires' },
                                       { id:'presc', icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>, label: t('hm_upload_prescription') || 'Prescriptions', key:'cdo_meddoc_' + selectedRegChild.uid + '_presc' },
                                       { id:'report', icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>, label: t('hm_upload_report') || 'Rapports médicaux', key:'cdo_meddoc_' + selectedRegChild.uid + '_reports' },
@@ -6969,7 +7051,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 <div className="uc-header">
                                   <span className="uc-header-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></span>
                                   <span className="uc-header-title">{t('uc_title') || 'Centre de Mise à Jour'}</span>
-                                  {ucStep > 0 && <button className="uc-back-top" onClick={() => { if (ucStep === 1) { setUcStep(0); setUcCategory(null); setUcType(''); setUcTitle(''); setUcDescription(''); setUcPrevValue(''); setUcNewValue(''); setUcReason(''); setUcFiles([]); setUcSuccess(false) } else setUcStep(s => s - 1) }}>← {t('form_back')}</button>}
+                                  {ucStep > 0 && <button className="uc-back-top" onClick={() => { if (ucStep === 1) { setUcStep(0); setUcCategory(null); setUcType(''); setUcTitle(''); setUcDescription(''); setUcPrevValue(''); setUcNewValue(''); setUcReason(''); setUcFiles([]); setUcSuccess(false) } else setUcStep(s => s - 1) }}><HumanizedIcons.HumanizedArrowLeftIcon size={15} style={{verticalAlign:'-2px'}} /> {t('form_back')}</button>}
                                   {ucStep > 0 && <button className="uc-back-top" style={{marginLeft:'auto'}} onClick={() => { setUcStep(0); setUcCategory(null); setUcType(''); setUcTitle(''); setUcDescription(''); setUcPrevValue(''); setUcNewValue(''); setUcReason(''); setUcFiles([]); setUcSuccess(false) }}>{t('form_cancel') || 'Cancel'}</button>}
                                 </div>
                                 <div className="uc-steps">
@@ -6982,7 +7064,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 </div>
                                 {ucSuccess ? (
                                   <div className="uc-success">
-                                    <div className="uc-success-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                    <div className="uc-success-icon"><HumanizedIcons.HumanizedCheckIcon size={28} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /></div>
                                     <div className="uc-success-text">{t('uc_success') || 'Mise à jour enregistrée !'}</div>
                                     <button className="uc-btn-primary" onClick={() => { setUcStep(0); setUcCategory(null); setUcType(''); setUcTitle(''); setUcDescription(''); setUcPrevValue(''); setUcNewValue(''); setUcReason(''); setUcFiles([]); setUcSuccess(false); setProfileTab('history') }}>{t('pd_history') || 'Voir historique'}</button>
                                   </div>
@@ -7027,7 +7109,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                           <textarea id="uc-new" className="uc-input uc-textarea" value={ucNewValue} onChange={e => setUcNewValue(e.target.value)} placeholder={t('uc_new_value_placeholder')||'Nouveau...'} rows={2} />
                                         </div>
                                       </div>
-                                      <button className="uc-btn-primary" onClick={() => { if (!ucTitle.trim()) { alert(t('uc_required')||'Requis'); return } setUcStep(2) }}>{t('form_next')||'Suivant'} →</button>
+                                      <button className="uc-btn-primary" onClick={() => { if (!ucTitle.trim()) { alert(t('uc_required')||'Requis'); return } setUcStep(2) }}>{t('form_next')||'Suivant'} <HumanizedIcons.HumanizedArrowRightIcon size={15} style={{verticalAlign:'-2px'}} /></button>
                                     </>}
                                   </div>
                                 ) : ucStep === 2 ? (
@@ -7055,8 +7137,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       ))}</div>}
                                     </div>
                                     <div className="uc-form-actions">
-                                      <button className="uc-btn-secondary" onClick={() => setUcStep(1)}>← {t('form_back')}</button>
-                                      <button className="uc-btn-primary" onClick={() => { if (!ucReason.trim() && ucFiles.length === 0) { if (!confirm(t('uc_save')||'Enregistrer sans raison ?')) return } setUcStep(3) }}>{t('form_next')||'Suivant'} →</button>
+                                      <button className="uc-btn-secondary" onClick={() => setUcStep(1)}><HumanizedIcons.HumanizedArrowLeftIcon size={15} style={{verticalAlign:'-2px'}} /> {t('form_back')}</button>
+                                      <button className="uc-btn-primary" onClick={() => { if (!ucReason.trim() && ucFiles.length === 0) { if (!confirm(t('uc_save')||'Enregistrer sans raison ?')) return } setUcStep(3) }}>{t('form_next')||'Suivant'} <HumanizedIcons.HumanizedArrowRightIcon size={15} style={{verticalAlign:'-2px'}} /></button>
                                     </div>
                                   </div>
                                 ) : ucStep === 3 ? (
@@ -7120,28 +7202,28 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {/* ── HISTORY CENTER ── */}
                             {profileTab === 'history' && (() => {
                             const hcIcons = {
-                              created:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                              created:<HumanizedIcons.HumanizedCheckIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
                               updated:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>,
                               update_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>,
-                              document_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
-                              document_verified:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                              document_added:<HumanizedIcons.HumanizedDocumentIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
+                              document_verified:<HumanizedIcons.HumanizedCheckIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
                               document_replaced:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>,
                               document_expired:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
                               health_update:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
                               vaccination_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2L6 10"/><path d="M18 6L6 18"/><path d="M6 10l4 4"/><path d="M14 18l4-4"/></svg>,
                               illness_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>,
                               treatment_started:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>,
-                              treatment_ended:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                              treatment_ended:<HumanizedIcons.HumanizedCheckIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
                               consultation_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.3.3 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/></svg>,
-                              hospitalization_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg>,
+                              hospitalization_added:<HumanizedIcons.HumanizedBuildingIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
                               allergy_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 9h.01M15 9h.01"/><path d="M9 15c1.5 1.5 4 1.5 5.5 0"/></svg>,
                               education_update:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M4 11h16"/></svg>,
                               school_enrolled:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5"/><path d="M6 12v5h3v-3h6v3h3v-5"/></svg>,
                               school_changed:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>,
-                              grade_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>,
+                              grade_added:<HumanizedIcons.HumanizedChartIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
                               exam_result_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>,
                               family_update:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-                              guardian_assigned:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+                              guardian_assigned:<HumanizedIcons.HumanizedUserIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
                               parent_identified:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
                               family_reunified:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></svg>,
                               foster_placement:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
@@ -7150,14 +7232,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               social_note_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg>,
                               home_visit:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
                               counseling_session:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
-                              incident_reported:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>,
+                              incident_reported:<HumanizedIcons.HumanizedWarningIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
                               protection_concern:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
                               status_change:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>,
                               alert_triggered:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
                               note_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
                               case_note:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4.5l-4 4L7 10l-1.5 1.5 7 7L14 17l1.5-4 4-4"/><path d="M9 15l-5 5"/></svg>,
                               file_downloaded:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
-                              record_approved:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                              record_approved:<HumanizedIcons.HumanizedCheckIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
                               record_rejected:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
                               notification_sent:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
                               child_archived:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>,
@@ -7233,12 +7315,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 {/* ── Stats Row ── */}
                                 <div className="hc-kpi-row">
                                   {[
-                                    { label:t('hc_total_events')||'Événements', value:hcStatsLocal.total, icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>, color:'#3b82f6' },
+                                    { label:t('hc_total_events')||'Événements', value:hcStatsLocal.total, icon:<HumanizedIcons.HumanizedChartIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, color:'#3b82f6' },
                                     { label:t('hc_status_changes')||'Statuts', value:hcStatsLocal.status_changes, icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>, color:'#f59e0b' },
                                     { label:t('hc_health_events')||'Santé', value:hcStatsLocal.health_events, icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>, color:'#22c55e' },
                                     { label:t('hc_education_events')||'Éducation', value:hcStatsLocal.education_events, icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M4 11h16"/></svg>, color:'#3b82f6' },
                                     { label:t('hc_family_events')||'Famille', value:hcStatsLocal.family_events, icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, color:'#a855f7' },
-                                    { label:t('hc_documents_events')||'Documents', value:hcStatsLocal.document_events, icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>, color:'#f59e0b' },
+                                    { label:t('hc_documents_events')||'Documents', value:hcStatsLocal.document_events, icon:<HumanizedIcons.HumanizedDocumentIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, color:'#f59e0b' },
                                     { label:t('hc_alert_events')||'Alertes', value:hcStatsLocal.alert_events, icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>, color:'#ef4444' },
                                   ].map((kpi, i) => (
                                     <div key={i} className="hc-kpi" style={{borderLeftColor:kpi.color}}>
@@ -7255,7 +7337,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       { key:'timeline', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>, label:t('hc_timeline')||'Chronologie' },
                                       { key:'audit', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M9 12h6M9 16h6"/></svg>, label:t('hc_audit_log')||'Audit' },
                                       { key:'calendar', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>, label:t('hc_calendar')||'Calendrier' },
-                                      { key:'analytics', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>, label:t('hc_analytics')||'Analytiques' },
+                                      { key:'analytics', icon:<HumanizedIcons.HumanizedChartIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, label:t('hc_analytics')||'Analytiques' },
                                     ].map(v => (
                                       <button key={v.key} className={`hc-view-tab${hcView === v.key ? ' active' : ''}`} onClick={() => setHcView(v.key)}>{v.icon} {v.label}</button>
                                     ))}
@@ -7353,7 +7435,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                                   {event.event_type === 'status_change' && event.old_value && event.new_value && (
                                                     <div className="hc-tl-status-beforeafter">
                                                       <span className="hc-tl-status-badge hc-tl-status-old">{event.old_value}</span>
-                                                      <span className="hc-tl-arrow">{t('hc_old_new_separator')||'→'}</span>
+                                                      <span className="hc-tl-arrow"><HumanizedIcons.HumanizedArrowRightIcon size={13} style={{verticalAlign:'-2px',margin:'0 2px'}} /></span>
                                                       <span className="hc-tl-status-badge hc-tl-status-new">{event.new_value}</span>
                                                     </div>
                                                   )}
@@ -7398,7 +7480,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                             {event.event_type === 'status_change' && event.old_value && event.new_value && (
                                               <div className="hc-tl-status-beforeafter">
                                                 <span className="hc-tl-status-badge hc-tl-status-old">{event.old_value}</span>
-                                                <span className="hc-tl-arrow">→</span>
+                                                <span className="hc-tl-arrow"><HumanizedIcons.HumanizedArrowRightIcon size={13} style={{verticalAlign:'-2px',margin:'0 2px'}} /></span>
                                                 <span className="hc-tl-status-badge hc-tl-status-new">{event.new_value}</span>
                                               </div>
                                             )}
@@ -7507,7 +7589,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                         return (
                                           <div key={catKey} className="hc-analytics-card" style={{borderLeftColor:color}}>
                                             <div className="hc-analytics-card-top">
-                                              <span className="hc-analytics-icon" style={{background:color+'20'}}>{hcIcons[Object.keys(hcIcons).find(k => k.startsWith(catKey))]||<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>}</span>
+                                              <span className="hc-analytics-icon" style={{background:color+'20'}}>{hcIcons[Object.keys(hcIcons).find(k => k.startsWith(catKey))]||<HumanizedIcons.HumanizedChartIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />}</span>
                                               <span className="hc-analytics-count">{ct}</span>
                                             </div>
                                             <span className="hc-analytics-label">{t('uc_category_'+catKey)||catKey}</span>
@@ -7599,13 +7681,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     <span className="pd-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span> {t('form_edit') || 'Modifier'} le profil
                                   </button>
                                   <button className="pd-action-btn" onClick={() => { setActiveKey('enfants'); setSubKey('Documents administratifs'); setEditingChild(selectedRegChild); setSelectedRegChild(null) }}>
-                                    <span className="pd-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span> {t('pd_add_doc') || 'Ajouter document'}
+                                    <span className="pd-action-icon"><HumanizedIcons.HumanizedDocumentIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /></span> {t('pd_add_doc') || 'Ajouter document'}
                                   </button>
                                   <button className="pd-action-btn" onClick={() => window.print()}>
                                     <span className="pd-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span> {t('pd_print') || 'Imprimer'}
                                   </button>
                                   <button className="pd-action-btn" onClick={() => { window.dispatchEvent(new CustomEvent('cdo-navigate-child', { detail: { uid: selectedRegChild.uid } })) }}>
-                                    <span className="pd-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span> {t('pd_history') || 'Voir historique'}
+                                    <span className="pd-action-icon"><HumanizedIcons.HumanizedDocumentIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /></span> {t('pd_history') || 'Voir historique'}
                                   </button>
                                   <button className="pd-action-btn" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey('Santé & médical'); setSelectedRegChild(null) }}>
                                     <span className="pd-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></span> {t('pd_health') || 'Santé'}
@@ -7779,7 +7861,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                         {age !== null ? age + ' ' + (t('form_years') || 'ans') : '—'}
                                       </div>
                                       <div className="ecr-card-stat">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        <HumanizedIcons.HumanizedUserIcon size={12} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />
                                         {child.sexe === 'M' ? (t('form_male') || 'M') : child.sexe === 'F' ? (t('form_female') || 'F') : '—'}
                                       </div>
                                       <div className="ecr-card-stat">
@@ -7830,7 +7912,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       const ambAssigns = dirAmbAssignments.filter(a => a.ambassador === dirSelectedAmb)
                       return (
                         <div>
-                          <button type="button" onClick={()=>setDirSelectedAmb(null)} style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:10,color:'#94a3b8',fontSize:13,padding:'8px 16px',cursor:'pointer',marginBottom:16}}>← Retour à la liste</button>
+                          <button type="button" onClick={()=>setDirSelectedAmb(null)} style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:10,color:'#94a3b8',fontSize:13,padding:'8px 16px',cursor:'pointer',marginBottom:16}}><HumanizedIcons.HumanizedArrowLeftIcon size={15} style={{verticalAlign:'-2px'}} /> Retour à la liste</button>
                           <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'24px'}}>
                             <h4 style={{fontSize:16,fontWeight:700,color:'#e2e8f0',margin:'0 0 16px',display:'flex',alignItems:'center',gap:8}}>
                               <span style={{width:38,height:38,borderRadius:'50%',background:'linear-gradient(135deg,#f59e0b,#f97316)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:700,color:'#fff'}}>
@@ -7878,7 +7960,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 <div style={{fontSize:14,fontWeight:600,color:'#f59e0b'}}>{g.name}</div>
                                 <div style={{fontSize:12,color:'#64748b',marginTop:2}}>{g.assigns.length} enfant(s) assigné(s)</div>
                               </div>
-                              <span style={{color:'#64748b',fontSize:13}}>→</span>
+                              <span style={{color:'#64748b',fontSize:13,display:'inline-flex',alignItems:'center'}}><HumanizedIcons.HumanizedArrowRightIcon size={13} style={{verticalAlign:'-2px',margin:'0 2px'}} /></span>
                             </button>
                           ))
                         })()}
@@ -7955,7 +8037,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 <h4 className="dash-proj-card-title">{proj.title}</h4>
                                 <p className="dash-proj-card-summary">{proj.summary || proj.description?.substring(0, 80) + '...'}</p>
                                 <div className="dash-proj-card-dates">
-                                  <span>{proj.start_date || '—'} → {proj.end_date || '—'}</span>
+                                  <span>{proj.start_date || '—'} <HumanizedIcons.HumanizedArrowRightIcon size={13} style={{verticalAlign:'-2px',margin:'0 2px'}} /> {proj.end_date || '—'}</span>
                                 </div>
                               </div>
                             ))}
@@ -8006,7 +8088,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 <h4 className="dash-proj-card-title">{proj.title}</h4>
                                 <p className="dash-proj-card-summary">{proj.summary || proj.description?.substring(0, 80) + '...'}</p>
                                 <div className="dash-proj-card-dates">
-                                  <span>{proj.start_date || '—'} → {proj.end_date || '—'}</span>
+                                  <span>{proj.start_date || '—'} <HumanizedIcons.HumanizedArrowRightIcon size={13} style={{verticalAlign:'-2px',margin:'0 2px'}} /> {proj.end_date || '—'}</span>
                                 </div>
                               </div>
                             ))}
@@ -8075,7 +8157,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 const zone = document.getElementById('proj-dropzone')
                                 if (file && file.type === 'application/pdf') {
                                   if (nameEl) nameEl.textContent = file.name
-                                  if (iconEl) { iconEl.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'
+                                  if (iconEl) { iconEl.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" stroke="#f59e0b" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0px 1.5px 2px rgba(0,0,0,0.06)); vertical-align: middle; margin-right: 4px"><path d="M14 2.5H6.5c-1.1 0-2 .9-2 2v15c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V8.5L14 2.5z" /><polyline points="14 2.5 14 8.5 20 8.5" /><path d="M8 13.5h8M8 17.5h6" /></svg>'
                                     if (textEl) textEl.textContent = file.name
                                     if (hintEl) hintEl.textContent = 'PDF — ' + (file.size / 1024).toFixed(0) + ' Ko'
                                     if (removeEl) removeEl.style.display = 'flex'
@@ -8095,7 +8177,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               </div>
                               <div className="dash-proj-dropzone-file" id="proj-dropzone-file">
                                 <div className="dash-proj-dropzone-file-info">
-                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                  <HumanizedIcons.HumanizedDocumentIcon size={20} color="#f59e0b" style={{verticalAlign:'middle', marginRight:4}} />
                                   <span className="dash-proj-dropzone-file-name" id="proj-dropzone-name" />
                                 </div>
                                 <button className="dash-proj-dropzone-remove" id="proj-dropzone-remove" type="button" onClick={e => {
@@ -8235,7 +8317,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <div className="uc2-premium-hero">
                           <div className="uc2-premium-hero-left">
                             <div className="uc2-premium-hero-icon">
-                              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                              <HumanizedIcons.HumanizedDocumentIcon size={28} color="#f59e0b" style={{verticalAlign:'middle', marginRight:4}} />
                             </div>
                             <div className="uc2-premium-hero-text">
                               <h1 className="uc2-premium-hero-title">{t('uc_title')||'Centre de Mise à Jour'}</h1>
@@ -8243,7 +8325,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             </div>
                           </div>
                           <div className="uc2-premium-hero-actions">
-                            <button className="uc2-premium-hero-btn uc2-premium-hero-btn-primary">{t('uc_view_report')||'Voir le rapport complet'} →</button>
+                            <button className="uc2-premium-hero-btn uc2-premium-hero-btn-primary">{t('uc_view_report')||'Voir le rapport complet'} <HumanizedIcons.HumanizedArrowRightIcon size={15} style={{verticalAlign:'-2px'}} /></button>
                             <select className="uc2-premium-hero-select" value={uc2SortStatus} onChange={e => setUc2SortStatus(e.target.value)}>
                               <option value="">{t('uc_sort_by_status')||'Trier par statut'}</option>
                               <option value="active">{t('uc_card_status_active')||'Actif'}</option>
@@ -8320,7 +8402,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     </div>
                                   </div>
                                   <button className="uc2-premium-card-select" onClick={() => { setUpdateChild(child); setUc2Search(''); setUc2Gender(''); setUc2AgeRange(''); setUc2Region(''); setUc2SortStatus('') }}>
-                                    {t('uc_select_btn')||'Sélectionner'} →
+                                    {t('uc_select_btn')||'Sélectionner'} <HumanizedIcons.HumanizedArrowRightIcon size={15} style={{verticalAlign:'-2px'}} />
                                   </button>
                                 </div>
                               )
@@ -8331,7 +8413,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     ) : uc2Success ? (
                       /* ── Success State ── */
                       <div className="uc2-success">
-                        <div className="uc2-success-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                        <div className="uc2-success-icon"><HumanizedIcons.HumanizedCheckIcon size={28} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /></div>
                         <div className="uc2-success-title">{t('uc_success') || 'Mise à jour enregistrée !'}</div>
                         <p className="uc2-success-desc">{t('uc_success_desc') || 'Un événement a été ajouté à l\'historique de l\'enfant.'}</p>
                         <div className="uc2-success-actions">
@@ -8389,8 +8471,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               </div>
                             </div>
                             <div className="uc2-hero-actions">
-                              <button className="uc2-hero-btn" onClick={() => { setActiveKey('history-center'); setHcHistoryChild(updateChild) }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> {t('pd_history')||'Historique'}</button>
-                              <button className="uc2-hero-btn" onClick={() => { setActiveKey('enfants-enregistrés'); setSelectedRegChild(updateChild) }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> {t('form_profile')||'Profil'}</button>
+                              <button className="uc2-hero-btn" onClick={() => { setActiveKey('history-center'); setHcHistoryChild(updateChild) }}><HumanizedIcons.HumanizedDocumentIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> {t('pd_history')||'Historique'}</button>
+                              <button className="uc2-hero-btn" onClick={() => { setActiveKey('enfants-enregistrés'); setSelectedRegChild(updateChild) }}><HumanizedIcons.HumanizedUserIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> {t('form_profile')||'Profil'}</button>
                             </div>
                           </div>
 
@@ -8434,7 +8516,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     <span className="uc2-cat-bar-label">{cat.label}</span>
                                     <span className="uc2-cat-bar-desc">{cat.desc}</span>
                                     <span className="uc2-cat-bar-types">{cat.types.length} types</span>
-                                    <span className="uc2-cat-bar-action" style={{background:cat.color}}>{t('form_start')||'Démarrer'} →</span>
+                                    <span className="uc2-cat-bar-action" style={{background:cat.color}}>{t('form_start')||'Démarrer'} <HumanizedIcons.HumanizedArrowRightIcon size={15} style={{verticalAlign:'-2px'}} /></span>
                                   </button>
                                 ))}
                               </div>
@@ -8626,12 +8708,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           <div className="uc2-right-actions">
                             {uc2Category && uc2Step > 0 ? (
                               <button className="uc2-right-action" onClick={() => { setUc2Category(null); setUc2Step(0); setUc2Type(''); setUc2FormData({}) }}>
-                                ← {t('uc_back_categories')||'Changer de catégorie'}
+                                <HumanizedIcons.HumanizedArrowLeftIcon size={15} style={{verticalAlign:'-2px'}} /> {t('uc_back_categories')||'Changer de catégorie'}
                               </button>
                             ) : null}
                             {uc2Type && (
                               <button className="uc2-right-action" onClick={() => { setUc2Type(''); setUc2FormData({}) }}>
-                                ← {t('uc_back_types')||'Changer de type'}
+                                <HumanizedIcons.HumanizedArrowLeftIcon size={15} style={{verticalAlign:'-2px'}} /> {t('uc_back_types')||'Changer de type'}
                               </button>
                             )}
                           </div>
@@ -8649,7 +8731,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           <div className="hc-standalone-header">
                              <button className="dash-back-btn" onClick={() => { setHcHistoryChild(null); setHcEvents([]); setHcCategory(''); setHcSubcategory(''); setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcSearch(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false); setHcExpanded(null); setHcSelectedEvent(null) }}>{'\u2190'} {t('form_back')}</button>
                             <div className="hc-standalone-title">
-                              <span className="hc-standalone-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
+                              <span className="hc-standalone-icon"><HumanizedIcons.HumanizedDocumentIcon size={18} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /></span>
                               <span>{t('hc_title')||'Centre d\'Historique'}</span>
                             </div>
                           </div>
@@ -8674,12 +8756,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* History content — Full-page entries layout */}
                           {(() => {
                             const hcSections = [
-                              { key:'identity', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label:(t('hc_section_identity')||'Identité'), color:'#3b82f6' },
+                              { key:'identity', icon:<HumanizedIcons.HumanizedUserIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, label:(t('hc_section_identity')||'Identité'), color:'#3b82f6' },
                               { key:'health', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>, label:(t('uc_category_health')||'Santé'), color:'#22c55e' },
                               { key:'education', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M4 11h16"/></svg>, label:(t('uc_category_education')||'Scolarité'), color:'#3b82f6' },
                               { key:'family', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label:(t('uc_category_family')||'Famille'), color:'#a855f7' },
                               { key:'social', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 17a1 1 0 0 1-1 1H5l-3-3 3-3h5a1 1 0 0 1 1 1v4Z"/><path d="M13 7a1 1 0 0 1 1-1h5l3 3-3 3h-5a1 1 0 0 1-1-1V7Z"/><path d="M6 14 3 11l3-3"/><path d="M18 10l3 3-3 3"/><path d="M6 14v4"/><path d="M18 10V6"/></svg>, label:(t('uc_category_social')||'Social'), color:'#ef4444' },
-                              { key:'documents', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>, label:(t('uc_category_documents')||'Documents'), color:'#f59e0b' },
+                              { key:'documents', icon:<HumanizedIcons.HumanizedDocumentIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />, label:(t('uc_category_documents')||'Documents'), color:'#f59e0b' },
                             ]
                             const catColor = hcSections.find(s=>s.key===hcCategory)?.color || '#3b82f6'
                             const catIcon = hcSections.find(s=>s.key===hcCategory)?.icon || <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4.5l-4 4L7 10l-1.5 1.5 7 7L14 17l1.5-4 4-4"/><path d="M9 15l-5 5"/></svg>
@@ -8704,7 +8786,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               if (sub && evt.metadata?.field_key) { // per-field record with field_key
                                 if (!subfeatureMap[sub]) subfeatureMap[sub] = []
                                 subfeatureMap[sub].push(evt)
-                              } else if (sub && !evt.metadata?.field_key) { // has subcategory but no field_key → localStorage-style, treat as legacy within subfeature
+                              } else if (sub && !evt.metadata?.field_key) { // has subcategory but no field_key -> localStorage-style, treat as legacy within subfeature
                                 const key = sub
                                 if (!subfeatureMap[key]) subfeatureMap[key] = []
                                 subfeatureMap[key].push({ ...evt, _legacyBundle: true })
@@ -8732,14 +8814,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   })}
                                   <button className="hc-tab-btn" onClick={() => { setHcHistoryChild(null); setHcCategory(''); setHcSubcategory('') }}
                                     style={{marginLeft:'auto',padding:'10px 16px',borderRadius:'10px',border:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',fontSize:'12px',background:'rgba(255,255,255,0.03)',color:'#64748b',flexShrink:0}}>
-                                    ← {t('form_back')||'Retour'}
+                                    <HumanizedIcons.HumanizedArrowLeftIcon size={15} style={{verticalAlign:'-2px'}} /> {t('form_back')||'Retour'}
                                   </button>
                                 </div>
 
                                 {!hcCategory ? (
                                   /* ── No category selected: show a brief welcome + guide ── */
                                   <div className="hc-entries-empty" style={{textAlign:'center',padding:'60px 24px'}}>
-                                    <span style={{fontSize:'48px',display:'block',marginBottom:'16px',opacity:0.5}}><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
+                                    <span style={{fontSize:'48px',display:'block',marginBottom:'16px',opacity:0.5}}><HumanizedIcons.HumanizedDocumentIcon size={48} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /></span>
                                     <h3 style={{color:'#e2e8f0',fontSize:'18px',margin:'0 0 8px'}}>{t('hc_title')||'Centre d\'Historique'}</h3>
                                     <p style={{color:'#64748b',fontSize:'14px',margin:0}}>{t('hc_select_tab')||'Sélectionnez une catégorie ci-dessus pour voir l\'historique'}</p>
                                   </div>
@@ -8966,7 +9048,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             </div>
                           </div>
                           <div className="uc2-premium-hero-actions">
-                            <button className="uc2-premium-hero-btn uc2-premium-hero-btn-primary">{t('uc_view_report')||'Voir le rapport complet'} →</button>
+                            <button className="uc2-premium-hero-btn uc2-premium-hero-btn-primary">{t('uc_view_report')||'Voir le rapport complet'} <HumanizedIcons.HumanizedArrowRightIcon size={15} style={{verticalAlign:'-2px'}} /></button>
                             <select className="uc2-premium-hero-select" value={hcSortStatus} onChange={e => setHcSortStatus(e.target.value)}>
                               <option value="">{t('uc_sort_by_status')||'Trier par statut'}</option>
                               <option value="active">{t('uc_card_status_active')||'Actif'}</option>
@@ -9043,7 +9125,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     </div>
                                   </div>
                                   <button className="uc2-premium-card-select" onClick={() => { setHcHistoryChild(child); setHcCategory(''); setHcSubcategory(''); setHcSearch(''); setHcGender(''); setHcAgeRange(''); setHcRegion(''); setHcSortStatus(''); setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false); setHcEvents([]); setHcExpanded(null); setHcSelectedEvent(null); setHcView('timeline') }}>
-                                    {t('uc_select_btn')||'Sélectionner'} →
+                                    {t('uc_select_btn')||'Sélectionner'} <HumanizedIcons.HumanizedArrowRightIcon size={15} style={{verticalAlign:'-2px'}} />
                                   </button>
                                 </div>
                               )
@@ -9067,7 +9149,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   <div>
                     <button type="button" onClick={() => { setSubKey(null); setOrpDetailTab('status') }}
                       style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:10,color:'#94a3b8',fontSize:13,padding:'8px 16px',cursor:'pointer',marginBottom:16}}>
-                      ← Retour à la liste
+                      <HumanizedIcons.HumanizedArrowLeftIcon size={15} style={{verticalAlign:'-2px'}} /> Retour à la liste
                     </button>
                     <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'24px',marginBottom:16}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
@@ -9076,12 +9158,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           <p style={{fontSize:13,color:'#64748b',margin:'4px 0 0'}}>Directeur: {orp.director_name || '—'}</p>
                         </div>
                         <span style={{fontSize:12,fontWeight:600,padding:'5px 14px',borderRadius:20,background:orp.status==='approved'?'rgba(34,197,94,0.1)':orp.status==='rejected'?'rgba(239,68,68,0.15)':'rgba(239,68,68,0.15)',color:orp.status==='approved'?'#22c55e':orp.status==='rejected'?'#ef4444':'#ef4444'}}>
-                          {orp.status === 'approved' ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Validé</> : orp.status === 'rejected' ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Rejeté</> : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg> En attente</>}
+                          {orp.status === 'approved' ? <><HumanizedIcons.HumanizedCheckIcon size={12} color="#22c55e" style={{verticalAlign:'middle', marginRight:4}} /> Validé</> : orp.status === 'rejected' ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Rejeté</> : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg> En attente</>}
                         </span>
                       </div>
                     </div>
                     <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
-                      {[{key:'status',label:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg> Statut</>},{key:'documents',label:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Documents</>},{key:'enfants',label:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5"/><path d="M6 12v5h3v-3h6v3h3v-5"/></svg> Enfants</>},{key:'besoins',label:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> Besoins</>},{key:'capacite',label:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Capacité</>}].map(tab => (
+                      {[{key:'status',label:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg> Statut</>},{key:'documents',label:<><HumanizedIcons.HumanizedDocumentIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Documents</>},{key:'enfants',label:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5"/><path d="M6 12v5h3v-3h6v3h3v-5"/></svg> Enfants</>},{key:'besoins',label:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> Besoins</>},{key:'capacite',label:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Capacité</>}].map(tab => (
                         <button type="button" key={tab.key} onClick={()=>setOrpDetailTab(tab.key)}
                           style={{border:'none',borderRadius:10,padding:'8px 18px',fontSize:13,fontWeight:600,cursor:'pointer',background:orpDetailTab===tab.key?'linear-gradient(135deg,#3b82f6,#6366f1)':'rgba(255,255,255,0.05)',color:orpDetailTab===tab.key?'#fff':'#94a3b8',transition:'all .2s'}}>
                           {tab.label}
@@ -9108,7 +9190,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <button type="button" onClick={()=>{
                               if (!canApprove) { showToast('Veuillez vérifier tous les documents requis avant d\'approuver.', 'error'); return }
                               setOrphanageNote(''); validateOrphanage(orp.id,'approve'); setSubKey(null); setOrpDetailTab('status')
-                            }} style={{background:canApprove?'rgba(34,197,94,0.1)':'rgba(100,116,139,0.3)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:10,color:canApprove?'#22c55e':'#64748b',fontSize:13,fontWeight:600,padding:'10px 22px',cursor:canApprove?'pointer':'not-allowed'}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Approuver</button>
+                            }} style={{background:canApprove?'rgba(34,197,94,0.1)':'rgba(100,116,139,0.3)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:10,color:canApprove?'#22c55e':'#64748b',fontSize:13,fontWeight:600,padding:'10px 22px',cursor:canApprove?'pointer':'not-allowed'}}><HumanizedIcons.HumanizedCheckIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Approuver</button>
                             <button type="button" onClick={()=>{const r=prompt('Motif du rejet (optionnel):');if(r!==null){validateOrphanage(orp.id,'reject',r||'');setSubKey(null);setOrpDetailTab('status')}}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:13,fontWeight:600,padding:'10px 22px',cursor:'pointer'}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Rejeter</button>
                           </div>
                         )}
@@ -9117,7 +9199,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     {orpDetailTab === 'documents' && (
                       <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
                         <div style={{flex:'1 1 400px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
-                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Documents soumis</div>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}><HumanizedIcons.HumanizedDocumentIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Documents soumis</div>
                           {(() => {
                             const DOC_LABELS = {
                               registration_cert:'Registration Certificate', operating_license:'Operating License',
@@ -9147,7 +9229,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                         {file ? (
                                           <div style={{display:'flex',alignItems:'center',gap:8,fontSize:11}}>
                                             <a href={file} target="_blank" rel="noopener noreferrer" style={{color:'#60a5fa',textDecoration:'underline',cursor:'pointer'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Ouvrir</a>
-                                            <a href={file} download style={{color:'#22c55e',textDecoration:'underline',cursor:'pointer'}}>⬇ Télécharger</a>
+                                            <a href={file} download style={{color:'#22c55e',textDecoration:'underline',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4}}><HumanizedIcons.HumanizedDownloadIcon size={14}/> Télécharger</a>
                                           </div>
                                         ) : (
                                           <span style={{fontSize:11,color:'#64748b'}}>Non soumis</span>
@@ -9172,7 +9254,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           })()}
                         </div>
                         <div style={{flex:'1 1 280px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',alignSelf:'flex-start'}}>
-                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Vérification des documents</div>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}><HumanizedIcons.HumanizedCheckIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Vérification des documents</div>
                           {(() => {
                             const DOC_API_MAP = { registration_cert:'registration_cert', operating_license:'operating_license', director_id:'director_id_doc', tax_doc:'tax_doc', child_protection:'child_protection' }
                             const REQ_KEYS = ['registration_cert','operating_license','director_id','tax_doc','child_protection']
@@ -9181,11 +9263,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             const allVerified = requiredDocs.length > 0 && verifiedCount === requiredDocs.length
                             return (
                               <div style={{fontSize:13,color:'#94a3b8',lineHeight:2}}>
-                                <p><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> <strong style={{color:'#e2e8f0'}}>{requiredDocs.length}</strong> document(s) requis soumis</p>
-                                <p><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> <strong style={{color:'#22c55e'}}>{verifiedCount}/{requiredDocs.length}</strong> vérifié(s)</p>
+                                <p><HumanizedIcons.HumanizedDocumentIcon size={12} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> <strong style={{color:'#e2e8f0'}}>{requiredDocs.length}</strong> document(s) requis soumis</p>
+                                <p><HumanizedIcons.HumanizedCheckIcon size={12} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> <strong style={{color:'#22c55e'}}>{verifiedCount}/{requiredDocs.length}</strong> vérifié(s)</p>
                                 {allVerified ? (
                                   <div style={{marginTop:12,padding:'10px 14px',background:'rgba(34,197,94,0.1)',borderRadius:10,fontSize:12,color:'#22c55e',fontWeight:600}}>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Tous les documents requis sont vérifiés
+                                    <HumanizedIcons.HumanizedCheckIcon size={12} color="#22c55e" style={{verticalAlign:'middle', marginRight:4}} /> Tous les documents requis sont vérifiés
                                   </div>
                                 ) : requiredDocs.length > 0 && (
                                   <div style={{marginTop:12,padding:'10px 14px',background:'rgba(239,68,68,0.1)',borderRadius:10,fontSize:12,color:'#ef4444',fontWeight:600}}>
@@ -9262,7 +9344,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           )}
                         </div>
                         <div style={{flex:'1 1 300px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',maxHeight:560,overflowY:'auto'}}>
-                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:6}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Résumé des assignations</div>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}><HumanizedIcons.HumanizedDocumentIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Résumé des assignations</div>
                           <div style={{fontSize:13,color:'#94a3b8',lineHeight:1.8}}>
                             <p><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="6" r="4"/><path d="M12 10c-4 0-6 2-6 4v2c0 1 2 2 6 2s6-1 6-2v-2c0-2-2-4-6-4z"/></svg> <strong style={{color:'#e2e8f0'}}>{orphanageChildren.length}</strong> enfant(s) dans cet orphelinat</p>
                             <p><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> <strong style={{color:'#22c55e'}}>{Object.values(assignMap).length}</strong> assigné(s) à un ambassadeur</p>
@@ -9343,7 +9425,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           })()}
                         </div>
                         <div style={{flex:'1 1 280px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',alignSelf:'flex-start'}}>
-                           <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:6}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Résumé</div>
+                           <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}><HumanizedIcons.HumanizedDocumentIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> Résumé</div>
                           <div style={{fontSize:13,color:'#94a3b8',lineHeight:2}}>
                             <p><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2"/></svg> <strong style={{color:'#e2e8f0'}}>{(Array.isArray(orp.needs) ? orp.needs.length : 0)}</strong> besoin(s) identifié(s)</p>
                             <p><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> <strong style={{color:'#e2e8f0'}}>{(Array.isArray(orp.needs) && orp.needs_priority) ? orp.needs_priority : 'Non spécifiée'}</strong> — priorité</p>
@@ -9512,7 +9594,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             )),
                       },
                       'Orphelinats validés': {
-                        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+                        icon: <HumanizedIcons.HumanizedDocumentIcon size={18} color="#3b82f6" style={{verticalAlign:'middle', marginRight:4}} />,
                         color: '#3b82f6', desc: 'Orphelinats validés par la fédération.',
                         content: approvedOrps.length === 0
                           ? <div style={{textAlign:'center',padding:40,color:'#64748b',fontSize:14}}>Aucun orphelinat validé pour le moment.</div>
@@ -9581,7 +9663,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     { id:'A1', label:'Ambassadeurs actifs', value: String(ambActiveCount), status:'Enregistrés', dotColor:'#22c55e', iconColor:'#22c55e', iconBg:'rgba(34,197,94,0.12)',
                       svg: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
                     { id:'A2', label:'Orphelinats validés', value: String(approvedCount), status: 'Validés', dotColor:'#3b82f6', iconColor:'#3b82f6', iconBg:'rgba(59,130,246,0.12)',
-                      svg: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> },
+                      svg: <HumanizedIcons.HumanizedDocumentIcon size={20} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> },
                     { id:'A3', label:'Assignation des enfants', value: '—', status: 'Gérer', dotColor:'#a855f7', iconColor:'#a855f7', iconBg:'rgba(168,85,247,0.12)',
                       svg: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> },
                   ]
@@ -9619,7 +9701,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       {Object.entries(ambAssignments).map(([orpName, children]) => (
                         <div key={orpName} style={{marginBottom:20}}>
                           <h3 style={{fontSize:16,fontWeight:700,color:'#f59e0b',margin:'0 0 10px',display:'flex',alignItems:'center',gap:8}}>
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg> {orpName}
+                            <HumanizedIcons.HumanizedBuildingIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> {orpName}
                           </h3>
                           <div style={{display:'flex',flexDirection:'column',gap:8}}>
                             {children.map(a => (
@@ -9669,7 +9751,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     <div style={{ fontSize: '48px', marginBottom: '16px' }}><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 22h20"/><path d="M8 22V4l4 4 4-4v18"/><path d="M12 8v14"/></svg></div>
                     <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-heading,#e2e8f0)', margin: '0 0 8px' }}>{subKey}</h3>
                     <p style={{ fontSize: '14px', color: 'var(--text-muted,#94a3b8)', margin: '0 0 20px' }}>Cette fonctionnalité est en cours de développement.</p>
-                    <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'←'} Retour</button>
+                    <button className="dash-back-btn" onClick={() => setSubKey(null)}><HumanizedIcons.HumanizedArrowLeftIcon size={15} style={{verticalAlign:'-2px'}} /> Retour</button>
                   </div>
                 )}
               </div>
@@ -9845,7 +9927,7 @@ function ChildAssignmentForm({ API, ambassadors, children, assignments, onAssign
             {assignments.map(a => (
               <div key={a.id} style={{background:'rgba(30,41,59,0.5)',borderRadius:10,padding:'10px 14px',display:'flex',alignItems:'center',gap:10,fontSize:13}}>
                 <span style={{color:'#e2e8f0',fontWeight:600}}>{a.child_name}</span>
-                <span style={{color:'#64748b'}}>→</span>
+                <span style={{color:'#64748b',display:'inline-flex',alignItems:'center'}}><HumanizedIcons.HumanizedArrowRightIcon size={13} style={{verticalAlign:'-2px',margin:'0 2px'}} /></span>
                 <span style={{color:'#a855f7'}}>{a.ambassador_name}</span>
                 <span style={{color:'#64748b',fontSize:11,flex:1,textAlign:'right'}}>{new Date(a.assigned_at).toLocaleDateString('fr-FR')}</span>
               </div>
@@ -10360,7 +10442,7 @@ function OpportunityCenter({ user, apiFetch, API, onLogout, t }) {
   const fmt = (n) => { const v = Number(n) || 0; return v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(1)+'k' : v.toLocaleString('fr-FR') }
   const TYPE_ICONS = {
     child: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="6" r="4"/><path d="M12 10c-4 0-6 2-6 4v2c0 1 2 2 6 2s6-1 6-2v-2c0-2-2-4-6-4z"/></svg>,
-    project: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+    project: <HumanizedIcons.HumanizedDocumentIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
     orphanage_need: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M20 7.5v9.17a2 2 0 0 1-1.1 1.79l-6.67 3.34a1 1 0 0 1-.46.12H4a2 2 0 0 1-2-2V7.5"/><path d="M16 2H4a2 2 0 0 0-2 2v3.5h16"/><path d="M22 2v3.5h-6V2"/></svg>,
     campaign: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M3 9v6"/><path d="M3 9c0-2 5-7 9-7v20c-4 0-9-5-9-7"/><path d="M16 12c2.5 1 2.5 3 0 4"/></svg>,
     emergency: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><polygon points="12 2 2 21 22 21 12 2"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="17" r="1"/></svg>,
@@ -10547,10 +10629,10 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
               { key:'health', label:'Santé', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2.5-3.5 2.5-5.5A4.5 4.5 0 0 0 17 4c-1.5 0-2.9.7-4 2-1.1-1.3-2.5-2-4-2A4.5 4.5 0 0 0 2.5 8.5c0 2 1 4 2.5 5.5l7 7 7-7z"/></svg> },
               { key:'education', label:'Éducation', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9.5 12 4l10 5.5"/><path d="M4 11v6h16v-6"/><path d="M8 11v-4h8v4"/><path d="M12 11v5"/></svg> },
               { key:'family', label:'Famille', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
-              { key:'documents', label:'Documentation', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> },
+              { key:'documents', label:'Documentation', icon:<HumanizedIcons.HumanizedDocumentIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> },
               { key:'social', label:'Social', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17a5 5 0 0 1-4.2-2.3C5.9 13.5 4.8 12 3 11l4-4 5 5 5-5 4 4c-1.8 1-2.9 2.5-3.8 3.7A5 5 0 0 1 13 17z"/></svg> },
               { key:'opportunities', label:'Opportunités', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> },
-              { key:'projects', label:'Projets', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
+              { key:'projects', label:'Projets', icon:<HumanizedIcons.HumanizedDocumentIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> },
             ].map(tab => (
               <button key={tab.key} className={`partner-tab${detailTab === tab.key ? ' active' : ''}`} onClick={() => setDetailTab(tab.key)}>
                 <span style={{display:'inline-flex',alignItems:'center',gap:5}}>{tab.icon} {tab.label}</span>

@@ -3,7 +3,10 @@ import CIcon, { kindToIcon } from './icons'
 import './communication.css'
 import './social.css'
 
-export const REACTION_ICONS = ['thumbUp', 'heart', 'smile', 'surprised', 'cry', 'pray']
+// Les RÉACTIONS sont du contenu utilisateur (comme sur WhatsApp), pas des icônes
+// d'interface : ce sont de vrais émoji, stockés tels quels côté serveur.
+// (Toutes les icônes d'INTERFACE restent des SVG via CIcon.)
+export const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
 
 export const fmtSize = (b) => !b ? '' : b < 1024 ? `${b} o` : b < 1048576 ? `${(b / 1024).toFixed(0)} Ko` : `${(b / 1048576).toFixed(1)} Mo`
 
@@ -27,16 +30,16 @@ export function KindIcon({ kind, size = 15 }) {
   return <CIcon name={kindToIcon(kind)} size={size} />
 }
 
-/** Sélecteur d'émoji façon WhatsApp (survol / clic droit / appui long). */
+/** Sélecteur d'émoji façon WhatsApp. */
 export function ReactionPicker({ onPick, onClose, mine }) {
   return (
     <div className="cmv2-picker" role="menu" aria-label="Réagir au message"
       onMouseLeave={onClose}>
-      {REACTION_ICONS.map(em => (
+      {REACTION_EMOJIS.map(em => (
         <button key={em} role="menuitem" aria-label={`Réagir ${em}`}
           className={`cmv2-picker-emoji${mine === em ? ' active' : ''}`}
           onClick={(e) => { e.stopPropagation(); onPick(em) }}>
-          <CIcon name={em} size={18} />
+          {em}
         </button>
       ))}
     </div>
@@ -57,7 +60,7 @@ export function ReactionChips({ reactions, onToggle }) {
             onClick={() => onToggle(r.emoji)}
             onMouseEnter={() => setWho(r.emoji)}
             onMouseLeave={() => setWho(null)}>
-            <CIcon name={r.emoji} size={16} /> {r.count > 1 ? r.count : ''}
+            {r.emoji} {r.count > 1 ? r.count : ''}
           </button>
           {who === r.emoji && (
             <span className="cmv2-who" role="tooltip">{r.users.join(', ')}</span>
@@ -95,7 +98,8 @@ export function AttachmentList({ attachments, mediaUrl }) {
       {images.length > 0 && (
         <div className={`cmv2-att-grid n${Math.min(images.length, 4)}`}>
           {images.map(a => (
-            <a key={a.id} href={mediaUrl(a.url)} target="_blank" rel="noreferrer" className="cmv2-att-img-link">
+            <a key={a.id} href={mediaUrl(a.url)} target="_blank" rel="noreferrer" className="cmv2-att-img-link"
+              onClick={e => e.stopPropagation()}>
               <img src={mediaUrl(a.url)} alt={a.name} loading="lazy" />
             </a>
           ))}
@@ -103,10 +107,11 @@ export function AttachmentList({ attachments, mediaUrl }) {
       )}
       {others.map(a => {
         const url = mediaUrl(a.url)
-        if (a.kind === 'video') return <video key={a.id} src={url} controls preload="metadata" className="cmv2-att-video" />
-        if (a.kind === 'audio') return <audio key={a.id} src={url} controls preload="metadata" className="cmv2-att-audio" />
+        if (a.kind === 'video') return <video key={a.id} src={url} controls preload="metadata" className="cmv2-att-video" onClick={e => e.stopPropagation()} />
+        if (a.kind === 'audio') return <audio key={a.id} src={url} controls preload="metadata" className="cmv2-att-audio" onClick={e => e.stopPropagation()} />
         return (
-          <a key={a.id} href={url} target="_blank" rel="noreferrer" download className="cmv2-att-file">
+          <a key={a.id} href={url} target="_blank" rel="noreferrer" download className="cmv2-att-file"
+            onClick={e => e.stopPropagation()}>
             <span className="cmv2-att-file-icon"><KindIcon kind={a.kind} size={20} /></span>
             <span className="cmv2-att-file-body">
               <span className="cmv2-att-file-name">{a.name}</span>

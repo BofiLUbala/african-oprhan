@@ -119,9 +119,10 @@ const fmtDur = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 
 /* ── Enregistreur vocal ───────────────────────────────────────────── */
 function VoiceRecorder({ onClose, onSend }) {
-  const [state, setState] = React.useState('recording') // recording | paused | preview
+  const [state, setState] = React.useState('recording') // recording | paused | preview | error
   const [seconds, setSeconds] = React.useState(0)
   const [blobUrl, setBlobUrl] = React.useState(null)
+  const [error, setError] = React.useState(null)
   const recorderRef = React.useRef(null)
   const chunksRef = React.useRef([])
   const streamRef = React.useRef(null)
@@ -135,6 +136,11 @@ function VoiceRecorder({ onClose, onSend }) {
 
   React.useEffect(() => {
     let cancelled = false
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("Ce navigateur ne permet pas l'enregistrement audio.")
+      setState('error')
+      return
+    }
     navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
       if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
       streamRef.current = stream
@@ -149,7 +155,13 @@ function VoiceRecorder({ onClose, onSend }) {
         tick(false)
       }
       rec.start(); recorderRef.current = rec; tick(true)
-    }).catch(() => { onClose() })
+    }).catch(err => {
+      if (cancelled) return
+      setError(err?.name === 'NotAllowedError'
+        ? "Accès au microphone refusé. Autorisez-le dans les réglages du navigateur."
+        : "Impossible d'accéder au microphone.")
+      setState('error')
+    })
     return () => {
       cancelled = true
       clearInterval(timerRef.current)
@@ -164,6 +176,22 @@ function VoiceRecorder({ onClose, onSend }) {
   const send = () => {
     const f = new File([blobRef.current], `note-vocale-${Date.now()}.webm`, { type: 'audio/webm' })
     onSend(f)
+  }
+
+  if (state === 'error') {
+    return (
+      <div className="cmv2-rec-overlay" role="dialog" aria-modal="true" aria-label="Enregistrement vocal">
+        <div className="cmv2-rec-panel">
+          <div className="cmv2-rec-error">
+            <CIcon name="mic" size={28} />
+            <p>{error}</p>
+          </div>
+          <div className="cmv2-rec-actions">
+            <button className="cmv2-rec-btn ghost" onClick={onClose} aria-label="Fermer"><CIcon name="x" size={20} /></button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -199,6 +227,7 @@ function VideoRecorder({ onClose, onSend }) {
   const [state, setState] = React.useState('idle') // idle | recording | paused | preview
   const [seconds, setSeconds] = React.useState(0)
   const [blobUrl, setBlobUrl] = React.useState(null)
+  const [error, setError] = React.useState(null)
   const videoRef = React.useRef(null)
   const recorderRef = React.useRef(null)
   const chunksRef = React.useRef([])
@@ -210,12 +239,21 @@ function VideoRecorder({ onClose, onSend }) {
   const stopStream = () => { streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null }
 
   const openCamera = async (mode) => {
+    setError(null)
     setFacing(mode)
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("Ce navigateur ne permet pas l'enregistrement vidéo.")
+      return
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: mode }, audio: true })
       streamRef.current = stream
       if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.muted = true; videoRef.current.play() }
-    } catch { onClose() }
+    } catch (err) {
+      setError(err?.name === 'NotAllowedError'
+        ? "Accès à la caméra refusé. Autorisez-la dans les réglages du navigateur."
+        : "Impossible d'accéder à la caméra.")
+    }
   }
 
   const start = () => {
@@ -258,6 +296,12 @@ function VideoRecorder({ onClose, onSend }) {
             <button className="cmv2-vid-choice-btn" onClick={() => openCamera('environment')}>
               <CIcon name="camera" size={28} /><span>Caméra arrière</span>
             </button>
+          </div>
+        ) : error ? (
+          <div className="cmv2-rec-error">
+            <CIcon name="videocam" size={28} />
+            <p>{error}</p>
+            <button className="cmv2-rec-btn ghost" onClick={() => { setFacing(null); setError(null) }} aria-label="Réessayer"><CIcon name="refresh" size={18} /></button>
           </div>
         ) : (
           <>
