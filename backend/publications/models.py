@@ -87,6 +87,10 @@ class Post(models.Model):
     def dislikes_count(self):
         return self.dislikes.count()
 
+    @property
+    def shares_count(self):
+        return self.shares.count()
+
 
 class PostMedia(models.Model):
     MEDIA_TYPES = [
@@ -190,8 +194,10 @@ class Comment(models.Model):
         related_name="comments",
         verbose_name="Auteur",
     )
-    content = models.TextField(verbose_name="Contenu")
+    content = models.TextField(verbose_name="Contenu", blank=True)
+    edited = models.BooleanField(default=False, verbose_name="Modifié")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Commenté le")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Modifié le")
 
     class Meta:
         verbose_name = "Commentaire"
@@ -200,6 +206,75 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"{self.author.full_name} : {self.content[:50]}"
+
+
+def _comment_attachment_kind(name, mime=""):
+    name = (name or "").lower()
+    mime = (mime or "").lower()
+    ext = name.rsplit(".", 1)[-1] if "." in name else ""
+    if mime.startswith("image/") or ext in ("jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"):
+        return "image"
+    if mime.startswith("video/") or ext in ("mp4", "webm", "mov", "avi", "mkv"):
+        return "video"
+    if mime.startswith("audio/") or ext in ("mp3", "wav", "ogg", "m4a", "webm", "oga"):
+        return "audio"
+    if ext in ("pdf",):
+        return "pdf"
+    if ext in ("doc", "docx", "odt"):
+        return "word"
+    if ext in ("xls", "xlsx", "ods", "csv"):
+        return "excel"
+    if ext in ("ppt", "pptx", "odp"):
+        return "powerpoint"
+    if ext in ("zip", "rar", "7z", "tar", "gz"):
+        return "archive"
+    return "file"
+
+
+class CommentAttachment(models.Model):
+    comment = models.ForeignKey(
+        Comment, on_delete=models.CASCADE, related_name="attachments", verbose_name="Commentaire"
+    )
+    file = models.FileField(upload_to="comment_files/%Y/%m/", verbose_name="Fichier")
+    original_name = models.CharField(max_length=255, verbose_name="Nom d'origine")
+    size = models.PositiveIntegerField(default=0, verbose_name="Taille (octets)")
+    mime = models.CharField(max_length=120, blank=True, verbose_name="Type MIME")
+    kind = models.CharField(max_length=20, default="file", verbose_name="Catégorie")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Pièce jointe (commentaire)"
+        verbose_name_plural = "Pièces jointes (commentaires)"
+
+    def __str__(self):
+        return self.original_name
+
+
+class PostShare(models.Model):
+    """Traçabilité des partages d'une publication (analytics + qui a partagé)."""
+    METHOD_CHOICES = [
+        ("copy", "Lien copié"), ("internal", "Partage interne"), ("email", "E-mail"),
+        ("whatsapp", "WhatsApp"), ("telegram", "Telegram"), ("facebook", "Facebook"),
+        ("linkedin", "LinkedIn"), ("x", "X (Twitter)"),
+    ]
+    post = models.ForeignKey(
+        Post, on_delete=models.CASCADE, related_name="shares", verbose_name="Publication"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="post_shares", verbose_name="Utilisateur"
+    )
+    method = models.CharField(max_length=20, choices=METHOD_CHOICES, default="copy", verbose_name="Méthode")
+    destination = models.CharField(max_length=120, blank=True, verbose_name="Destination")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Partagé le")
+
+    class Meta:
+        verbose_name = "Partage"
+        verbose_name_plural = "Partages"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.full_name} a partagé #{self.post_id} ({self.method})"
 
 
 class Story(models.Model):

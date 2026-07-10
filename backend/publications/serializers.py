@@ -31,16 +31,41 @@ class PostMediaSerializer(serializers.ModelSerializer):
         fields = ["id", "file", "media_type", "url"]
 
 
+def _avatar_of(user):
+    hue = (user.first_name or "U").encode("utf-8")[0] * 37 % 360
+    initials = (user.first_name[0] if user.first_name else "") + (
+        user.last_name[0] if user.last_name else ""
+    )
+    return {"initials": (initials or "?").upper(), "hue": hue}
+
+
 class CommentSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
+    author_avatar = serializers.SerializerMethodField()
+    author_role = serializers.SerializerMethodField()
+    attachments = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ["id", "author", "author_name", "content", "created_at"]
+        fields = ["id", "author", "author_name", "author_avatar", "author_role",
+                  "content", "attachments", "edited", "created_at", "updated_at"]
         read_only_fields = ["author"]
 
     def get_author_name(self, obj):
         return obj.author.full_name
+
+    def get_author_avatar(self, obj):
+        return _avatar_of(obj.author)
+
+    def get_author_role(self, obj):
+        return getattr(obj.author, "role", "")
+
+    def get_attachments(self, obj):
+        return [
+            {"id": a.pk, "url": a.file.url, "name": a.original_name,
+             "size": a.size, "mime": a.mime, "kind": a.kind}
+            for a in obj.attachments.all()
+        ]
 
     def create(self, validated_data):
         validated_data["author"] = self.context["request"].user
@@ -58,6 +83,8 @@ class PostListSerializer(serializers.ModelSerializer):
     is_liked = serializers.SerializerMethodField()
     is_disliked = serializers.SerializerMethodField()
     dislikes_count = serializers.IntegerField(read_only=True)
+    shares_count = serializers.IntegerField(read_only=True)
+    is_shared = serializers.SerializerMethodField()
     child_info = serializers.SerializerMethodField()
     review_ambassador_name = serializers.SerializerMethodField()
 
@@ -67,7 +94,7 @@ class PostListSerializer(serializers.ModelSerializer):
             "id", "author", "author_name", "author_id", "author_avatar",
             "content", "post_type", "audience", "location", "media",
             "likes_count", "comments_count", "views_count", "is_liked",
-            "is_disliked", "dislikes_count",
+            "is_disliked", "dislikes_count", "shares_count", "is_shared",
             "status", "rejection_reason", "child_info", "review_ambassador_name",
             "created_at",
         ]
@@ -101,6 +128,12 @@ class PostListSerializer(serializers.ModelSerializer):
             return obj.dislikes.filter(user=request.user).exists()
         return False
 
+    def get_is_shared(self, obj):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            return obj.shares.filter(user=request.user).exists()
+        return False
+
     def get_child_info(self, obj):
         return _child_info(obj)
 
@@ -119,6 +152,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
     is_liked = serializers.SerializerMethodField()
     is_disliked = serializers.SerializerMethodField()
     dislikes_count = serializers.IntegerField(read_only=True)
+    shares_count = serializers.IntegerField(read_only=True)
+    is_shared = serializers.SerializerMethodField()
     comments = CommentSerializer(many=True, read_only=True)
     viewers = serializers.SerializerMethodField()
     child_info = serializers.SerializerMethodField()
@@ -130,7 +165,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "id", "author", "author_name", "author_id", "author_avatar",
             "content", "post_type", "audience", "location", "media",
             "likes_count", "comments_count", "views_count", "is_liked",
-            "is_disliked", "dislikes_count",
+            "is_disliked", "dislikes_count", "shares_count", "is_shared",
             "status", "rejection_reason", "child_info", "review_ambassador_name",
             "comments", "viewers", "created_at",
         ]
@@ -168,6 +203,12 @@ class PostDetailSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if request and request.user.is_authenticated:
             return obj.dislikes.filter(user=request.user).exists()
+        return False
+
+    def get_is_shared(self, obj):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            return obj.shares.filter(user=request.user).exists()
         return False
 
     def get_viewers(self, obj):

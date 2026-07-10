@@ -4,14 +4,24 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.db.models import Q
 
-from .models import Post, PostLike, PostDislike, PostView, Comment, Story, StoryView
+from .models import (
+    Post, PostLike, PostDislike, PostView, Comment, CommentAttachment,
+    PostShare, Story, StoryView, _comment_attachment_kind,
+)
 from .serializers import (
     PostListSerializer,
     PostDetailSerializer,
     PostCreateSerializer,
     CommentSerializer,
     StorySerializer,
+    _avatar_of,
 )
+
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+
+
+def _is_moderator(user):
+    return getattr(user, "role", "") in ("supermaster", "admin", "federation")
 
 
 def visible_post_filter(user):
@@ -133,37 +143,114 @@ def comment_list(request, post_id):
         )
 
     if request.method == "GET":
-        comments = post.comments.select_related("author").all()
-        serializer = CommentSerializer(comments, many=True)
+        comments = post.comments.select_related("author").prefetch_related("attachments").all()
+        serializer = CommentSerializer(comments, many=True, context={"request": request})
         return Response(serializer.data)
 
     elif request.method == "POST":
-        serializer = CommentSerializer(
-            data=request.data, context={"request": request}
-        )
-        if serializer.is_valid():
-            serializer.save(post=post)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        content = (request.data.get("content") or "").strip()
+        files = request.FILES.getlist("files")
+        for f in files:
+            if f.size > MAX_UPLOAD_BYTES:
+                return Response({"error": f"« {f.name} » dépasse la taille maximale de 25 Mo."},
+                                status=status.HTTP_400_BAD_REQUEST)
+        if not content and not files:
+            return Response({"error": "Un commentaire ou une pièce jointe est requis."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        comment = Comment.objects.create(post=post, author=request.user, content=content)
+        for f in files:
+            CommentAttachment.objects.create(
+                comment=comment, file=f, original_name=f.name[:255], size=f.size,
+                mime=getattr(f, "content_type", "") or "",
+                kind=_comment_attachment_kind(f.name, getattr(f, "content_type", "")),
+            )
+        return Response(CommentSerializer(comment, context={"request": request}).data,
+                        status=status.HTTP_201_CREATED)
 
 
-@api_view(["DELETE"])
-def delete_comment(request, post_id, comment_id):
+@api_view(["PATCH", "DELETE"])
+def comment_detail(request, post_id, comment_id):
     try:
         comment = Comment.objects.get(pk=comment_id, post_id=post_id)
     except Comment.DoesNotExist:
-        return Response(
-            {"error": "Commentaire introuvable."},
-            status=status.HTTP_404_NOT_FOUND,
-        )
+        return Response({"error": "Commentaire introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
-    if comment.author != request.user:
-        return Response(
-            {"error": "Vous ne pouvez supprimer que vos propres commentaires."},
-            status=status.HTTP_403_FORBIDDEN,
-        )
+    is_owner = comment.author == request.user
+    if request.method == "PATCH":
+        if not is_owner:
+            return Response({"error": "Vous ne pouvez modifier que vos propres commentaires."},
+                            status=status.HTTP_403_FORBIDDEN)
+        content = (request.data.get("content") or "").strip()
+        if not content:
+            return Response({"error": "Le contenu ne peut pas être vide."}, status=status.HTTP_400_BAD_REQUEST)
+        comment.content = content
+        comment.edited = True
+        comment.save(update_fields=["content", "edited", "updated_at"])
+        return Response(CommentSerializer(comment, context={"request": request}).data)
+
+    # DELETE — owner OR moderator (elevated permission)
+    if not is_owner and not _is_moderator(request.user):
+        return Response({"error": "Vous ne pouvez supprimer que vos propres commentaires."},
+                        status=status.HTTP_403_FORBIDDEN)
     comment.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# rétro-compat : l'ancien nom de vue reste appelable
+delete_comment = comment_detail
+
+
+@api_view(["GET"])
+def post_likes(request, post_id):
+    """Liste des utilisateurs ayant aimé la publication (qui a aimé)."""
+    try:
+        post = Post.objects.get(pk=post_id)
+    except Post.DoesNotExist:
+        return Response({"error": "Publication introuvable."}, status=status.HTTP_404_NOT_FOUND)
+    people = [
+        {"id": l.user.pk, "name": l.user.full_name,
+         "role": getattr(l.user, "role", ""), "avatar": _avatar_of(l.user)}
+        for l in post.likes.select_related("user").all()
+    ]
+    return Response({"count": len(people), "users": people})
+
+
+@api_view(["POST"])
+def share_post(request, post_id):
+    """Enregistre un partage (analytics) : méthode + destination. Idempotent
+    par (utilisateur, méthode, destination) pour éviter le gonflage du compteur."""
+    try:
+        post = Post.objects.get(pk=post_id)
+    except Post.DoesNotExist:
+        return Response({"error": "Publication introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+    valid_methods = dict(PostShare.METHOD_CHOICES)
+    method = request.data.get("method", "copy")
+    if method not in valid_methods:
+        method = "copy"
+    destination = (request.data.get("destination") or "")[:120]
+    PostShare.objects.get_or_create(
+        post=post, user=request.user, method=method, destination=destination
+    )
+    return Response({"shared": True, "shares_count": post.shares.count()})
+
+
+@api_view(["GET"])
+def post_shares(request, post_id):
+    """Liste des utilisateurs ayant partagé (analytics, sous réserve de droits)."""
+    try:
+        post = Post.objects.get(pk=post_id)
+    except Post.DoesNotExist:
+        return Response({"error": "Publication introuvable."}, status=status.HTTP_404_NOT_FOUND)
+    # confidentialité : l'auteur et les modérateurs voient la liste détaillée
+    if post.author_id != request.user.pk and not _is_moderator(request.user):
+        return Response({"count": post.shares.count(), "users": []})
+    people = [
+        {"id": s.user.pk, "name": s.user.full_name, "method": s.method,
+         "destination": s.destination, "avatar": _avatar_of(s.user)}
+        for s in post.shares.select_related("user").all()
+    ]
+    return Response({"count": len(people), "users": people})
 
 
 @api_view(["GET", "POST"])

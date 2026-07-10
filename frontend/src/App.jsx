@@ -7,6 +7,9 @@ import ProfilesSection from './components/ProfilesSection'
 import PaymentManagementPage from './components/PaymentManagementPage'
 import ChannelFeed from './components/communication/ChannelFeed'
 import ChatThread from './components/communication/ChatThread'
+import CommentThread from './components/communication/CommentThread'
+import LikesPopover from './components/communication/LikesPopover'
+import ShareDialog from './components/communication/ShareDialog'
 import useLiveChildren from './hooks/useLiveChildren'
 import useNotifications from './hooks/useNotifications'
 import './App.css'
@@ -1111,6 +1114,14 @@ const ES_ICON_PATHS = {
   thumbDown: '<path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/>',
   share: '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/>',
   smile: '<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  inbox: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  clipboard: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>',
+  fileText: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/>',
 }
 const esKpiIcon = (name) => ({ revenue: 'dollar', sparkle: 'star', child: 'child' }[name] || name)
 const esAttachIconName = (kind) => ({ image: 'image', video: 'video', audio: 'mic', pdf: 'file', word: 'file', excel: 'file', powerpoint: 'file', archive: 'archive' }[kind] || 'file')
@@ -1515,6 +1526,11 @@ function EclatSocialApp({ user, onReturn }) {
   const [esCommentInput, setEsCommentInput] = React.useState('')
   const [esShareModal, setEsShareModal] = React.useState(false)
   const [esSharePost, setEsSharePost] = React.useState(null)
+  // Commentaires inline par publication (façon LinkedIn/Facebook)
+  const [esOpenComments, setEsOpenComments] = React.useState(() => new Set())
+  const [esCommentsByPost, setEsCommentsByPost] = React.useState({}) // {postId: comment[]}
+  const [esCommentsState, setEsCommentsState] = React.useState({})   // {postId: 'loading'|'ready'|'error'}
+  const [esLikesModal, setEsLikesModal] = React.useState(null)       // postId | null
   // ── Header state ──────────────────────────────────────────────
   const [esSearchQuery, setEsSearchQuery] = React.useState('')
   const [esSearchType, setEsSearchType] = React.useState('all')
@@ -1674,12 +1690,12 @@ function EclatSocialApp({ user, onReturn }) {
 
 
   const ES_SEARCH_FILTERS = [
-    { key: 'all', label: 'Tout', icon: '🔎' },
-    { key: 'messages', label: 'Messages', icon: '💬' },
-    { key: 'users', label: 'Agents', icon: '👥' },
-    { key: 'children', label: 'Enfants', icon: '🧒' },
-    { key: 'channels', label: 'Canaux', icon: '#️⃣' },
-    { key: 'projects', label: 'Projets', icon: '📁' },
+    { key: 'all', label: 'Tout', icon: 'search' },
+    { key: 'messages', label: 'Messages', icon: 'message' },
+    { key: 'users', label: 'Agents', icon: 'users' },
+    { key: 'children', label: 'Enfants', icon: 'child' },
+    { key: 'channels', label: 'Canaux', icon: 'hash' },
+    { key: 'projects', label: 'Projets', icon: 'folder' },
   ]
 
   // Debounced multi-category search across real backend data
@@ -1694,23 +1710,23 @@ function EclatSocialApp({ user, onReturn }) {
       try {
         if (wants('users')) {
           esUsers.filter(u => (u.full_name || `${u.first_name} ${u.last_name}`).toLowerCase().includes(ql) || (u.email || '').toLowerCase().includes(ql))
-            .slice(0, 6).forEach(u => results.push({ type: 'users', id: `u${u.id}`, title: u.full_name || `${u.first_name} ${u.last_name}`.trim(), subtitle: esRoleLabel(u.role), icon: '👤', hue: (u.first_name || 'U').charCodeAt(0) * 37 % 360, initials: ((u.first_name?.[0] || '') + (u.last_name?.[0] || '')).toUpperCase() }))
+            .slice(0, 6).forEach(u => results.push({ type: 'users', id: `u${u.id}`, title: u.full_name || `${u.first_name} ${u.last_name}`.trim(), subtitle: esRoleLabel(u.role), icon: 'user', hue: (u.first_name || 'U').charCodeAt(0) * 37 % 360, initials: ((u.first_name?.[0] || '') + (u.last_name?.[0] || '')).toUpperCase() }))
         }
         if (wants('channels')) {
           esChannels.filter(c => c.name.toLowerCase().includes(ql) || (c.description || '').toLowerCase().includes(ql))
-            .slice(0, 5).forEach(c => results.push({ type: 'channels', id: `ch-${c.slug}`, title: c.name, subtitle: c.description || 'Canal', icon: c.icon, channel: c }))
+            .slice(0, 5).forEach(c => results.push({ type: 'channels', id: `ch-${c.slug}`, title: c.name, subtitle: c.description || 'Canal', icon: esChannelIconName(c), channel: c }))
         }
         if (wants('messages')) {
           esConversations.filter(c => { const o = c.participants?.find(p => p.id !== user?.id) || c.participants?.[0]; const nm = o ? `${o.first_name || ''} ${o.last_name || ''}` : ''; return nm.toLowerCase().includes(ql) || (c.last_message?.content || '').toLowerCase().includes(ql) })
-            .slice(0, 5).forEach(c => { const o = c.participants?.find(p => p.id !== user?.id) || c.participants?.[0]; results.push({ type: 'messages', id: `c${c.id}`, title: o ? `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email : `Conversation #${c.id}`, subtitle: c.last_message?.content?.slice(0, 40) || 'Conversation', icon: '💬', conv: c }) })
+            .slice(0, 5).forEach(c => { const o = c.participants?.find(p => p.id !== user?.id) || c.participants?.[0]; results.push({ type: 'messages', id: `c${c.id}`, title: o ? `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email : `Conversation #${c.id}`, subtitle: c.last_message?.content?.slice(0, 40) || 'Conversation', icon: 'message', conv: c }) })
         }
         if (wants('children')) {
           const res = await apiFetch(`${API}/enfants/?search=${encodeURIComponent(q)}`, {}, onReturn)
-          if (res && res.ok) { const data = await res.json(); (Array.isArray(data) ? data : (data.results || [])).slice(0, 6).forEach(ch => results.push({ type: 'children', id: `ch${ch.id || ch.uid}`, title: `${ch.first_name || ''} ${ch.last_name || ''}`.trim() || ch.uid, subtitle: ch.uid ? `Code ${ch.uid}` : 'Enfant enregistré', icon: '🧒' })) }
+          if (res && res.ok) { const data = await res.json(); (Array.isArray(data) ? data : (data.results || [])).slice(0, 6).forEach(ch => results.push({ type: 'children', id: `ch${ch.id || ch.uid}`, title: `${ch.first_name || ''} ${ch.last_name || ''}`.trim() || ch.uid, subtitle: ch.uid ? `Code ${ch.uid}` : 'Enfant enregistré', icon: 'child' })) }
         }
         if (wants('projects')) {
           const res = await apiFetch(`${API}/projets/?search=${encodeURIComponent(q)}`, {}, onReturn)
-          if (res && res.ok) { const data = await res.json(); (Array.isArray(data) ? data : (data.results || [])).filter(p => (p.title || p.name || '').toLowerCase().includes(ql)).slice(0, 5).forEach(p => results.push({ type: 'projects', id: `p${p.id}`, title: p.title || p.name || `Projet #${p.id}`, subtitle: p.status || 'Projet', icon: '📁' })) }
+          if (res && res.ok) { const data = await res.json(); (Array.isArray(data) ? data : (data.results || [])).filter(p => (p.title || p.name || '').toLowerCase().includes(ql)).slice(0, 5).forEach(p => results.push({ type: 'projects', id: `p${p.id}`, title: p.title || p.name || `Projet #${p.id}`, subtitle: p.status || 'Projet', icon: 'folder' })) }
         }
       } catch (_) { /* graceful */ }
       setEsSearchResults(results)
@@ -1744,12 +1760,12 @@ function EclatSocialApp({ user, onReturn }) {
   }[role] || 'Agent')
 
   const ES_VIEW_META = {
-    home: { label: 'Accueil', channel: 'Fil public', icon: '🏠' },
-    profil: { label: 'Profil', channel: 'Mon profil', icon: '👤' },
-    messages: { label: 'Messages', channel: 'Messagerie directe', icon: '💬' },
-    notifs: { label: 'Notifications', channel: 'Centre de notifications', icon: '🔔' },
-    settings: { label: 'Paramètres', channel: 'Préférences', icon: '⚙️' },
-    channel: { label: 'Canal', channel: 'Canal', icon: '#' },
+    home: { label: 'Accueil', channel: 'Fil public', icon: 'home' },
+    profil: { label: 'Profil', channel: 'Mon profil', icon: 'user' },
+    messages: { label: 'Messages', channel: 'Messagerie directe', icon: 'message' },
+    notifs: { label: 'Notifications', channel: 'Centre de notifications', icon: 'bell' },
+    settings: { label: 'Paramètres', channel: 'Préférences', icon: 'settings' },
+    channel: { label: 'Canal', channel: 'Canal', icon: 'hash' },
   }
 
   // Fil Accueil paginé (15 par page) avec « Charger plus » infini.
@@ -1928,6 +1944,87 @@ function EclatSocialApp({ user, onReturn }) {
       setEsPosts(prev => prev.map(p => p.id === esSelectedPost.id ? { ...p, comments_count: (p.comments_count || 0) + 1 } : p))
     }
   }
+
+  // ── Commentaires inline (feed) ────────────────────────────────────
+  const esLoadPostComments = (postId) => {
+    setEsCommentsState(s => ({ ...s, [postId]: 'loading' }))
+    apiFetch(`${API}/posts/${postId}/comments/`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        setEsCommentsByPost(m => ({ ...m, [postId]: Array.isArray(data) ? data : (data.results || []) }))
+        setEsCommentsState(s => ({ ...s, [postId]: 'ready' }))
+      })
+      .catch(() => setEsCommentsState(s => ({ ...s, [postId]: 'error' })))
+  }
+
+  const esToggleComments = (postId) => {
+    setEsOpenComments(prev => {
+      const next = new Set(prev)
+      if (next.has(postId)) { next.delete(postId) }
+      else { next.add(postId); if (!esCommentsByPost[postId]) esLoadPostComments(postId) }
+      return next
+    })
+  }
+
+  const esSubmitComment = async (postId, { content, files = [] }) => {
+    let options
+    if (files.length > 0) {
+      const fd = new FormData()
+      if (content) fd.append('content', content)
+      files.forEach(f => fd.append('files', f))
+      options = { method: 'POST', body: fd }
+    } else {
+      options = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) }
+    }
+    const res = await apiFetch(`${API}/posts/${postId}/comments/`, options, onReturn)
+    if (res && res.ok) {
+      const comment = await res.json()
+      setEsCommentsByPost(m => ({ ...m, [postId]: [...(m[postId] || []), comment] }))
+      setEsPosts(prev => prev.map(p => p.id === postId ? { ...p, comments_count: (p.comments_count || 0) + 1 } : p))
+      return true
+    }
+    if (res) { const e = await res.json().catch(() => null); if (e?.error) alert(e.error) }
+    return false
+  }
+
+  const esEditComment = async (postId, commentId, content) => {
+    const res = await apiFetch(`${API}/posts/${postId}/comments/${commentId}/`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content })
+    }, onReturn)
+    if (res && res.ok) {
+      const updated = await res.json()
+      setEsCommentsByPost(m => ({ ...m, [postId]: (m[postId] || []).map(c => c.id === commentId ? updated : c) }))
+      return true
+    }
+    return false
+  }
+
+  const esDeleteComment = async (postId, commentId) => {
+    const res = await apiFetch(`${API}/posts/${postId}/comments/${commentId}/`, { method: 'DELETE' }, onReturn)
+    if (res && (res.ok || res.status === 204)) {
+      setEsCommentsByPost(m => ({ ...m, [postId]: (m[postId] || []).filter(c => c.id !== commentId) }))
+      setEsPosts(prev => prev.map(p => p.id === postId ? { ...p, comments_count: Math.max(0, (p.comments_count || 1) - 1) } : p))
+    }
+  }
+
+  // ── Qui a aimé ────────────────────────────────────────────────────
+  const esLoadPostLikes = (postId) => apiFetch(`${API}/posts/${postId}/likes/`, {}, onReturn)
+    .then(r => r && r.ok ? r.json() : Promise.reject())
+    .then(d => d.users || [])
+
+  // ── Partage (analytics temps réel) ────────────────────────────────
+  const esRecordShare = async (postId, { method, destination }) => {
+    const res = await apiFetch(`${API}/posts/${postId}/share/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ method, destination })
+    }, onReturn)
+    if (res && res.ok) {
+      const data = await res.json()
+      setEsPosts(prev => prev.map(p => p.id === postId ? { ...p, shares_count: data.shares_count, is_shared: true } : p))
+    }
+  }
+
+  const esIsModerator = ['supermaster', 'admin', 'federation'].includes(user?.role)
 
   // Conversations chargées au montage (sidebar) et rafraîchies sur la vue Messages
   React.useEffect(() => {
@@ -2122,12 +2219,12 @@ function EclatSocialApp({ user, onReturn }) {
             </span>
           </div>
           <nav className="es-breadcrumb" aria-label="Fil d'ariane">
-            <span className="es-crumb es-crumb-ws">🏛️ Fédération</span>
+            <span className="es-crumb es-crumb-ws"><EsIcon name="landmark" size={13} /> Fédération</span>
             <svg className="es-crumb-sep" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
             <span className="es-crumb es-crumb-active">
               {esView === 'channel' && esActiveChannel
                 ? <><EsIcon name={esChannelIconName(esActiveChannel)} size={13} /> {meta.channel}</>
-                : <>{meta.icon} {meta.channel}</>}
+                : <><EsIcon name={meta.icon} size={13} /> {meta.channel}</>}
             </span>
           </nav>
         </div>
@@ -2136,7 +2233,7 @@ function EclatSocialApp({ user, onReturn }) {
         <div className="es-search" ref={esSearchRef}>
           <div className={`es-search-box${esSearchOpen ? ' focused' : ''}`}>
             <button className="es-search-filter" onClick={() => setEsFilterOpen(o => !o)} aria-haspopup="listbox" aria-expanded={esFilterOpen} title="Filtrer la recherche">
-              <span className="es-search-filter-icon">{activeFilter.icon}</span>
+              <span className="es-search-filter-icon"><EsIcon name={activeFilter.icon} size={15} /></span>
               <span className="es-search-filter-label">{activeFilter.label}</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
             </button>
@@ -2161,7 +2258,7 @@ function EclatSocialApp({ user, onReturn }) {
                 <button key={f.key} role="option" aria-selected={esSearchType === f.key}
                   className={`es-search-filter-opt${esSearchType === f.key ? ' active' : ''}`}
                   onClick={() => { setEsSearchType(f.key); setEsFilterOpen(false); if (esSearchQuery) setEsSearchOpen(true) }}>
-                  <span>{f.icon}</span> {f.label}
+                  <span><EsIcon name={f.icon} size={15} /></span> {f.label}
                   {esSearchType === f.key && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto' }}><path d="M20 6L9 17l-5-5"/></svg>}
                 </button>
               ))}
@@ -2180,7 +2277,7 @@ function EclatSocialApp({ user, onReturn }) {
                 esSearchResults.map(r => (
                   <button key={r.id} className="es-search-result" onClick={() => esOpenSearchResult(r)}>
                     <span className="es-result-ava" style={r.hue != null ? { background: `hsl(${r.hue},55%,50%)`, color: '#fff' } : {}}>
-                      {r.initials || r.icon}
+                      {r.initials || <EsIcon name={r.icon} size={17} />}
                     </span>
                     <span className="es-result-body">
                       <span className="es-result-title">{r.title}</span>
@@ -2388,7 +2485,7 @@ function EclatSocialApp({ user, onReturn }) {
         )}
 
         <div className="es-sidebar-bottom">
-          <button className="es-return-btn" onClick={onReturn}>← Retourner au dashboard</button>
+          <button className="es-return-btn" onClick={onReturn} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><path d='M19 12H5'/><path d='m12 19-7-7 7-7'/></svg> Retourner au dashboard</button>
         </div>
       </aside>
 
@@ -2673,7 +2770,7 @@ function EclatSocialApp({ user, onReturn }) {
           {/* WORKFLOW NOTICE (after a director submits) */}
           {esPostNotice && (
             <div style={{ marginBottom: '20px', background: 'linear-gradient(135deg,#eef2ff,#faf5ff)', border: '1px solid #c7d2fe', borderRadius: '14px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '22px' }}>📨</span>
+              <span style={{ fontSize: '22px', color: '#4338ca', display: 'inline-flex' }}><EsIcon name='inbox' size={22} /></span>
               <span style={{ fontSize: '13.5px', color: '#4338ca', fontWeight: 500 }}>{esPostNotice}</span>
             </div>
           )}
@@ -2682,7 +2779,7 @@ function EclatSocialApp({ user, onReturn }) {
           {esIsReviewer && esPendingReview.length > 0 && (
             <div style={{ marginBottom: '24px', background: 'linear-gradient(135deg,#fffbeb,#fef3c7)', border: '1px solid #fcd34d', borderRadius: '16px', padding: '18px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                <span style={{ fontSize: '18px' }}>🛡️</span>
+                <span style={{ fontSize: '18px', color: '#92400E', display: 'inline-flex' }}><EsIcon name='shield' size={18} /></span>
                 <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#92400E', margin: 0 }}>File de validation ({esPendingReview.length})</h3>
               </div>
               {esPendingReview.map(post => {
@@ -2698,7 +2795,7 @@ function EclatSocialApp({ user, onReturn }) {
                     </div>
                     {ci && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: '#f8fafc', borderRadius: '9px', marginBottom: '10px', border: '1px solid #eef2f7' }}>
-                        <span style={{ width: 32, height: 32, borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: '#e0e7ff', display: 'grid', placeItems: 'center', fontSize: '14px' }}>{ci.photo ? <img src={ci.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🧒'}</span>
+                        <span style={{ width: 32, height: 32, borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: '#e0e7ff', display: 'grid', placeItems: 'center', fontSize: '14px' }}>{ci.photo ? <img src={ci.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <EsIcon name='child' size={16} />}</span>
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#1e293b' }}>{ci.name} <span style={{ color: '#94a3b8', fontWeight: 400 }}>· {ci.uid}</span></div>
                           <div style={{ fontSize: '11px', color: '#64748b' }}>{ci.orphanage || 'Orphelinat'}</div>
@@ -2721,9 +2818,9 @@ function EclatSocialApp({ user, onReturn }) {
                       </div>
                     ) : (
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        <button onClick={() => esReviewPost(post.id, 'approved')} style={{ background: '#10B981', color: '#fff', border: 'none', padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}>✓ Approuver &amp; publier</button>
-                        <button onClick={() => { setEsReviewReasonFor({ id: post.id, action: 'needs_changes' }); setEsReviewReason('') }} style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}>✎ Demander une modification</button>
-                        <button onClick={() => { setEsReviewReasonFor({ id: post.id, action: 'rejected' }); setEsReviewReason('') }} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}>✕ Rejeter</button>
+                        <button onClick={() => esReviewPost(post.id, 'approved')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#10B981', color: '#fff', border: 'none', padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}><EsIcon name='check' size={14} /> Approuver &amp; publier</button>
+                        <button onClick={() => { setEsReviewReasonFor({ id: post.id, action: 'needs_changes' }); setEsReviewReason('') }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}><EsIcon name='pencil' size={14} /> Demander une modification</button>
+                        <button onClick={() => { setEsReviewReasonFor({ id: post.id, action: 'rejected' }); setEsReviewReason('') }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}><EsIcon name='x' size={14} /> Rejeter</button>
                       </div>
                     )}
                   </div>
@@ -2736,22 +2833,22 @@ function EclatSocialApp({ user, onReturn }) {
           {esIsDirector && esMyPosts.length > 0 && (
             <div style={{ marginBottom: '24px', background: 'var(--bg-card,#fff)', border: '1px solid var(--border-card,#e2e8f0)', borderRadius: '16px', padding: '18px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                <span style={{ fontSize: '18px' }}>📋</span>
+                <span style={{ fontSize: '18px', color: 'var(--text-heading,#0f172a)', display: 'inline-flex' }}><EsIcon name='clipboard' size={18} /></span>
                 <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading,#0f172a)', margin: 0 }}>Mes soumissions</h3>
               </div>
               {esMyPosts.map(post => {
                 const badge = {
-                  pending: { bg: '#fef3c7', fg: '#92400e', label: '⏳ En attente de validation' },
-                  needs_changes: { bg: '#ffedd5', fg: '#c2410c', label: '✎ Modifications demandées' },
-                  rejected: { bg: '#fee2e2', fg: '#dc2626', label: '✕ Refusée' },
-                }[post.status] || { bg: '#e2e8f0', fg: '#475569', label: post.status }
+                  pending: { bg: '#fef3c7', fg: '#92400e', icon: 'clock', label: 'En attente de validation' },
+                  needs_changes: { bg: '#ffedd5', fg: '#c2410c', icon: 'pencil', label: 'Modifications demandées' },
+                  rejected: { bg: '#fee2e2', fg: '#dc2626', icon: 'x', label: 'Refusée' },
+                }[post.status] || { bg: '#e2e8f0', fg: '#475569', icon: 'clock', label: post.status }
                 return (
                   <div key={post.id} style={{ padding: '13px', border: '1px solid var(--border-card,#eef2f7)', borderRadius: '12px', marginBottom: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: badge.fg, background: badge.bg, padding: '4px 10px', borderRadius: '20px' }}>{badge.label}</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', fontWeight: 700, color: badge.fg, background: badge.bg, padding: '4px 10px', borderRadius: '20px' }}><EsIcon name={badge.icon} size={13} /> {badge.label}</span>
                       <span style={{ fontSize: '11px', color: '#94a3b8' }}>{esTimeAgo(post.created_at)}</span>
                     </div>
-                    {post.child_info && <div style={{ fontSize: '12px', color: '#6366f1', fontWeight: 600, marginBottom: '4px' }}>🧒 {post.child_info.name} · {post.child_info.uid}{post.review_ambassador_name ? ` → ${post.review_ambassador_name}` : ''}</div>}
+                    {post.child_info && <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#6366f1', fontWeight: 600, marginBottom: '4px' }}><EsIcon name="child" size={13} /> {post.child_info.name} · {post.child_info.uid}{post.review_ambassador_name ? ` → ${post.review_ambassador_name}` : ''}</div>}
                     <p style={{ fontSize: '13.5px', color: 'var(--text-body,#334155)', margin: '0 0 6px', lineHeight: 1.5 }}>{post.content}</p>
                     {(post.status === 'rejected' || post.status === 'needs_changes') && post.rejection_reason && (
                       <div style={{ fontSize: '12.5px', color: badge.fg, background: badge.bg, padding: '8px 11px', borderRadius: '9px', marginTop: '6px' }}>
@@ -2778,12 +2875,12 @@ function EclatSocialApp({ user, onReturn }) {
                   <div className="es-post-header">
                     <img src={postAvatar} alt={post.author_name} className="es-avatar-sm" />
                     <div className="es-post-meta">
-                      <span className="es-post-author">{post.author_name}</span>
+                      <span className="es-post-author">{post.author_id === user?.id ? 'Vous' : post.author_name}</span>
                       <span className="es-author-time">{esTimeAgo(post.created_at)}{post.location ? ` · ${post.location}` : ''}</span>
                     </div>
-                    <button className="es-post-options" onClick={e => { e.stopPropagation(); esHandleShare(post) }}>···</button>
+                    <button className="es-post-options" onClick={e => { e.stopPropagation(); esHandleShare(post) }} aria-label="Options">···</button>
                   </div>
-                  <div className="es-post-content" onClick={() => openPostDetail(post)}>
+                  <div className="es-post-content">
                     <p>{post.content}</p>
                     {media && (
                       media.media_type === 'video' ? (
@@ -2799,23 +2896,42 @@ function EclatSocialApp({ user, onReturn }) {
                     )}
                   </div>
                   <div className="es-post-stats">
-                    <span className="es-stat-likes">{post.likes_count > 0 ? `👍 ${post.likes_count}` : ''}</span>
+                    {post.likes_count > 0
+                      ? <button className="es-stat-likes es-stat-link" onClick={() => setEsLikesModal(post.id)} aria-label={`Voir qui a aimé (${post.likes_count})`}>{post.likes_count} j'aime</button>
+                      : <span className="es-stat-likes" />}
                     <span>{post.comments_count > 0 ? `${post.comments_count} commentaire${post.comments_count > 1 ? 's' : ''}` : ''} {post.shares_count > 0 ? ` · ${post.shares_count} partage${post.shares_count > 1 ? 's' : ''}` : ''}</span>
                   </div>
                   <div className="es-post-actions-bar">
-                    <button className={`es-action-btn ${post.is_liked ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); esToggleLike(post.id) }} aria-label="J'aime" title="J'aime">
+                    <button className={`es-action-btn ${post.is_liked ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); esToggleLike(post.id) }} aria-label="J'aime" aria-pressed={post.is_liked} title="J'aime">
                       <EsIcon name="thumbUp" size={19} />
                     </button>
-                    <button className={`es-action-btn ${post.is_disliked ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); esToggleDislike(post.id) }} aria-label="Je n'aime pas" title="Je n'aime pas">
+                    <button className={`es-action-btn ${post.is_disliked ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); esToggleDislike(post.id) }} aria-label="Je n'aime pas" aria-pressed={post.is_disliked} title="Je n'aime pas">
                       <EsIcon name="thumbDown" size={19} />
                     </button>
-                    <button className="es-action-btn" onClick={() => openPostDetail(post)} aria-label="Commenter" title="Commenter">
+                    <button className={`es-action-btn ${esOpenComments.has(post.id) ? 'active' : ''}`} onClick={() => esToggleComments(post.id)} aria-label="Commenter" aria-expanded={esOpenComments.has(post.id)} title="Commenter">
                       <EsIcon name="message" size={19} />
                     </button>
-                    <button className="es-action-btn" onClick={(e) => { e.stopPropagation(); esHandleShare(post) }} aria-label="Partager" title="Partager">
+                    <button className={`es-action-btn ${post.is_shared ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); esHandleShare(post) }} aria-label="Partager" title="Partager">
                       <EsIcon name="share" size={19} />
                     </button>
                   </div>
+                  {esOpenComments.has(post.id) && (
+                    <CommentThread
+                      post={post}
+                      user={user}
+                      comments={esCommentsByPost[post.id] || []}
+                      loading={esCommentsState[post.id] === 'loading'}
+                      error={esCommentsState[post.id] === 'error'}
+                      canModerate={esIsModerator}
+                      onSubmit={(payload) => esSubmitComment(post.id, payload)}
+                      onEdit={(cid, content) => esEditComment(post.id, cid, content)}
+                      onDelete={(cid) => esDeleteComment(post.id, cid)}
+                      onRetry={() => esLoadPostComments(post.id)}
+                      mediaUrl={esMediaUrl}
+                      roleLabel={esRoleLabel}
+                      avatarUrl={avatarSvg}
+                    />
+                  )}
                 </article>
               )
             })}
@@ -2857,23 +2973,23 @@ function EclatSocialApp({ user, onReturn }) {
       {/* MOBILE BOTTOM NAV */}
       <nav className="es-bottom-nav">
         <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => esNavigate('home')}>
-          <span className="es-nav-icon">🏠</span>
+          <span className="es-nav-icon"><EsIcon name="home" size={22} /></span>
           <span className="es-nav-label">Accueil</span>
         </button>
         <button className={esNavActive === 'search' ? 'active' : ''} onClick={() => esNavigate('search')}>
-          <span className="es-nav-icon">🔍</span>
+          <span className="es-nav-icon"><EsIcon name="search" size={22} /></span>
           <span className="es-nav-label">Explorer</span>
         </button>
         <button className="es-nav-publish" onClick={() => setEsModal('create')}>
-          <span className="es-nav-icon">+</span>
+          <span className="es-nav-icon"><EsIcon name="plus" size={22} /></span>
           <span className="es-nav-label">Publier</span>
         </button>
         <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => esNavigate('notifs')}>
-          <span className="es-nav-icon">🔔</span>
+          <span className="es-nav-icon"><EsIcon name="bell" size={22} /></span>
           <span className="es-nav-label">Notifs</span>
         </button>
         <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => esNavigate('profil')}>
-          <span className="es-nav-icon">👤</span>
+          <span className="es-nav-icon"><EsIcon name="user" size={22} /></span>
           <span className="es-nav-label">Profil</span>
         </button>
       </nav>
@@ -2883,12 +2999,12 @@ function EclatSocialApp({ user, onReturn }) {
         <div className="es-modal-overlay" onClick={() => setEsModal(null)}>
           <div className="es-create-modal" onClick={e => e.stopPropagation()}>
             <div className="es-modal-header">
-              <button className="es-close-btn" onClick={() => setEsModal(null)}>✕</button>
+              <button className="es-close-btn" onClick={() => setEsModal(null)} aria-label="Fermer"><EsIcon name='x' size={18} /></button>
               <h3>{esIsDirector ? 'Publier une information' : 'Créer une publication'}</h3>
               <button className="es-publish-btn" onClick={esCreatePost} disabled={esPosting || !esPostText.trim()}>{esPosting ? '…' : (esIsDirector && esSelectedChild ? 'Soumettre' : 'Publier')}</button>
             </div>
             <div className="es-create-tabs">
-              <button className="active">📝 Texte</button>
+              <button className="active"><EsIcon name='fileText' size={15} /> Texte</button>
             </div>
             <div className="es-create-input-area">
               <div className="es-post-author-row">
@@ -2906,17 +3022,17 @@ function EclatSocialApp({ user, onReturn }) {
                 <div style={{ margin: '4px 0 12px' }}>
                   {esSelectedChild ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '11px' }}>
-                      <span style={{ width: 34, height: 34, borderRadius: '9px', overflow: 'hidden', flexShrink: 0, background: '#e0e7ff', display: 'grid', placeItems: 'center', fontSize: '15px' }}>{esSelectedChild.photo ? <img src={esSelectedChild.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🧒'}</span>
+                      <span style={{ width: 34, height: 34, borderRadius: '9px', overflow: 'hidden', flexShrink: 0, background: '#e0e7ff', display: 'grid', placeItems: 'center', fontSize: '15px' }}>{esSelectedChild.photo ? <img src={esSelectedChild.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <EsIcon name='child' size={16} />}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: '#312e81' }}>{esChildName(esSelectedChild)}</div>
                         <div style={{ fontSize: '11.5px', color: '#6366f1' }}>{esSelectedChild.uid}</div>
                       </div>
-                      <button onClick={() => setEsSelectedChild(null)} style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+                      <button aria-label='Retirer' onClick={() => setEsSelectedChild(null)} style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', display: 'inline-flex' }}><EsIcon name='x' size={16} /></button>
                     </div>
                   ) : (
                     <div style={{ position: 'relative' }}>
                       <input value={esChildQuery} onChange={e => setEsChildQuery(e.target.value)}
-                        placeholder="🧒 Rechercher l'enfant concerné (nom ou code)…"
+                        placeholder="Rechercher l'enfant concerné (nom ou code)…"
                         style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '11px', border: '1px solid #e2e8f0', fontSize: '13.5px', outline: 'none', background: '#f8fafc' }} />
                       {esChildResults.length > 0 && (
                         <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 5, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '11px', boxShadow: '0 12px 30px rgba(15,23,42,0.14)', overflow: 'hidden', maxHeight: '220px', overflowY: 'auto' }}>
@@ -2924,7 +3040,7 @@ function EclatSocialApp({ user, onReturn }) {
                             <button key={ch.id || ch.uid} onClick={() => { setEsSelectedChild(ch); setEsChildQuery(''); setEsChildResults([]) }}
                               style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '9px 12px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
                               onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                              <span style={{ width: 30, height: 30, borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: '#e0e7ff', display: 'grid', placeItems: 'center', fontSize: '13px' }}>{ch.photo ? <img src={ch.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🧒'}</span>
+                              <span style={{ width: 30, height: 30, borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: '#e0e7ff', display: 'grid', placeItems: 'center', fontSize: '13px' }}>{ch.photo ? <img src={ch.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <EsIcon name='child' size={14} />}</span>
                               <div style={{ minWidth: 0 }}>
                                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>{esChildName(ch)}</div>
                                 <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>{ch.uid}</div>
@@ -2942,7 +3058,7 @@ function EclatSocialApp({ user, onReturn }) {
 
               {esIsDirector && esSelectedChild && (
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', marginTop: '12px', padding: '11px 13px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '11px' }}>
-                  <span style={{ fontSize: '16px' }}>🛡️</span>
+                  <span style={{ fontSize: '16px', color: '#6366f1', display: 'inline-flex' }}><EsIcon name='shield' size={16} /></span>
                   <span style={{ fontSize: '12.5px', color: '#92400e', lineHeight: 1.45 }}>Cette information ne sera <strong>pas publiée immédiatement</strong>. Elle sera envoyée à l'ambassadeur assigné à cet enfant pour validation.</span>
                 </div>
               )}
@@ -2956,9 +3072,9 @@ function EclatSocialApp({ user, onReturn }) {
         <div className="es-modal-overlay" onClick={() => { setEsModal(null); setEsSelectedPost(null) }}>
           <div className="es-post-modal" onClick={e => e.stopPropagation()}>
             <div className="es-modal-header">
-              <button className="es-back-btn" onClick={() => { setEsModal(null); setEsSelectedPost(null) }}>← Retour</button>
+              <button className="es-back-btn" onClick={() => { setEsModal(null); setEsSelectedPost(null) }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><svg width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><path d='M19 12H5'/><path d='m12 19-7-7 7-7'/></svg> Retour</button>
               <h3>{esSelectedPost.author_name}</h3>
-              <button className="es-more-btn">⋮</button>
+              <button className="es-more-btn" aria-label='Options'><svg width='18' height='18' viewBox='0 0 24 24' fill='currentColor'><circle cx='12' cy='5' r='1.6'/><circle cx='12' cy='12' r='1.6'/><circle cx='12' cy='19' r='1.6'/></svg></button>
             </div>
             <div className="es-modal-content">
               {/* LEFT: MEDIA */}
@@ -2983,7 +3099,7 @@ function EclatSocialApp({ user, onReturn }) {
                         </div>
                       )}
                       <div className="es-post-stats" style={{ padding: '10px 0 4px' }}>
-                        <span className="es-stat-likes">{esSelectedPost.likes_count > 0 ? `👍 ${esSelectedPost.likes_count}` : ''}</span>
+                        <span className="es-stat-likes">{esSelectedPost.likes_count > 0 ? esSelectedPost.likes_count : ''}</span>
                         <span>{esComments.length > 0 ? `${esComments.length} commentaire${esComments.length > 1 ? 's' : ''}` : ''} {esSelectedPost.shares_count > 0 ? ` · ${esSelectedPost.shares_count} partage${esSelectedPost.shares_count > 1 ? 's' : ''}` : ''}</span>
                       </div>
                       <div className="es-post-actions-bar" style={{ borderTop: '1px solid var(--border-card,#e2e8f0)', padding: '6px 0' }}>
@@ -3023,7 +3139,7 @@ function EclatSocialApp({ user, onReturn }) {
                 <div className="es-comment-input-area">
                   <img src={avatarSvg} alt="" className="es-comment-avatar" />
                   <input placeholder="Écrire un commentaire..." value={esCommentInput} onChange={e => setEsCommentInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && esSendComment()} />
-                  <button className="es-send-btn" onClick={esSendComment}>➤</button>
+                  <button className="es-send-btn" onClick={esSendComment} aria-label='Envoyer'><EsIcon name='send' size={17} /></button>
                 </div>
               </div>
             </div>
@@ -3033,40 +3149,28 @@ function EclatSocialApp({ user, onReturn }) {
 
       {/* SHARE MODAL — Facebook-style */}
       {esShareModal && esSharePost && (
-        <div className="es-modal-overlay" onClick={() => { setEsShareModal(false); setEsSharePost(null) }}>
-          <div className="es-share-modal" onClick={e => e.stopPropagation()}>
-            <div className="es-share-header">
-              <h3>Partager</h3>
-              <button className="es-share-close" onClick={() => { setEsShareModal(false); setEsSharePost(null) }}>✕</button>
-            </div>
-            <div className="es-share-body">
-              <div className="es-share-preview">
-                <div className="es-share-preview-header">
-                  <span className="es-share-preview-icon">📄</span>
-                  <div>
-                    <div className="es-share-preview-name">{esSharePost.author_name}</div>
-                    <div className="es-share-preview-time">{esTimeAgo(esSharePost.created_at)}</div>
-                  </div>
-                </div>
-                <p className="es-share-preview-text">{esSharePost.content}</p>
-              </div>
-              <button className="es-share-option" onClick={esShareToFeed}>
-                <span className="es-share-option-icon">📝</span>
-                <div>
-                  <div className="es-share-option-title">Partager sur votre fil</div>
-                  <div className="es-share-option-desc">Publier cette information sur votre propre fil d'actualité</div>
-                </div>
-              </button>
-              <button className="es-share-option" onClick={esCopyShareLink}>
-                <span className="es-share-option-icon">🔗</span>
-                <div>
-                  <div className="es-share-option-title">Copier le lien</div>
-                  <div className="es-share-option-desc">Copier l'adresse de cette publication dans le presse-papier</div>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
+        <ShareDialog
+          post={esSharePost}
+          shareUrl={`${window.location.origin}/communication/post/${esSharePost.id}`}
+          channels={esChannels}
+          conversations={esConversations}
+          users={esUsers}
+          currentUserId={user?.id}
+          roleLabel={esRoleLabel}
+          avatarUrl={avatarSvg}
+          onShare={(payload) => esRecordShare(esSharePost.id, payload)}
+          onClose={() => { setEsShareModal(false); setEsSharePost(null) }}
+        />
+      )}
+
+      {esLikesModal != null && (
+        <LikesPopover
+          title="J'aime"
+          roleLabel={esRoleLabel}
+          currentUserId={user?.id}
+          load={() => esLoadPostLikes(esLikesModal)}
+          onClose={() => setEsLikesModal(null)}
+        />
       )}
     </div>
   )

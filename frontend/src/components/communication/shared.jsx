@@ -1,6 +1,7 @@
 import React from 'react'
 import CIcon, { kindToIcon } from './icons'
 import './communication.css'
+import './social.css'
 
 export const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
 
@@ -68,11 +69,12 @@ export function ReactionChips({ reactions, onToggle }) {
 }
 
 /** Bloc citation d'un message répondu, style WhatsApp. */
-export function ReplyQuote({ reply, compact }) {
+export function ReplyQuote({ reply, compact, currentUserId }) {
   if (!reply) return null
+  const author = (currentUserId != null && reply.sender === currentUserId) ? 'Vous' : reply.sender_name
   return (
     <div className={`cmv2-quote${compact ? ' compact' : ''}`}>
-      <span className="cmv2-quote-author">{reply.sender_name}</span>
+      <span className="cmv2-quote-author">{author}</span>
       <span className="cmv2-quote-text">
         {reply.kind && reply.kind !== 'text' && <KindIcon kind={reply.kind} size={13} />}
         {reply.content

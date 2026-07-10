@@ -7,12 +7,15 @@ import CIcon from './icons'
 import ComposerTools from './ComposerTools'
 
 /**
- * Fil de conversation privée façon WhatsApp : bulles avec queue, groupage
- * par expéditeur, séparateurs de date, citation de réponse, accusés ✓/✓✓
- * (bleu = lu), réactions (survol / clic droit / appui long), pièces jointes,
- * chargement d'historique par le haut, glissement pour sélectionner + barre
- * d'actions contextuelle (répondre / réagir / copier / transférer / supprimer),
- * suppression pour moi et pour tout le monde.
+ * Fil de conversation privée façon WhatsApp.
+ *
+ * Interaction (identique à WhatsApp) :
+ *  - un CLIC sur un message ne fait RIEN (pas de sélection, pas de carte) ;
+ *  - GLISSER un message (souris ou doigt) vers la droite = RÉPONDRE (une flèche
+ *    de réponse apparaît pendant le glissement, la bulle revient à sa place) ;
+ *  - au SURVOL (desktop), une mini-barre flottante apparaît : réagir / répondre
+ *    / plus (menu : copier, transférer, supprimer) ;
+ *  - APPUI LONG (mobile) = ouvre le sélecteur de réaction.
  */
 export default function ChatThread({
   conversation, other, messages, user,
@@ -23,11 +26,11 @@ export default function ChatThread({
   const [files, setFiles] = React.useState([])
   const [replyTo, setReplyTo] = React.useState(null)
   const [sending, setSending] = React.useState(false)
-  const [pickerFor, setPickerFor] = React.useState(null)
-  const [selected, setSelected] = React.useState(null)   // message sélectionné (barre d'action)
-  const [swipeId, setSwipeId] = React.useState(null)     // bulle en cours de glissement
+  const [pickerFor, setPickerFor] = React.useState(null) // bulle : sélecteur d'émoji ouvert
+  const [menuFor, setMenuFor] = React.useState(null)      // bulle : menu « plus » ouvert
+  const [swipeId, setSwipeId] = React.useState(null)      // bulle en cours de glissement
   const [swipeDx, setSwipeDx] = React.useState(0)
-  const [deleteFor, setDeleteFor] = React.useState(null) // message ciblé par le dialogue de suppression
+  const [deleteFor, setDeleteFor] = React.useState(null)  // message ciblé par la suppression
   const [loadingOlder, setLoadingOlder] = React.useState(false)
   const [noMore, setNoMore] = React.useState(false)
   const [hiddenIds, setHiddenIds] = React.useState(() => loadHidden(conversation?.id))
@@ -36,9 +39,12 @@ export default function ChatThread({
   const stickBottomRef = React.useRef(true)
   const longPressRef = React.useRef(null)
   const swipeStartRef = React.useRef(null)
+  const swipedRef = React.useRef(false)
+
+  const SWIPE_TRIGGER = 52 // px avant de déclencher la réponse
 
   React.useEffect(() => {
-    setInput(''); setFiles([]); setReplyTo(null); setPickerFor(null); setSelected(null); setNoMore(false)
+    setInput(''); setFiles([]); setReplyTo(null); setPickerFor(null); setMenuFor(null); setNoMore(false)
     setHiddenIds(loadHidden(conversation?.id))
     stickBottomRef.current = true
   }, [conversation?.id])
@@ -47,6 +53,14 @@ export default function ChatThread({
     const el = threadRef.current
     if (el && stickBottomRef.current) el.scrollTop = el.scrollHeight
   }, [messages])
+
+  // fermer le menu « plus » au clic extérieur
+  React.useEffect(() => {
+    if (menuFor == null) return
+    const close = () => setMenuFor(null)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [menuFor])
 
   const onScroll = async (e) => {
     const el = e.currentTarget
@@ -72,7 +86,11 @@ export default function ChatThread({
     if (ok) { setInput(''); setFiles([]); setReplyTo(null); inputRef.current?.focus() }
   }
 
-  const senderNameOf = (msg) => msg.sender?.full_name || `${msg.sender?.first_name || ''} ${msg.sender?.last_name || ''}`.trim() || 'Message'
+  const senderNameOf = (msg) => {
+    const sid = msg.sender?.id ?? msg.sender
+    if (sid === user?.id) return 'Vous'
+    return msg.sender?.full_name || `${msg.sender?.first_name || ''} ${msg.sender?.last_name || ''}`.trim() || 'Message'
+  }
 
   const startReply = (msg) => {
     setReplyTo({
@@ -80,78 +98,69 @@ export default function ChatThread({
       kind: msg.attachments?.[0]?.kind || 'text',
       attachment_name: msg.attachments?.[0]?.name || '',
     })
-    setSelected(null)
+    setPickerFor(null); setMenuFor(null)
     inputRef.current?.focus()
   }
 
   const copyMsg = async (msg) => {
     try { await navigator.clipboard.writeText(msg.content || msg.attachments?.[0]?.name || '') } catch {}
-    setSelected(null)
+    setMenuFor(null)
   }
 
   const hideForMe = (msg) => {
     const next = new Set(hiddenIds); next.add(msg.id)
-    setHiddenIds(next); saveHidden(conversation?.id, next); setDeleteFor(null); setSelected(null)
+    setHiddenIds(next); saveHidden(conversation?.id, next); setDeleteFor(null)
   }
   const deleteForEveryone = async (msg) => {
-    setDeleteFor(null); setSelected(null)
+    setDeleteFor(null)
     await onDelete?.(msg.id)
   }
 
-  // appui long (mobile) → sélection
-  const touchStart = (id) => { longPressRef.current = setTimeout(() => setSelected(id), 450) }
+  // appui long (mobile) → sélecteur de réaction (pas de sélection/carte)
+  const touchStart = (id) => { longPressRef.current = setTimeout(() => setPickerFor(id), 420) }
   const clearLong = () => clearTimeout(longPressRef.current)
 
-  // glissement horizontal → sélectionne (WhatsApp)
-  const onPointerDown = (e, id) => { swipeStartRef.current = { x: e.clientX, id } }
+  // glissement horizontal → RÉPONDRE (façon WhatsApp). On capture le pointeur
+  // sur la bulle pour un suivi fiable même si le curseur en sort.
+  const dxRef = React.useRef(0)
+  const onPointerDown = (e, id) => {
+    if (e.button != null && e.button !== 0) return          // clic gauche/tactile uniquement
+    if (e.target.closest('button, a')) return               // ignorer les actions
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
+    swipeStartRef.current = { x: e.clientX, id }
+    dxRef.current = 0
+    swipedRef.current = false
+  }
   const onPointerMove = (e) => {
     if (!swipeStartRef.current) return
-    const dx = e.clientX - swipeStartRef.current.x
-    if (Math.abs(dx) > 6) { setSwipeId(swipeStartRef.current.id); setSwipeDx(Math.max(-80, Math.min(80, dx))) }
+    const dx = Math.max(0, Math.min(90, e.clientX - swipeStartRef.current.x)) // glissement vers la droite
+    dxRef.current = dx
+    if (dx > 3) { setSwipeId(swipeStartRef.current.id); setSwipeDx(dx) }
   }
-  const onPointerUp = () => {
-    if (swipeStartRef.current && Math.abs(swipeDx) > 48) setSelected(swipeStartRef.current.id)
-    swipeStartRef.current = null; setSwipeId(null); setSwipeDx(0)
+  const endSwipe = () => {
+    if (swipeStartRef.current && dxRef.current > SWIPE_TRIGGER) {
+      const msg = messages.find(m => m.id === swipeStartRef.current.id)
+      if (msg) { swipedRef.current = true; startReply(msg) }
+    }
+    swipeStartRef.current = null; dxRef.current = 0; setSwipeId(null); setSwipeDx(0)
   }
 
   const otherName = other ? `${other.first_name || ''} ${other.last_name || ''}`.trim() || other.email : ''
   const visible = messages.filter(m => !hiddenIds.has(m.id))
-  const selectedMsg = visible.find(m => m.id === selected)
 
   return (
     <div className="cmv2-chat">
-      {/* ── En-tête / barre d'action contextuelle ── */}
-      {selectedMsg ? (
-        <header className="cmv2-chat-head cmv2-actionbar" role="toolbar" aria-label="Actions sur le message">
-          <button className="cmv2-actionbar-btn" onClick={() => setSelected(null)} aria-label="Fermer la sélection"><CIcon name="x" size={19} /></button>
-          <span className="cmv2-actionbar-count">1 sélectionné</span>
-          <span style={{ flex: 1 }} />
-          <button className="cmv2-actionbar-btn" onClick={() => startReply(selectedMsg)} aria-label="Répondre"><CIcon name="reply" size={19} /></button>
-          <div style={{ position: 'relative' }}>
-            <button className="cmv2-actionbar-btn" onClick={() => setPickerFor(p => p === selectedMsg.id ? null : selectedMsg.id)} aria-label="Réagir"><CIcon name="smile" size={19} /></button>
-            {pickerFor === selectedMsg.id && (
-              <ReactionPicker mine={selectedMsg.reactions?.find(r => r.me)?.emoji}
-                onPick={(em) => { onReact(selectedMsg.id, em); setPickerFor(null); setSelected(null) }}
-                onClose={() => setPickerFor(null)} />
-            )}
-          </div>
-          <button className="cmv2-actionbar-btn" onClick={() => copyMsg(selectedMsg)} aria-label="Copier"><CIcon name="copy" size={19} /></button>
-          <button className="cmv2-actionbar-btn" onClick={() => { onForward?.(selectedMsg); setSelected(null) }} aria-label="Transférer"><CIcon name="forward" size={19} /></button>
-          <button className="cmv2-actionbar-btn danger" onClick={() => setDeleteFor(selectedMsg)} aria-label="Supprimer"><CIcon name="trash" size={19} /></button>
-        </header>
-      ) : (
-        <header className="cmv2-chat-head">
-          <img className="cmv2-ava" src={avatarUrl(other || {}, 42)} alt="" aria-hidden="true" />
-          <div className="cmv2-chat-head-info">
-            <span className="cmv2-chat-name">{otherName}</span>
-            <span className="cmv2-chat-role">{roleLabel(other?.role)}</span>
-          </div>
-        </header>
-      )}
+      {/* ── En-tête (toujours le contact, jamais de barre de sélection) ── */}
+      <header className="cmv2-chat-head">
+        <img className="cmv2-ava" src={avatarUrl(other || {}, 42)} alt="" aria-hidden="true" />
+        <div className="cmv2-chat-head-info">
+          <span className="cmv2-chat-name">{otherName}</span>
+          <span className="cmv2-chat-role">{roleLabel(other?.role)}</span>
+        </div>
+      </header>
 
       {/* ── Fil ── */}
       <div className="cmv2-thread" ref={threadRef} onScroll={onScroll}
-        onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}
         aria-label={`Conversation avec ${otherName}`}>
         {loadingOlder && <div className="cmv2-loading" role="status">Chargement de l'historique…</div>}
         {visible.length === 0 && <div className="cmv2-thread-empty">Aucun message. Dites bonjour 👋</div>}
@@ -163,20 +172,28 @@ export default function ChatThread({
           const prevDay = prev ? dayLabel(prev.created_at) : null
           const thisDay = dayLabel(msg.created_at)
           const hasReactions = msg.reactions && msg.reactions.length > 0
-          const isSel = selected === msg.id
           const dx = swipeId === msg.id ? swipeDx : 0
+          const reached = dx > SWIPE_TRIGGER
           return (
             <React.Fragment key={msg.id || i}>
               {thisDay !== prevDay && <div className="cmv2-day" role="separator">{thisDay}</div>}
-              <div className={`cmv2-brow${isMine ? ' me' : ''}${grouped ? ' grouped' : ''}${hasReactions ? ' has-reactions' : ''}${isSel ? ' selected' : ''}`}
-                onMouseLeave={() => setPickerFor(p => p === msg.id ? null : p)}>
+              <div className={`cmv2-brow${isMine ? ' me' : ''}${grouped ? ' grouped' : ''}${hasReactions ? ' has-reactions' : ''}`}
+                onMouseLeave={() => { setPickerFor(p => p === msg.id ? null : p) }}>
+                {/* indicateur de réponse par glissement */}
+                <span className={`cmv2-swipe-reply${reached ? ' reached' : ''}`}
+                  style={{ opacity: Math.min(1, dx / SWIPE_TRIGGER) }} aria-hidden="true">
+                  <CIcon name="reply" size={17} />
+                </span>
                 <div className={`cmv2-bubble${isMine ? ' me' : ''}${grouped ? ' grouped' : ''}`}
                   style={dx ? { transform: `translateX(${dx}px)` } : undefined}
-                  onContextMenu={(e) => { e.preventDefault(); setSelected(msg.id) }}
                   onPointerDown={(e) => onPointerDown(e, msg.id)}
+                  onPointerMove={onPointerMove}
+                  onPointerUp={endSwipe}
+                  onPointerCancel={endSwipe}
+                  onContextMenu={(e) => { e.preventDefault(); setPickerFor(msg.id) }}
                   onTouchStart={() => touchStart(msg.id)}
                   onTouchEnd={clearLong} onTouchMove={clearLong}>
-                  <ReplyQuote reply={msg.reply_to} compact />
+                  <ReplyQuote reply={msg.reply_to} compact currentUserId={user?.id} />
                   <AttachmentList attachments={msg.attachments} mediaUrl={mediaUrl} />
                   {msg.content && <span className="cmv2-bubble-text">{msg.content}</span>}
                   <span className="cmv2-bubble-meta">
@@ -189,11 +206,29 @@ export default function ChatThread({
                       </span>
                     )}
                   </span>
+
+                  {/* mini-barre au survol (desktop) */}
                   <span className={`cmv2-bubble-actions${isMine ? ' me' : ''}`}>
-                    <button onClick={() => setSelected(msg.id)} aria-label="Réagir" title="Réagir"><CIcon name="smile" size={16} /></button>
+                    <button onClick={() => setPickerFor(p => p === msg.id ? null : msg.id)} aria-label="Réagir" title="Réagir"><CIcon name="smile" size={16} /></button>
                     <button onClick={() => startReply(msg)} aria-label="Répondre" title="Répondre"><CIcon name="reply" size={16} /></button>
-                    <button onClick={() => setSelected(msg.id)} aria-label="Plus d'options" title="Plus"><CIcon name="more" size={16} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); setMenuFor(m => m === msg.id ? null : msg.id) }} aria-label="Plus d'options" title="Plus"><CIcon name="more" size={16} /></button>
                   </span>
+
+                  {/* sélecteur de réaction */}
+                  {pickerFor === msg.id && (
+                    <ReactionPicker mine={msg.reactions?.find(r => r.me)?.emoji}
+                      onPick={(em) => { onReact(msg.id, em); setPickerFor(null) }}
+                      onClose={() => setPickerFor(null)} />
+                  )}
+
+                  {/* menu « plus » : copier / transférer / supprimer */}
+                  {menuFor === msg.id && (
+                    <div className={`cmv2-msg-menu${isMine ? ' me' : ''}`} role="menu" onClick={e => e.stopPropagation()}>
+                      <button role="menuitem" onClick={() => copyMsg(msg)}><CIcon name="copy" size={16} /> Copier</button>
+                      <button role="menuitem" onClick={() => { onForward?.(msg); setMenuFor(null) }}><CIcon name="forward" size={16} /> Transférer</button>
+                      <button role="menuitem" className="danger" onClick={() => { setDeleteFor(msg); setMenuFor(null) }}><CIcon name="trash" size={16} /> Supprimer</button>
+                    </div>
+                  )}
                 </div>
                 <div className={`cmv2-bubble-reactions${isMine ? ' me' : ''}`}>
                   <ReactionChips reactions={msg.reactions} onToggle={(em) => onReact(msg.id, em)} />
