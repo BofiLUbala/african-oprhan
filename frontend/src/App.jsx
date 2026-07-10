@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { LangProvider, useTranslation } from './i18n'
 import SystemConfigurationPage from './components/SystemConfigurationPage'
 import UserManagementPage from './components/UserManagementPage'
@@ -1513,6 +1513,53 @@ function EclatSocialApp({ user, onReturn }) {
   const [esActiveConv, setEsActiveConv] = React.useState(null)
   const [esMessages, setEsMessages] = React.useState([])
   const [esUsers, setEsUsers] = React.useState([])
+
+  // Système de redimensionnement interactif pour les 3 panneaux principaux
+  const [panelWidths, setPanelWidths] = React.useState(() => {
+    try {
+      const saved = localStorage.getItem('es_panel_widths')
+      return saved ? JSON.parse(saved) : { sidebar: 280, list: 300 }
+    } catch (_) {
+      return { sidebar: 280, list: 300 }
+    }
+  })
+
+  const resizingRef = React.useRef(null) // 'sidebar' | 'list' | null
+
+  React.useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!resizingRef.current) return
+      if (resizingRef.current === 'sidebar') {
+        const newWidth = Math.max(180, Math.min(480, e.clientX - 24))
+        setPanelWidths(prev => {
+          const next = { ...prev, sidebar: newWidth }
+          localStorage.setItem('es_panel_widths', JSON.stringify(next))
+          return next
+        })
+      } else if (resizingRef.current === 'list') {
+        const sidebarEnd = 24 + panelWidths.sidebar + 24
+        const newWidth = Math.max(200, Math.min(600, e.clientX - sidebarEnd))
+        setPanelWidths(prev => {
+          const next = { ...prev, list: newWidth }
+          localStorage.setItem('es_panel_widths', JSON.stringify(next))
+          return next
+        })
+      }
+    }
+
+    const handleMouseUp = () => {
+      resizingRef.current = null
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [panelWidths.sidebar])
   const [esPosts, setEsPosts] = React.useState([])
   const [esPostText, setEsPostText] = React.useState('')
   const [esPosting, setEsPosting] = React.useState(false)
@@ -2359,7 +2406,8 @@ function EclatSocialApp({ user, onReturn }) {
 
       <div className="es-body">
       {/* LEFT SIDEBAR */}
-      <aside className="es-sidebar">
+      <aside className="es-sidebar" style={{ width: panelWidths.sidebar, minWidth: panelWidths.sidebar }}>
+
         <div className="es-logo-area">
           <span className="es-logo-mark" aria-hidden="true">
             <svg width="30" height="30" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2488,6 +2536,9 @@ function EclatSocialApp({ user, onReturn }) {
           <button className="es-return-btn" onClick={onReturn} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><path d='M19 12H5'/><path d='m12 19-7-7 7-7'/></svg> Retourner au dashboard</button>
         </div>
       </aside>
+      {/* Resize handle: Sidebar ↔ Main */}
+      <div className="es-resize-handle" onMouseDown={(e) => { e.preventDefault(); resizingRef.current = 'sidebar'; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none' }} />
+
 
       {/* MAIN FEED */}
       <main className="es-main">
@@ -2513,7 +2564,7 @@ function EclatSocialApp({ user, onReturn }) {
         {esView === 'messages' && (
           <div className="es-dm">
             {/* Conversation list */}
-            <div className="es-dm-list">
+            <div className="es-dm-list" style={{ width: panelWidths.list, minWidth: panelWidths.list, flexShrink: 0 }}>
               <div className="es-dm-list-head">Messages</div>
               {esConversations.length === 0 ? (
                 <div className="es-dm-empty">Aucune conversation.<br/>Cliquez sur un agent pour démarrer.</div>
@@ -2533,6 +2584,7 @@ function EclatSocialApp({ user, onReturn }) {
                 )
               })}
             </div>
+                        <div className="es-resize-handle" onMouseDown={(e) => { e.preventDefault(); resizingRef.current = 'list'; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none' }} />
             {/* Chat area — WhatsApp-style */}
             <div className="es-dm-chat">
               {!esActiveConv ? (
@@ -4676,17 +4728,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         </div>
                         <div style={{background:'rgba(59,130,246,0.06)',borderRadius:14,padding:16,border:'1px solid rgba(59,130,246,0.15)'}}>
                           <label style={{fontSize:12,color:'#3b82f6',fontWeight:600,marginBottom:6,display:'block'}}>Current Children</label>
-                          <input type="number" className="dash-form-input" value={orphanageForm.current_children} onChange={e=>orpUpd('current_children',e.target.value)} placeholder="0" style={{fontSize:22,fontWeight:700,textAlign:'center'}} />
-                        </div>
-                      </div>
-                      <div style={{fontSize:13,fontWeight:600,color:'#94a3b8',marginBottom:10}}>Children Breakdown</div>
-                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12,marginBottom:20}}>
-                        {[{k:'boys',l:'Boys',c:'#3b82f6',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M16 18v2M8 18v2M12 10v2"/><circle cx="12" cy="12" r="2"/></svg>},{k:'girls',l:'Girls',c:'#ec4899',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M9 18h6"/><path d="M12 10v6"/></svg>},{k:'children_disabled',l:'With Disabilities',c:'#a855f7',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="4" r="2"/><path d="M18 8h-3.87a2 2 0 0 0-1.74 1.05l-1.3 2.6a2 2 0 0 0 0 1.7l2.14 4.28"/><path d="M6 15l4 4"/><circle cx="18" cy="16" r="3"/></svg>},{k:'infants_0_5',l:'Infants (0-5)',c:'#22c55e',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M9 14h6"/><path d="M12 10v8"/></svg>},{k:'children_6_12',l:'Children (6-12)',c:'#f59e0b',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M12 10v6"/><path d="M8 18h8"/></svg>},{k:'teenagers_13_18',l:'Teenagers (13-18)',c:'#06b6d4',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M12 10v6"/><path d="M6 18h12"/></svg>}].map(f=>(
-                          <div key={f.k} style={{background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'12px',border:'1px solid rgba(255,255,255,0.06)'}}>
-                            <label style={{fontSize:11,color:f.c,display:'block',marginBottom:6,fontWeight:600,display:'flex',alignItems:'center',gap:4}}>{f.iconSvg} {f.l}</label>
-                            <input type="number" className="dash-form-input" value={orphanageForm[f.k]} onChange={e=>orpUpd(f.k,e.target.value)} placeholder="0" style={{textAlign:'center'}} />
-                          </div>
-                        ))}
                       </div>
                       <div style={{fontSize:13,fontWeight:600,color:'#94a3b8',marginBottom:10}}>Staff Information</div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12}}>

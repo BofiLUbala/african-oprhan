@@ -3055,7 +3055,11 @@ select.dash-prof-input option { background:#1e293b; color:#e2e8f0; }
 
 /* ═══════════ DIRECT MESSAGES — WhatsApp-style ═══════════ */
 .es-dm { display: flex; height: calc(100vh - 140px); gap: 0; }
-.es-dm-list { width: 300px; flex-shrink: 0; border-right: 1px solid var(--border-card,#e2e8f0); overflow-y: auto; }
+.es-dm-list { width: 300px; flex-shrink: 0; border-right: 1px solid var(--border-card,#e2e8f0); overflow-y: auto; display: flex; flex-direction: column; background: var(--bg-card,#ffffff); position: relative; will-change: width; }
+.es-resize-handle { width: 6px; cursor: col-resize; background: transparent; z-index: 50; flex-shrink: 0; transition: background 0.2s; position: relative; }
+.es-resize-handle:hover, .es-resize-handle:active { background: rgba(99,102,241,0.2); }
+.es-resize-handle::after { content: ''; position: absolute; left: 2px; top: 50%; transform: translateY(-50%); height: 24px; width: 2px; border-radius: 2px; background: rgba(99,102,241,0.4); opacity: 0; transition: opacity 0.2s; }
+.es-resize-handle:hover::after, .es-resize-handle:active::after { opacity: 1; }
 .es-dm-list-head { padding: 16px 18px; font-weight: 800; font-size: 18px; color: var(--text-heading,#0f172a); border-bottom: 1px solid var(--border-card,#e2e8f0); }
 .es-dm-empty { padding: 32px 18px; text-align: center; color: #94a3b8; font-size: 13.5px; line-height: 1.6; }
 .es-dm-conv { display: flex; align-items: center; gap: 12px; padding: 11px 16px; cursor: pointer; border-bottom: 1px solid var(--border-card,#f1f5f9); transition: background 0.14s; }

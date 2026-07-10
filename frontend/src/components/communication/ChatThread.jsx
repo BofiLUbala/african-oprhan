@@ -26,11 +26,11 @@ export default function ChatThread({
   const [files, setFiles] = React.useState([])
   const [replyTo, setReplyTo] = React.useState(null)
   const [sending, setSending] = React.useState(false)
-  const [pickerFor, setPickerFor] = React.useState(null) // bulle : sélecteur d'émoji ouvert
-  const [menuFor, setMenuFor] = React.useState(null)      // bulle : menu « plus » ouvert
-  const [swipeId, setSwipeId] = React.useState(null)      // bulle en cours de glissement
+  const [pickerFor, setPickerFor] = React.useState(null)
+  const [menuFor, setMenuFor] = React.useState(null)
+  const [swipeId, setSwipeId] = React.useState(null)
   const [swipeDx, setSwipeDx] = React.useState(0)
-  const [deleteFor, setDeleteFor] = React.useState(null)  // message ciblé par la suppression
+  const [deleteFor, setDeleteFor] = React.useState(null)
   const [loadingOlder, setLoadingOlder] = React.useState(false)
   const [noMore, setNoMore] = React.useState(false)
   const [hiddenIds, setHiddenIds] = React.useState(() => loadHidden(conversation?.id))
@@ -41,7 +41,7 @@ export default function ChatThread({
   const swipeStartRef = React.useRef(null)
   const swipedRef = React.useRef(false)
 
-  const SWIPE_TRIGGER = 52 // px avant de déclencher la réponse
+  const SWIPE_TRIGGER = 52
 
   React.useEffect(() => {
     setInput(''); setFiles([]); setReplyTo(null); setPickerFor(null); setMenuFor(null); setNoMore(false)
@@ -54,7 +54,6 @@ export default function ChatThread({
     if (el && stickBottomRef.current) el.scrollTop = el.scrollHeight
   }, [messages])
 
-  // fermer le menu « plus » au clic extérieur
   React.useEffect(() => {
     if (menuFor == null) return
     const close = () => setMenuFor(null)
@@ -116,16 +115,13 @@ export default function ChatThread({
     await onDelete?.(msg.id)
   }
 
-  // appui long (mobile) → sélecteur de réaction (pas de sélection/carte)
   const touchStart = (id) => { longPressRef.current = setTimeout(() => setPickerFor(id), 420) }
   const clearLong = () => clearTimeout(longPressRef.current)
 
-  // glissement horizontal → RÉPONDRE (façon WhatsApp). On capture le pointeur
-  // sur la bulle pour un suivi fiable même si le curseur en sort.
   const dxRef = React.useRef(0)
   const onPointerDown = (e, id) => {
-    if (e.button != null && e.button !== 0) return          // clic gauche/tactile uniquement
-    if (e.target.closest('button, a')) return               // ignorer les actions
+    if (e.button != null && e.button !== 0) return
+    if (e.target.closest('button, a')) return
     try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
     swipeStartRef.current = { x: e.clientX, id }
     dxRef.current = 0
@@ -133,7 +129,7 @@ export default function ChatThread({
   }
   const onPointerMove = (e) => {
     if (!swipeStartRef.current) return
-    const dx = Math.max(0, Math.min(90, e.clientX - swipeStartRef.current.x)) // glissement vers la droite
+    const dx = Math.max(0, Math.min(90, e.clientX - swipeStartRef.current.x))
     dxRef.current = dx
     if (dx > 3) { setSwipeId(swipeStartRef.current.id); setSwipeDx(dx) }
   }
@@ -149,8 +145,8 @@ export default function ChatThread({
   const visible = messages.filter(m => !hiddenIds.has(m.id))
 
   return (
-    <div className="cmv2-chat">
-      {/* ── En-tête (toujours le contact, jamais de barre de sélection) ── */}
+    <div className="cmv2-chat premium-chat-layout">
+      {/* En-tête de conversation */}
       <header className="cmv2-chat-head">
         <img className="cmv2-ava" src={avatarUrl(other || {}, 42)} alt="" aria-hidden="true" />
         <div className="cmv2-chat-head-info">
@@ -159,11 +155,34 @@ export default function ChatThread({
         </div>
       </header>
 
-      {/* ── Fil ── */}
+      {/* Règle de Saisie inversée : Zone de saisie (la Box) tout en HAUT du panneau de discussion */}
+      <div className="cmv2-chat-composer top-composer">
+        <ReplyBanner replyTo={replyTo} onCancel={() => setReplyTo(null)} />
+        <PendingFiles files={files} onRemove={(i) => setFiles(prev => prev.filter((_, j) => j !== i))} />
+        <div className="cmv2-chat-composer-row">
+          <input
+            ref={inputRef}
+            className="cmv2-chat-input full-width-input"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && send()}
+            placeholder="Écrire un message..."
+            aria-label="Écrire un message"
+            autoFocus
+          />
+          <button className="cmv2-send round premium-send-btn" onClick={send}
+            disabled={sending || (!input.trim() && files.length === 0)}
+            aria-label="Envoyer" title="Envoyer">
+            <CIcon name="send" size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Fil de discussion */}
       <div className="cmv2-thread" ref={threadRef} onScroll={onScroll}
         aria-label={`Conversation avec ${otherName}`}>
-        {loadingOlder && <div className="cmv2-loading" role="status">Chargement de l'historique…</div>}
-        {visible.length === 0 && <div className="cmv2-thread-empty">Aucun message. Commencez la conversation.</div>}
+        {loadingOlder && <div className="cmv2-loading" role="status">Chargement de l'historique...</div>}
+        {visible.length === 0 && <div className="cmv2-thread-empty">Aucun message. Commencez la discussion.</div>}
         {visible.map((msg, i) => {
           const sid = msg.sender?.id ?? msg.sender
           const isMine = sid === user?.id
@@ -179,11 +198,12 @@ export default function ChatThread({
               {thisDay !== prevDay && <div className="cmv2-day" role="separator">{thisDay}</div>}
               <div className={`cmv2-brow${isMine ? ' me' : ''}${grouped ? ' grouped' : ''}${hasReactions ? ' has-reactions' : ''}`}
                 onMouseLeave={() => { setPickerFor(p => p === msg.id ? null : p) }}>
-                {/* indicateur de réponse par glissement */}
+                
                 <span className={`cmv2-swipe-reply${reached ? ' reached' : ''}`}
                   style={{ opacity: Math.min(1, dx / SWIPE_TRIGGER) }} aria-hidden="true">
                   <CIcon name="reply" size={17} />
                 </span>
+
                 <div className={`cmv2-bubble${isMine ? ' me' : ''}${grouped ? ' grouped' : ''}`}
                   style={dx ? { transform: `translateX(${dx}px)` } : undefined}
                   onPointerDown={(e) => onPointerDown(e, msg.id)}
@@ -193,6 +213,11 @@ export default function ChatThread({
                   onContextMenu={(e) => { e.preventDefault(); setPickerFor(msg.id) }}
                   onTouchStart={() => touchStart(msg.id)}
                   onTouchEnd={clearLong} onTouchMove={clearLong}>
+                  
+                  <span className="cmv2-bubble-sender-name" style={{ display: grouped ? 'none' : 'block', fontSize: '11px', fontWeight: 'bold', color: isMine ? '#8b5cf6' : '#64748b', marginBottom: '2px' }}>
+                    {isMine ? 'Vous' : (msg.sender?.full_name || `${msg.sender?.first_name || ''} ${msg.sender?.last_name || ''}`.trim() || 'Agent')}
+                  </span>
+
                   <ReplyQuote reply={msg.reply_to} compact currentUserId={user?.id} />
                   <AttachmentList attachments={msg.attachments} mediaUrl={mediaUrl} />
                   {msg.content && <span className="cmv2-bubble-text">{msg.content}</span>}
@@ -200,7 +225,7 @@ export default function ChatThread({
                     <time title={new Date(msg.created_at).toLocaleString('fr-FR')}>{fmtTime(msg.created_at)}</time>
                     {isMine && (
                       <span className={`cmv2-tick${msg.is_read ? ' read' : ''}`}
-                        title={msg.is_read ? `Lu${msg.read_at ? ' à ' + fmtTime(msg.read_at) : ''}` : 'Envoyé'}
+                        title={msg.is_read ? `Lu à ${fmtTime(msg.read_at)}` : 'Envoyé'}
                         aria-label={msg.is_read ? 'Lu' : 'Envoyé'}>
                         <CIcon name="check" size={13} style={{ marginRight: -8 }} /><CIcon name="check" size={13} />
                       </span>
@@ -221,7 +246,7 @@ export default function ChatThread({
                       onClose={() => setPickerFor(null)} />
                   )}
 
-                  {/* menu « plus » : copier / transférer / supprimer */}
+                  {/* menu « plus » */}
                   {menuFor === msg.id && (
                     <div className={`cmv2-msg-menu${isMine ? ' me' : ''}`} role="menu" onClick={e => e.stopPropagation()}>
                       <button role="menuitem" onClick={() => copyMsg(msg)}><CIcon name="copy" size={16} /> Copier</button>
@@ -239,29 +264,15 @@ export default function ChatThread({
         })}
       </div>
 
-      {/* ── Composeur ── */}
-      <div className="cmv2-chat-composer">
-        <ReplyBanner replyTo={replyTo} onCancel={() => setReplyTo(null)} />
-        <PendingFiles files={files} onRemove={(i) => setFiles(prev => prev.filter((_, j) => j !== i))} />
-        <div className="cmv2-chat-composer-row">
+      {/* Barre d'outils et d'actions tout en BAS du panneau de discussion */}
+      <div className="cmv2-chat-composer bottom-tools-toolbar">
+        <div className="cmv2-chat-composer-row bottom-toolbar-row">
           <ComposerTools onFiles={addFiles} />
-          <input
-            ref={inputRef}
-            className="cmv2-chat-input"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && send()}
-            placeholder="Écrire un message…"
-            aria-label="Écrire un message"
-            autoFocus
-          />
-          <button className="cmv2-send round" onClick={send}
-            disabled={sending || (!input.trim() && files.length === 0)}
-            aria-label="Envoyer" title="Envoyer"><CIcon name="send" size={18} /></button>
+          <span className="toolbar-filler" style={{ flex: 1 }} />
         </div>
       </div>
 
-      {/* ── Dialogue de suppression ── */}
+      {/* Dialogue de suppression */}
       {deleteFor && (
         <div className="cmv2-sheet-backdrop" onClick={() => setDeleteFor(null)} role="dialog" aria-modal="true" aria-label="Supprimer le message">
           <div className="cmv2-confirm" onClick={e => e.stopPropagation()}>
