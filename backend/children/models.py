@@ -36,7 +36,7 @@ class ChildAssignment(models.Model):
         unique_together = [("child", "ambassador")]
 
     def __str__(self):
-        return f"{self.child} → {self.ambassador}"
+        return f"{self.child} -> {self.ambassador}"
 
 
 class Child(models.Model):
@@ -440,4 +440,4 @@ class ConsultationHistorique(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.utilisateur} → {self.enfant} ({self.horodatage.strftime('%d/%m/%Y %H:%M')})"
+        return f"{self.utilisateur} -> {self.enfant} ({self.horodatage.strftime('%d/%m/%Y %H:%M')})"

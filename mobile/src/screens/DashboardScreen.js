@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import Chevron from '../components/Chevron';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, Animated, Alert } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { API, ROLE_STATS, ROLE_NAV, ROLE_PAGES, RECENT_ACTIVITIES, COLORS, ROLE_LABELS, getInitials, hueFromName } from '../constants'
@@ -147,7 +148,7 @@ export default function DashboardScreen({ user, role, onNavigate }) {
               }}
             >
               <Text style={styles.menuItemText}>{item.label}</Text>
-              <Text style={styles.menuItemArrow}>→</Text>
+              <Chevron dir="right" color={COLORS.textMuted} />
             </TouchableOpacity>
           ))}
         </ScrollView>

@@ -23,14 +23,14 @@ const translations = {
     hero_title_2: 'un avenir',
     hero_desc: "Nous œuvrons à travers l'Afrique pour offrir un toit, une éducation et de l'amour aux orphelins. Votre soutien transforme des vies.",
     hero_cta_primary: 'Soutenir maintenant',
-    hero_cta_secondary: 'Voir les profils →',
+    hero_cta_secondary: 'Voir les profils',
 
     /* Profiles */
     profiles_tag: 'DÉCOUVREZ',
     profiles_title_1: 'Chaque visage a une',
     profiles_title_2: 'histoire',
     profiles_desc: "Parcourez les profils des enfants de nos différents centres. Lisez leur histoire, voyez leurs sourires et devenez le héros de leur vie.",
-    profiles_btn: 'Voir les profils des orphelins →',
+    profiles_btn: 'Voir les profils des orphelins',
 
     /* Support */
     support_tag: 'AGISSEZ',
@@ -845,7 +845,7 @@ const translations = {
     hc_print: 'Imprimer',
     hc_select_category: 'Filtrer par catégorie',
     hc_select_priority: 'Filtrer par priorité',
-    hc_old_new_separator: '→',
+    hc_old_new_separator: 'vers',
     hc_view_audit: "Vue d'audit",
     hc_view_timeline: 'Vue chronologique',
     hc_view_calendar: 'Vue calendrier',
@@ -869,13 +869,13 @@ const translations = {
     hero_title_2: 'a future',
     hero_desc: 'We work across Africa to provide shelter, education and love to orphans. Your support transforms lives.',
     hero_cta_primary: 'Support now',
-    hero_cta_secondary: 'View profiles →',
+    hero_cta_secondary: 'View profiles',
 
     profiles_tag: 'DISCOVER',
     profiles_title_1: 'Every face has a',
     profiles_title_2: 'story',
     profiles_desc: 'Browse the profiles of children from our various centers. Read their stories, see their smiles and become the hero of their life.',
-    profiles_btn: 'View orphan profiles →',
+    profiles_btn: 'View orphan profiles',
 
     support_tag: 'TAKE ACTION',
     support_title_1: 'How to',
@@ -1942,7 +1942,7 @@ const translations = {
     hc_print: 'Print',
     hc_select_category: 'Filter by category',
     hc_select_priority: 'Filter by priority',
-    hc_old_new_separator: '→',
+    hc_old_new_separator: 'vers',
     hc_view_audit: 'Audit view',
     hc_view_timeline: 'Timeline view',
     hc_view_calendar: 'Calendar view',

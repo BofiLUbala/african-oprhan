@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { HumanizedRefreshIcon } from './HumanizedIcons'
 
 const API = 'http://localhost:8000/api'
 
@@ -115,7 +116,7 @@ export default function SystemConfigurationPage({ onLogout }) {
           <h1 className="exec-title">Configuration système</h1>
           <p className="exec-sub">Paramétrage global de la plateforme</p>
         </div>
-        <button className="exec-refresh" onClick={load}><span style={{fontSize:16}}>↻</span> Actualiser</button>
+        <button className="exec-refresh" onClick={load}><HumanizedRefreshIcon size={16} /> Actualiser</button>
       </div>
 
       <div className="cfg-categories">

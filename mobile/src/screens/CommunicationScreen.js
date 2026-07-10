@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import Chevron from '../components/Chevron';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -164,8 +165,9 @@ export default function CommunicationScreen({ user }) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setView('list')} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>← Retour</Text>
+          <TouchableOpacity onPress={() => setView('list')} style={[styles.backBtn, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+            <Chevron dir="left" color={COLORS.accent} />
+            <Text style={styles.backBtnText}>Retour</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Nouvelle conversation</Text>
         </View>
@@ -193,8 +195,9 @@ export default function CommunicationScreen({ user }) {
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={80}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setView('list'); setActiveConv(null) }} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>← Retour</Text>
+          <TouchableOpacity onPress={() => { setView('list'); setActiveConv(null) }} style={[styles.backBtn, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+            <Chevron dir="left" color={COLORS.accent} />
+            <Text style={styles.backBtnText}>Retour</Text>
           </TouchableOpacity>
           <View style={[styles.avatar, { backgroundColor: avatarColor(partner.full_name) }]}>
             <Text style={styles.avatarText}>{partner.initials}</Text>

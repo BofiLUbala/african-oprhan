@@ -110,7 +110,7 @@ def child_pre_save(sender, instance, **kwargs):
             new_value=instance.status,
             status_before=old.status,
             status_after=instance.status,
-            title=f"Statut changé : {status_labels.get(old.status, old.status)} → {status_labels.get(instance.status, instance.status)}",
+            title=f"Statut changé : {status_labels.get(old.status, old.status)} vers {status_labels.get(instance.status, instance.status)}",
             description=f"Statut passé de « {old.status} » à « {instance.status} »",
             source_module='status',
             metadata={'priorite_calculee': prio},

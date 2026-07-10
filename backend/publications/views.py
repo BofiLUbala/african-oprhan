@@ -49,7 +49,7 @@ def post_list(request):
             ).prefetch_related(
                 "media", "likes", "comments", "views"
             )
-        # Pagination optionnelle (rétro-compatible : sans paramètre → tout)
+        # Pagination optionnelle (rétro-compatible : sans paramètre -> tout)
         try:
             limit = int(request.query_params.get("limit", 0))
             offset = int(request.query_params.get("offset", 0))
@@ -322,7 +322,7 @@ def review_post(request, post_id):
     new_status = request.data.get("status")
     reason = request.data.get("reason", "")
 
-    # approved → published publicly | rejected → back to author | needs_changes → back with comments
+    # approved -> published publicly | rejected -> back to author | needs_changes -> back with comments
     if new_status not in ["approved", "rejected", "needs_changes"]:
         return Response({"error": "Statut invalide."}, status=status.HTTP_400_BAD_REQUEST)
 

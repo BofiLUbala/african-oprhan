@@ -209,7 +209,7 @@ export default function ProfilesSection({ pool, onBroken }) {
   }, [])
 
   // Pick layer poses that look right for the card count:
-  // 1 card → straight middle; 2 cards → back + front tilt; 3 → full deck.
+  // 1 card -> straight middle; 2 cards -> back + front tilt; 3 -> full deck.
   const activeLayers = slotCount === 1 ? [LAYER_CONFIG[1]]
     : slotCount === 2 ? [LAYER_CONFIG[0], LAYER_CONFIG[2]]
     : LAYER_CONFIG

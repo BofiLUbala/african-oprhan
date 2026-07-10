@@ -1,28 +1,18 @@
-/* ═══════════ Chat WhatsApp — glisser pour répondre + menu message ═══════════ */
+/* ═══════════ Chat WhatsApp — sélection du message au clic ═══════════ */
 .cmv2-brow { position: relative; }
-.cmv2-bubble { transition: transform .18s cubic-bezier(0.16,1,0.3,1), box-shadow .18s ease;
-  touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: default; }
 
-/* flèche « répondre » révélée pendant le glissement */
-.cmv2-swipe-reply { position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
-  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
-  background: var(--bg-hover,#e2e8f0); color: #64748b; pointer-events: none; z-index: 0;
-  transition: background .15s, color .15s, transform .15s; }
-.cmv2-brow.me .cmv2-swipe-reply { left: auto; right: 6px; }
-.cmv2-swipe-reply.reached { background: #6366f1; color: #fff; transform: translateY(-50%) scale(1.12); }
+/* bulle cliquable : sélection au clic (pas de glissement) */
+.cmv2-bubble.selectable { cursor: pointer; user-select: none; -webkit-user-select: none;
+  transition: box-shadow .18s ease, background .18s ease, transform .12s ease; }
+.cmv2-bubble.selectable:hover { box-shadow: 0 2px 10px rgba(15,23,42,0.12); }
+.cmv2-bubble.selectable:active { transform: scale(0.985); }
+.cmv2-bubble.selectable:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(99,102,241,0.35); }
 
-/* menu message (copier / transférer / supprimer) */
-.cmv2-msg-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 40; min-width: 180px;
-  background: var(--bg-card,#fff); border: 1px solid var(--border-card,#e2e8f0); border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(15,23,42,0.18); padding: 5px; animation: cmv2Pop .16s cubic-bezier(0.16,1,0.3,1); }
-.cmv2-msg-menu.me { left: auto; right: 0; }
-.cmv2-msg-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border: none;
-  background: transparent; cursor: pointer; text-align: left; font-size: 13.5px; font-weight: 600; color: var(--text-body,#334155);
-  border-radius: 8px; }
-.cmv2-msg-menu button:hover { background: var(--bg-hover,#f1f5f9); }
-.cmv2-msg-menu button.danger { color: #dc2626; }
-.cmv2-msg-menu button.danger:hover { background: rgba(239,68,68,0.1); }
-@media (prefers-reduced-motion: reduce) { .cmv2-bubble, .cmv2-swipe-reply { transition: none; } }
+/* message sélectionné : bulle mise en évidence + ligne surlignée */
+.cmv2-brow.selected { background: rgba(99,102,241,0.09); border-radius: 12px; }
+.cmv2-brow.selected .cmv2-bubble { box-shadow: 0 0 0 2px #6366f1, 0 2px 8px rgba(15,23,42,0.12); }
+
+@media (prefers-reduced-motion: reduce) { .cmv2-bubble.selectable { transition: none; } }
 
 /* ═══════════ Commentaires inline · Qui a aimé · Partage ═══════════ */
 .cmt-thread { border-top: 1px solid var(--border-card,#eef2f7); margin-top: 10px; padding-top: 12px;

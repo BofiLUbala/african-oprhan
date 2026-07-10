@@ -19,7 +19,7 @@ def notifier_evenement_critique(event):
     for user in destinataires.distinct():
         Notification.objects.create(
             user=user,
-            title=f"⚠ Événement critique : {event.title}",
+            title=f"Événement critique : {event.title}",
             content=(
                 f"Enfant : {event.child.prenom} {event.child.nom} ({event.child.uid})\n"
                 f"Type : {event.event_type}\n"
@@ -43,7 +43,7 @@ def verifier_inactivite_sante(mois_inactivite=3):
     for enfant in enfants_inactifs:
         Notification.objects.create(
             user=enfant.created_by,
-            title=f"🔔 Inactivité santé : {enfant.prenom} {enfant.nom}",
+            title=f"Inactivité santé : {enfant.prenom} {enfant.nom}",
             content=(
                 f"Aucun événement de santé enregistré depuis {mois_inactivite} mois "
                 f"pour {enfant.prenom} {enfant.nom} ({enfant.uid})."
@@ -68,7 +68,7 @@ def verifier_rappel_vaccins():
                     if maintenant <= rappel <= dans_30_jours:
                         Notification.objects.create(
                             user=child.created_by,
-                            title=f"💉 Rappel vaccin : {child.prenom} {child.nom}",
+                            title=f"Rappel vaccin : {child.prenom} {child.nom}",
                             content=(
                                 f"Le vaccin « {vax.get('nom', 'N/A')} » nécessite un rappel "
                                 f"le {date_rappel} pour {child.prenom} {child.nom} ({child.uid})."

@@ -452,7 +452,7 @@ def child_calendar_events(request, child_id):
     return Response(calendar_data)
 
 
-# ── Child Assignment (Federation → Ambassador) ──
+# -- Child Assignment (Federation -> Ambassador) --
 
 
 @api_view(["GET", "POST"])

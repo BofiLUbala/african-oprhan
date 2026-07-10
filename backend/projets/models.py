@@ -139,7 +139,7 @@ class CandidatureProjet(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.partenaire.full_name} → {self.projet.code}"
+        return f"{self.partenaire.full_name} -> {self.projet.code}"
 
 
 class ProjetHistory(models.Model):

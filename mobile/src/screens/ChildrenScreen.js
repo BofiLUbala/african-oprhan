@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import Chevron from '../components/Chevron';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native'
 import { API, CHILD_FORMS, AFRICAN_COUNTRIES, COLORS, genChildUid, getInitials, hueFromName } from '../constants'
 import MobileIcon from '../icons'
@@ -109,8 +110,9 @@ export default function ChildrenScreen({ user }) {
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.formHeader}>
-          <TouchableOpacity onPress={() => setView('list')}>
-            <Text style={styles.backBtn}>← Retour</Text>
+          <TouchableOpacity onPress={() => setView('list')} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Chevron dir="left" color={COLORS.accent} />
+            <Text style={styles.backBtn}>Retour</Text>
           </TouchableOpacity>
           <Text style={styles.formTitle}>{editingChild ? 'Modifier' : 'Nouvel'} enfant</Text>
         </View>

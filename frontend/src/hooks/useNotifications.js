@@ -29,7 +29,7 @@ async function fetchUnreadCount() {
     const data = await res.json()
     if (typeof data.count === 'number' && data.count !== state.unreadCount) {
       emit({ unreadCount: data.count })
-      // le compteur a bougé → rafraîchir la liste pour rester cohérent
+      // le compteur a bougé -> rafraîchir la liste pour rester cohérent
       fetchList()
     }
   } catch { /* hors-ligne : on réessaiera au prochain tick */ }

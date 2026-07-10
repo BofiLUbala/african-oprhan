@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { HumanizedRefreshIcon, HumanizedArrowLeftIcon, HumanizedArrowRightIcon } from './HumanizedIcons'
 
 const API = 'http://localhost:8000/api'
 
@@ -136,7 +137,7 @@ export default function ReportsPage({ onLogout }) {
           <p className="exec-sub">{total} rapports générés</p>
         </div>
         <div className="exec-head-actions">
-          <button className="exec-refresh" onClick={load}><span style={{fontSize:16}}>↻</span> Actualiser</button>
+          <button className="exec-refresh" onClick={load}><HumanizedRefreshIcon size={16} /> Actualiser</button>
           <button className="exec-btn-primary" onClick={() => setShowNew(true)}>+ Nouveau rapport</button>
         </div>
       </div>
@@ -176,7 +177,7 @@ export default function ReportsPage({ onLogout }) {
             <div className="rp-card-footer">
               {statusBadge(r.status)}
               <div className="rp-card-actions">
-                <button className="rp-action" title="Générer" onClick={() => handleGenerate(r.id)} disabled={r.status === 'generating'}>▶</button>
+                <button className="rp-action" title="Générer" onClick={() => handleGenerate(r.id)} disabled={r.status === 'generating'} style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center'}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></button>
                 <button className="rp-action rp-action-danger" title="Supprimer" onClick={() => handleDelete(r.id)}><Icon name="trash" /></button>
               </div>
             </div>
@@ -186,9 +187,9 @@ export default function ReportsPage({ onLogout }) {
 
       {pages > 1 && (
         <div className="us-pagination">
-          <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Précédent</button>
+          <button className="exec-page-btn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><HumanizedArrowLeftIcon size={16} /> Précédent</button>
           <span>Page {page} / {pages}</span>
-          <button disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Suivant →</button>
+          <button className="exec-page-btn" disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Suivant <HumanizedArrowRightIcon size={16} /></button>
         </div>
       )}
 

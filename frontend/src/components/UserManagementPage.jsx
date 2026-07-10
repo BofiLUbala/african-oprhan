@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { HumanizedRefreshIcon, HumanizedArrowLeftIcon, HumanizedArrowRightIcon } from './HumanizedIcons'
 
 const API = 'http://localhost:8000/api'
 
@@ -133,7 +134,7 @@ export default function UserManagementPage({ onLogout }) {
           <p className="exec-sub">{total} utilisateurs · {Object.keys(roleCounts).length} rôles</p>
         </div>
         <div className="exec-head-actions">
-          <button className="exec-refresh" onClick={load}><span style={{fontSize:16}}>↻</span> Actualiser</button>
+          <button className="exec-refresh" onClick={load}><HumanizedRefreshIcon size={16} /> Actualiser</button>
           <button className="exec-btn-primary" onClick={() => { setEditUser(null); setShowModal(true) }}>+ Nouvel utilisateur</button>
         </div>
       </div>
@@ -201,9 +202,9 @@ export default function UserManagementPage({ onLogout }) {
 
       {pages > 1 && (
         <div className="us-pagination">
-          <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Précédent</button>
+          <button className="exec-page-btn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><HumanizedArrowLeftIcon size={16} /> Précédent</button>
           <span>Page {page} / {pages}</span>
-          <button disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Suivant →</button>
+          <button className="exec-page-btn" disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Suivant <HumanizedArrowRightIcon size={16} /></button>
         </div>
       )}
 

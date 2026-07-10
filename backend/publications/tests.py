@@ -93,10 +93,10 @@ class ReactionShareAPITest(TestCase):
         r1 = self.client.post(f"/api/posts/{self.post.id}/share/", {"method": "whatsapp"})
         self.assertEqual(r1.status_code, 200)
         self.assertEqual(r1.data["shares_count"], 1)
-        # même méthode+destination → pas de double comptage
+        # même méthode+destination -> pas de double comptage
         r2 = self.client.post(f"/api/posts/{self.post.id}/share/", {"method": "whatsapp"})
         self.assertEqual(r2.data["shares_count"], 1)
-        # méthode différente → nouveau partage
+        # méthode différente -> nouveau partage
         r3 = self.client.post(f"/api/posts/{self.post.id}/share/", {"method": "email"})
         self.assertEqual(r3.data["shares_count"], 2)
 
