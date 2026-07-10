@@ -8,12 +8,13 @@ import ChildrenScreen from './screens/ChildrenScreen'
 import CommunicationScreen from './screens/CommunicationScreen'
 import SettingsScreen from './screens/SettingsScreen'
 import { COLORS, API } from './constants'
+import MobileIcon from './icons'
 
 const TABS = [
-  { key: 'dashboard', label: 'Accueil', icon: '🏠' },
-  { key: 'enfants', label: 'Enfants', icon: '👶' },
-  { key: 'communication', label: 'Social', icon: '💬' },
-  { key: 'parametres', label: 'Paramètres', icon: '⚙️' },
+  { key: 'dashboard', label: 'Accueil', icon: 'dashboard' },
+  { key: 'enfants', label: 'Enfants', icon: 'enfants' },
+  { key: 'communication', label: 'Social', icon: 'communication' },
+  { key: 'parametres', label: 'Paramètres', icon: 'parametres' },
 ]
 
 /* ─── Animated Splash Screen ─── */
@@ -309,7 +310,7 @@ function AppContent() {
             style={[styles.tab, activeTab === tab.key && styles.tabActive]}
             onPress={() => setActiveTab(tab.key)}
           >
-            <Text style={styles.tabIcon}>{tab.icon}</Text>
+            <MobileIcon name={tab.icon} size={20} color={activeTab === tab.key ? COLORS.accent : '#64748b'} />
             <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>
               {tab.label}
             </Text>
@@ -336,7 +337,6 @@ const styles = StyleSheet.create({
   },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 6, position: 'relative' },
   tabActive: {},
-  tabIcon: { fontSize: 20, marginBottom: 2 },
   tabLabel: { fontSize: 10, fontWeight: '600', color: COLORS.textMuted },
   tabLabelActive: { color: COLORS.accent },
   tabIndicator: {

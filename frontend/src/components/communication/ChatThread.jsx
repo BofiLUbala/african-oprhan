@@ -163,7 +163,7 @@ export default function ChatThread({
       <div className="cmv2-thread" ref={threadRef} onScroll={onScroll}
         aria-label={`Conversation avec ${otherName}`}>
         {loadingOlder && <div className="cmv2-loading" role="status">Chargement de l'historique…</div>}
-        {visible.length === 0 && <div className="cmv2-thread-empty">Aucun message. Dites bonjour 👋</div>}
+        {visible.length === 0 && <div className="cmv2-thread-empty">Aucun message. Commencez la conversation.</div>}
         {visible.map((msg, i) => {
           const sid = msg.sender?.id ?? msg.sender
           const isMine = sid === user?.id

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Alert } from 'react-native'
 import { COLORS, ROLE_LABELS, getInitials, hueFromName } from '../constants'
+import MobileIcon from '../icons'
 
 const LANGS = [
   { code: 'fr', label: 'Français' },
@@ -95,17 +96,19 @@ export default function SettingsScreen({ user, role, onLogout }) {
       <Text style={styles.sectionTitle}>Compte</Text>
       <View style={styles.card}>
         <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuItemText}>🔔 Notifications</Text>
+          <MobileIcon name="notifications" size={18} color="#94a3b8" style={{ marginRight: 12 }} />
+          <Text style={styles.menuItemText}>Notifications</Text>
           <Text style={styles.menuItemArrow}>›</Text>
         </TouchableOpacity>
         <View style={styles.menuDivider} />
         <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuItemText}>🔒 Sécurité</Text>
+          <MobileIcon name="securite" size={18} color="#94a3b8" style={{ marginRight: 12 }} />
+          <Text style={styles.menuItemText}>Sécurité</Text>
           <Text style={styles.menuItemArrow}>›</Text>
         </TouchableOpacity>
         <View style={styles.menuDivider} />
         <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuItemText}>ℹ️ À propos</Text>
+          <Text style={styles.menuItemText}>À propos</Text>
           <Text style={styles.menuItemArrow}>›</Text>
         </TouchableOpacity>
       </View>

@@ -197,7 +197,7 @@ export const ROLE_PAGES = {
   },
 }
 
-export const CATEGORY_ICONS = ['📋', '📈', '⚡', '📅', '📄', '🏫', '📢', '🤝', '👤', '🏠']
+export const CATEGORY_ICONS = ['\u25A1', '\u25B3', '\u26A1', '\u25A3', '\u25A0', '\u2302', '\u260E', '\u263F', '\u2B24', '\u2302']
 
 export const RECENT_ACTIVITIES = [
   { text: 'Rapport médical ajouté · S. Kone', time: 'il y a 10 min' },

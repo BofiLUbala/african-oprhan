@@ -54,6 +54,10 @@ export const C_ICONS = {
   fileDoc: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/>',
   fileSheet: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/><path d="M8 13h8M8 17h8M11 11v8"/>',
   archive: '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+  // réactions (émulations d'emoji)
+  surprised: '<circle cx="12" cy="12" r="10"/><path d="M8 9h.01M16 9h.01"/><path d="M9 16c1.5 1.5 4 1.5 5.5 0"/>',
+  cry: '<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M10 9v-1"/><path d="M14 9v-1"/>',
+  pray: '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 14s1.5-2 4-2 4 2 4 2"/>',
 }
 
 // mappe un canal (par slug/type) vers son icône d'identité

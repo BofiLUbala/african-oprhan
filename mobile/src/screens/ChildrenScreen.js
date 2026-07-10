@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native'
 import { API, CHILD_FORMS, AFRICAN_COUNTRIES, COLORS, genChildUid, getInitials, hueFromName } from '../constants'
+import MobileIcon from '../icons'
 
 export default function ChildrenScreen({ user }) {
   const [view, setView] = useState('list')
@@ -95,11 +96,11 @@ export default function ChildrenScreen({ user }) {
   }
 
   const categoryCards = [
-    { key: 'Profil & identité', icon: '📋', subtitle: 'État civil, photo' },
-    { key: 'Situation familiale', icon: '👨‍👩‍👧‍👦', subtitle: 'Parents, fratrie' },
-    { key: 'Documents administratifs', icon: '📄', subtitle: 'Actes, décisions' },
-    { key: 'Santé & médical', icon: '🏥', subtitle: 'Vaccins, allergies' },
-    { key: 'Scolarité', icon: '📚', subtitle: 'École, résultats' },
+    { key: 'Profil & identité', icon: 'profil', subtitle: 'État civil, photo' },
+    { key: 'Situation familiale', icon: 'famille', subtitle: 'Parents, fratrie' },
+    { key: 'Documents administratifs', icon: 'documents', subtitle: 'Actes, décisions' },
+    { key: 'Santé & médical', icon: 'sante', subtitle: 'Vaccins, allergies' },
+    { key: 'Scolarité', icon: 'scolarite', subtitle: 'École, résultats' },
   ]
 
   const currentForm = CHILD_FORMS[categoryKey]
@@ -121,8 +122,9 @@ export default function ChildrenScreen({ user }) {
               style={[styles.categoryTab, categoryKey === cat.key && styles.categoryTabActive]}
               onPress={() => { setCategoryKey(cat.key); setFormData(formData) }}
             >
+              <MobileIcon name={cat.icon} size={16} color={categoryKey === cat.key ? COLORS.accent : '#64748b'} style={{ marginRight: 6 }} />
               <Text style={[styles.categoryTabText, categoryKey === cat.key && styles.categoryTabTextActive]}>
-                {cat.icon} {cat.key}
+                {cat.key}
               </Text>
             </TouchableOpacity>
           ))}

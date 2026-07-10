@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
+﻿import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { LangProvider, useTranslation } from './i18n'
 import SystemConfigurationPage from './components/SystemConfigurationPage'
 import UserManagementPage from './components/UserManagementPage'
@@ -914,9 +914,9 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
   }
 
   const notifIcon = (title) => {
-    if (title.includes('Refusé') || title.includes('rejet')) return '❌'
-    if (title.includes('Modification')) return '🔄'
-    return '📋'
+    if (title.includes('Refusé') || title.includes('rejet')) return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+    if (title.includes('Modification')) return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
+    return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
   }
 
   return (
@@ -3540,42 +3540,42 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
   const { t, lang, setLang } = useTranslation()
   const UC_CATEGORIES = [
-    { key:'health', icon:'💉', label:t('uc_category_health')||'Santé', desc:t('uc_category_desc_health')||'Vaccinations, maladies, examens', color:'#22c55e', types:[
-      { key:'vaccination', icon:'💉', label:'Vaccination', fields:[{key:'vaccine_name',label:'Nom du vaccin',type:'text',required:true},{key:'dose',label:'Dose',type:'select',options:['1ère dose','2ème dose','3ème dose','Rappel','Booster']},{key:'date_admin',label:'Date d\'administration',type:'date',required:true},{key:'next_dose',label:'Prochaine dose',type:'date'},{key:'admin_by',label:'Administré par',type:'text'},{key:'location',label:'Lieu',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'illness', icon:'🤒', label:'Maladie', fields:[{key:'diagnosis',label:'Diagnostic',type:'text',required:true},{key:'date_diag',label:'Date du diagnostic',type:'date',required:true},{key:'severity',label:'Sévérité',type:'select',options:['Léger','Modéré','Grave','Critique']},{key:'symptoms',label:'Symptômes',type:'textarea'},{key:'treatment',label:'Traitement prescrit',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'treatment', icon:'💊', label:'Traitement', fields:[{key:'medication',label:'Médicament',type:'text',required:true},{key:'dosage',label:'Posologie',type:'text',required:true},{key:'frequency',label:'Fréquence',type:'select',options:['1x/jour','2x/jour','3x/jour','1x/semaine','Selon besoin']},{key:'start_date',label:'Date de début',type:'date',required:true},{key:'end_date',label:'Date de fin',type:'date'},{key:'prescribed_by',label:'Prescrit par',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'consultation', icon:'🩺', label:'Consultation', fields:[{key:'doctor',label:'Médecin',type:'text',required:true},{key:'specialty',label:'Spécialité',type:'select',options:['Généraliste','Pédiatre','Psychologue','Nutritionniste','Dentiste','Ophtalmologue','Autre']},{key:'date_consult',label:'Date',type:'date',required:true},{key:'reason',label:'Motif',type:'textarea',required:true},{key:'diagnosis',label:'Diagnostic',type:'textarea'},{key:'prescriptions',label:'Prescriptions',type:'textarea'},{key:'follow_up',label:'Suivi nécessaire',type:'select',options:['Oui','Non']}] },
-      { key:'hospitalization', icon:'🏥', label:'Hospitalisation', fields:[{key:'hospital',label:'Hôpital',type:'text',required:true},{key:'admit_date',label:'Date d\'admission',type:'date',required:true},{key:'discharge_date',label:'Date de sortie',type:'date'},{key:'reason',label:'Motif',type:'textarea',required:true},{key:'ward',label:'Service',type:'text'},{key:'doctor',label:'Médecin traitant',type:'text'},{key:'outcome',label:'Issue',type:'select',options:['Rétabli','En cours','Référé','Décédé']},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'allergy', icon:'🤧', label:'Allergie', fields:[{key:'allergen',label:'Allergène',type:'text',required:true},{key:'reaction',label:'Réaction',type:'select',options:['Légère','Modérée','Grave','Anaphylaxie']},{key:'date_detected',label:'Date de détection',type:'date'},{key:'severity',label:'Sévérité',type:'select',options:['Faible','Moyenne','Haute','Critique']},{key:'treatment',label:'Traitement',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
+    { key:'health', icon:'injection', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2L6 10"/><path d="M18 6L6 18"/><path d="M6 10l4 4"/><path d="M14 18l4-4"/></svg>, label:t('uc_category_health')||'Santé', desc:t('uc_category_desc_health')||'Vaccinations, maladies, examens', color:'#22c55e', types:[
+      { key:'vaccination', icon:'injection', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2L6 10"/><path d="M18 6L6 18"/><path d="M6 10l4 4"/><path d="M14 18l4-4"/></svg>, label:'Vaccination', fields:[{key:'vaccine_name',label:'Nom du vaccin',type:'text',required:true},{key:'dose',label:'Dose',type:'select',options:['1ère dose','2ème dose','3ème dose','Rappel','Booster']},{key:'date_admin',label:'Date d\'administration',type:'date',required:true},{key:'next_dose',label:'Prochaine dose',type:'date'},{key:'admin_by',label:'Administré par',type:'text'},{key:'location',label:'Lieu',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'illness', icon:'thermometer', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>, label:'Maladie', fields:[{key:'diagnosis',label:'Diagnostic',type:'text',required:true},{key:'date_diag',label:'Date du diagnostic',type:'date',required:true},{key:'severity',label:'Sévérité',type:'select',options:['Léger','Modéré','Grave','Critique']},{key:'symptoms',label:'Symptômes',type:'textarea'},{key:'treatment',label:'Traitement prescrit',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'treatment', icon:'pill', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>, label:'Traitement', fields:[{key:'medication',label:'Médicament',type:'text',required:true},{key:'dosage',label:'Posologie',type:'text',required:true},{key:'frequency',label:'Fréquence',type:'select',options:['1x/jour','2x/jour','3x/jour','1x/semaine','Selon besoin']},{key:'start_date',label:'Date de début',type:'date',required:true},{key:'end_date',label:'Date de fin',type:'date'},{key:'prescribed_by',label:'Prescrit par',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'consultation', icon:'stethoscope', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.3.3 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/></svg>, label:'Consultation', fields:[{key:'doctor',label:'Médecin',type:'text',required:true},{key:'specialty',label:'Spécialité',type:'select',options:['Généraliste','Pédiatre','Psychologue','Nutritionniste','Dentiste','Ophtalmologue','Autre']},{key:'date_consult',label:'Date',type:'date',required:true},{key:'reason',label:'Motif',type:'textarea',required:true},{key:'diagnosis',label:'Diagnostic',type:'textarea'},{key:'prescriptions',label:'Prescriptions',type:'textarea'},{key:'follow_up',label:'Suivi nécessaire',type:'select',options:['Oui','Non']}] },
+      { key:'hospitalization', icon:'hospital', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg>, label:'Hospitalisation', fields:[{key:'hospital',label:'Hôpital',type:'text',required:true},{key:'admit_date',label:'Date d\'admission',type:'date',required:true},{key:'discharge_date',label:'Date de sortie',type:'date'},{key:'reason',label:'Motif',type:'textarea',required:true},{key:'ward',label:'Service',type:'text'},{key:'doctor',label:'Médecin traitant',type:'text'},{key:'outcome',label:'Issue',type:'select',options:['Rétabli','En cours','Référé','Décédé']},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'allergy', icon:'sneeze', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 9h.01M16 9h.01"/><path d="M9 16c1.5 1.5 4 1.5 5.5 0"/></svg>, label:'Allergie', fields:[{key:'allergen',label:'Allergène',type:'text',required:true},{key:'reaction',label:'Réaction',type:'select',options:['Légère','Modérée','Grave','Anaphylaxie']},{key:'date_detected',label:'Date de détection',type:'date'},{key:'severity',label:'Sévérité',type:'select',options:['Faible','Moyenne','Haute','Critique']},{key:'treatment',label:'Traitement',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
     ]},
-    { key:'education', icon:'📚', label:t('uc_category_education')||'Éducation', desc:t('uc_category_desc_education')||'Inscription, notes, examens', color:'#3b82f6', types:[
-      { key:'school_enrollment', icon:'🏫', label:'Inscription scolaire', fields:[{key:'school_name',label:'Nom de l\'école',type:'text',required:true},{key:'school_type',label:'Type',type:'select',options:['Maternelle','Primaire','Secondaire','Lycée','Université','Formation pro']},{key:'class',label:'Classe/Niveau',type:'text',required:true},{key:'academic_year',label:'Année scolaire',type:'text',required:true},{key:'start_date',label:'Date de début',type:'date',required:true},{key:'school_address',label:'Adresse',type:'text'},{key:'contact',label:'Contact école',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'school_transfer', icon:'🔄', label:'Transfert scolaire', fields:[{key:'from_school',label:'École d\'origine',type:'text',required:true},{key:'to_school',label:'Nouvelle école',type:'text',required:true},{key:'reason',label:'Motif du transfert',type:'select',options:['Déménagement','Familial','Disciplinaire','Scolaire','Autre']},{key:'date_transfer',label:'Date',type:'date',required:true},{key:'class',label:'Classe',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'grade_update', icon:'📊', label:'Notes/Classe', fields:[{key:'subject',label:'Matière',type:'text',required:true},{key:'grade',label:'Note /20',type:'number',required:true},{key:'coefficient',label:'Coefficient',type:'number'},{key:'term',label:'Trimestre',type:'select',options:['1er Trimestre','2ème Trimestre','3ème Trimestre']},{key:'academic_year',label:'Année scolaire',type:'text'},{key:'appreciation',label:'Appréciation',type:'textarea'}] },
-      { key:'exam_result', icon:'📝', label:'Résultat examen', fields:[{key:'exam_name',label:'Nom de l\'examen',type:'text',required:true},{key:'subject',label:'Matière',type:'text'},{key:'score',label:'Note',type:'number',required:true},{key:'max_score',label:'Note maximale',type:'number'},{key:'date_exam',label:'Date',type:'date'},{key:'result',label:'Résultat',type:'select',options:['Réussi','Échoué','En attente']},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'attendance_update', icon:'📋', label:'Présence', fields:[{key:'period',label:'Période',type:'text',required:true},{key:'days_present',label:'Jours présents',type:'number',required:true},{key:'days_absent',label:'Jours absents',type:'number'},{key:'days_total',label:'Total jours',type:'number'},{key:'absent_reason',label:'Motif absences',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'academic_note', icon:'📌', label:'Note pédagogique', fields:[{key:'teacher',label:'Enseignant',type:'text'},{key:'subject',label:'Matière',type:'text'},{key:'observation',label:'Observation',type:'textarea',required:true},{key:'recommendation',label:'Recommandation',type:'textarea'},{key:'date',label:'Date',type:'date'}] },
+    { key:'education', icon:'books', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M4 11h16"/></svg>, label:t('uc_category_education')||'Éducation', desc:t('uc_category_desc_education')||'Inscription, notes, examens', color:'#3b82f6', types:[
+      { key:'school_enrollment', icon:'school', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5"/><path d="M6 12v5h3v-3h6v3h3v-5"/></svg>, label:'Inscription scolaire', fields:[{key:'school_name',label:'Nom de l\'école',type:'text',required:true},{key:'school_type',label:'Type',type:'select',options:['Maternelle','Primaire','Secondaire','Lycée','Université','Formation pro']},{key:'class',label:'Classe/Niveau',type:'text',required:true},{key:'academic_year',label:'Année scolaire',type:'text',required:true},{key:'start_date',label:'Date de début',type:'date',required:true},{key:'school_address',label:'Adresse',type:'text'},{key:'contact',label:'Contact école',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'school_transfer', icon:'refresh', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>, label:'Transfert scolaire', fields:[{key:'from_school',label:'École d\'origine',type:'text',required:true},{key:'to_school',label:'Nouvelle école',type:'text',required:true},{key:'reason',label:'Motif du transfert',type:'select',options:['Déménagement','Familial','Disciplinaire','Scolaire','Autre']},{key:'date_transfer',label:'Date',type:'date',required:true},{key:'class',label:'Classe',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'grade_update', icon:'bar-chart', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>, label:'Notes/Classe', fields:[{key:'subject',label:'Matière',type:'text',required:true},{key:'grade',label:'Note /20',type:'number',required:true},{key:'coefficient',label:'Coefficient',type:'number'},{key:'term',label:'Trimestre',type:'select',options:['1er Trimestre','2ème Trimestre','3ème Trimestre']},{key:'academic_year',label:'Année scolaire',type:'text'},{key:'appreciation',label:'Appréciation',type:'textarea'}] },
+      { key:'exam_result', icon:'edit', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg>, label:'Résultat examen', fields:[{key:'exam_name',label:'Nom de l\'examen',type:'text',required:true},{key:'subject',label:'Matière',type:'text'},{key:'score',label:'Note',type:'number',required:true},{key:'max_score',label:'Note maximale',type:'number'},{key:'date_exam',label:'Date',type:'date'},{key:'result',label:'Résultat',type:'select',options:['Réussi','Échoué','En attente']},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'attendance_update', icon:'clipboard', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>, label:'Présence', fields:[{key:'period',label:'Période',type:'text',required:true},{key:'days_present',label:'Jours présents',type:'number',required:true},{key:'days_absent',label:'Jours absents',type:'number'},{key:'days_total',label:'Total jours',type:'number'},{key:'absent_reason',label:'Motif absences',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'academic_note', icon:'pin', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4.5l-4 4L7 10l-1.5 1.5 7 7L14 17l1.5-4 4-4"/><path d="M9 15l-5 5"/></svg>, label:'Note pédagogique', fields:[{key:'teacher',label:'Enseignant',type:'text'},{key:'subject',label:'Matière',type:'text'},{key:'observation',label:'Observation',type:'textarea',required:true},{key:'recommendation',label:'Recommandation',type:'textarea'},{key:'date',label:'Date',type:'date'}] },
     ]},
-    { key:'family', icon:'👨‍👩‍👧‍👦', label:t('uc_category_family')||'Famille', desc:t('uc_category_desc_family')||'Tuteurs, parents, réunification', color:'#a855f7', types:[
-      { key:'guardian_assignment', icon:'👤', label:'Attribution tuteur', fields:[{key:'guardian_name',label:'Nom du tuteur',type:'text',required:true},{key:'relation',label:'Lien de parenté',type:'select',options:['Père','Mère','Grand-parent','Oncle/Tante','Frère/Soeur','Famille d\'accueil','Institution']},{key:'phone',label:'Téléphone',type:'text'},{key:'address',label:'Adresse',type:'text'},{key:'date_assigned',label:'Date d\'attribution',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'parent_identification', icon:'🔍', label:'Identification parent', fields:[{key:'parent_name',label:'Nom du parent',type:'text',required:true},{key:'parent_type',label:'Type',type:'select',options:['Père','Mère','Père biologique','Mère biologique']},{key:'status',label:'Statut',type:'select',options:['Identifié','Contacté','En recherche']},{key:'last_known',label:'Dernière adresse connue',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'family_reunification', icon:'🤗', label:'Réunification', fields:[{key:'status',label:'Statut',type:'select',options:['En cours','Planifiée','Réalisée','Échouée']},{key:'date_planned',label:'Date prévue',type:'date'},{key:'date_completed',label:'Date réalisée',type:'date'},{key:'family_member',label:'Membre concerné',type:'text'},{key:'support_needed',label:'Soutien nécessaire',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'foster_care', icon:'🏡', label:'Placement familial', fields:[{key:'foster_family',label:'Famille d\'accueil',type:'text',required:true},{key:'address',label:'Adresse',type:'text'},{key:'start_date',label:'Date de début',type:'date',required:true},{key:'duration',label:'Durée prévue',type:'select',options:['Court terme','Long terme','Permanent']},{key:'social_worker',label:'Travailleur social',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'adoption_progress', icon:'📋', label:'Adoption', fields:[{key:'stage',label:'Étape',type:'select',options:['Pré-adoption','En cours','Finalisation','Finalisée']},{key:'agency',label:'Agence',type:'text'},{key:'adoptive_parents',label:'Parents adoptifs',type:'text'},{key:'date_started',label:'Date de début',type:'date'},{key:'expected_date',label:'Date prévue',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'family_visit', icon:'👋', label:'Visite familiale', fields:[{key:'visitor',label:'Visiteur',type:'text',required:true},{key:'relation',label:'Lien',type:'text'},{key:'date_visit',label:'Date',type:'date',required:true},{key:'duration',label:'Durée',type:'select',options:['1-2h','Demi-journée','Journée','Week-end','Plusieurs jours']},{key:'observations',label:'Observations',type:'textarea'}] },
+    { key:'family', icon:'users', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label:t('uc_category_family')||'Famille', desc:t('uc_category_desc_family')||'Tuteurs, parents, réunification', color:'#a855f7', types:[
+      { key:'guardian_assignment', icon:'user', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label:'Attribution tuteur', fields:[{key:'guardian_name',label:'Nom du tuteur',type:'text',required:true},{key:'relation',label:'Lien de parenté',type:'select',options:['Père','Mère','Grand-parent','Oncle/Tante','Frère/Soeur','Famille d\'accueil','Institution']},{key:'phone',label:'Téléphone',type:'text'},{key:'address',label:'Adresse',type:'text'},{key:'date_assigned',label:'Date d\'attribution',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'parent_identification', icon:'search', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>, label:'Identification parent', fields:[{key:'parent_name',label:'Nom du parent',type:'text',required:true},{key:'parent_type',label:'Type',type:'select',options:['Père','Mère','Père biologique','Mère biologique']},{key:'status',label:'Statut',type:'select',options:['Identifié','Contacté','En recherche']},{key:'last_known',label:'Dernière adresse connue',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'family_reunification', icon:'hug', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/><path d="M6 12c0-1.5.8-3 2-4"/></svg>, label:'Réunification', fields:[{key:'status',label:'Statut',type:'select',options:['En cours','Planifiée','Réalisée','Échouée']},{key:'date_planned',label:'Date prévue',type:'date'},{key:'date_completed',label:'Date réalisée',type:'date'},{key:'family_member',label:'Membre concerné',type:'text'},{key:'support_needed',label:'Soutien nécessaire',type:'textarea'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'foster_care', icon:'home', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>, label:'Placement familial', fields:[{key:'foster_family',label:'Famille d\'accueil',type:'text',required:true},{key:'address',label:'Adresse',type:'text'},{key:'start_date',label:'Date de début',type:'date',required:true},{key:'duration',label:'Durée prévue',type:'select',options:['Court terme','Long terme','Permanent']},{key:'social_worker',label:'Travailleur social',type:'text'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'adoption_progress', icon:'clipboard', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>, label:'Adoption', fields:[{key:'stage',label:'Étape',type:'select',options:['Pré-adoption','En cours','Finalisation','Finalisée']},{key:'agency',label:'Agence',type:'text'},{key:'adoptive_parents',label:'Parents adoptifs',type:'text'},{key:'date_started',label:'Date de début',type:'date'},{key:'expected_date',label:'Date prévue',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'family_visit', icon:'wave', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 7a5 5 0 0 1 10 0"/><path d="M5 11a7 7 0 0 1 14 0"/><path d="M8 15a3 3 0 0 1 8 0"/><path d="M10 19a1 1 0 0 1 4 0"/></svg>, label:'Visite familiale', fields:[{key:'visitor',label:'Visiteur',type:'text',required:true},{key:'relation',label:'Lien',type:'text'},{key:'date_visit',label:'Date',type:'date',required:true},{key:'duration',label:'Durée',type:'select',options:['1-2h','Demi-journée','Journée','Week-end','Plusieurs jours']},{key:'observations',label:'Observations',type:'textarea'}] },
     ]},
-    { key:'documents', icon:'📄', label:t('uc_category_documents')||'Documents', desc:t('uc_category_desc_documents')||'Ajout, remplacement, vérification', color:'#f59e0b', types:[
-      { key:'new_document', icon:'📄', label:'Nouveau document', fields:[{key:'doc_type',label:'Type de document',type:'select',options:['Acte de naissance','CNI','Passeport','Photo','Rapport médical','Bulletin scolaire','Document judiciaire','Autre'],required:true},{key:'doc_number',label:'Numéro',type:'text'},{key:'issued_by',label:'Délivré par',type:'text'},{key:'issue_date',label:'Date de délivrance',type:'date'},{key:'expiry_date',label:'Date d\'expiration',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'document_replacement', icon:'🔄', label:'Remplacement', fields:[{key:'doc_type',label:'Type',type:'select',options:['Acte de naissance','CNI','Passeport','Photo','Rapport médical','Bulletin scolaire','Autre'],required:true},{key:'reason_replace',label:'Motif',type:'select',options:['Perte','Vol','Détérioration','Expiration','Mise à jour']},{key:'old_number',label:'Ancien numéro',type:'text'},{key:'new_number',label:'Nouveau numéro',type:'text'},{key:'date_replaced',label:'Date',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
-      { key:'document_verification', icon:'✅', label:'Vérification', fields:[{key:'doc_type',label:'Type',type:'select',options:['Acte de naissance','CNI','Passeport','Rapport médical','Bulletin scolaire','Document judiciaire','Autre'],required:true},{key:'verified_by',label:'Vérifié par',type:'text',required:true},{key:'verification_date',label:'Date',type:'date'},{key:'status',label:'Statut',type:'select',options:['Vérifié','En attente','Non conforme']},{key:'comments',label:'Commentaires',type:'textarea'}] },
+    { key:'documents', icon:'file', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, label:t('uc_category_documents')||'Documents', desc:t('uc_category_desc_documents')||'Ajout, remplacement, vérification', color:'#f59e0b', types:[
+      { key:'new_document', icon:'file', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, label:'Nouveau document', fields:[{key:'doc_type',label:'Type de document',type:'select',options:['Acte de naissance','CNI','Passeport','Photo','Rapport médical','Bulletin scolaire','Document judiciaire','Autre'],required:true},{key:'doc_number',label:'Numéro',type:'text'},{key:'issued_by',label:'Délivré par',type:'text'},{key:'issue_date',label:'Date de délivrance',type:'date'},{key:'expiry_date',label:'Date d\'expiration',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'document_replacement', icon:'refresh', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>, label:'Remplacement', fields:[{key:'doc_type',label:'Type',type:'select',options:['Acte de naissance','CNI','Passeport','Photo','Rapport médical','Bulletin scolaire','Autre'],required:true},{key:'reason_replace',label:'Motif',type:'select',options:['Perte','Vol','Détérioration','Expiration','Mise à jour']},{key:'old_number',label:'Ancien numéro',type:'text'},{key:'new_number',label:'Nouveau numéro',type:'text'},{key:'date_replaced',label:'Date',type:'date'},{key:'notes',label:'Notes',type:'textarea'}] },
+      { key:'document_verification', icon:'check', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>, label:'Vérification', fields:[{key:'doc_type',label:'Type',type:'select',options:['Acte de naissance','CNI','Passeport','Rapport médical','Bulletin scolaire','Document judiciaire','Autre'],required:true},{key:'verified_by',label:'Vérifié par',type:'text',required:true},{key:'verification_date',label:'Date',type:'date'},{key:'status',label:'Statut',type:'select',options:['Vérifié','En attente','Non conforme']},{key:'comments',label:'Commentaires',type:'textarea'}] },
     ]},
-    { key:'social', icon:'🤝', label:t('uc_category_social')||'Social', desc:t('uc_category_desc_social')||'Suivi social, visites, rapports', color:'#ef4444', types:[
-      { key:'social_worker_note', icon:'📝', label:'Note sociale', fields:[{key:'worker',label:'Intervenant',type:'text',required:true},{key:'date_intervention',label:'Date',type:'date',required:true},{key:'type',label:'Type',type:'select',options:['Visite','Entretien','Appel','Réunion','Suivi']},{key:'content',label:'Contenu',type:'textarea',required:true},{key:'recommendations',label:'Recommandations',type:'textarea'}] },
-      { key:'home_visit', icon:'🏠', label:'Visite domicile', fields:[{key:'address_visited',label:'Adresse visitée',type:'text',required:true},{key:'date_visit',label:'Date',type:'date',required:true},{key:'living_conditions',label:'Conditions de vie',type:'select',options:['Bonnes','Moyennes','Précaires','Critiques']},{key:'observations',label:'Observations',type:'textarea',required:true},{key:'recommendations',label:'Recommandations',type:'textarea'}] },
-      { key:'counseling', icon:'💬', label:'Counseling', fields:[{key:'counselor',label:'Conseiller',type:'text',required:true},{key:'date_session',label:'Date',type:'date',required:true},{key:'type',label:'Type',type:'select',options:['Individuel','Groupe','Familial','Crise']},{key:'theme',label:'Thème',type:'select',options:['Scolaire','Familial','Émotionnel','Comportemental','Orientation','Traumatisme','Autre']},{key:'notes',label:'Notes',type:'textarea',required:true},{key:'outcome',label:'Résultat',type:'textarea'}] },
-      { key:'observation', icon:'👁️', label:'Observation', fields:[{key:'observer',label:'Observateur',type:'text',required:true},{key:'date_obs',label:'Date',type:'date',required:true},{key:'domain',label:'Domaine',type:'select',options:['Comportement','Santé','Éducation','Social','Émotionnel']},{key:'description',label:'Description',type:'textarea',required:true},{key:'concerns',label:'Préoccupations',type:'textarea'},{key:'actions',label:'Actions',type:'textarea'}] },
-      { key:'incident', icon:'⚠️', label:'Incident', fields:[{key:'incident_type',label:"Type d'incident",type:'select',options:['Violence','Accident','Fuite','Conflit','Vol','Abus','Négligence','Autre'],required:true},{key:'date_incident',label:'Date',type:'date',required:true},{key:'location',label:'Lieu',type:'text'},{key:'description',label:'Description',type:'textarea',required:true},{key:'people_involved',label:'Personnes impliquées',type:'textarea'},{key:'actions_taken',label:'Actions prises',type:'textarea'},{key:'follow_up',label:'Suivi',type:'textarea'}] },
-      { key:'protection', icon:'🛡️', label:'Protection', fields:[{key:'concern_type',label:'Type',type:'select',options:['Risque de maltraitance','Exploitation','Discrimination','Mariage forcé','Travail enfant','Autre'],required:true},{key:'severity',label:'Gravité',type:'select',options:['Faible','Moyenne','Haute','Urgente']},{key:'date_reported',label:'Date signalement',type:'date',required:true},{key:'reported_by',label:'Signalé par',type:'text'},{key:'description',label:'Description',type:'textarea',required:true},{key:'measures',label:'Mesures prises',type:'textarea'}] },
+    { key:'social', icon:'handshake', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 17a1 1 0 0 1-1 1H5l-3-3 3-3h5a1 1 0 0 1 1 1v4Z"/><path d="M13 7a1 1 0 0 1 1-1h5l3 3-3 3h-5a1 1 0 0 1-1-1V7Z"/><path d="M6 14 3 11l3-3"/><path d="M18 10l3 3-3 3"/><path d="M6 14v4"/><path d="M18 10V6"/></svg>, label:t('uc_category_social')||'Social', desc:t('uc_category_desc_social')||'Suivi social, visites, rapports', color:'#ef4444', types:[
+      { key:'social_worker_note', icon:'edit', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg>, label:'Note sociale', fields:[{key:'worker',label:'Intervenant',type:'text',required:true},{key:'date_intervention',label:'Date',type:'date',required:true},{key:'type',label:'Type',type:'select',options:['Visite','Entretien','Appel','Réunion','Suivi']},{key:'content',label:'Contenu',type:'textarea',required:true},{key:'recommendations',label:'Recommandations',type:'textarea'}] },
+      { key:'home_visit', icon:'home', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>, label:'Visite domicile', fields:[{key:'address_visited',label:'Adresse visitée',type:'text',required:true},{key:'date_visit',label:'Date',type:'date',required:true},{key:'living_conditions',label:'Conditions de vie',type:'select',options:['Bonnes','Moyennes','Précaires','Critiques']},{key:'observations',label:'Observations',type:'textarea',required:true},{key:'recommendations',label:'Recommandations',type:'textarea'}] },
+      { key:'counseling', icon:'message-circle', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>, label:'Counseling', fields:[{key:'counselor',label:'Conseiller',type:'text',required:true},{key:'date_session',label:'Date',type:'date',required:true},{key:'type',label:'Type',type:'select',options:['Individuel','Groupe','Familial','Crise']},{key:'theme',label:'Thème',type:'select',options:['Scolaire','Familial','Émotionnel','Comportemental','Orientation','Traumatisme','Autre']},{key:'notes',label:'Notes',type:'textarea',required:true},{key:'outcome',label:'Résultat',type:'textarea'}] },
+      { key:'observation', icon:'eye', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>, label:'Observation', fields:[{key:'observer',label:'Observateur',type:'text',required:true},{key:'date_obs',label:'Date',type:'date',required:true},{key:'domain',label:'Domaine',type:'select',options:['Comportement','Santé','Éducation','Social','Émotionnel']},{key:'description',label:'Description',type:'textarea',required:true},{key:'concerns',label:'Préoccupations',type:'textarea'},{key:'actions',label:'Actions',type:'textarea'}] },
+      { key:'incident', icon:'alert-triangle', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>, label:'Incident', fields:[{key:'incident_type',label:"Type d'incident",type:'select',options:['Violence','Accident','Fuite','Conflit','Vol','Abus','Négligence','Autre'],required:true},{key:'date_incident',label:'Date',type:'date',required:true},{key:'location',label:'Lieu',type:'text'},{key:'description',label:'Description',type:'textarea',required:true},{key:'people_involved',label:'Personnes impliquées',type:'textarea'},{key:'actions_taken',label:'Actions prises',type:'textarea'},{key:'follow_up',label:'Suivi',type:'textarea'}] },
+      { key:'protection', icon:'shield', iconSvg:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>, label:'Protection', fields:[{key:'concern_type',label:'Type',type:'select',options:['Risque de maltraitance','Exploitation','Discrimination','Mariage forcé','Travail enfant','Autre'],required:true},{key:'severity',label:'Gravité',type:'select',options:['Faible','Moyenne','Haute','Urgente']},{key:'date_reported',label:'Date signalement',type:'date',required:true},{key:'reported_by',label:'Signalé par',type:'text'},{key:'description',label:'Description',type:'textarea',required:true},{key:'measures',label:'Mesures prises',type:'textarea'}] },
     ]},
   ]
   const [theme, setTheme] = useState(localStorage.getItem('cdo_theme') || 'dark')
@@ -4096,7 +4096,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
         {toast && (
           <div className={`dash-toast dash-toast-${toast.type}`} onClick={() => setToast(null)}>
-            <span className="dash-toast-icon">{toast.type === 'success' ? '✓' : toast.type === 'error' ? '✗' : toast.type === 'warning' ? '⚠' : 'ℹ'}</span>
+            <span className="dash-toast-icon">{toast.type === 'success' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> : toast.type === 'error' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="M6 6 18 18"/></svg> : toast.type === 'warning' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg> : <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>}</span>
             <span className="dash-toast-msg">{toast.message}</span>
           </div>
         )}
@@ -4328,7 +4328,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       {Object.entries(ambAssignments).map(([orpName, children]) => (
                         <div key={orpName} style={{marginBottom:20}}>
                           <h3 style={{fontSize:16,fontWeight:700,color:'#f59e0b',margin:'0 0 10px',display:'flex',alignItems:'center',gap:8}}>
-                            🏛️ {orpName}
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg> {orpName}
                           </h3>
                           <div style={{display:'flex',flexDirection:'column',gap:8}}>
                             {children.map(a => (
@@ -4340,7 +4340,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>{a.child_name}</div>
                                   <div style={{fontSize:12,color:'#64748b'}}>UID: {a.child_uid} • Assigné le {new Date(a.assigned_at).toLocaleDateString('fr-FR')}</div>
                                 </div>
-                                {a.note && <div style={{fontSize:11,color:'#94a3b8',maxWidth:200}}>📝 {a.note}</div>}
+                                {a.note && <div style={{fontSize:11,color:'#94a3b8',maxWidth:200}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg> {a.note}</div>}
                               </div>
                             ))}
                           </div>
@@ -4450,7 +4450,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     <div style={{display:'flex',gap:0,marginBottom:20,borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
                       {['dossiers','types'].map(tab => (
                         <button key={tab} onClick={() => setFedDocTab(tab)} style={{padding:'10px 20px',fontSize:13,fontWeight:600,cursor:'pointer',background:'none',border:'none',color:fedDocTab===tab?'#f59e0b':'#64748b',borderBottom:`2px solid ${fedDocTab===tab?'#f59e0b':'transparent'}`,transition:'all .15s ease'}}>
-                          {tab === 'dossiers' ? '📋 Dossiers des orphelinats' : '⚙️ Types de documents'}
+                          {tab === 'dossiers' ? <><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg> Dossiers des orphelinats</> : <><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> Types de documents</>}
                         </button>
                       ))}
                     </div>
@@ -4491,15 +4491,15 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                         <div style={{fontSize:10,color:'#64748b'}}>{new Date(doc.uploaded_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
                                       </div>
                                       <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,background:sb.bg,color:sb.color}}>{sb.label}</span>
-                                      <a href={doc.file} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#60a5fa',textDecoration:'underline'}}>📖 Voir</a>
+                                      <a href={doc.file} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#60a5fa',textDecoration:'underline',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Voir</a>
                                       {doc.status === 'pending' && (
                                         <div style={{display:'flex',gap:6,alignItems:'flex-start',flexWrap:'wrap',marginTop:4,width:'100%',flexDirection:'column'}}>
                                           <input className="dash-form-input" value={fedDocFeedback[`${orp.id}_${doc.id}`] || ''} onChange={e => setFedDocFeedback(p => ({...p,[`${orp.id}_${doc.id}`]: e.target.value}))} placeholder="Retour (optionnel)" style={{width:'100%',fontSize:11}} />
                                           <textarea className="dash-form-input" value={fedDocPoints[`${orp.id}_${doc.id}`] || ''} onChange={e => setFedDocPoints(p => ({...p,[`${orp.id}_${doc.id}`]: e.target.value}))} placeholder="Points à corriger (un par ligne)" rows={2} style={{width:'100%',fontSize:11,resize:'vertical',minHeight:36}} />
                                           <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                                            <button className="dash-form-save" onClick={() => reviewDocument(orp.id, doc.id, 'accept')} disabled={fedDocReviewLoading} style={{fontSize:11,padding:'5px 12px'}}>✅ Accepter</button>
-                                            <button className="dash-form-save" onClick={() => reviewDocument(orp.id, doc.id, 'request_changes')} disabled={fedDocReviewLoading} style={{fontSize:11,padding:'5px 12px',background:'rgba(245,158,11,0.15)',color:'#f59e0b'}}>🔄 Modifications</button>
-                                            <button className="dash-orp-save-btn" onClick={() => reviewDocument(orp.id, doc.id, 'reject')} disabled={fedDocReviewLoading} style={{fontSize:11,padding:'5px 12px'}}>❌ Refuser</button>
+                                            <button className="dash-form-save" onClick={() => reviewDocument(orp.id, doc.id, 'accept')} disabled={fedDocReviewLoading} style={{fontSize:11,padding:'5px 12px',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Accepter</button>
+                                            <button className="dash-form-save" onClick={() => reviewDocument(orp.id, doc.id, 'request_changes')} disabled={fedDocReviewLoading} style={{fontSize:11,padding:'5px 12px',background:'rgba(245,158,11,0.15)',color:'#f59e0b',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg> Modifications</button>
+                                            <button className="dash-orp-save-btn" onClick={() => reviewDocument(orp.id, doc.id, 'reject')} disabled={fedDocReviewLoading} style={{fontSize:11,padding:'5px 12px',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg> Refuser</button>
                                           </div>
                                         </div>
                                       )}
@@ -4531,7 +4531,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <input type="checkbox" id="fed-req" checked={fedDocTypeRequired} onChange={e => setFedDocTypeRequired(e.target.checked)} style={{accentColor:'#f59e0b'}} />
                               <label htmlFor="fed-req" style={{fontSize:11,color:'#94a3b8',cursor:'pointer'}}>REQUIS</label>
                             </div>
-                            <button className="dash-form-save" onClick={addDocType} disabled={fedSavingDocType} style={{fontSize:12,padding:'8px 16px'}}>{fedSavingDocType ? '...' : '➕ Ajouter'}</button>
+                            <button className="dash-form-save" onClick={addDocType} disabled={fedSavingDocType} style={{fontSize:12,padding:'8px 16px'}}>{fedSavingDocType ? '...' : <><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> Ajouter</>}</button>
                           </div>
                         </div>
                         <div>
@@ -4546,7 +4546,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 {dt.required ? 'REQUIS' : 'Optionnel'}
                               </button>
                               <span style={{fontSize:10,color:'#475569'}}>Ordre: {dt.order}</span>
-                              <button onClick={() => deleteDocType(dt.id)} style={{background:'rgba(239,68,68,0.1)',border:'none',borderRadius:8,color:'#ef4444',fontSize:11,padding:'4px 10px',cursor:'pointer'}}>🗑</button>
+                              <button onClick={() => deleteDocType(dt.id)} style={{background:'rgba(239,68,68,0.1)',border:'none',borderRadius:8,color:'#ef4444',fontSize:11,padding:'4px 10px',cursor:'pointer',display:'inline-flex',alignItems:'center'}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                             </div>
                           ))}
                         </div>
@@ -4557,9 +4557,36 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                 })()
                 : activeKey === 'orphelinats' && role === 'director' ? (() => {
                   const ORP_STEPS = ['General Information','Management','Capacity & Statistics','Documents','Needs Assessment','Verification'];
-                  const ORP_STEP_ICONS = ['🏛️','👤','📊','📄','🆘','✅'];
+                  const ORP_STEP_ICONS = ['building','user','bar-chart','file','help','check'];
+                  const ORP_STEP_ICON_SVG = (i) => {
+                    const m = [
+                      <svg key="step0" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg>,
+                      <svg key="step1" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+                      <svg key="step2" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>,
+                      <svg key="step3" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+                      <svg key="step4" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
+                      <svg key="step5" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                    ];
+                    return m[i] || null;
+                  };
                   const ORP_NEEDS_OPTIONS = ['Food','Clean Water','Clothing','School Supplies','Medicine','Beds','Electricity','Internet','Infrastructure','Transportation','Sponsorship Programs'];
-                  const ORP_NEEDS_ICONS = ['🍚','💧','👕','📚','💊','🛏️','⚡','🌐','🏗️','🚌','🤝'];
+                  const ORP_NEEDS_ICONS = ['food','water','clothing','books','pill','bed','zap','globe','construction','bus','handshake'];
+                  const ORP_NEEDS_ICON_SVG = (i) => {
+                    const m = [
+                      <svg key="need0" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>,
+                      <svg key="need1" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>,
+                      <svg key="need2" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2h12"/><path d="M12 2v18"/><path d="M8 22h8"/><path d="M9 8h6"/><path d="M9 14h6"/><path d="M4 2h16"/></svg>,
+                      <svg key="need3" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M4 11h16"/></svg>,
+                      <svg key="need4" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>,
+                      <svg key="need5" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 14v4"/></svg>,
+                      <svg key="need6" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+                      <svg key="need7" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+                      <svg key="need8" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="6" rx="2"/><path d="M2 10h20"/><path d="M7 3v3"/><path d="M17 3v3"/></svg>,
+                      <svg key="need9" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M12 20v2"/><path d="M12 14v-2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+                      <svg key="need10" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 17a1 1 0 0 1-1 1H5l-3-3 3-3h5a1 1 0 0 1 1 1v4Z"/><path d="M13 7a1 1 0 0 1 1-1h5l3 3-3 3h-5a1 1 0 0 1-1-1V7Z"/><path d="M6 14 3 11l3-3"/><path d="M18 10l3 3-3 3"/><path d="M6 14v4"/><path d="M18 10V6"/></svg>,
+                    ];
+                    return m[i] || null;
+                  };
                   const ORP_TYPES = ['Government','Private','Religious','NGO','Community'];
                   const ORP_COUNTRIES = ['Angola','Benin','Botswana','Burkina Faso','Burundi','Cameroun','Cap-Vert','Centrafrique','Comores','Congo-Brazzaville','RD Congo','Côte d\'Ivoire','Djibouti','Egypte','Guinée Équ.','Érythrée','Eswatini','Éthiopie','Gabon','Gambie','Ghana','Guinée','Guinée-Bissau','Kenya','Lesotho','Libéria','Libye','Madagascar','Malawi','Mali','Mauritanie','Maurice','Maroc','Mozambique','Namibie','Niger','Nigeria','Rwanda','Sao Tomé','Sénégal','Seychelles','Sierra Leone','Somalie','Afrique du Sud','Soudan du Sud','Soudan','Tanzanie','Togo','Tunisie','Ouganda','Zambie','Zimbabwe'];
                   const orpUpd = (k, v) => setOrphanageForm(f => ({ ...f, [k]: v }));
@@ -4570,14 +4597,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   const docCompletion = Math.round((docCount / 5) * 100);
                   const saveDraft = () => { try { localStorage.setItem('cdo_orp_draft', JSON.stringify(orphanageForm)); localStorage.setItem('cdo_orp_step', String(orpWizStep)); setOrpDraftSaved(true); showToast('Draft saved successfully.'); setTimeout(() => setOrpDraftSaved(false), 2000); } catch(e) {} };
                   const directorOrp = directorOrpRec()
-                  const ORP_STATUS_BTN = { pending:{bg:'#ef4444',label:'🔴 En attente de validation par la fédération'}, approved:{bg:'#22c55e',label:'🟢 Validé par la fédération'}, rejected:{bg:'#ef4444',label:'❌ Rejeté'} }
+                  const ORP_STATUS_BTN = { pending:{bg:'#ef4444',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,label:'En attente de validation par la fédération'}, approved:{bg:'#22c55e',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 18 9"/></svg>,label:'Validé par la fédération'}, rejected:{bg:'#ef4444',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>,label:'Rejeté'} }
                   return (
                   <div style={{padding:'0 8px'}}>
                     {/* ── TRUST SCORE CARDS ── */}
                     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:12,marginBottom:24}}>
-                      {[{label:'Verification',val:'Pending',icon:'🛡️',color:'#f59e0b'},{label:'Profile',val:profileCompletion+'%',icon:'👤',color:'#3b82f6'},{label:'Documents',val:docCompletion+'%',icon:'📄',color:'#22c55e'},{label:'Transparency',val:orphanageForm.donor_visible?'Public':'Private',icon:'👁️',color:'#a855f7'}].map((c,i) => (
+                      {[{label:'Verification',val:'Pending',color:'#f59e0b',iconSvg:<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>},{label:'Profile',val:profileCompletion+'%',color:'#3b82f6',iconSvg:<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>},{label:'Documents',val:docCompletion+'%',color:'#22c55e',iconSvg:<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>},{label:'Transparency',val:orphanageForm.donor_visible?'Public':'Private',color:'#a855f7',iconSvg:<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>}].map((c,i) => (
                         <div key={i} style={{background:'rgba(30,41,59,0.7)',backdropFilter:'blur(16px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'18px 16px',display:'flex',alignItems:'center',gap:14}}>
-                          <div style={{width:48,height:48,borderRadius:12,background:`${c.color}18`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>{c.icon}</div>
+                          <div style={{width:48,height:48,borderRadius:12,background:`${c.color}18`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>{c.iconSvg}</div>
                           <div><div style={{fontSize:11,color:'#64748b',textTransform:'uppercase',letterSpacing:1,marginBottom:2}}>{c.label}</div><div style={{fontSize:18,fontWeight:700,color:'#e2e8f0'}}>{c.val}</div></div>
                         </div>
                       ))}
@@ -4588,7 +4615,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       {ORP_STEPS.map((s,i) => (
                         <React.Fragment key={i}>
                           <div onClick={() => setOrpWizStep(i)} style={{display:'flex',flexDirection:'column',alignItems:'center',cursor:'pointer',minWidth:80,opacity:orpWizStep===i?1:0.55,transition:'all .3s ease'}}>
-                            <div style={{width:38,height:38,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:700,background:orpWizStep>i?'#22c55e':orpWizStep===i?'linear-gradient(135deg,#f59e0b,#f97316)':'rgba(255,255,255,0.06)',color:orpWizStep>=i?'#fff':'#64748b',border:orpWizStep===i?'2px solid #f59e0b':'2px solid transparent',transition:'all .3s ease',boxShadow:orpWizStep===i?'0 0 20px rgba(245,158,11,0.3)':'none'}}>{orpWizStep>i?'✓':ORP_STEP_ICONS[i]}</div>
+                            <div style={{width:38,height:38,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:700,background:orpWizStep>i?'#22c55e':orpWizStep===i?'linear-gradient(135deg,#f59e0b,#f97316)':'rgba(255,255,255,0.06)',color:orpWizStep>=i?'#fff':'#64748b',border:orpWizStep===i?'2px solid #f59e0b':'2px solid transparent',transition:'all .3s ease',boxShadow:orpWizStep===i?'0 0 20px rgba(245,158,11,0.3)':'none'}}>{orpWizStep>i?<svg key="check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>:ORP_STEP_ICON_SVG(i)}</div>
                             <span style={{fontSize:10,marginTop:6,color:orpWizStep===i?'#f59e0b':'#64748b',fontWeight:orpWizStep===i?700:500,textAlign:'center',maxWidth:80}}>{s}</span>
                           </div>
                           {i<ORP_STEPS.length-1 && <div style={{flex:1,height:2,background:orpWizStep>i?'#22c55e':'rgba(255,255,255,0.08)',margin:'0 4px',marginBottom:18,minWidth:16,transition:'background .3s ease'}} />}
@@ -4601,11 +4628,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                     {/* ══ STEP 0: GENERAL INFORMATION ══ */}
                     {orpWizStep === 0 && <>
-                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}>🏛️ Orphanage Information</h3>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg> Orphanage Information</h3>
                       <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Provide the general details about your orphanage.</p>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16}}>
                         <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Orphanage Name <span style={{color:'#ef4444'}}>*</span></label><input className="dash-form-input" value={orphanageForm.name} onChange={e=>orpUpd('name',e.target.value)} placeholder="Enter orphanage name" /></div>
-                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Legal Registration Number <span style={{color:'#ef4444'}}>*</span></label><div style={{display:'flex',gap:8}}><input className="dash-form-input" style={{flex:1}} value={orphanageForm.registration_number} onChange={e=>orpUpd('registration_number',e.target.value)} placeholder="e.g. ORG-2024-001" /><button type="button" onClick={()=>{const g=()=>{let r='';for(let i=0;i<6;i++)r+='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random()*36)];return r};let c=g();const e=new Set([...(orphanageRequests||[]).map(o=>o.registration_number).filter(Boolean),...Object.values(orphanageForm).filter(v=>typeof v==='string')]);while(e.has(c))c=g();orpUpd('registration_number',c)}} style={{background:'rgba(245,158,11,0.12)',border:'1px solid rgba(245,158,11,0.3)',borderRadius:12,color:'#f59e0b',fontSize:12,fontWeight:700,padding:'8px 14px',cursor:'pointer',whiteSpace:'nowrap'}}>🎲 Générer</button></div></div>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Legal Registration Number <span style={{color:'#ef4444'}}>*</span></label><div style={{display:'flex',gap:8}}><input className="dash-form-input" style={{flex:1}} value={orphanageForm.registration_number} onChange={e=>orpUpd('registration_number',e.target.value)} placeholder="e.g. ORG-2024-001" /><button type="button" onClick={()=>{const g=()=>{let r='';for(let i=0;i<6;i++)r+='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random()*36)];return r};let c=g();const e=new Set([...(orphanageRequests||[]).map(o=>o.registration_number).filter(Boolean),...Object.values(orphanageForm).filter(v=>typeof v==='string')]);while(e.has(c))c=g();orpUpd('registration_number',c)}} style={{background:'rgba(245,158,11,0.12)',border:'1px solid rgba(245,158,11,0.3)',borderRadius:12,color:'#f59e0b',fontSize:12,fontWeight:700,padding:'8px 14px',cursor:'pointer',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><circle cx="8.5" cy="8.5" r=".5" fill="currentColor"/><circle cx="15.5" cy="8.5" r=".5" fill="currentColor"/><circle cx="15.5" cy="15.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="15.5" r=".5" fill="currentColor"/></svg> Générer</button></div></div>
                         <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Orphanage Type <span style={{color:'#ef4444'}}>*</span></label><select className="dash-form-input" value={orphanageForm.orphanage_type} onChange={e=>orpUpd('orphanage_type',e.target.value)} style={{cursor:'pointer'}}><option value="">Select type...</option>{ORP_TYPES.map(t2=>(<option key={t2} value={t2}>{t2}</option>))}</select></div>
                         <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Date of Establishment</label><input type="date" className="dash-form-input" value={orphanageForm.date_established} onChange={e=>orpUpd('date_established',e.target.value)} /></div>
                         <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Country <span style={{color:'#ef4444'}}>*</span></label><select className="dash-form-input" value={orphanageForm.country} onChange={e=>orpUpd('country',e.target.value)} style={{cursor:'pointer'}}><option value="">Select country...</option>{ORP_COUNTRIES.map(c=>(<option key={c} value={c}>{c}</option>))}</select></div>
@@ -4614,8 +4641,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <div style={{gridColumn:'1/-1'}}><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Full Address</label><input className="dash-form-input" value={orphanageForm.address} onChange={e=>orpUpd('address',e.target.value)} placeholder="Full street address" /></div>
                       </div>
                       <div style={{marginTop:20,padding:'16px',background:'rgba(59,130,246,0.06)',borderRadius:12,border:'1px solid rgba(59,130,246,0.15)'}}>
-                        <div style={{fontSize:13,fontWeight:600,color:'#3b82f6',marginBottom:10,display:'flex',alignItems:'center',gap:6}}>📍 GPS Location
-                          <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>{gpsLoading&&<span style={{fontSize:11,color:'#3b82f6'}}>⏳ Recherche...</span>}<button type="button" onClick={()=>{if(gpsLoading)return;setGpsLoading(true);const t=setTimeout(()=>{setGpsLoading(false);showToast('Délai dépassé. Passage en géolocalisation IP...','info');fetch('https://ip-api.com/json/').then(r=>r.json()).then(d=>{if(d.status==='success'){orpUpd('gps_lat',String(d.lat));orpUpd('gps_lng',String(d.lon));showToast(`Position approx: ${d.city}, ${d.country}`,'success')}else showToast('Impossible de localiser. Entrez manuellement.','error')}).catch(()=>showToast('Impossible de localiser. Entrez manuellement.','error')).finally(()=>setGpsLoading(false))},8000);navigator.geolocation.getCurrentPosition(p=>{clearTimeout(t);setGpsLoading(false);orpUpd('gps_lat',String(p.coords.latitude.toFixed(4)));orpUpd('gps_lng',String(p.coords.longitude.toFixed(4)));showToast('Position GPS obtenue avec succès','success')},()=>{clearTimeout(t);fetch('https://ip-api.com/json/').then(r=>r.json()).then(d=>{if(d.status==='success'){orpUpd('gps_lat',String(d.lat));orpUpd('gps_lng',String(d.lon));showToast(`Position approx: ${d.city}, ${d.country}`,'success')}else showToast('Impossible de localiser. Entrez manuellement.','error')}).catch(()=>showToast('Impossible de localiser. Entrez manuellement.','error')).finally(()=>setGpsLoading(false))},{enableHighAccuracy:true,timeout:7000})}} style={{background:'rgba(59,130,246,0.12)',border:'1px solid rgba(59,130,246,0.3)',borderRadius:12,color:gpsLoading?'#94a3b8':'#3b82f6',fontSize:11,fontWeight:700,padding:'6px 12px',cursor:gpsLoading?'not-allowed':'pointer',opacity:gpsLoading?0.6:1}}>{gpsLoading?'...':'📍 Obtenir ma position'}</button></div>
+                         <div style={{fontSize:13,fontWeight:600,color:'#3b82f6',marginBottom:10,display:'flex',alignItems:'center',gap:6}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 5-9 13-9 13s-9-8-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> GPS Location
+                          <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>{gpsLoading&&<span style={{fontSize:11,color:'#3b82f6',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6"/><path d="M12 18v0"/></svg> Recherche...</span>}<button type="button" onClick={()=>{if(gpsLoading)return;setGpsLoading(true);const t=setTimeout(()=>{setGpsLoading(false);showToast('Délai dépassé. Passage en géolocalisation IP...','info');fetch('https://ip-api.com/json/').then(r=>r.json()).then(d=>{if(d.status==='success'){orpUpd('gps_lat',String(d.lat));orpUpd('gps_lng',String(d.lon));showToast(`Position approx: ${d.city}, ${d.country}`,'success')}else showToast('Impossible de localiser. Entrez manuellement.','error')}).catch(()=>showToast('Impossible de localiser. Entrez manuellement.','error')).finally(()=>setGpsLoading(false))},8000);navigator.geolocation.getCurrentPosition(p=>{clearTimeout(t);setGpsLoading(false);orpUpd('gps_lat',String(p.coords.latitude.toFixed(4)));orpUpd('gps_lng',String(p.coords.longitude.toFixed(4)));showToast('Position GPS obtenue avec succès','success')},()=>{clearTimeout(t);fetch('https://ip-api.com/json/').then(r=>r.json()).then(d=>{if(d.status==='success'){orpUpd('gps_lat',String(d.lat));orpUpd('gps_lng',String(d.lon));showToast(`Position approx: ${d.city}, ${d.country}`,'success')}else showToast('Impossible de localiser. Entrez manuellement.','error')}).catch(()=>showToast('Impossible de localiser. Entrez manuellement.','error')).finally(()=>setGpsLoading(false))},{enableHighAccuracy:true,timeout:7000})}} style={{background:'rgba(59,130,246,0.12)',border:'1px solid rgba(59,130,246,0.3)',borderRadius:12,color:gpsLoading?'#94a3b8':'#3b82f6',fontSize:11,fontWeight:700,padding:'6px 12px',cursor:gpsLoading?'not-allowed':'pointer',opacity:gpsLoading?0.6:1,display:'inline-flex',alignItems:'center',gap:4}}>{gpsLoading?'...':<><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 5-9 13-9 13s-9-8-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Obtenir ma position</>}</button></div>
                         </div>
                         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                           <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:4}}>Latitude</label><input className="dash-form-input" value={orphanageForm.gps_lat} onChange={e=>orpUpd('gps_lat',e.target.value)} placeholder="e.g. -4.3250" /></div>
@@ -4626,7 +4653,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                     {/* ══ STEP 1: MANAGEMENT ══ */}
                     {orpWizStep === 1 && <>
-                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}>👤 Management & Contact Information</h3>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Management & Contact Information</h3>
                       <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Director and key contact details for verification.</p>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16}}>
                         <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Director Full Name <span style={{color:'#ef4444'}}>*</span></label><input className="dash-form-input" value={orphanageForm.director_name} onChange={e=>orpUpd('director_name',e.target.value)} placeholder="Full name" /></div>
@@ -4640,7 +4667,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                     {/* ══ STEP 2: CAPACITY & STATISTICS ══ */}
                     {orpWizStep === 2 && <>
-                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}>📊 Population Statistics</h3>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg> Population Statistics</h3>
                       <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Detailed breakdown of children and staff.</p>
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
                         <div style={{background:'rgba(245,158,11,0.06)',borderRadius:14,padding:16,border:'1px solid rgba(245,158,11,0.15)'}}>
@@ -4654,18 +4681,18 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       </div>
                       <div style={{fontSize:13,fontWeight:600,color:'#94a3b8',marginBottom:10}}>Children Breakdown</div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12,marginBottom:20}}>
-                        {[{k:'boys',l:'Boys 👦',c:'#3b82f6'},{k:'girls',l:'Girls 👧',c:'#ec4899'},{k:'children_disabled',l:'With Disabilities ♿',c:'#a855f7'},{k:'infants_0_5',l:'Infants (0-5) 👶',c:'#22c55e'},{k:'children_6_12',l:'Children (6-12) 🧒',c:'#f59e0b'},{k:'teenagers_13_18',l:'Teenagers (13-18) 🧑',c:'#06b6d4'}].map(f=>(
+                        {[{k:'boys',l:'Boys',c:'#3b82f6',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M16 18v2M8 18v2M12 10v2"/><circle cx="12" cy="12" r="2"/></svg>},{k:'girls',l:'Girls',c:'#ec4899',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M9 18h6"/><path d="M12 10v6"/></svg>},{k:'children_disabled',l:'With Disabilities',c:'#a855f7',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="4" r="2"/><path d="M18 8h-3.87a2 2 0 0 0-1.74 1.05l-1.3 2.6a2 2 0 0 0 0 1.7l2.14 4.28"/><path d="M6 15l4 4"/><circle cx="18" cy="16" r="3"/></svg>},{k:'infants_0_5',l:'Infants (0-5)',c:'#22c55e',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M9 14h6"/><path d="M12 10v8"/></svg>},{k:'children_6_12',l:'Children (6-12)',c:'#f59e0b',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M12 10v6"/><path d="M8 18h8"/></svg>},{k:'teenagers_13_18',l:'Teenagers (13-18)',c:'#06b6d4',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M12 10v6"/><path d="M6 18h12"/></svg>}].map(f=>(
                           <div key={f.k} style={{background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'12px',border:'1px solid rgba(255,255,255,0.06)'}}>
-                            <label style={{fontSize:11,color:f.c,display:'block',marginBottom:6,fontWeight:600}}>{f.l}</label>
+                            <label style={{fontSize:11,color:f.c,display:'block',marginBottom:6,fontWeight:600,display:'flex',alignItems:'center',gap:4}}>{f.iconSvg} {f.l}</label>
                             <input type="number" className="dash-form-input" value={orphanageForm[f.k]} onChange={e=>orpUpd(f.k,e.target.value)} placeholder="0" style={{textAlign:'center'}} />
                           </div>
                         ))}
                       </div>
                       <div style={{fontSize:13,fontWeight:600,color:'#94a3b8',marginBottom:10}}>Staff Information</div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12}}>
-                        {[{k:'staff_permanent',l:'Permanent Staff',i:'🏢'},{k:'staff_volunteers',l:'Volunteers',i:'🙋'},{k:'staff_caregivers',l:'Caregivers',i:'🤱'},{k:'staff_teachers',l:'Teachers',i:'👩‍🏫'}].map(f=>(
+                        {[{k:'staff_permanent',l:'Permanent Staff',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg>},{k:'staff_volunteers',l:'Volunteers',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M18 20v-2a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4v2"/></svg>},{k:'staff_caregivers',l:'Caregivers',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="4"/><path d="M8 18h8"/><path d="M12 10v8"/></svg>},{k:'staff_teachers',l:'Teachers',iconSvg:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5"/><path d="M6 12v5h3v-3h6v3h3v-5"/></svg>}].map(f=>(
                           <div key={f.k} style={{background:'rgba(255,255,255,0.03)',borderRadius:12,padding:'12px',border:'1px solid rgba(255,255,255,0.06)'}}>
-                            <label style={{fontSize:11,color:'#94a3b8',display:'block',marginBottom:6,fontWeight:600}}>{f.i} {f.l}</label>
+                            <label style={{fontSize:11,color:'#94a3b8',display:'block',marginBottom:6,fontWeight:600,display:'flex',alignItems:'center',gap:4}}>{f.iconSvg} {f.l}</label>
                             <input type="number" className="dash-form-input" value={orphanageForm[f.k]} onChange={e=>orpUpd(f.k,e.target.value)} placeholder="0" style={{textAlign:'center'}} />
                           </div>
                         ))}
@@ -4680,24 +4707,24 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                     {/* ══ STEP 3: DOCUMENTS ══ */}
                     {orpWizStep === 3 && <>
-                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}>📄 Legal Documents</h3>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Legal Documents</h3>
                       <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Upload required legal documents for verification.</p>
-                      <div style={{fontSize:13,fontWeight:600,color:'#22c55e',marginBottom:14}}>✅ Required Documents ({Object.entries(orpFiles).filter(([k])=>['registration_cert','operating_license','director_id','tax_doc','child_protection'].includes(k)).filter(([,v])=>v).length}/5)</div>
+                      <div style={{fontSize:13,fontWeight:600,color:'#22c55e',marginBottom:14,display:'flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Required Documents ({Object.entries(orpFiles).filter(([k])=>['registration_cert','operating_license','director_id','tax_doc','child_protection'].includes(k)).filter(([,v])=>v).length}/5)</div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:14,marginBottom:24}}>
                         {[{k:'registration_cert',l:'Registration Certificate',req:true},{k:'operating_license',l:'Operating License',req:true},{k:'director_id',l:'Director Identification',req:true},{k:'tax_doc',l:'Tax Registration',req:true},{k:'child_protection',l:'Child Protection Policy',req:true}].map(d=>(
                           <div key={d.k} {...orpDragHandler(d.k)} style={{border:`2px dashed ${orpFiles[d.k]?'#22c55e':'rgba(255,255,255,0.1)'}`,borderRadius:14,padding:'20px 16px',textAlign:'center',cursor:'pointer',background:orpFiles[d.k]?'rgba(34,197,94,0.04)':'rgba(255,255,255,0.02)',transition:'all .2s ease'}} onClick={()=>document.getElementById('orp-file-'+d.k)?.click()}>
-                            <div style={{fontSize:28,marginBottom:6}}>{orpFiles[d.k]?'✅':'📤'}</div>
+                            <div style={{fontSize:28,marginBottom:6}}>{orpFiles[d.k]?<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>:<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>}</div>
                             <div style={{fontSize:12,fontWeight:600,color:orpFiles[d.k]?'#22c55e':'#94a3b8',marginBottom:4}}>{d.l}{d.req&&<span style={{color:'#ef4444'}}> *</span>}</div>
                             <div style={{fontSize:11,color:'#64748b'}}>{orpFiles[d.k]?orpFiles[d.k].name:'Drag & drop or click to upload'}</div>
                             <input id={'orp-file-'+d.k} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{display:'none'}} onChange={orpFileHandler(d.k)} />
                           </div>
                         ))}
                       </div>
-                      <div style={{fontSize:13,fontWeight:600,color:'#64748b',marginBottom:14}}>📎 Optional Documents</div>
+                      <div style={{fontSize:13,fontWeight:600,color:'#64748b',marginBottom:14,display:'flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m8 11 4 4 4-4"/><path d="M12 15V3"/></svg> Optional Documents</div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:14}}>
                         {[{k:'annual_report',l:'Annual Report'},{k:'ngo_accreditation',l:'NGO Accreditation'},{k:'partnership_certs',l:'Partnership Certificates'}].map(d=>(
                           <div key={d.k} {...orpDragHandler(d.k)} style={{border:`2px dashed ${orpFiles[d.k]?'#3b82f6':'rgba(255,255,255,0.06)'}`,borderRadius:14,padding:'16px',textAlign:'center',cursor:'pointer',background:orpFiles[d.k]?'rgba(59,130,246,0.04)':'rgba(255,255,255,0.01)',transition:'all .2s ease'}} onClick={()=>document.getElementById('orp-file-'+d.k)?.click()}>
-                            <div style={{fontSize:22,marginBottom:4}}>{orpFiles[d.k]?'📎':'📤'}</div>
+                            <div style={{fontSize:22,marginBottom:4}}>{orpFiles[d.k]?<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>:<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>}</div>
                             <div style={{fontSize:12,color:orpFiles[d.k]?'#3b82f6':'#64748b'}}>{d.l}</div>
                             <div style={{fontSize:10,color:'#475569'}}>{orpFiles[d.k]?orpFiles[d.k].name:'Optional'}</div>
                             <input id={'orp-file-'+d.k} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style={{display:'none'}} onChange={orpFileHandler(d.k)} />
@@ -4708,55 +4735,55 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                     {/* ══ STEP 4: NEEDS ASSESSMENT ══ */}
                     {orpWizStep === 4 && <>
-                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}>🆘 Current Needs</h3>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Current Needs</h3>
                       <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Select areas where your orphanage requires support.</p>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
                         {ORP_NEEDS_OPTIONS.map((n,i) => {
                           const active = orphanageForm.needs.includes(n);
                           return (<button key={n} onClick={()=>orpToggleNeed(n)} style={{background:active?'rgba(245,158,11,0.12)':'rgba(255,255,255,0.03)',border:`1px solid ${active?'rgba(245,158,11,0.4)':'rgba(255,255,255,0.06)'}`,borderRadius:12,padding:'14px 10px',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:6,transition:'all .2s ease',transform:active?'scale(1.03)':'scale(1)'}}>
-                            <span style={{fontSize:24}}>{ORP_NEEDS_ICONS[i]}</span>
+                            <span style={{fontSize:24}}>{ORP_NEEDS_ICON_SVG(i)}</span>
                             <span style={{fontSize:11,fontWeight:active?700:500,color:active?'#f59e0b':'#94a3b8'}}>{n}</span>
-                            {active && <span style={{fontSize:10,color:'#22c55e'}}>✓ Selected</span>}
+                            {active && <span style={{fontSize:10,color:'#22c55e',display:'inline-flex',alignItems:'center',gap:2}}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Selected</span>}
                           </button>)
                         })}
                       </div>
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Priority Level</label><select className="dash-form-input" value={orphanageForm.needs_priority} onChange={e=>orpUpd('needs_priority',e.target.value)} style={{cursor:'pointer'}}><option value="low">🟢 Low</option><option value="medium">🟡 Medium</option><option value="high">🟠 High</option><option value="critical">🔴 Critical</option></select></div>
-                        <div style={{display:'flex',alignItems:'center',gap:8,paddingTop:20}}><label style={{fontSize:12,color:'#94a3b8',cursor:'pointer',display:'flex',alignItems:'center',gap:8}}><input type="checkbox" checked={orphanageForm.donor_visible} onChange={e=>orpUpd('donor_visible',e.target.checked)} style={{accentColor:'#f59e0b'}} /> 👁️ Visible to donors</label></div>
+                        <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Priority Level</label><select className="dash-form-input" value={orphanageForm.needs_priority} onChange={e=>orpUpd('needs_priority',e.target.value)} style={{cursor:'pointer'}}><option value="low"><svg viewBox="0 0 24 24" width="14" height="14" fill="#22c55e" stroke="none" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="6"/></svg> Low</option><option value="medium"><svg viewBox="0 0 24 24" width="14" height="14" fill="#f59e0b" stroke="none" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="6"/></svg> Medium</option><option value="high"><svg viewBox="0 0 24 24" width="14" height="14" fill="#f97316" stroke="none" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="6"/></svg> High</option><option value="critical"><svg viewBox="0 0 24 24" width="14" height="14" fill="#ef4444" stroke="none" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="6"/></svg> Critical</option></select></div>
+                        <div style={{display:'flex',alignItems:'center',gap:8,paddingTop:20}}><label style={{fontSize:12,color:'#94a3b8',cursor:'pointer',display:'flex',alignItems:'center',gap:8}}><input type="checkbox" checked={orphanageForm.donor_visible} onChange={e=>orpUpd('donor_visible',e.target.checked)} style={{accentColor:'#f59e0b'}} /> <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> Visible to donors</label></div>
                       </div>
                       <div><label style={{fontSize:12,color:'#94a3b8',marginBottom:4,display:'block'}}>Describe Current Needs & Challenges</label><textarea className="dash-form-input" rows={4} value={orphanageForm.needs_description} onChange={e=>orpUpd('needs_description',e.target.value)} placeholder="Describe the most urgent needs and current challenges your orphanage is facing..." /></div>
                     </>}
 
                     {/* ══ STEP 5: VERIFICATION ══ */}
                     {orpWizStep === 5 && <>
-                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}>✅ Verification & Submission</h3>
+                      <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',marginBottom:4,display:'flex',alignItems:'center',gap:8}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Verification & Submission</h3>
                       <p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Review your submission and track verification status.</p>
 
                       {/* Status du dossier */}
                       {!directorOrp ? (
                         <div style={{background:'rgba(168,85,247,0.06)',borderRadius:16,padding:'20px',border:'1px solid rgba(168,85,247,0.15)',marginBottom:20}}>
-                          <div style={{fontSize:13,fontWeight:600,color:'#a855f7',marginBottom:14}}>🔍 Assigned Ambassador</div>
+                          <div style={{fontSize:13,fontWeight:600,color:'#a855f7',marginBottom:14,display:'flex',alignItems:'center',gap:6}}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Assigned Ambassador</div>
                           <div style={{display:'flex',alignItems:'center',gap:16}}>
-                            <div style={{width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,#a855f7,#6366f1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,color:'#fff'}}>🛡️</div>
+                            <div style={{width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,#a855f7,#6366f1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,color:'#fff'}}><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
                             <div style={{flex:1}}>
                               <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>Awaiting Assignment</div>
                               <div style={{fontSize:12,color:'#64748b'}}>An ambassador will be assigned after submission</div>
                             </div>
-                            <div style={{padding:'6px 14px',borderRadius:20,background:'rgba(245,158,11,0.12)',color:'#f59e0b',fontSize:11,fontWeight:700}}>⏳ Pending</div>
+                            <div style={{padding:'6px 14px',borderRadius:20,background:'rgba(245,158,11,0.12)',color:'#f59e0b',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6"/><path d="M12 18v0"/></svg> Pending</div>
                           </div>
                         </div>
                       ) : (() => {
                         const statusConfig = {
-                          pending: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)', color: '#ef4444', icon: '🔴', label: "En attente de validation par la fédération" },
-                          approved: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.2)', color: '#22c55e', icon: '🟢', label: 'Validé par la fédération' },
-                          rejected: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)', color: '#ef4444', icon: '❌', label: 'Rejeté' },
+                          pending: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)', color: '#ef4444', iconSvg: <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>, label: "En attente de validation par la fédération" },
+                          approved: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.2)', color: '#22c55e', iconSvg: <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 18 9"/></svg>, label: 'Validé par la fédération' },
+                          rejected: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)', color: '#ef4444', iconSvg: <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>, label: 'Rejeté' },
                         }
                         const cfg = statusConfig[directorOrp.status] || statusConfig.pending
                         return (
                           <div style={{background:cfg.bg,borderRadius:16,padding:'20px',border:`1px solid ${cfg.border}`,marginBottom:20}}>
-                            <div style={{fontSize:13,fontWeight:600,color:cfg.color,marginBottom:14}}>{cfg.icon} Statut du dossier</div>
+                            <div style={{fontSize:13,fontWeight:600,color:cfg.color,marginBottom:14}}>{cfg.iconSvg} Statut du dossier</div>
                             <div style={{display:'flex',alignItems:'center',gap:16}}>
-                              <div style={{width:56,height:56,borderRadius:'50%',background:`${cfg.color}20`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,color:cfg.color}}>{cfg.icon}</div>
+                              <div style={{width:56,height:56,borderRadius:'50%',background:`${cfg.color}20`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,color:cfg.color}}>{cfg.iconSvg}</div>
                               <div style={{flex:1}}>
                                 <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>{cfg.label}</div>
                                 {directorOrp.ambassador_name && <div style={{fontSize:12,color:cfg.color,marginTop:4}}>Ambassadeur: {directorOrp.ambassador_name}</div>}
@@ -4770,7 +4797,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                       {/* Summary */}
                       <div style={{background:'rgba(59,130,246,0.04)',borderRadius:14,padding:'16px 20px',border:'1px solid rgba(59,130,246,0.12)'}}>
-                        <div style={{fontSize:13,fontWeight:600,color:'#3b82f6',marginBottom:12}}>📝 Submission Summary</div>
+                        <div style={{fontSize:13,fontWeight:600,color:'#3b82f6',marginBottom:12,display:'flex',alignItems:'center',gap:6}}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg> Submission Summary</div>
                         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,fontSize:12}}>
                           <div style={{color:'#64748b'}}>Orphanage:</div><div style={{color:'#e2e8f0',fontWeight:600}}>{orphanageForm.name || '—'}</div>
                           <div style={{color:'#64748b'}}>Type:</div><div style={{color:'#e2e8f0'}}>{orphanageForm.orphanage_type || '—'}</div>
@@ -4791,14 +4818,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         {orpWizStep > 0 && <button className="dash-form-save" onClick={()=>setOrpWizStep(s=>s-1)} style={{background:'rgba(255,255,255,0.06)',color:'#94a3b8'}}>← Previous</button>}
                       </div>
                       <div style={{display:'flex',gap:10,alignItems:'center'}}>
-                        {orpDraftSaved && <span style={{fontSize:11,color:'#22c55e'}}>✓ Draft saved</span>}
-                        <button className="dash-form-save" onClick={saveDraft} style={{background:'rgba(255,255,255,0.06)',color:'#94a3b8'}}>💾 Save Draft</button>
+                        {orpDraftSaved && <span style={{fontSize:11,color:'#22c55e',display:'inline-flex',alignItems:'center',gap:3}}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Draft saved</span>}
+                        <button className="dash-form-save" onClick={saveDraft} style={{background:'rgba(255,255,255,0.06)',color:'#94a3b8',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Draft</button>
                         {orpWizStep < 5 ? (
                           <button className="dash-form-save" onClick={()=>setOrpWizStep(s=>s+1)} style={{background:'linear-gradient(135deg,#f59e0b,#f97316)',color:'#fff',fontWeight:700}}>Next Step →</button>
                         ) : directorOrp && !orphanageLoading ? (
-                          (() => { const c = ORP_STATUS_BTN[directorOrp.status] || ORP_STATUS_BTN.pending; return <span style={{background:c.bg,color:'#fff',fontWeight:700,padding:'10px 28px',borderRadius:10,fontSize:13,display:'inline-block',whiteSpace:'nowrap'}}>{c.label}</span> })()
+                          (() => { const c = ORP_STATUS_BTN[directorOrp.status] || ORP_STATUS_BTN.pending; return <span style={{background:c.bg,color:'#fff',fontWeight:700,padding:'10px 28px',borderRadius:10,fontSize:13,display:'inline-flex',alignItems:'center',whiteSpace:'nowrap'}}>{c.iconSvg}{c.label}</span> })()
                         ) : (
-                          <button className="dash-form-save" onClick={submitOrphanage} disabled={orphanageLoading} style={{background:'linear-gradient(135deg,#22c55e,#16a34a)',color:'#fff',fontWeight:700,padding:'10px 28px'}}>{orphanageLoading?'Submitting...':'🚀 Submit for Verification'}</button>
+                          <button className="dash-form-save" onClick={submitOrphanage} disabled={orphanageLoading} style={{background:'linear-gradient(135deg,#22c55e,#16a34a)',color:'#fff',fontWeight:700,padding:'10px 28px'}}>{orphanageLoading?'Submitting...':<><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M12 2v20M2 12h20"/></svg> Submit for Verification</>}</button>
                         )}
                       </div>
                     </div>
@@ -4914,7 +4941,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   <div style={{padding:'0 8px'}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
                       <div>
-                        <h3 style={{fontSize:20,fontWeight:700,color:'#e2e8f0',margin:0}}>📄 Documents</h3>
+                        <h3 style={{fontSize:20,fontWeight:700,color:'#e2e8f0',margin:0}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:6}}><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/></svg> Documents</h3>
                         <p style={{fontSize:13,color:'#64748b',margin:'4px 0 0'}}>Gérez les documents administratifs de votre orphelinat</p>
                       </div>
                     </div>
@@ -4929,14 +4956,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <div style={{height:'100%',width:`${totalAll ? (uploadedCount/totalAll)*100 : 0}%`,background:'linear-gradient(90deg,#f59e0b,#f97316)',borderRadius:3,transition:'width .3s ease'}} />
                       </div>
                       <div style={{display:'flex',gap:16,marginTop:10,fontSize:11,color:'#64748b'}}>
-                        <span>🟠 Requis: {docTypes.filter(d => d.required && submittedDocs.some(s => s.document_type === d.id && s.status !== 'rejected')).length}/{totalRequired}</span>
-                        <span>🔵 Optionnel: {docTypes.filter(d => !d.required && submittedDocs.some(s => s.document_type === d.id && s.status !== 'rejected')).length}/{totalOptional}</span>
+                        <span><svg viewBox="0 0 24 24" width="12" height="12" fill="#f97316" stroke="none" style={{verticalAlign:'middle',marginRight:2}}><circle cx="12" cy="12" r="6"/></svg> Requis: {docTypes.filter(d => d.required && submittedDocs.some(s => s.document_type === d.id && s.status !== 'rejected')).length}/{totalRequired}</span>
+                        <span><svg viewBox="0 0 24 24" width="12" height="12" fill="#3b82f6" stroke="none" style={{verticalAlign:'middle',marginRight:2}}><circle cx="12" cy="12" r="6"/></svg> Optionnel: {docTypes.filter(d => !d.required && submittedDocs.some(s => s.document_type === d.id && s.status !== 'rejected')).length}/{totalOptional}</span>
                       </div>
                     </div>
 
                     {/* Upload new document */}
                     <div style={{background:'rgba(30,41,59,0.5)',borderRadius:14,border:'1px solid rgba(255,255,255,0.06)',padding:'20px',marginBottom:20}}>
-                      <h4 style={{fontSize:14,fontWeight:600,color:'#e2e8f0',margin:'0 0 14px 0'}}>📤 Téléverser un document</h4>
+                      <h4 style={{fontSize:14,fontWeight:600,color:'#e2e8f0',margin:'0 0 14px 0'}}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:6}}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg> Téléverser un document</h4>
                       <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'flex-end'}}>
                         <div style={{flex:1,minWidth:200}}>
                           <label style={{fontSize:11,color:'#94a3b8',display:'block',marginBottom:4}}>Type de document</label>
@@ -4952,10 +4979,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           <input type="file" ref={docFileRef} key={`file-input-${docResetKey}`} className="dash-form-input" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => setDocFile(e.target.files?.[0] || null)} style={{padding:'3px 12px'}} />
                         </div>
                         <button className="dash-form-save" onClick={handleUpload} disabled={!selDocTypeId || !docFile || docUploading} style={{background:'linear-gradient(135deg,#f59e0b,#f97316)',color:'#fff',fontWeight:700,padding:'10px 24px',whiteSpace:'nowrap'}}>
-                          {docUploading ? 'Envoi...' : '⬆ Téléverser'}
+                          {docUploading ? 'Envoi...' : <><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg> Téléverser</>}
                         </button>
                       </div>
-                      {docFile && <div style={{marginTop:10,fontSize:11,color:'#22c55e'}}>✓ {docFile.name} ({(docFile.size / 1024).toFixed(1)} KB)</div>}
+                      {docFile && <div style={{marginTop:10,fontSize:11,color:'#22c55e'}}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><polyline points="20 6 9 17 4 12"/></svg> {docFile.name} ({(docFile.size / 1024).toFixed(1)} KB)</div>}
                     </div>
 
                     {/* List of submitted documents */}
@@ -4976,14 +5003,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <div style={{fontSize:10,color:'#64748b'}}>{new Date(doc.uploaded_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
                             </div>
                             <span style={{fontSize:10,fontWeight:700,padding:'3px 10px',borderRadius:12,background:sb.bg,color:sb.color}}>{sb.label}</span>
-                            <button onClick={() => setPreviewDoc(docFileUrl(doc.file))} style={{background:'rgba(59,130,246,0.1)',border:'none',borderRadius:8,color:'#60a5fa',fontSize:11,padding:'4px 10px',cursor:'pointer'}}>👁 Voir</button>
-                            <a href={docFileUrl(doc.file)} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#64748b',textDecoration:'underline'}}>⬇ Télécharger</a>
+                            <button onClick={() => setPreviewDoc(docFileUrl(doc.file))} style={{background:'rgba(59,130,246,0.1)',border:'none',borderRadius:8,color:'#60a5fa',fontSize:11,padding:'4px 10px',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg> Voir</button>
+                            <a href={docFileUrl(doc.file)} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:'#64748b',textDecoration:'underline',display:'inline-flex',alignItems:'center',gap:3}}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> Télécharger</a>
                             {(Date.now() - new Date(doc.uploaded_at).getTime()) < 2 * 24 * 60 * 60 * 1000 && (
                               <>
                                 {(doc.status === 'changes_requested' || doc.status === 'rejected') && (
-                                  <button onClick={() => modifyDocument(doc.id)} style={{background:'rgba(245,158,11,0.1)',border:'none',borderRadius:8,color:'#f59e0b',fontSize:11,padding:'4px 10px',cursor:'pointer'}}>✏️ Modifier</button>
+                                  <button onClick={() => modifyDocument(doc.id)} style={{background:'rgba(245,158,11,0.1)',border:'none',borderRadius:8,color:'#f59e0b',fontSize:11,padding:'4px 10px',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> Modifier</button>
                                 )}
-                                <button onClick={() => deleteDocument(doc.id)} style={{background:'rgba(239,68,68,0.1)',border:'none',borderRadius:8,color:'#ef4444',fontSize:11,padding:'4px 10px',cursor:'pointer'}}>🗑 Supprimer</button>
+                                <button onClick={() => deleteDocument(doc.id)} style={{background:'rgba(239,68,68,0.1)',border:'none',borderRadius:8,color:'#ef4444',fontSize:11,padding:'4px 10px',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Supprimer</button>
                               </>
                             )}
                             {(doc.status === 'changes_requested' || doc.status === 'rejected') && (doc.feedback || doc.points_to_update) && (() => {
@@ -5010,7 +5037,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     animation: isFresh ? 'pulse-modif 1s ease-in-out infinite' : 'none',
                                     transition: 'all .2s',
                                   }}>
-                                    {detailsOpen ? '▲ Masquer les détails' : doc.status === 'rejected' ? '❌ Voir le motif du refus' : '🔄 Modifications demandées'}
+                                    {detailsOpen ? '▲ Masquer les détails' : doc.status === 'rejected' ? <><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg> Voir le motif du refus</> : <><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Modifications demandées</>}
                                   </button>
                                 )}
                                 {detailsOpen && (
@@ -5039,7 +5066,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   {submittedDocs.filter(d => d.status === 'changes_requested' || d.status === 'rejected').length > 0 && (
                     <div style={{marginTop:24,padding:'16px 18px',background:'rgba(30,41,59,0.4)',borderRadius:14,border:'1px solid rgba(255,255,255,0.06)'}}>
                       <h4 style={{fontSize:13,fontWeight:700,color:'#94a3b8',margin:'0 0 12px 0',display:'flex',alignItems:'center',gap:6}}>
-                        📋 Historique des modifications
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1"/></svg> Historique des modifications
                         <span style={{background:'rgba(239,68,68,0.12)',color:'#ef4444',fontSize:10,fontWeight:700,padding:'1px 8px',borderRadius:8}}>{submittedDocs.filter(d => d.status === 'changes_requested' || d.status === 'rejected').length}</span>
                       </h4>
                       <div style={{display:'flex',flexDirection:'column',gap:6}}>
@@ -5079,12 +5106,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     <div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={() => setPreviewDoc(null)}>
                       <div style={{position:'relative',width:'90%',height:'90%',background:'#1e293b',borderRadius:16,border:'1px solid rgba(255,255,255,0.1)',overflow:'hidden',display:'flex',flexDirection:'column'}} onClick={e => e.stopPropagation()}>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 20px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-                          <span style={{fontSize:13,fontWeight:600,color:'#e2e8f0'}}>📄 Aperçu du document</span>
+                          <span style={{fontSize:13,fontWeight:600,color:'#e2e8f0',display:'inline-flex',alignItems:'center',gap:6}}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/></svg> Aperçu du document</span>
                           <button onClick={() => setPreviewDoc(null)} style={{background:'rgba(239,68,68,0.15)',border:'none',borderRadius:8,color:'#ef4444',fontSize:18,width:32,height:32,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
                         </div>
                         <div style={{flex:1,position:'relative'}}>
                           <iframe src={previewDoc} style={{width:'100%',height:'100%',border:'none'}} title="Document preview" />
-                          <a href={previewDoc} target="_blank" rel="noopener noreferrer" style={{position:'absolute',bottom:16,right:16,background:'#f59e0b',color:'#fff',fontWeight:700,fontSize:12,padding:'8px 16px',borderRadius:8,textDecoration:'none'}}>⬇ Télécharger</a>
+                          <a href={previewDoc} target="_blank" rel="noopener noreferrer" style={{position:'absolute',bottom:16,right:16,background:'#f59e0b',color:'#fff',fontWeight:700,fontSize:12,padding:'8px 16px',borderRadius:8,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:4}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> Télécharger</a>
                         </div>
                       </div>
                     </div>
@@ -5772,9 +5799,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <div className="hm-form">
                           {/* ═══ MEDICAL ALERTS BAR ═══ */}
                           <div className="hm-alerts">
-                            <div className="hm-alert critical"><span className="hm-alert-icon">🔴</span><span className="hm-alert-text">{t('hm_alerts_critical') || 'Conditions Critiques'}</span><span className="hm-alert-count">0</span></div>
-                            <div className="hm-alert warning"><span className="hm-alert-icon">🟡</span><span className="hm-alert-text">{t('hm_alerts_allergies') || 'Allergies Sévères'}</span><span className="hm-alert-count">{allergies.filter(a => a.severity === 'severe').length}</span></div>
-                            <div className="hm-alert info"><span className="hm-alert-icon">🔵</span><span className="hm-alert-text">{t('hm_alerts_medications') || 'Médicaments Actifs'}</span><span className="hm-alert-count">{treatments.filter(t => t.name).length}</span></div>
+                            <div className="hm-alert critical"><span className="hm-alert-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" color="#ef4444"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span><span className="hm-alert-text">{t('hm_alerts_critical') || 'Conditions Critiques'}</span><span className="hm-alert-count">0</span></div>
+                            <div className="hm-alert warning"><span className="hm-alert-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" color="#f59e0b"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span><span className="hm-alert-text">{t('hm_alerts_allergies') || 'Allergies Sévères'}</span><span className="hm-alert-count">{allergies.filter(a => a.severity === 'severe').length}</span></div>
+                            <div className="hm-alert info"><span className="hm-alert-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" color="#3b82f6"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span><span className="hm-alert-text">{t('hm_alerts_medications') || 'Médicaments Actifs'}</span><span className="hm-alert-count">{treatments.filter(t => t.name).length}</span></div>
                           </div>
 
                           {/* ═══ 1. HEALTH SUMMARY ═══ */}
@@ -5783,9 +5810,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div className="hm-summary-info">
                               <div className="hm-summary-name">{getFieldValue('Prénom') || 'Prénom'} {getFieldValue('Nom') || 'Nom'}</div>
                               <div className="hm-summary-meta">
-                                <span>🆔 {editingChild ? editingChild.uid : uidRef.current}</span>
-                                <span>🎂 {(() => { const d = getFieldValue('Date de naissance'); if (!d) return '—'; const a = Math.floor((new Date()-new Date(d))/(365.25*86400000)); return a+' '+(t('prof_years')||'ans') })()}</span>
-                                <span>⚤ {getFieldValue('Sexe') === 'Masculin' ? 'M' : getFieldValue('Sexe') === 'Féminin' ? 'F' : '—'}</span>
+                                <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> {editingChild ? editingChild.uid : uidRef.current}</span>
+                                <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16c2 .5 4 1.5 6 2 2-.5 4-1.5 6-2"/><path d="M12 3v3"/><path d="M9 4v3"/><path d="M15 4v3"/></svg> {(() => { const d = getFieldValue('Date de naissance'); if (!d) return '—'; const a = Math.floor((new Date()-new Date(d))/(365.25*86400000)); return a+' '+(t('prof_years')||'ans') })()}</span>
+                                <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> {getFieldValue('Sexe') === 'Masculin' ? 'M' : getFieldValue('Sexe') === 'Féminin' ? 'F' : '—'}</span>
                               </div>
                             </div>
                             <div className="hm-summary-right">
@@ -5793,51 +5820,51 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 <option value="">—</option>
                                 {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(g => <option key={g} value={g}>{g}</option>)}
                               </select>
-                              <span className="hm-summary-badge good">✅ {t('hm_health_good') || 'Bon'}</span>
+                              <span className="hm-summary-badge good"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 18 9"/></svg> {t('hm_health_good') || 'Bon'}</span>
                             </div>
                           </div>
 
                           {/* ═══ 2. VITAL SIGNS ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(59,130,246,0.15)'}}>❤️</div>
+                              <div className="hm-card-icon" style={{background:'rgba(59,130,246,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></div>
                               <span className="hm-card-title">{t('hm_vitals') || 'Signes Vitaux'}</span>
                               <span className="hm-card-chevron">▼</span>
                             </div>
                             <div className="hm-card-body">
                               <div className="hm-vitals">
                                 <div className="hm-vital">
-                                  <div className="hm-vital-icon">📏</div>
+                                  <div className="hm-vital-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="M4 6l8-4 8 4"/><path d="M4 18l8 4 8-4"/></svg></div>
                                   <input className="hm-vital-input" type="number" step="0.1" placeholder="Taille" defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.height || '' })()} id="hm-height" />
                                   <div className="hm-vital-label">{t('hm_height') || 'Taille (cm)'}</div>
                                 </div>
                                 <div className="hm-vital">
-                                  <div className="hm-vital-icon">⚖️</div>
+                                  <div className="hm-vital-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="M2 12h20"/><path d="M6 8V6c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2v2"/></svg></div>
                                   <input className="hm-vital-input" type="number" step="0.1" placeholder="Poids" defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.weight || '' })()} id="hm-weight" onInput={e => { const h = document.getElementById('hm-height')?.value; const w = e.target.value; if (h && w) { const bmi = (parseFloat(w) / ((parseFloat(h)/100)**2)).toFixed(1); const el = document.getElementById('hm-bmi-display'); if (el) el.textContent = bmi } }} />
                                   <div className="hm-vital-label">{t('hm_weight') || 'Poids (kg)'}</div>
                                 </div>
                                 <div className="hm-vital">
-                                  <div className="hm-vital-icon">📊</div>
+                                  <div className="hm-vital-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div>
                                   <div className="hm-vital-value" id="hm-bmi-display">{(() => { const m = editingChild?.extra_data?.medical; return m?.bmi || '—' })()}</div>
                                   <div className="hm-vital-label">{t('hm_bmi') || 'IMC'} <span style={{fontSize:'10px',color:'#64748B'}}>({t('hm_bmi_calc') || 'auto'})</span></div>
                                 </div>
                                 <div className="hm-vital">
-                                  <div className="hm-vital-icon">🩸</div>
+                                  <div className="hm-vital-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></div>
                                   <input className="hm-vital-input" type="text" placeholder="120/80" defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.bloodPressure || '' })()} id="hm-bp" />
                                   <div className="hm-vital-label">{t('hm_blood_pressure') || 'Tension'}</div>
                                 </div>
                                 <div className="hm-vital">
-                                  <div className="hm-vital-icon">💓</div>
+                                  <div className="hm-vital-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
                                   <input className="hm-vital-input" type="number" placeholder="72" defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.heartRate || '' })()} id="hm-hr" />
                                   <div className="hm-vital-label">{t('hm_heart_rate') || 'FC (bpm)'}</div>
                                 </div>
                                 <div className="hm-vital">
-                                  <div className="hm-vital-icon">🌡️</div>
+                                  <div className="hm-vital-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg></div>
                                   <input className="hm-vital-input" type="number" step="0.1" placeholder="36.6" defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.temperature || '' })()} id="hm-temp" />
                                   <div className="hm-vital-label">{t('hm_temperature') || 'Temp. (°C)'}</div>
                                 </div>
                                 <div className="hm-vital">
-                                  <div className="hm-vital-icon">🫁</div>
+                                  <div className="hm-vital-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 3C3.5 3 2 6.5 2 11v5c0 1.5 1.5 3 3.5 3s3.5-1.5 3.5-3v-1"/><path d="M17.5 3c3 0 4.5 3.5 4.5 8v5c0 1.5-1.5 3-3.5 3s-3.5-1.5-3.5-3v-1"/><path d="M12 14V2"/><path d="M12 14a4 4 0 0 0-4 4"/><path d="M12 14a4 4 0 0 1 4 4"/></svg></div>
                                   <input className="hm-vital-input" type="number" placeholder="98" defaultValue={(() => { const m = editingChild?.extra_data?.medical; return m?.spo2 || '' })()} id="hm-spo2" />
                                   <div className="hm-vital-label">{t('hm_spo2') || 'SpO₂ (%)'}</div>
                                 </div>
@@ -5848,7 +5875,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* ═══ 3. MEDICAL HISTORY ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(168,85,247,0.15)'}}>📋</div>
+                              <div className="hm-card-icon" style={{background:'rgba(168,85,247,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1"/></svg></div>
                               <span className="hm-card-title">{t('hm_medical_history') || 'Antécédents Médicaux'}</span>
                               <span className="hm-card-chevron">▼</span>
                             </div>
@@ -5881,7 +5908,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* ═══ 4. VACCINATION MANAGEMENT ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(34,197,94,0.15)'}}>💉</div>
+                              <div className="hm-card-icon" style={{background:'rgba(34,197,94,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 7 3-3"/><path d="M6 21 2 17"/><path d="M12 3 3 12"/><path d="m21 12-9-9"/><path d="M16 5 5 16"/><path d="M14 19 5 10"/></svg></div>
                               <span className="hm-card-title">{t('hm_vaccinations') || 'Vaccinations'}</span>
                               <span className="hm-card-badge">{vaccinations.filter(v => v.done).length}/{vaccinations.length}</span>
                               <span className="hm-card-chevron">▼</span>
@@ -5894,11 +5921,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <div className="hm-vax-list">
                                 {vaccinations.map((v, i) => (
                                   <div key={i} className="hm-vax-item">
-                                    <button className={`hm-vax-check${v.done ? ' done' : ''}`} onClick={() => { const nxt = [...vaccinations]; nxt[i] = {...nxt[i], done: !nxt[i].done }; setVaccinations(nxt) }}>{v.done ? '✓' : ''}</button>
+                                    <button className={`hm-vax-check${v.done ? ' done' : ''}`} onClick={() => { const nxt = [...vaccinations]; nxt[i] = {...nxt[i], done: !nxt[i].done }; setVaccinations(nxt) }}>{v.done ? <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> : ''}</button>
                                     <span className="hm-vax-name">{v.name}</span>
                                     <input type="date" className="hm-vax-date" style={{background:'transparent',border:'none',color:'#F1F5F9',fontSize:'11px',outline:'none',width:'120px'}} value={v.dateAdmin} onChange={e => { const nxt = [...vaccinations]; nxt[i] = {...nxt[i], dateAdmin: e.target.value }; setVaccinations(nxt) }} />
                                     <input type="date" className="hm-vax-next" style={{background:'transparent',border:'none',color:'#f59e0b',fontSize:'11px',outline:'none',width:'120px'}} value={v.nextDose} onChange={e => { const nxt = [...vaccinations]; nxt[i] = {...nxt[i], nextDose: e.target.value }; setVaccinations(nxt) }} />
-                                    <span className="hm-vax-upload" onClick={() => document.getElementById('hm-vax-upload-' + i)?.click()} title={t('hm_upload_card') || 'Importer Carte'}>📎</span>
+                                    <span className="hm-vax-upload" onClick={() => document.getElementById('hm-vax-upload-' + i)?.click()} title={t('hm_upload_card') || 'Importer Carte'}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></span>
                                     <input id={'hm-vax-upload-' + i} type="file" accept="image/*,.pdf" hidden onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = ev => { const uid = editingChild ? editingChild.uid : uidRef.current; localStorage.setItem('cdo_vax_' + uid + '_' + i, ev.target.result) }; r.readAsDataURL(f) } }} />
                                   </div>
                                 ))}
@@ -5909,7 +5936,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* ═══ 5. ALLERGIES ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(239,68,68,0.15)'}}>⚠️</div>
+                              <div className="hm-card-icon" style={{background:'rgba(239,68,68,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
                               <span className="hm-card-title">{t('hm_allergies') || 'Allergies'}</span>
                               <span className="hm-card-badge">{allergies.length}</span>
                               <span className="hm-card-chevron">▼</span>
@@ -5917,13 +5944,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div className="hm-card-body">
                               {allergies.map((a, i) => (
                                 <div key={i} className="hm-allergy">
-                                  <span className="hm-allergy-icon">{a.type === 'food' ? '🍽️' : a.type === 'drug' ? '💊' : '🌿'}</span>
+                                  <span className="hm-allergy-icon">{a.type === 'food' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg> : a.type === 'drug' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.5 4.5 3 12l4.5 4.5 7.5-7.5z"/><path d="m14.5 2.5 7 7"/><path d="M3 12v4a2 2 0 0 0 2 2h4"/></svg> : <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 2c1 2 2 4.5 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>}</span>
                                   <div className="hm-allergy-info">
                                     <span className="hm-allergy-name">{a.name || 'Allergie'}</span>
                                     {a.reaction && <span className="hm-allergy-notes">{a.reaction}</span>}
                                   </div>
                                   <span className={`hm-allergy-sev ${a.severity || 'mild'}`}>{a.severity === 'severe' ? (t('hm_severity_severe')||'Sévère') : a.severity === 'moderate' ? (t('hm_severity_moderate')||'Modéré') : (t('hm_severity_mild')||'Léger')}</span>
-                                  <span className="hm-allergy-del" onClick={() => setAllergies(allergies.filter((_,j) => j !== i))}>✕</span>
+                                  <span className="hm-allergy-del" onClick={() => setAllergies(allergies.filter((_,j) => j !== i))}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg></span>
                                 </div>
                               ))}
                               {showAllergyForm ? (
@@ -5940,8 +5967,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     <option value="severe">{t('hm_severity_severe') || 'Sévère'}</option>
                                   </select>
                                   <input id="hm-allergy-reaction" placeholder={t('hm_reaction') || 'Réaction'} style={{flex:1}} />
-                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('hm-allergy-name')?.value?.trim(); if (!name) return; setAllergies([...allergies, { type: document.getElementById('hm- allergy-type')?.value || 'food', name, severity: document.getElementById('hm-allergy-sev')?.value || 'mild', reaction: document.getElementById('hm-allergy-reaction')?.value || '' }]); setShowAllergyForm(false) }}>✓</button>
-                                  <button className="hm-inline-cancel" onClick={() => setShowAllergyForm(false)}>✕</button>
+                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('hm-allergy-name')?.value?.trim(); if (!name) return; setAllergies([...allergies, { type: document.getElementById('hm- allergy-type')?.value || 'food', name, severity: document.getElementById('hm-allergy-sev')?.value || 'mild', reaction: document.getElementById('hm-allergy-reaction')?.value || '' }]); setShowAllergyForm(false) }}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
+                                  <button className="hm-inline-cancel" onClick={() => setShowAllergyForm(false)}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg></button>
                                 </div>
                               ) : (
                                 <button className="hm-add-btn" onClick={() => setShowAllergyForm(true)}>+ {t('hm_add') || 'Ajouter'}</button>
@@ -5952,7 +5979,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* ═══ 6. TREATMENTS & MEDICATIONS ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(59,130,246,0.15)'}}>💊</div>
+                              <div className="hm-card-icon" style={{background:'rgba(59,130,246,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.5 4.5 3 12l4.5 4.5 7.5-7.5z"/><path d="m14.5 2.5 7 7"/><path d="M3 12v4a2 2 0 0 0 2 2h4"/></svg></div>
                               <span className="hm-card-title">{t('hm_treatments') || 'Traitements'}</span>
                               <span className="hm-card-badge">{treatments.filter(t => t.name).length}</span>
                               <span className="hm-card-chevron">▼</span>
@@ -5967,7 +5994,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <span className="hm-tx-badge">{tx.startDate || '—'}</span>
                                   <span className="hm-tx-badge" style={{background:'rgba(239,68,68,0.12)',color:'#ef4444'}}>{tx.endDate || '—'}</span>
                                   <span style={{fontSize:'11px',color:'#64748B'}}>{tx.doctor || ''}</span>
-                                  <span className="hm-allergy-del" onClick={() => setTreatments(treatments.filter((_,j) => j !== i))}>✕</span>
+                                  <span className="hm-allergy-del" onClick={() => setTreatments(treatments.filter((_,j) => j !== i))}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg></span>
                                 </div>
                               ))}
                               {showTxForm ? (
@@ -5978,8 +6005,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <input id="hm-tx-start" type="date" style={{width:'110px'}} />
                                   <input id="hm-tx-end" type="date" style={{width:'110px'}} />
                                   <input id="hm-tx-doc" placeholder={t('hm_prescribing_doc') || 'Médecin'} style={{flex:1,minWidth:'100px'}} />
-                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('hm-tx-name')?.value?.trim(); if (!name) return; setTreatments([...treatments, { name, dosage: document.getElementById('hm-tx-dosage')?.value || '', frequency: document.getElementById('hm-tx-freq')?.value || '', startDate: document.getElementById('hm-tx-start')?.value || '', endDate: document.getElementById('hm-tx-end')?.value || '', doctor: document.getElementById('hm-tx-doc')?.value || '' }]); setShowTxForm(false) }}>✓</button>
-                                  <button className="hm-inline-cancel" onClick={() => setShowTxForm(false)}>✕</button>
+                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('hm-tx-name')?.value?.trim(); if (!name) return; setTreatments([...treatments, { name, dosage: document.getElementById('hm-tx-dosage')?.value || '', frequency: document.getElementById('hm-tx-freq')?.value || '', startDate: document.getElementById('hm-tx-start')?.value || '', endDate: document.getElementById('hm-tx-end')?.value || '', doctor: document.getElementById('hm-tx-doc')?.value || '' }]); setShowTxForm(false) }}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
+                                  <button className="hm-inline-cancel" onClick={() => setShowTxForm(false)}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg></button>
                                 </div>
                               ) : (
                                 <button className="hm-add-btn" onClick={() => setShowTxForm(true)}>+ {t('hm_add') || 'Ajouter'}</button>
@@ -5990,7 +6017,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* ═══ 7. EMERGENCY INFORMATION ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(245,158,11,0.15)'}}>🆘</div>
+                              <div className="hm-card-icon" style={{background:'rgba(245,158,11,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
                               <span className="hm-card-title">{t('hm_emergency') || 'Urgence'}</span>
                               <span className="hm-card-chevron">▼</span>
                             </div>
@@ -6019,16 +6046,16 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* ═══ 8. MEDICAL DOCUMENTS ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(99,102,241,0.15)'}}>📄</div>
+                              <div className="hm-card-icon" style={{background:'rgba(99,102,241,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/></svg></div>
                               <span className="hm-card-title">{t('hm_documents') || 'Documents Médicaux'}</span>
                               <span className="hm-card-chevron">▼</span>
                             </div>
                             <div className="hm-card-body">
                               <div className="hm-docs">
                                 {[
-                                  { id:'presc', icon:'📝', label: t('hm_upload_prescription') || 'Prescriptions' },
-                                  { id:'reports', icon:'📊', label: t('hm_upload_report') || 'Rapports' },
-                                  { id:'lab', icon:'🔬', label: t('hm_upload_lab') || 'Labo' },
+                                  { id:'presc', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>, label: t('hm_upload_prescription') || 'Prescriptions' },
+                                  { id:'reports', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>, label: t('hm_upload_report') || 'Rapports' },
+                                  { id:'lab', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2h8"/><path d="M9 2v7.38a4 4 0 0 1-.55 2.07L3 20h18l-5.45-8.55A4 4 0 0 1 15 9.38V2"/><path d="M12 2v13"/></svg>, label: t('hm_upload_lab') || 'Labo' },
                                 ].map(doc => {
                                   const uid = editingChild ? editingChild.uid : uidRef.current
                                   const saved = localStorage.getItem('cdo_meddoc_' + uid + '_' + doc.id)
@@ -6036,7 +6063,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     <div key={doc.id} className={`hm-doc-zone${saved ? ' has' : ''}`} onClick={() => document.getElementById('hm-md-' + doc.id)?.click()}>
                                       <div className="hm-doc-icon">{doc.icon}</div>
                                       <span className="hm-doc-label">{doc.label}</span>
-                                      {saved ? <span className="hm-doc-name">✓ Fichier importé</span> : <span style={{fontSize:'10px',color:'#475569'}}>Cliquez pour uploader</span>}
+                                      {saved ? <span className="hm-doc-name"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><polyline points="20 6 9 17 4 12"/></svg> Fichier importé</span> : <span style={{fontSize:'10px',color:'#475569'}}>Cliquez pour uploader</span>}
                                       {saved && <span className="hm-doc-remove" onClick={e => { e.stopPropagation(); localStorage.removeItem('cdo_meddoc_' + uid + '_' + doc.id); setSavingHealth(v => !v) }}>Supprimer</span>}
                                       <input id={'hm-md-' + doc.id} type="file" accept="image/*,.pdf" hidden onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = ev => { localStorage.setItem('cdo_meddoc_' + uid + '_' + doc.id, ev.target.result); setSavingHealth(v => !v) }; r.readAsDataURL(f) } }} />
                                     </div>
@@ -6126,20 +6153,20 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <div className="ed-form">
                           {/* ═══ ACADEMIC ALERTS BAR ═══ */}
                           <div className="ed-alerts">
-                            <div className="ed-alert danger"><span className="ed-alert-icon">🔴</span><span className="ed-alert-text">{t('ed_alert_attendance') || 'Présence Insuffisante'}</span></div>
-                            <div className="ed-alert warning"><span className="ed-alert-icon">🟡</span><span className="ed-alert-text">{t('ed_alert_grades') || 'Matières en Difficulté'}</span><span className="hm-card-badge">{subjects.filter(s => s.grade && parseFloat(s.grade) < 10).length}</span></div>
-                            <div className="ed-alert info"><span className="ed-alert-icon">🔵</span><span className="ed-alert-text">{t('ed_alert_exams') || 'Examens à Venir'}</span></div>
-                            <div className="ed-alert success"><span className="ed-alert-icon">🟢</span><span className="ed-alert-text">{t('ed_alert_reports') || 'Bulletins'}</span></div>
+                            <div className="ed-alert danger"><span className="ed-alert-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="#ef4444" stroke="none"><circle cx="12" cy="12" r="6"/></svg></span><span className="ed-alert-text">{t('ed_alert_attendance') || 'Présence Insuffisante'}</span></div>
+                            <div className="ed-alert warning"><span className="ed-alert-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="#f59e0b" stroke="none"><circle cx="12" cy="12" r="6"/></svg></span><span className="ed-alert-text">{t('ed_alert_grades') || 'Matières en Difficulté'}</span><span className="hm-card-badge">{subjects.filter(s => s.grade && parseFloat(s.grade) < 10).length}</span></div>
+                            <div className="ed-alert info"><span className="ed-alert-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="#3b82f6" stroke="none"><circle cx="12" cy="12" r="6"/></svg></span><span className="ed-alert-text">{t('ed_alert_exams') || 'Examens à Venir'}</span></div>
+                            <div className="ed-alert success"><span className="ed-alert-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="#22c55e" stroke="none"><circle cx="12" cy="12" r="6"/></svg></span><span className="ed-alert-text">{t('ed_alert_reports') || 'Bulletins'}</span></div>
                           </div>
 
                           {/* ═══ DASHBOARD STAT CARDS ═══ */}
                           <div className="ed-stats">
-                            <div className="ed-stat"><div className="ed-stat-icon">📊</div><div className="ed-stat-value">{(() => { const g = subjects.filter(s => s.grade).map(s => parseFloat(s.grade) * (s.coefficient || 1)); const c = subjects.filter(s => s.grade).reduce((a, s) => a + (s.coefficient || 1), 0); return g.length && c ? (g.reduce((a, b) => a + b, 0) / c).toFixed(1) : '—' })()}</div><div className="ed-stat-label">{t('ed_gpa_current') || 'Moyenne'}</div></div>
-                            <div className="ed-stat"><div className="ed-stat-icon">📈</div><div className="ed-stat-value">{(() => { const p = document.getElementById('ed-present')?.value; const a = document.getElementById('ed-absent')?.value; const total = (parseInt(p)||0) + (parseInt(a)||0); return total ? Math.round(parseInt(p||0)/total*100) + '%' : '—' })() || '—'}</div><div className="ed-stat-label">{t('ed_att_rate') || 'Présence'}</div></div>
-                            <div className="ed-stat"><div className="ed-stat-icon">🏆</div><div className="ed-stat-value">{document.getElementById('ed-rank')?.value || '—'}</div><div className="ed-stat-label">{t('ed_rank_current') || 'Rang'}</div></div>
-                            <div className="ed-stat"><div className="ed-stat-icon">✅</div><div className="ed-stat-value">{subjects.filter(s => s.grade && parseFloat(s.grade) >= 10).length}</div><div className="ed-stat-label">{t('ed_subjects_passed') || 'Réussies'}</div></div>
-                            <div className="ed-stat"><div className="ed-stat-icon">⚠️</div><div className="ed-stat-value" style={{color: subjects.filter(s => s.grade && parseFloat(s.grade) < 10).length > 0 ? '#ef4444' : '#22c55e'}}>{subjects.filter(s => s.grade && parseFloat(s.grade) < 10).length}</div><div className="ed-stat-label">{t('ed_subjects_at_risk') || 'À Risque'}</div></div>
-                            <div className="ed-stat"><div className="ed-stat-icon">🎖️</div><div className="ed-stat-value">{activityEntries.filter(a => a.type === 'award').length}</div><div className="ed-stat-label">{t('ed_awards_count') || 'Distinctions'}</div></div>
+                            <div className="ed-stat"><div className="ed-stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div><div className="ed-stat-value">{(() => { const g = subjects.filter(s => s.grade).map(s => parseFloat(s.grade) * (s.coefficient || 1)); const c = subjects.filter(s => s.grade).reduce((a, s) => a + (s.coefficient || 1), 0); return g.length && c ? (g.reduce((a, b) => a + b, 0) / c).toFixed(1) : '—' })()}</div><div className="ed-stat-label">{t('ed_gpa_current') || 'Moyenne'}</div></div>
+                            <div className="ed-stat"><div className="ed-stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div><div className="ed-stat-value">{(() => { const p = document.getElementById('ed-present')?.value; const a = document.getElementById('ed-absent')?.value; const total = (parseInt(p)||0) + (parseInt(a)||0); return total ? Math.round(parseInt(p||0)/total*100) + '%' : '—' })() || '—'}</div><div className="ed-stat-label">{t('ed_att_rate') || 'Présence'}</div></div>
+                            <div className="ed-stat"><div className="ed-stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 3 7 7 9 7h1"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 3 17 7 15 7h-1"/><path d="M4 22h16"/><path d="M10 22V7"/><path d="M14 22V7"/><path d="M12 22V2"/></svg></div><div className="ed-stat-value">{document.getElementById('ed-rank')?.value || '—'}</div><div className="ed-stat-label">{t('ed_rank_current') || 'Rang'}</div></div>
+                            <div className="ed-stat"><div className="ed-stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 18 9"/></svg></div><div className="ed-stat-value">{subjects.filter(s => s.grade && parseFloat(s.grade) >= 10).length}</div><div className="ed-stat-label">{t('ed_subjects_passed') || 'Réussies'}</div></div>
+                            <div className="ed-stat"><div className="ed-stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div className="ed-stat-value" style={{color: subjects.filter(s => s.grade && parseFloat(s.grade) < 10).length > 0 ? '#ef4444' : '#22c55e'}}>{subjects.filter(s => s.grade && parseFloat(s.grade) < 10).length}</div><div className="ed-stat-label">{t('ed_subjects_at_risk') || 'À Risque'}</div></div>
+                            <div className="ed-stat"><div className="ed-stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div className="ed-stat-value">{activityEntries.filter(a => a.type === 'award').length}</div><div className="ed-stat-label">{t('ed_awards_count') || 'Distinctions'}</div></div>
                           </div>
 
                           {/* ═══ 1. STUDENT ACADEMIC PROFILE ═══ */}
@@ -6148,13 +6175,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div className="ed-hero-info">
                               <div className="ed-hero-name">{getFieldValue('Prénom') || 'Prénom'} {getFieldValue('Nom') || 'Nom'}</div>
                               <div className="ed-hero-meta">
-                                <span>🆔 {editingChild ? editingChild.uid : uidRef.current}</span>
-                                <span>🎂 {(() => { const d = getFieldValue('Date de naissance'); if (!d) return '—'; const a = Math.floor((new Date()-new Date(d))/(365.25*86400000)); return a+' '+(t('prof_years')||'ans') })()}</span>
-                                <span>🏫 {document.getElementById('ed-class')?.value || (() => { const e = editingChild?.extra_data?.education; return e?.currentClass || '' })() || '—'}</span>
+                                <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> {editingChild ? editingChild.uid : uidRef.current}</span>
+                                <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16c2 .5 4 1.5 6 2 2-.5 4-1.5 6-2"/><path d="M12 3v3"/><path d="M9 4v3"/><path d="M15 4v3"/></svg> {(() => { const d = getFieldValue('Date de naissance'); if (!d) return '—'; const a = Math.floor((new Date()-new Date(d))/(365.25*86400000)); return a+' '+(t('prof_years')||'ans') })()}</span>
+                                <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> {document.getElementById('ed-class')?.value || (() => { const e = editingChild?.extra_data?.education; return e?.currentClass || '' })() || '—'}</span>
                               </div>
                             </div>
                             <div className="ed-hero-right">
-                              <span className="ed-hero-badge active">✅ {t('ed_status_active') || 'Actif'}</span>
+                              <span className="ed-hero-badge active"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 18 9"/></svg> {t('ed_status_active') || 'Actif'}</span>
                               <span className="ed-hero-status">{t('ed_enrollment_date') || "Inscription"} : {document.getElementById('ed-enroll-date')?.value || '—'}</span>
                             </div>
                           </div>
@@ -6162,7 +6189,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* ═══ 2. SCHOOL INFORMATION ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(59,130,246,0.15)'}}>🏫</div>
+                              <div className="hm-card-icon" style={{background:'rgba(59,130,246,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
                               <span className="hm-card-title">{t('ed_school_info') || 'Informations Scolaires'}</span>
                               <span className="hm-card-chevron">▼</span>
                             </div>
@@ -6182,7 +6209,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* ═══ 3. ACADEMIC INFORMATION ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(16,185,129,0.15)'}}>📚</div>
+                              <div className="hm-card-icon" style={{background:'rgba(16,185,129,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M18 2v20"/><path d="M8 2v20"/></svg></div>
                               <span className="hm-card-title">{t('ed_academic') || 'Informations Académiques'}</span>
                               <span className="hm-card-chevron">▼</span>
                             </div>
@@ -6201,7 +6228,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* ═══ 4. ACADEMIC PERFORMANCE (GRADES) ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(245,158,11,0.15)'}}>📊</div>
+                              <div className="hm-card-icon" style={{background:'rgba(245,158,11,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div>
                               <span className="hm-card-title">{t('ed_performance') || 'Performance'}</span>
                               <span className="hm-card-badge">{(() => { const g = subjects.filter(s => s.grade).map(s => parseFloat(s.grade) * (s.coefficient || 1)); const c = subjects.filter(s => s.grade).reduce((a, s) => a + (s.coefficient || 1), 0); return g.length && c ? (g.reduce((a, b) => a + b, 0) / c).toFixed(1) : '—' })()}</span>
                               <span className="hm-card-chevron">▼</span>
@@ -6230,7 +6257,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* ═══ 5. ATTENDANCE TRACKING ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(99,102,241,0.15)'}}>📅</div>
+                              <div className="hm-card-icon" style={{background:'rgba(99,102,241,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
                               <span className="hm-card-title">{t('ed_attendance') || 'Présences'}</span>
                               <span className="hm-card-chevron">▼</span>
                             </div>
@@ -6249,7 +6276,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* ═══ 6. BEHAVIOR & DISCIPLINE ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(168,85,247,0.15)'}}>👥</div>
+                              <div className="hm-card-icon" style={{background:'rgba(168,85,247,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
                               <span className="hm-card-title">{t('ed_behavior') || 'Comportement'}</span>
                               <span className="hm-card-badge">{behaviorEntries.length}</span>
                               <span className="hm-card-chevron">▼</span>
@@ -6257,13 +6284,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div className="hm-card-body">
                               {behaviorEntries.map((b, i) => (
                                 <div key={i} className="ed-beh-item">
-                                  <span className="ed-beh-icon">{b.type === 'positive' ? '⭐' : b.type === 'concern' ? '⚠️' : '🔴'}</span>
+                                  <span className="ed-beh-icon">{b.type === 'positive' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> : b.type === 'concern' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> : <svg viewBox="0 0 24 24" width="16" height="16" fill="#ef4444" stroke="none"><circle cx="12" cy="12" r="6"/></svg>}</span>
                                   <div className="ed-beh-info">
                                     <span className="ed-beh-name">{b.name || 'Comportement'}</span>
                                     {b.notes && <span className="ed-beh-notes">{b.notes}</span>}
                                   </div>
                                   <span className={`ed-beh-type ${b.type || 'concern'}`}>{b.type === 'positive' ? (t('ed_achievements')||'Positif') : b.type === 'incident' ? (t('ed_discipline')||'Incident') : (t('ed_observations')||'Observation')}</span>
-                                  <span className="ed-beh-del" onClick={() => setBehaviorEntries(behaviorEntries.filter((_,j) => j !== i))}>✕</span>
+                                  <span className="ed-beh-del" onClick={() => setBehaviorEntries(behaviorEntries.filter((_,j) => j !== i))}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg></span>
                                 </div>
                               ))}
                               {showBehaviorForm ? (
@@ -6275,8 +6302,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   </select>
                                   <input id="ed-beh-name" placeholder="Titre" style={{flex:1}} />
                                   <input id="ed-beh-notes" placeholder="Notes" style={{flex:1}} />
-                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('ed-beh-name')?.value?.trim(); if (!name) return; setBehaviorEntries([...behaviorEntries, { type: document.getElementById('ed-beh-type')?.value || 'observation', name, notes: document.getElementById('ed-beh-notes')?.value || '' }]); setShowBehaviorForm(false) }}>✓</button>
-                                  <button className="hm-inline-cancel" onClick={() => setShowBehaviorForm(false)}>✕</button>
+                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('ed-beh-name')?.value?.trim(); if (!name) return; setBehaviorEntries([...behaviorEntries, { type: document.getElementById('ed-beh-type')?.value || 'observation', name, notes: document.getElementById('ed-beh-notes')?.value || '' }]); setShowBehaviorForm(false) }}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
+                                  <button className="hm-inline-cancel" onClick={() => setShowBehaviorForm(false)}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg></button>
                                 </div>
                               ) : (
                                 <button className="hm-add-btn" onClick={() => setShowBehaviorForm(true)}>+ {t('ed_add') || 'Ajouter'}</button>
@@ -6287,7 +6314,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* ═══ 7. EDUCATIONAL SUPPORT ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(16,185,129,0.15)'}}>🤝</div>
+                              <div className="hm-card-icon" style={{background:'rgba(16,185,129,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><line x1="9" y1="11" x2="9" y2="15"/><polyline points="5 13 9 11 13 13"/></svg></div>
                               <span className="hm-card-title">{t('ed_support') || 'Soutien'}</span>
                               <span className="hm-card-chevron">▼</span>
                             </div>
@@ -6304,19 +6331,19 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* ═══ 8. SCHOOL DOCUMENTS ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(245,158,11,0.15)'}}>📄</div>
+                              <div className="hm-card-icon" style={{background:'rgba(245,158,11,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/></svg></div>
                               <span className="hm-card-title">{t('ed_documents') || 'Documents'}</span>
                               <span className="hm-card-chevron">▼</span>
                             </div>
                             <div className="hm-card-body">
                               <div className="ed-docs">
                                 {[
-                                  { id:'report', icon:'📋', label: t('ed_report_card') || 'Bulletins' },
-                                  { id:'cert', icon:'🏅', label: t('ed_certificate') || 'Certificats' },
-                                  { id:'enroll', icon:'📝', label: t('ed_enrollment_letter') || 'Inscription' },
-                                  { id:'schoolid', icon:'🆔', label: t('ed_school_id') || "Carte d'Étudiant" },
-                                  { id:'exams', icon:'📊', label: t('ed_exam_results') || 'Examens' },
-                                  { id:'assess', icon:'📈', label: t('ed_assessments') || 'Évaluations' },
+                                  { id:'report', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1"/></svg>, label: t('ed_report_card') || 'Bulletins' },
+                                  { id:'cert', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><path d="M12 14v8"/><path d="m14.5 12.5-2.5 2-2.5-2"/><path d="M6 22h12"/></svg>, label: t('ed_certificate') || 'Certificats' },
+                                  { id:'enroll', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>, label: t('ed_enrollment_letter') || 'Inscription' },
+                                  { id:'schoolid', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: t('ed_school_id') || "Carte d'Étudiant" },
+                                  { id:'exams', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>, label: t('ed_exam_results') || 'Examens' },
+                                  { id:'assess', icon:<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>, label: t('ed_assessments') || 'Évaluations' },
                                 ].map(doc => {
                                   const uid = editingChild ? editingChild.uid : uidRef.current
                                   const saved = localStorage.getItem('cdo_schooldoc_' + uid + '_' + doc.id)
@@ -6324,7 +6351,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     <div key={doc.id} className={`ed-doc-zone${saved ? ' has' : ''}`} onClick={() => document.getElementById('ed-doc-' + doc.id)?.click()}>
                                       <div className="ed-doc-icon">{doc.icon}</div>
                                       <span className="ed-doc-label">{doc.label}</span>
-                                      {saved ? <span className="ed-doc-name">✓ Fichier</span> : <span style={{fontSize:'10px',color:'#475569'}}>Upload</span>}
+                                      {saved ? <span className="ed-doc-name"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><polyline points="20 6 9 17 4 12"/></svg> Fichier</span> : <span style={{fontSize:'10px',color:'#475569'}}>Upload</span>}
                                       {saved && <span className="ed-doc-remove" onClick={e => { e.stopPropagation(); localStorage.removeItem('cdo_schooldoc_' + uid + '_' + doc.id); setSavingEdu(v => !v) }}>Suppr.</span>}
                                       <input id={'ed-doc-' + doc.id} type="file" accept="image/*,.pdf" hidden onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = ev => { localStorage.setItem('cdo_schooldoc_' + uid + '_' + doc.id, ev.target.result); setSavingEdu(v => !v) }; r.readAsDataURL(f) } }} />
                                     </div>
@@ -6337,7 +6364,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* ═══ 9. ACTIVITIES & EXTRACURRICULAR ═══ */}
                           <div className="hm-card open">
                             <div className="hm-card-header" onClick={e => e.currentTarget.parentElement.classList.toggle('open')}>
-                              <div className="hm-card-icon" style={{background:'rgba(236,72,153,0.15)'}}>🎯</div>
+                              <div className="hm-card-icon" style={{background:'rgba(236,72,153,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
                               <span className="hm-card-title">{t('ed_activities') || 'Activités'}</span>
                               <span className="hm-card-badge">{activityEntries.length}</span>
                               <span className="hm-card-chevron">▼</span>
@@ -6345,13 +6372,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div className="hm-card-body">
                               {activityEntries.map((a, i) => (
                                 <div key={i} className="ed-act-item">
-                                  <span className="ed-act-icon">{a.category === 'sports' ? '⚽' : a.category === 'music' ? '🎵' : a.category === 'art' ? '🎨' : a.category === 'club' ? '👥' : a.category === 'competition' ? '🏆' : '🎖️'}</span>
+                                  <span className="ed-act-icon">{a.category === 'sports' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 14.14 14.14"/><path d="M12 2a10 10 0 0 1 7.07 17.07L12 12V2z"/></svg> : a.category === 'music' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> : a.category === 'art' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.69-.53 1.7-1.47.01-.48-.21-.93-.55-1.28a1.7 1.7 0 0 1-.37-1.41c.14-.65.73-1.13 1.42-1.19 1.17-.08 2.18-.6 2.97-1.37A5.06 5.06 0 0 0 19 12c0-2.76-2.24-5-5-5a4.96 4.96 0 0 0-3.75 1.72A4.1 4.1 0 0 0 9 12c0 1.4.7 2.64 1.77 3.37a3 3 0 0 1 .78.4c.33.28.53.68.58 1.13.07.67-.27 1.35-.86 1.7-.36.21-.6.57-.6.97 0 .25.1.48.28.66.3.3.73.43 1.16.38 1.69-.24 3.65-.92 5.06-2.07a8.5 8.5 0 0 0 2.88-6.19C21.98 6.3 17.56 2 12 2z"/></svg> : a.category === 'club' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> : a.category === 'competition' ? <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 3 7 7 9 7h1"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 3 17 7 15 7h-1"/><path d="M4 22h16"/><path d="M10 22V7"/><path d="M14 22V7"/><path d="M12 22V2"/></svg> : <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}</span>
                                   <div className="ed-act-info">
                                     <span className="ed-act-name">{a.name || 'Activité'}</span>
                                     {a.detail && <span className="ed-act-detail">{a.detail}</span>}
                                   </div>
                                   <span className="ed-act-badge">{a.category === 'award' ? (t('ed_awards')||'Prix') : a.category === 'competition' ? (t('ed_competitions')||'Compétition') : a.category}</span>
-                                  <span className="ed-act-del" onClick={() => setActivityEntries(activityEntries.filter((_,j) => j !== i))}>✕</span>
+                                  <span className="ed-act-del" onClick={() => setActivityEntries(activityEntries.filter((_,j) => j !== i))}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg></span>
                                 </div>
                               ))}
                               {showActivityForm ? (
@@ -6366,8 +6393,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   </select>
                                   <input id="ed-act-name" placeholder="Nom" style={{flex:1,minWidth:'120px'}} />
                                   <input id="ed-act-detail" placeholder="Détail" style={{flex:1,minWidth:'120px'}} />
-                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('ed-act-name')?.value?.trim(); if (!name) return; setActivityEntries([...activityEntries, { category: document.getElementById('ed-act-cat')?.value || 'sports', name, detail: document.getElementById('ed-act-detail')?.value || '' }]); setShowActivityForm(false) }}>✓</button>
-                                  <button className="hm-inline-cancel" onClick={() => setShowActivityForm(false)}>✕</button>
+                                  <button className="hm-inline-confirm" onClick={() => { const name = document.getElementById('ed-act-name')?.value?.trim(); if (!name) return; setActivityEntries([...activityEntries, { category: document.getElementById('ed-act-cat')?.value || 'sports', name, detail: document.getElementById('ed-act-detail')?.value || '' }]); setShowActivityForm(false) }}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
+                                  <button className="hm-inline-cancel" onClick={() => setShowActivityForm(false)}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg></button>
                                 </div>
                               ) : (
                                 <button className="hm-add-btn" onClick={() => setShowActivityForm(true)}>+ {t('ed_add') || 'Ajouter'}</button>
@@ -6643,48 +6670,48 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           <div className="pd-hero-info">
                             <div className="pd-hero-name">{selectedRegChild.prenom || ''} {selectedRegChild.nom || ''}</div>
                             <div className="pd-hero-meta">
-                              <span>🎂 {selectedRegChild.date_naissance ? (() => { const d = new Date(selectedRegChild.date_naissance); const age = Math.floor((Date.now() - d.getTime()) / 31557600000); return d.toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric' }) + ' (' + age + ' ' + (t('form_years') || 'ans') + ')' })() : '—'}</span>
-                              <span>⚤ {selectedRegChild.sexe === 'M' ? (t('form_male') || 'Masculin') : selectedRegChild.sexe === 'F' ? (t('form_female') || 'Féminin') : '—'}</span>
+                              <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16c2 .5 4 1.5 6 2 2-.5 4-1.5 6-2"/><path d="M12 3v3"/><path d="M9 4v3"/><path d="M15 4v3"/></svg> {selectedRegChild.date_naissance ? (() => { const d = new Date(selectedRegChild.date_naissance); const age = Math.floor((Date.now() - d.getTime()) / 31557600000); return d.toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric' }) + ' (' + age + ' ' + (t('form_years') || 'ans') + ')' })() : '—'}</span>
+                              <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> {selectedRegChild.sexe === 'M' ? (t('form_male') || 'Masculin') : selectedRegChild.sexe === 'F' ? (t('form_female') || 'Féminin') : '—'}</span>
                               {selectedRegChild.nationalite && (() => { const cc = countryCodeFromName(selectedRegChild.nationalite); return <span>{cc ? flagImg(cc, selectedRegChild.nationalite, 16) : null} {selectedRegChild.nationalite}</span> })()}
-                              <span>📅 {selectedRegChild.created_at ? new Date(selectedRegChild.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric' }) : '—'}</span>
+                              <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> {selectedRegChild.created_at ? new Date(selectedRegChild.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric' }) : '—'}</span>
                             </div>
                             <div className="pd-hero-actions">
-                              <button className="pd-hero-btn primary" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey('Profil & identité'); setSelectedRegChild(null) }}>✏️ {t('form_edit') || 'Modifier'}</button>
+                              <button className="pd-hero-btn primary" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey('Profil & identité'); setSelectedRegChild(null) }}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> {t('form_edit') || 'Modifier'}</button>
                               <button className="pd-hero-btn ghost" onClick={() => setSelectedRegChild(null)}>← {t('form_back')}</button>
-                              <button className="pd-hero-btn danger" onClick={() => setDeleteConfirm(selectedRegChild)}>🗑️ {t('form_delete') || 'Supprimer'}</button>
+                              <button className="pd-hero-btn danger" onClick={() => setDeleteConfirm(selectedRegChild)}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> {t('form_delete') || 'Supprimer'}</button>
                             </div>
                           </div>
                           <div className="pd-hero-right">
-                            <span className="pd-hero-status active">✅ {t('child_status_active') || 'Actif'}</span>
+                            <span className="pd-hero-status active"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 18 9"/></svg> {t('child_status_active') || 'Actif'}</span>
                             <div className="pd-hero-id">
-                              <span>🆔</span>
+                              <span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
                               <span className="pd-hero-id-code">{selectedRegChild.uid}</span>
-                              <span className="pd-hero-id-copy" onClick={() => { navigator.clipboard?.writeText(selectedRegChild.uid) }} title="Copier">📋</span>
+                              <span className="pd-hero-id-copy" onClick={() => { navigator.clipboard?.writeText(selectedRegChild.uid) }} title="Copier"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1"/></svg></span>
                             </div>
                           </div>
                         </div>
 
                         {/* ═══ STATS ROW ═══ */}
                         <div className="pd-stats">
-                          <div className="pd-stat"><span className="pd-stat-label">🎂 {t('form_age') || 'Âge'}</span><span className="pd-stat-value">{selectedRegChild.date_naissance ? Math.floor((Date.now() - new Date(selectedRegChild.date_naissance).getTime()) / 31557600000) + ' ' + (t('form_years') || 'ans') : '—'}</span></div>
-                          <div className="pd-stat"><span className="pd-stat-label">❤️ {t('hm_health_status') || 'Santé'}</span><span className="pd-stat-value">{(() => { const m = selectedRegChild.extra_data?.medical; return m ? <> <span className="dot green" /> {m.bloodGroup || 'OK'} </> : <> <span className="dot amber" /> — </> })()}</span></div>
-                          <div className="pd-stat"><span className="pd-stat-label">🏫 {t('ed_title') || 'Scolarité'}</span><span className="pd-stat-value">{(() => { const e = selectedRegChild.extra_data?.education; return e?.currentClass || e?.schoolName || '—' })()}</span></div>
-                          <div className="pd-stat"><span className="pd-stat-label">📄 {t('child_documents') || 'Documents'}</span><span className="pd-stat-value">{(() => { let n = 0; ['cdo_doc_','cdo_meddoc_','cdo_schooldoc_'].forEach(p => { const uid = selectedRegChild.uid; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k?.startsWith(p + uid)) n++ } }); return n })()}</span></div>
-                          <div className="pd-stat"><span className="pd-stat-label">👪 {t('form_family_status') || 'Famille'}</span><span className="pd-stat-value">{(() => { const fam = selectedRegChild.extra_data?.['Parents connus']; return fam || '—' })()}</span></div>
-                          <div className="pd-stat"><span className="pd-stat-label">🔄 Dernière MAJ</span><span className="pd-stat-value">{selectedRegChild.updated_at ? new Date(selectedRegChild.updated_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short' }) : '—'}</span></div>
+                          <div className="pd-stat"><span className="pd-stat-label"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16c2 .5 4 1.5 6 2 2-.5 4-1.5 6-2"/><path d="M12 3v3"/><path d="M9 4v3"/><path d="M15 4v3"/></svg> {t('form_age') || 'Âge'}</span><span className="pd-stat-value">{selectedRegChild.date_naissance ? Math.floor((Date.now() - new Date(selectedRegChild.date_naissance).getTime()) / 31557600000) + ' ' + (t('form_years') || 'ans') : '—'}</span></div>
+                          <div className="pd-stat"><span className="pd-stat-label"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg> {t('hm_health_status') || 'Santé'}</span><span className="pd-stat-value">{(() => { const m = selectedRegChild.extra_data?.medical; return m ? <> <span className="dot green" /> {m.bloodGroup || 'OK'} </> : <> <span className="dot amber" /> — </> })()}</span></div>
+                          <div className="pd-stat"><span className="pd-stat-label"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> {t('ed_title') || 'Scolarité'}</span><span className="pd-stat-value">{(() => { const e = selectedRegChild.extra_data?.education; return e?.currentClass || e?.schoolName || '—' })()}</span></div>
+                          <div className="pd-stat"><span className="pd-stat-label"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/></svg> {t('child_documents') || 'Documents'}</span><span className="pd-stat-value">{(() => { let n = 0; ['cdo_doc_','cdo_meddoc_','cdo_schooldoc_'].forEach(p => { const uid = selectedRegChild.uid; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k?.startsWith(p + uid)) n++ } }); return n })()}</span></div>
+                          <div className="pd-stat"><span className="pd-stat-label"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> {t('form_family_status') || 'Famille'}</span><span className="pd-stat-value">{(() => { const fam = selectedRegChild.extra_data?.['Parents connus']; return fam || '—' })()}</span></div>
+                          <div className="pd-stat"><span className="pd-stat-label"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Dernière MAJ</span><span className="pd-stat-value">{selectedRegChild.updated_at ? new Date(selectedRegChild.updated_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short' }) : '—'}</span></div>
                         </div>
 
                         {/* ═══ TABBED INTERFACE ═══ */}
                         <div className="pd-tabs">
                           {[
-                            { key:'overview', icon:'📊', label: t('pd_overview') || 'Aperçu' },
-                            { key:'identity', icon:'🆔', label: t('pd_identity') || 'Identité' },
-                            { key:'family', icon:'👪', label: t('pd_family') || 'Famille' },
-                            { key:'health', icon:'❤️', label: t('pd_health') || 'Santé' },
-                            { key:'education', icon:'🏫', label: t('pd_education') || 'Scolarité' },
-                            { key:'documents', icon:'📄', label: t('pd_documents') || 'Documents' },
-                            { key:'updates', icon:'📝', label: 'Updates' },
-                            { key:'history', icon:'📜', label: t('pd_history') || 'Historique' },
+                            { key:'overview', icon:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>, label: t('pd_overview') || 'Aperçu' },
+                            { key:'identity', icon:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: t('pd_identity') || 'Identité' },
+                            { key:'family', icon:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: t('pd_family') || 'Famille' },
+                            { key:'health', icon:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>, label: t('pd_health') || 'Santé' },
+                            { key:'education', icon:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>, label: t('pd_education') || 'Scolarité' },
+                            { key:'documents', icon:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/></svg>, label: t('pd_documents') || 'Documents' },
+                            { key:'updates', icon:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>, label: 'Updates' },
+                            { key:'history', icon:<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, label: t('pd_history') || 'Historique' },
                           ].map(tab => (
                             <button key={tab.key} className={`pd-tab${profileTab === tab.key ? ' active' : ''}`} onClick={() => setProfileTab(tab.key)}>
                               <span className="pd-tab-icon">{tab.icon}</span>
@@ -6700,7 +6727,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {profileTab === 'overview' && (
                               <>
                                 <div className="pd-card">
-                                  <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(59,130,246,0.15)'}}>📋</div><span className="pd-card-title">{t('pd_quick_info') || 'Informations Générales'}</span></div>
+                                  <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(59,130,246,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1"/></svg></div><span className="pd-card-title">{t('pd_quick_info') || 'Informations Générales'}</span></div>
                                   <div className="pd-card-body">
                                     {(() => {
                                       const items = [
@@ -6722,7 +6749,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   </div>
                                 </div>
                                 <div className="pd-card">
-                                  <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(16,185,129,0.15)'}}>❤️</div><span className="pd-card-title">{t('hm_health_title') || 'Santé & Médical'}</span><span className="pd-card-badge">{t('pd_quick_view') || 'Résumé'}</span></div>
+                                  <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(16,185,129,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></div><span className="pd-card-title">{t('hm_health_title') || 'Santé & Médical'}</span><span className="pd-card-badge">{t('pd_quick_view') || 'Résumé'}</span></div>
                                   <div className="pd-card-body">
                                     <div className="pd-health-row">
                                       {(() => { const m = selectedRegChild.extra_data?.medical || {}; return [
@@ -6737,11 +6764,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                         </div>
                                       ))}
                                     </div>
-                                    {(() => { const m = selectedRegChild.extra_data?.medical || {}; const hasAllergies = m.allergies?.length; const hasTreatments = m.treatments?.filter(t => t.name).length; const hasChronic = m.chronic; const item = [hasAllergies ? `⚠️ ${m.allergies.length} allergie(s)` : null, hasTreatments ? `💊 ${hasTreatments} traitement(s)` : null, hasChronic ? `📋 ${m.chronic.substring(0, 30)}...` : null].filter(Boolean); return item.length ? <div style={{fontSize:'12px',color:'#94A3B8',padding:'8px 0 0',display:'flex',gap:'12px',flexWrap:'wrap'}}>{item.map((s,i) => <span key={i} style={{display:'flex',alignItems:'center',gap:'4px',padding:'2px 8px',borderRadius:'6px',background:'rgba(255,255,255,0.03)'}}>{s}</span>)}</div> : <div style={{fontSize:'12px',color:'#64748B',padding:'8px 0 0'}}>{t('pd_no_health_data') || 'Aucune donnée médicale'}</div> })()}
+                                    {(() => { const m = selectedRegChild.extra_data?.medical || {}; const hasAllergies = m.allergies?.length; const hasTreatments = m.treatments?.filter(t => t.name).length; const hasChronic = m.chronic; const item = [hasAllergies ? <><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> {m.allergies.length} allergie(s)</> : null, hasTreatments ? <><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M10.5 4.5 3 12l4.5 4.5 7.5-7.5z"/><path d="m14.5 2.5 7 7"/><path d="M3 12v4a2 2 0 0 0 2 2h4"/></svg> {hasTreatments} traitement(s)</> : null, hasChronic ? <><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1"/></svg> {m.chronic.substring(0, 30)}...</> : null].filter(Boolean); return item.length ? <div style={{fontSize:'12px',color:'#94A3B8',padding:'8px 0 0',display:'flex',gap:'12px',flexWrap:'wrap'}}>{item.map((s,i) => <span key={i} style={{display:'flex',alignItems:'center',gap:'4px',padding:'2px 8px',borderRadius:'6px',background:'rgba(255,255,255,0.03)'}}>{s}</span>)}</div> : <div style={{fontSize:'12px',color:'#64748B',padding:'8px 0 0'}}>{t('pd_no_health_data') || 'Aucune donnée médicale'}</div> })()}
                                   </div>
                                 </div>
                                 <div className="pd-card">
-                                  <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(245,158,11,0.15)'}}>🏫</div><span className="pd-card-title">{t('ed_title') || 'Scolarité'}</span><span className="pd-card-badge">{t('pd_quick_view') || 'Résumé'}</span></div>
+                                  <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(245,158,11,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div><span className="pd-card-title">{t('ed_title') || 'Scolarité'}</span><span className="pd-card-badge">{t('pd_quick_view') || 'Résumé'}</span></div>
                                   <div className="pd-card-body">
                                     <div className="pd-school-row">
                                       {(() => { const e = selectedRegChild.extra_data?.education || {}; return [
@@ -6764,7 +6791,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {/* ── IDENTITY TAB ── */}
                             {profileTab === 'identity' && (
                               <div className="pd-card">
-                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(59,130,246,0.15)'}}>🆔</div><span className="pd-card-title">{t('pd_identity') || 'Identité'}</span></div>
+                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(59,130,246,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><span className="pd-card-title">{t('pd_identity') || 'Identité'}</span></div>
                                 <div className="pd-card-body">
                                   {[
                                     { label: t('form_lastname') || 'Nom', value: selectedRegChild.nom },
@@ -6786,7 +6813,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {/* ── FAMILY TAB ── */}
                             {profileTab === 'family' && (
                               <div className="pd-card">
-                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(168,85,247,0.15)'}}>👪</div><span className="pd-card-title">{t('form_family') || 'Situation Familiale'}</span></div>
+                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(168,85,247,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><span className="pd-card-title">{t('form_family') || 'Situation Familiale'}</span></div>
                                 <div className="pd-card-body">
                                   {[['Parents connus','Parents connus'],['Tuteurs','Tuteurs'],['Fratrie','Fratrie'],['Historique familial','Historique familial']].map(([label, key]) => {
                                     const val = selectedRegChild.extra_data?.[key]
@@ -6800,7 +6827,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {/* ── HEALTH TAB ── */}
                             {profileTab === 'health' && (
                               <div className="pd-card">
-                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(239,68,68,0.15)'}}>❤️</div><span className="pd-card-title">{t('hm_health_title') || 'Santé & Médical'}</span></div>
+                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(239,68,68,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></div><span className="pd-card-title">{t('hm_health_title') || 'Santé & Médical'}</span></div>
                                 <div className="pd-card-body">
                                   {(() => {
                                     const m = selectedRegChild.extra_data?.medical || {}
@@ -6832,7 +6859,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {/* ── EDUCATION TAB ── */}
                             {profileTab === 'education' && (
                               <div className="pd-card">
-                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(16,185,129,0.15)'}}>🏫</div><span className="pd-card-title">{t('ed_title') || 'Scolarité'}</span></div>
+                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(16,185,129,0.15)'}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div><span className="pd-card-title">{t('ed_title') || 'Scolarité'}</span></div>
                                 <div className="pd-card-body">
                                   {(() => {
                                     const e = selectedRegChild.extra_data?.education || {}
@@ -6863,19 +6890,19 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {/* ── DOCUMENTS TAB ── */}
                             {profileTab === 'documents' && (
                               <div className="pd-card">
-                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(245,158,11,0.15)'}}>📄</div><span className="pd-card-title">{t('child_documents') || 'Documents'}</span></div>
+                                <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(245,158,11,0.15)'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><span className="pd-card-title">{t('child_documents') || 'Documents'}</span></div>
                                 <div className="pd-card-body">
                                   <div className="pd-docs">
                                     {[
-                                      { id:'acte', icon:'📜', label: t('doc_acte') || 'Acte de naissance', key:'cdo_doc_' + selectedRegChild.uid + '_Acte de naissance' },
+                                      { id:'acte', icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>, label: t('doc_acte') || 'Acte de naissance', key:'cdo_doc_' + selectedRegChild.uid + '_Acte de naissance' },
                                       { id:'identite', icon:'🆔', label: t('doc_identite') || "Documents d'identité", key:'cdo_doc_' + selectedRegChild.uid + "_Documents d'identité" },
-                                      { id:'judiciaire', icon:'⚖️', label: t('doc_judiciaire') || 'Décisions judiciaires', key:'cdo_doc_' + selectedRegChild.uid + '_Décisions judiciaires' },
-                                      { id:'presc', icon:'📝', label: t('hm_upload_prescription') || 'Prescriptions', key:'cdo_meddoc_' + selectedRegChild.uid + '_presc' },
-                                      { id:'report', icon:'📊', label: t('hm_upload_report') || 'Rapports médicaux', key:'cdo_meddoc_' + selectedRegChild.uid + '_reports' },
-                                      { id:'lab', icon:'🔬', label: t('hm_upload_lab') || 'Résultats labo', key:'cdo_meddoc_' + selectedRegChild.uid + '_lab' },
-                                      { id:'bulletin', icon:'📋', label: t('ed_report_card') || 'Bulletins', key:'cdo_schooldoc_' + selectedRegChild.uid + '_report' },
-                                      { id:'certificat', icon:'🏅', label: t('ed_certificate') || 'Certificats', key:'cdo_schooldoc_' + selectedRegChild.uid + '_cert' },
-                                      { id:'inscription', icon:'📝', label: t('ed_enrollment_letter') || "Lettres d'inscription", key:'cdo_schooldoc_' + selectedRegChild.uid + '_enroll' },
+                                      { id:'judiciaire', icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22V8"/><path d="M6 12V2"/><path d="M18 12V2"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M6 2h12"/><path d="M12 2v6"/></svg>, label: t('doc_judiciaire') || 'Décisions judiciaires', key:'cdo_doc_' + selectedRegChild.uid + '_Décisions judiciaires' },
+                                      { id:'presc', icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>, label: t('hm_upload_prescription') || 'Prescriptions', key:'cdo_meddoc_' + selectedRegChild.uid + '_presc' },
+                                      { id:'report', icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>, label: t('hm_upload_report') || 'Rapports médicaux', key:'cdo_meddoc_' + selectedRegChild.uid + '_reports' },
+                                      { id:'lab', icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>, label: t('hm_upload_lab') || 'Résultats labo', key:'cdo_meddoc_' + selectedRegChild.uid + '_lab' },
+                                      { id:'bulletin', icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>, label: t('ed_report_card') || 'Bulletins', key:'cdo_schooldoc_' + selectedRegChild.uid + '_report' },
+                                      { id:'certificat', icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>, label: t('ed_certificate') || 'Certificats', key:'cdo_schooldoc_' + selectedRegChild.uid + '_cert' },
+                                      { id:'inscription', icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>, label: t('ed_enrollment_letter') || "Lettres d'inscription", key:'cdo_schooldoc_' + selectedRegChild.uid + '_enroll' },
                                     ].map(doc => {
                                       const saved = localStorage.getItem(doc.key)
                                       return (
@@ -6884,8 +6911,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                           <span className="pd-doc-name">{doc.label}</span>
                                           <div className="pd-doc-meta"><span className={`pd-doc-status ${saved ? 'uploaded' : 'missing'}`}>{saved ? (t('doc_uploaded') || 'Importé') : (t('doc_missing') || 'Manquant')}</span></div>
                                           <div className="pd-doc-actions">
-                                            {saved && <button className="pd-doc-act preview" onClick={() => window.open(saved)}>👁️ {t('doc_preview') || 'Voir'}</button>}
-                                            {saved && <button className="pd-doc-act download" onClick={() => { const a = document.createElement('a'); a.href = saved; a.download = doc.label + '.jpg'; a.click() }}>⬇️ {t('doc_download') || 'Tél.'}</button>}
+                                            {saved && <button className="pd-doc-act preview" onClick={() => window.open(saved)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> {t('doc_preview') || 'Voir'}</button>}
+                                            {saved && <button className="pd-doc-act download" onClick={() => { const a = document.createElement('a'); a.href = saved; a.download = doc.label + '.jpg'; a.click() }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> {t('doc_download') || 'Tél.'}</button>}
                                           </div>
                                         </div>
                                       )
@@ -6899,7 +6926,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {profileTab === 'updates' && (
                               <div className="uc-wrap">
                                 <div className="uc-header">
-                                  <span className="uc-header-icon">📝</span>
+                                  <span className="uc-header-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></span>
                                   <span className="uc-header-title">{t('uc_title') || 'Centre de Mise à Jour'}</span>
                                   {ucStep > 0 && <button className="uc-back-top" onClick={() => { if (ucStep === 1) { setUcStep(0); setUcCategory(null); setUcType(''); setUcTitle(''); setUcDescription(''); setUcPrevValue(''); setUcNewValue(''); setUcReason(''); setUcFiles([]); setUcSuccess(false) } else setUcStep(s => s - 1) }}>← {t('form_back')}</button>}
                                   {ucStep > 0 && <button className="uc-back-top" style={{marginLeft:'auto'}} onClick={() => { setUcStep(0); setUcCategory(null); setUcType(''); setUcTitle(''); setUcDescription(''); setUcPrevValue(''); setUcNewValue(''); setUcReason(''); setUcFiles([]); setUcSuccess(false) }}>{t('form_cancel') || 'Cancel'}</button>}
@@ -6907,14 +6934,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 <div className="uc-steps">
                                   {[t('uc_select_category')||'Catégorie', t('uc_fill_form')||'Détails', t('uc_reason')||'Raison', t('uc_review_save')||'Confirmer'].map((s, i) => (
                                     <div key={i} className={`uc-step${ucStep === i ? ' active' : ''}${ucStep > i ? ' done' : ''}`}>
-                                      <div className="uc-step-num">{ucStep > i ? '✓' : i + 1}</div>
+                                      <div className="uc-step-num">{ucStep > i ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg> : i + 1}</div>
                                       <span className="uc-step-label">{s}</span>
                                     </div>
                                   ))}
                                 </div>
                                 {ucSuccess ? (
                                   <div className="uc-success">
-                                    <div className="uc-success-icon">✅</div>
+                                    <div className="uc-success-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
                                     <div className="uc-success-text">{t('uc_success') || 'Mise à jour enregistrée !'}</div>
                                     <button className="uc-btn-primary" onClick={() => { setUcStep(0); setUcCategory(null); setUcType(''); setUcTitle(''); setUcDescription(''); setUcPrevValue(''); setUcNewValue(''); setUcReason(''); setUcFiles([]); setUcSuccess(false); setProfileTab('history') }}>{t('pd_history') || 'Voir historique'}</button>
                                   </div>
@@ -6922,7 +6949,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <div className="uc-categories">
                                     {UC_CATEGORIES.map(cat => (
                                       <button key={cat.key} className="uc-cat-card" style={{'--cat-color':cat.color}} onClick={() => { setUcCategory(cat.key); setUcStep(1) }}>
-                                        <span className="uc-cat-icon">{cat.icon}</span>
+                                        <span className="uc-cat-icon">{cat.iconSvg}</span>
                                         <span className="uc-cat-label">{cat.label}</span>
                                         <span className="uc-cat-desc">{cat.desc}</span>
                                       </button>
@@ -6980,9 +7007,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       </div>
                                       {ucFiles.length > 0 && <div className="uc-file-list">{ucFiles.map((f, i) => (
                                         <div key={i} className="uc-file-item">
-                                          <span className="uc-file-name">📎 {f.name}</span>
+                                          <span className="uc-file-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> {f.name}</span>
                                           <span className="uc-file-size">{(f.size/1024).toFixed(0)} Ko</span>
-                                          <button className="uc-file-remove" onClick={() => setUcFiles(prev => prev.filter((_, j) => j !== i))}>✕</button>
+                                          <button className="uc-file-remove" onClick={() => setUcFiles(prev => prev.filter((_, j) => j !== i))}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                                         </div>
                                       ))}</div>}
                                     </div>
@@ -6995,7 +7022,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <div className="uc-preview">
                                     <div className="uc-preview-card">
                                       <div className="uc-preview-header">
-                                        <span className="uc-preview-badge" style={{background:UC_CATEGORIES.find(c => c.key === ucCategory)?.color}}>{UC_CATEGORIES.find(c => c.key === ucCategory)?.icon} {UC_CATEGORIES.find(c => c.key === ucCategory)?.label}</span>
+                                        <span className="uc-preview-badge" style={{background:UC_CATEGORIES.find(c => c.key === ucCategory)?.color}}>{UC_CATEGORIES.find(c => c.key === ucCategory)?.iconSvg} {UC_CATEGORIES.find(c => c.key === ucCategory)?.label}</span>
                                         <span className="uc-preview-type">{t('uc_type_' + ucType) || ucType.replace(/_/g,' ')}</span>
                                       </div>
                                       <h4 className="uc-preview-title">{ucTitle}</h4>
@@ -7010,7 +7037,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     <div className="uc-timeline-preview">
                                       <div className="uc-tl-preview-title">{t('uc_preview')||'Aperçu'}</div>
                                       <div className="pd-tl-item" style={{background:'rgba(255,255,255,0.03)',borderRadius:'10px',padding:'12px'}}>
-                                        <div className="pd-tl-dot" style={{background:UC_CATEGORIES.find(c => c.key === ucCategory)?.color}}>{UC_CATEGORIES.find(c => c.key === ucCategory)?.icon}</div>
+                                        <div className="pd-tl-dot" style={{background:UC_CATEGORIES.find(c => c.key === ucCategory)?.color}}>{UC_CATEGORIES.find(c => c.key === ucCategory)?.iconSvg}</div>
                                         <div className="pd-tl-content">
                                           <div className="pd-tl-text" style={{fontWeight:'600'}}>{ucTitle}</div>
                                           <div className="pd-tl-time">{new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
@@ -7052,21 +7079,52 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {/* ── HISTORY CENTER ── */}
                             {profileTab === 'history' && (() => {
                             const hcIcons = {
-                              created:'✅', updated:'✏️', update_added:'📝',
-                              document_added:'📄', document_verified:'✅', document_replaced:'🔄', document_expired:'⏰',
-                              health_update:'💉', vaccination_added:'💉', illness_added:'🤒',
-                              treatment_started:'💊', treatment_ended:'✅', consultation_added:'🩺',
-                              hospitalization_added:'🏥', allergy_added:'🤧',
-                              education_update:'📚', school_enrolled:'🏫', school_changed:'🔄',
-                              grade_added:'📊', exam_result_added:'📝',
-                              family_update:'👨‍👩‍👧‍👦', guardian_assigned:'👤', parent_identified:'🔍',
-                              family_reunified:'🤗', foster_placement:'🏡', adoption_progress:'📋',
-                              social_update:'🤝', social_note_added:'📝', home_visit:'🏠',
-                              counseling_session:'💬', incident_reported:'⚠️', protection_concern:'🛡️',
-                              status_change:'🔄', alert_triggered:'🚨', note_added:'💬', case_note:'📌',
-                              file_downloaded:'⬇️', record_approved:'✅', record_rejected:'❌',
-                              notification_sent:'🔔', child_archived:'📦', child_restored:'♻️',
-                              follow_up:'📋', observation_added:'👁️', transfer_initiated:'🚚', exit_registered:'🚪',
+                              created:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                              updated:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>,
+                              update_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>,
+                              document_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+                              document_verified:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                              document_replaced:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>,
+                              document_expired:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+                              health_update:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
+                              vaccination_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2L6 10"/><path d="M18 6L6 18"/><path d="M6 10l4 4"/><path d="M14 18l4-4"/></svg>,
+                              illness_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>,
+                              treatment_started:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>,
+                              treatment_ended:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                              consultation_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.3.3 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/></svg>,
+                              hospitalization_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg>,
+                              allergy_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 9h.01M15 9h.01"/><path d="M9 15c1.5 1.5 4 1.5 5.5 0"/></svg>,
+                              education_update:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M4 11h16"/></svg>,
+                              school_enrolled:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5"/><path d="M6 12v5h3v-3h6v3h3v-5"/></svg>,
+                              school_changed:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>,
+                              grade_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>,
+                              exam_result_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>,
+                              family_update:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+                              guardian_assigned:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+                              parent_identified:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
+                              family_reunified:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></svg>,
+                              foster_placement:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+                              adoption_progress:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>,
+                              social_update:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 17a1 1 0 0 1-1 1H5l-3-3 3-3h5a1 1 0 0 1 1 1v4Z"/><path d="M13 7a1 1 0 0 1 1-1h5l3 3-3 3h-5a1 1 0 0 1-1-1V7Z"/><path d="M6 14 3 11l3-3"/><path d="M18 10l3 3-3 3"/><path d="M6 14v4"/><path d="M18 10V6"/></svg>,
+                              social_note_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg>,
+                              home_visit:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+                              counseling_session:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
+                              incident_reported:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>,
+                              protection_concern:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+                              status_change:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>,
+                              alert_triggered:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+                              note_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
+                              case_note:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4.5l-4 4L7 10l-1.5 1.5 7 7L14 17l1.5-4 4-4"/><path d="M9 15l-5 5"/></svg>,
+                              file_downloaded:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+                              record_approved:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+                              record_rejected:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+                              notification_sent:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+                              child_archived:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>,
+                              child_restored:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>,
+                              follow_up:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>,
+                              observation_added:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
+                              transfer_initiated:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 17h14M5 12h14M5 7h10"/></svg>,
+                              exit_registered:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
                             }
                             const hcColors = {
                               general:'#64748b', registration:'#22c55e', identity:'#3b82f6', status:'#f59e0b',
@@ -7134,13 +7192,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 {/* ── Stats Row ── */}
                                 <div className="hc-kpi-row">
                                   {[
-                                    { label:t('hc_total_events')||'Événements', value:hcStatsLocal.total, icon:'📊', color:'#3b82f6' },
-                                    { label:t('hc_status_changes')||'Statuts', value:hcStatsLocal.status_changes, icon:'🔄', color:'#f59e0b' },
-                                    { label:t('hc_health_events')||'Santé', value:hcStatsLocal.health_events, icon:'💉', color:'#22c55e' },
-                                    { label:t('hc_education_events')||'Éducation', value:hcStatsLocal.education_events, icon:'📚', color:'#3b82f6' },
-                                    { label:t('hc_family_events')||'Famille', value:hcStatsLocal.family_events, icon:'👨‍👩‍👧‍👦', color:'#a855f7' },
-                                    { label:t('hc_documents_events')||'Documents', value:hcStatsLocal.document_events, icon:'📄', color:'#f59e0b' },
-                                    { label:t('hc_alert_events')||'Alertes', value:hcStatsLocal.alert_events, icon:'🚨', color:'#ef4444' },
+                                    { label:t('hc_total_events')||'Événements', value:hcStatsLocal.total, icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>, color:'#3b82f6' },
+                                    { label:t('hc_status_changes')||'Statuts', value:hcStatsLocal.status_changes, icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>, color:'#f59e0b' },
+                                    { label:t('hc_health_events')||'Santé', value:hcStatsLocal.health_events, icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>, color:'#22c55e' },
+                                    { label:t('hc_education_events')||'Éducation', value:hcStatsLocal.education_events, icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M4 11h16"/></svg>, color:'#3b82f6' },
+                                    { label:t('hc_family_events')||'Famille', value:hcStatsLocal.family_events, icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, color:'#a855f7' },
+                                    { label:t('hc_documents_events')||'Documents', value:hcStatsLocal.document_events, icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>, color:'#f59e0b' },
+                                    { label:t('hc_alert_events')||'Alertes', value:hcStatsLocal.alert_events, icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>, color:'#ef4444' },
                                   ].map((kpi, i) => (
                                     <div key={i} className="hc-kpi" style={{borderLeftColor:kpi.color}}>
                                       <span className="hc-kpi-icon">{kpi.icon}</span>
@@ -7153,10 +7211,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 <div className="hc-toolbar">
                                   <div className="hc-view-tabs">
                                     {[
-                                      { key:'timeline', icon:'📋', label:t('hc_timeline')||'Chronologie' },
-                                      { key:'audit', icon:'📋', label:t('hc_audit_log')||'Audit' },
-                                      { key:'calendar', icon:'📅', label:t('hc_calendar')||'Calendrier' },
-                                      { key:'analytics', icon:'📊', label:t('hc_analytics')||'Analytiques' },
+                                      { key:'timeline', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>, label:t('hc_timeline')||'Chronologie' },
+                                      { key:'audit', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M9 12h6M9 16h6"/></svg>, label:t('hc_audit_log')||'Audit' },
+                                      { key:'calendar', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>, label:t('hc_calendar')||'Calendrier' },
+                                      { key:'analytics', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>, label:t('hc_analytics')||'Analytiques' },
                                     ].map(v => (
                                       <button key={v.key} className={`hc-view-tab${hcView === v.key ? ' active' : ''}`} onClick={() => setHcView(v.key)}>{v.icon} {v.label}</button>
                                     ))}
@@ -7175,7 +7233,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       const csv = [['Date','Catégorie','Type','Titre','Ancien','Nouveau','Par','Motif'].join(',')].concat(hcFiltered.map(e => [e.event_date||'',e.category||'',e.event_type||'',`"${(e.title||'').replace(/"/g,'""')}"`,`"${(e.old_value||'').replace(/"/g,'""')}"`,`"${(e.new_value||'').replace(/"/g,'""')}"`,e.performed_by_name||'',`"${(e.reason||'').replace(/"/g,'""')}"`].join(','))).join('\n')
                                       const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'})
                                       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `historique_${selectedRegChild.uid}.csv`; a.click()
-                                    }}>{t('hc_export')||'Exporter'} ⬇️</button>
+                                    }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> {t('hc_export')||'Exporter'}</button>
                                   </div>
                                 </div>
 
@@ -7221,7 +7279,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     <span>{t('hc_filter_status_only')||'Statuts'}</span>
                                   </label>
                                   {(hcFilterCategory||hcFilterType||hcFilterPriority||hcFilterSource||hcSearch||hcDateFrom||hcDateTo||hcStatusOnly) && (
-                                    <button className="hc-clear-btn" onClick={() => { setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcSearch(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false) }}>{t('hc_clear_filters')||'✕ Effacer'}</button>
+                                    <button className="hc-clear-btn" onClick={() => { setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcSearch(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false) }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> {t('hc_clear_filters')||'Effacer'}</button>
                                   )}
                                   <span className="hc-filter-count">{hcFiltered.length} / {hcLocalEvents.length} {t('hc_events_count')||'événements'}</span>
                                 </div>
@@ -7229,7 +7287,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 {/* ── Timeline View ── */}
                                 {hcView === 'timeline' && (
                                   <div className={`hc-timeline${hcDensityClass}`}>
-                                    {hcFiltered.length === 0 && <div className="hc-empty"><span className="hc-empty-icon">📭</span><p>{t('hc_no_events')||'Aucun événement'}</p></div>}
+                                    {hcFiltered.length === 0 && <div className="hc-empty"><span className="hc-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><polyline points="22 6 12 13 2 6"/></svg></span><p>{t('hc_no_events')||'Aucun événement'}</p></div>}
                                     {hcDensity === 'comfortable' ? (
                                       <>
                                         {Object.entries(hcGrouped).filter(([_, evs]) => evs.length > 0).map(([groupKey, events]) => (
@@ -7243,7 +7301,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                                 onClick={() => { const k = groupKey+'_'+i; setHcExpanded(hcExpanded === k ? null : k); setHcSelectedEvent(event) }}
                                               >
                                                 <div className="hc-tl-line" />
-                                                <div className="hc-tl-dot" style={{background:hcColors[event.category]||'#64748b'}}>{hcIcons[event.event_type]||'📌'}</div>
+                                                <div className="hc-tl-dot" style={{background:hcColors[event.category]||'#64748b'}}>{hcIcons[event.event_type]||<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4.5l-4 4L7 10l-1.5 1.5 7 7L14 17l1.5-4 4-4"/><path d="M9 15l-5 5"/></svg>}</div>
                                                 <div className="hc-tl-card">
                                                   <div className="hc-tl-card-top">
                                                     <span className="hc-tl-badge" style={{background:hcColors[event.category]||'#64748b'}}>{event.category ? (t('uc_category_'+event.category)||event.category) : ''}</span>
@@ -7269,7 +7327,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                                       {event.source_module && <div className="hc-tl-detail-row"><strong>{t('hc_source_module')||'Module'}:</strong><span>{t('hc_source_'+event.source_module)||event.source_module}</span></div>}
                                                       {event.attachments?.length > 0 && (
                                                         <div className="hc-tl-detail-row"><strong>{t('hc_attachments')||'Fichiers'} ({event.attachments.length})</strong>
-                                                          <div className="hc-tl-attachments">{event.attachments.map((a, ai) => <span key={ai} className="hc-tl-attach-file">📎 {a}</span>)}</div>
+                                                          <div className="hc-tl-attachments">{event.attachments.map((a, ai) => <span key={ai} className="hc-tl-attach-file"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> {a}</span>)}</div>
                                                         </div>
                                                       )}
                                                     </div>
@@ -7288,7 +7346,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                           onClick={() => { setHcExpanded(hcExpanded === i ? null : i); setHcSelectedEvent(event) }}
                                         >
                                           <div className="hc-tl-line" />
-                                          <div className="hc-tl-dot" style={{background:hcColors[event.category]||'#64748b'}}>{hcIcons[event.event_type]||'📌'}</div>
+                                          <div className="hc-tl-dot" style={{background:hcColors[event.category]||'#64748b'}}>{hcIcons[event.event_type]||<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4.5l-4 4L7 10l-1.5 1.5 7 7L14 17l1.5-4 4-4"/><path d="M9 15l-5 5"/></svg>}</div>
                                           <div className={`hc-tl-card${hcDensity === 'audit' ? ' hc-tl-card-audit' : ''}`}>
                                             <div className="hc-tl-card-top">
                                               <span className="hc-tl-badge" style={{background:hcColors[event.category]||'#64748b'}}>{event.category || ''}</span>
@@ -7340,7 +7398,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       {hcFiltered.map((event, i) => (
                                         <div key={i} className={`hc-audit-row${criticalEventTypes.includes(event.event_type)||criticalPriorities.includes(event.priority) ? ' hc-audit-critical' : ''}`}>
                                           <span className="hc-audit-col-date" title={event.event_date ? new Date(event.event_date).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}>{event.event_date ? new Date(event.event_date).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'2-digit', month:'short' }) : '—'}</span>
-                                          <span className="hc-audit-col-event"><span className="hc-event-badge" style={{background:hcColors[event.category]||'#64748b'}}>{hcIcons[event.event_type]||'📌'} {t('hc_event_'+event.event_type)||event.event_type}</span></span>
+                                          <span className="hc-audit-col-event"><span className="hc-event-badge" style={{background:hcColors[event.category]||'#64748b'}}>{hcIcons[event.event_type]||<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4.5l-4 4L7 10l-1.5 1.5 7 7L14 17l1.5-4 4-4"/><path d="M9 15l-5 5"/></svg>} {t('hc_event_'+event.event_type)||event.event_type}</span></span>
                                           <span className="hc-audit-col-cat">{event.category ? (t('uc_category_'+event.category)||event.category) : '—'}</span>
                                           <span className="hc-audit-col-priority">{event.priority ? <span className={`hc-tl-priority hc-tl-priority-${event.priority}`}>{t('hc_priority_'+event.priority)||event.priority}</span> : '—'}</span>
                                           <span className="hc-audit-col-user">{event.performed_by_name||'—'}</span>
@@ -7387,7 +7445,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                               {d && <>
                                                 <span className="hc-cal-day-num">{d}</span>
                                                 {eventMap[d] && <div className="hc-cal-day-events">{eventMap[d].slice(0,3).map((e, ei) => (
-                                                  <div key={ei} className="hc-cal-day-event" style={{background:hcColors[e.category]||'#64748b'}} title={e.title} onClick={() => setHcSelectedEvent(e)}>{hcIcons[e.event_type]||'📌'}</div>
+                                                  <div key={ei} className="hc-cal-day-event" style={{background:hcColors[e.category]||'#64748b'}} title={e.title} onClick={() => setHcSelectedEvent(e)}>{hcIcons[e.event_type]||<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4.5l-4 4L7 10l-1.5 1.5 7 7L14 17l1.5-4 4-4"/><path d="M9 15l-5 5"/></svg>}</div>
                                                 ))}{eventMap[d].length > 3 && <span className="hc-cal-day-more">+{eventMap[d].length-3}</span>}</div>}
                                               </>}
                                             </div>
@@ -7408,7 +7466,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                         return (
                                           <div key={catKey} className="hc-analytics-card" style={{borderLeftColor:color}}>
                                             <div className="hc-analytics-card-top">
-                                              <span className="hc-analytics-icon" style={{background:color+'20'}}>{hcIcons[Object.keys(hcIcons).find(k => k.startsWith(catKey))]||'📊'}</span>
+                                              <span className="hc-analytics-icon" style={{background:color+'20'}}>{hcIcons[Object.keys(hcIcons).find(k => k.startsWith(catKey))]||<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>}</span>
                                               <span className="hc-analytics-count">{ct}</span>
                                             </div>
                                             <span className="hc-analytics-label">{t('uc_category_'+catKey)||catKey}</span>
@@ -7419,7 +7477,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       {hcLocalEvents.filter(e => e.category === 'alert' || e.category === 'protection').length > 0 && (
                                         <div className="hc-analytics-card" style={{borderLeftColor:'#ef4444'}}>
                                           <div className="hc-analytics-card-top">
-                                            <span className="hc-analytics-icon" style={{background:'rgba(239,68,68,0.12)'}}>🚨</span>
+                                            <span className="hc-analytics-icon" style={{background:'rgba(239,68,68,0.12)'}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
                                             <span className="hc-analytics-count">{hcLocalEvents.filter(e => e.category === 'alert' || e.category === 'protection').length}</span>
                                           </div>
                                           <span className="hc-analytics-label">{t('hc_alert_events')||'Alertes'}</span>
@@ -7442,7 +7500,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 {hcSelectedEvent && (
                                   <div className="hc-drawer-overlay" onClick={() => setHcSelectedEvent(null)}>
                                     <div className="hc-drawer" onClick={e => e.stopPropagation()}>
-                                      <button className="hc-drawer-close" onClick={() => setHcSelectedEvent(null)}>✕</button>
+                                      <button className="hc-drawer-close" onClick={() => setHcSelectedEvent(null)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                                       <div className="hc-drawer-title">{t('hc_event_detail_title')||"Détails de l'événement"}</div>
                                       <div className="hc-drawer-section">
                                         <div className="hc-drawer-section-title">{t('hc_event_info')||'Événement'}</div>
@@ -7478,7 +7536,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       {hcSelectedEvent.attachments?.length > 0 && (
                                         <div className="hc-drawer-section">
                                           <div className="hc-drawer-section-title">{t('hc_attachments')||'Pièces jointes'} ({hcSelectedEvent.attachments.length})</div>
-                                          <div className="hc-drawer-attachments">{hcSelectedEvent.attachments.map((a, ai) => <div key={ai} className="hc-drawer-attach">📎 {a}</div>)}</div>
+                                          <div className="hc-drawer-attachments">{hcSelectedEvent.attachments.map((a, ai) => <div key={ai} className="hc-drawer-attach"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> {a}</div>)}</div>
                                         </div>
                                       )}
                                     </div>
@@ -7493,29 +7551,29 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           <div className="pd-side">
                             {/* Quick Actions */}
                             <div className="pd-card">
-                              <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(245,158,11,0.15)'}}>⚡</div><span className="pd-card-title">{t('pd_quick_actions') || 'Actions Rapides'}</span></div>
+                              <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(245,158,11,0.15)'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><span className="pd-card-title">{t('pd_quick_actions') || 'Actions Rapides'}</span></div>
                               <div className="pd-card-body">
                                 <div className="pd-actions">
                                   <button className="pd-action-btn" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey('Profil & identité'); setSelectedRegChild(null) }}>
-                                    <span className="pd-action-icon">✏️</span> {t('form_edit') || 'Modifier'} le profil
+                                    <span className="pd-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span> {t('form_edit') || 'Modifier'} le profil
                                   </button>
                                   <button className="pd-action-btn" onClick={() => { setActiveKey('enfants'); setSubKey('Documents administratifs'); setEditingChild(selectedRegChild); setSelectedRegChild(null) }}>
-                                    <span className="pd-action-icon">📄</span> {t('pd_add_doc') || 'Ajouter document'}
+                                    <span className="pd-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span> {t('pd_add_doc') || 'Ajouter document'}
                                   </button>
                                   <button className="pd-action-btn" onClick={() => window.print()}>
-                                    <span className="pd-action-icon">🖨️</span> {t('pd_print') || 'Imprimer'}
+                                    <span className="pd-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span> {t('pd_print') || 'Imprimer'}
                                   </button>
                                   <button className="pd-action-btn" onClick={() => { window.dispatchEvent(new CustomEvent('cdo-navigate-child', { detail: { uid: selectedRegChild.uid } })) }}>
-                                    <span className="pd-action-icon">📜</span> {t('pd_history') || 'Voir historique'}
+                                    <span className="pd-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span> {t('pd_history') || 'Voir historique'}
                                   </button>
                                   <button className="pd-action-btn" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey('Santé & médical'); setSelectedRegChild(null) }}>
-                                    <span className="pd-action-icon">❤️</span> {t('pd_health') || 'Santé'}
+                                    <span className="pd-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></span> {t('pd_health') || 'Santé'}
                                   </button>
                                   <button className="pd-action-btn" onClick={() => { setUpdateChild(selectedRegChild); setActiveKey('update-center'); setSelectedRegChild(null); setUc2Step(0); setUc2Category(null); setUc2Type(''); setUc2FormData({}); setUc2Priority('normal'); setUc2Reason(''); setUc2Comment(''); setUc2Files([]); setUc2Success(false) }}>
-                                    <span className="pd-action-icon">📝</span> {t('uc_title') || 'Mise à jour'}
+                                    <span className="pd-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></span> {t('uc_title') || 'Mise à jour'}
                                   </button>
                                   <button className="pd-action-btn" onClick={() => { setEditingChild(selectedRegChild); setActiveKey('enfants'); setSubKey('Scolarité'); setSelectedRegChild(null) }}>
-                                    <span className="pd-action-icon">🏫</span> {t('pd_education') || 'Scolarité'}
+                                    <span className="pd-action-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5"/><path d="M6 12v5h3v-3h6v3h3v-5"/></svg></span> {t('pd_education') || 'Scolarité'}
                                   </button>
                                 </div>
                               </div>
@@ -7523,7 +7581,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
                             {/* Notes */}
                             <div className="pd-card">
-                              <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(59,130,246,0.15)'}}>💬</div><span className="pd-card-title">{t('pd_notes') || 'Notes'}</span></div>
+                              <div className="pd-card-header"><div className="pd-card-icon" style={{background:'rgba(59,130,246,0.15)'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><span className="pd-card-title">{t('pd_notes') || 'Notes'}</span></div>
                               <div className="pd-card-body">
                                 <div className="pd-notes">
                                   {(() => {
@@ -7756,12 +7814,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       )
                     })() : (
                       <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'24px',marginBottom:16}}>
-                        <h4 style={{fontSize:16,fontWeight:700,color:'#e2e8f0',margin:'0 0 16px',display:'flex',alignItems:'center',gap:8}}>👥 Ambassadeurs assignés</h4>
+                        <h4 style={{fontSize:16,fontWeight:700,color:'#e2e8f0',margin:'0 0 16px',display:'flex',alignItems:'center',gap:8}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Ambassadeurs assignés</h4>
                         {dirAmbLoading ? (
                           <div style={{textAlign:'center',padding:20,color:'#64748b',fontSize:14}}>Chargement...</div>
                         ) : dirAmbAssignments.length === 0 ? (
                           <div style={{padding:'20px',textAlign:'center',color:'#64748b',fontSize:14}}>
-                            <div style={{fontSize:36,marginBottom:8}}>🤝</div>
+                            <div style={{fontSize:36,marginBottom:8}}><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 17a1 1 0 0 1-1 1H5l-3-3 3-3h5a1 1 0 0 1 1 1v4Z"/><path d="M13 7a1 1 0 0 1 1-1h5l3 3-3 3h-5a1 1 0 0 1-1-1V7Z"/><path d="M6 14 3 11l3-3"/><path d="M18 10l3 3-3 3"/><path d="M6 14v4"/><path d="M18 10V6"/></svg></div>
                             <p style={{margin:'0 0 4px'}}>Aucun ambassadeur assigné aux enfants de votre orphelinat.</p>
                             <p style={{margin:0,fontSize:12,color:'#475569'}}>Les ambassadeurs sont assignés par la fédération.</p>
                           </div>
@@ -7818,7 +7876,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             </div>
                             <div className="dash-proj-detail">
                               <div className="dash-proj-meta">
-                                <span><strong>{t('proj_type') || 'Type'}:</strong> {PROJECT_TYPES.find(pt => pt.value === selectedProject.type)?.icon} {PROJECT_TYPES.find(pt => pt.value === selectedProject.type)?.label}</span>
+                                <span><strong>{t('proj_type') || 'Type'}:</strong> {PROJECT_TYPES.find(pt => pt.value === selectedProject.type)?.iconSvg} {PROJECT_TYPES.find(pt => pt.value === selectedProject.type)?.label}</span>
                                 <span><strong>{t('proj_code') || 'Code'}:</strong> <span className="dash-proj-code-display">{selectedProject.code}</span></span>
                                 <span><strong>{t('proj_start_date') || 'Date de début'}:</strong> {selectedProject.start_date || '—'}</span>
                                 <span><strong>{t('proj_end_date') || 'Date de fin'}:</strong> {selectedProject.end_date || '—'}</span>
@@ -7851,7 +7909,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <div key={proj.code} className="dash-proj-card" onClick={() => setSelectedProject(proj)}>
                                 <div className="dash-proj-card-top">
                                   <span className="dash-proj-code">{proj.code}</span>
-                                  <span className="dash-proj-badge">{PROJECT_TYPES.find(pt => pt.value === proj.type)?.icon} {PROJECT_TYPES.find(pt => pt.value === proj.type)?.label}</span>
+                                  <span className="dash-proj-badge">{PROJECT_TYPES.find(pt => pt.value === proj.type)?.iconSvg} {PROJECT_TYPES.find(pt => pt.value === proj.type)?.label}</span>
                                 </div>
                                 <h4 className="dash-proj-card-title">{proj.title}</h4>
                                 <p className="dash-proj-card-summary">{proj.summary || proj.description?.substring(0, 80) + '...'}</p>
@@ -7882,7 +7940,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             </div>
                             <div className="dash-proj-detail">
                               <div className="dash-proj-meta">
-                                <span><strong>{t('proj_type') || 'Type'}:</strong> {PROJECT_TYPES.find(pt => pt.value === selectedProject.type)?.icon} {PROJECT_TYPES.find(pt => pt.value === selectedProject.type)?.label}</span>
+                                <span><strong>{t('proj_type') || 'Type'}:</strong> {PROJECT_TYPES.find(pt => pt.value === selectedProject.type)?.iconSvg} {PROJECT_TYPES.find(pt => pt.value === selectedProject.type)?.label}</span>
                                 <span><strong>{t('proj_code') || 'Code'}:</strong> <span className="dash-proj-code-display">{selectedProject.code}</span></span>
                                 <span><strong>{t('proj_start_date') || 'Date de début'}:</strong> {selectedProject.start_date || '—'}</span>
                                 <span><strong>{t('proj_end_date') || 'Date de fin'}:</strong> {selectedProject.end_date || '—'}</span>
@@ -7902,7 +7960,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <div key={proj.code} className="dash-proj-card expired" onClick={() => setSelectedProject(proj)}>
                                 <div className="dash-proj-card-top">
                                   <span className="dash-proj-code">{proj.code}</span>
-                                  <span className="dash-proj-badge">{PROJECT_TYPES.find(pt => pt.value === proj.type)?.icon} {PROJECT_TYPES.find(pt => pt.value === proj.type)?.label}</span>
+                                  <span className="dash-proj-badge">{PROJECT_TYPES.find(pt => pt.value === proj.type)?.iconSvg} {PROJECT_TYPES.find(pt => pt.value === proj.type)?.label}</span>
                                 </div>
                                 <h4 className="dash-proj-card-title">{proj.title}</h4>
                                 <p className="dash-proj-card-summary">{proj.summary || proj.description?.substring(0, 80) + '...'}</p>
@@ -7925,7 +7983,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {t('form_back')}
                           </button>
                           <div className="dash-proj-create-title-group">
-                            <span className="dash-proj-create-type-icon">{PROJECT_TYPES.find(pt => pt.value === projectTypeFilter)?.icon}</span>
+                            <span className="dash-proj-create-type-icon">{PROJECT_TYPES.find(pt => pt.value === projectTypeFilter)?.iconSvg}</span>
                             <h2 className="dash-proj-create-title">{t('proj_new_project') || 'Nouveau projet'}</h2>
                           </div>
                           <div className="dash-proj-create-code">
@@ -8182,7 +8240,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             if (uc2Gender && uc2Gender !== 'all') list = list.filter(c => c.sexe === uc2Gender)
                             if (uc2AgeRange) { const max = parseInt(uc2AgeRange); list = list.filter(c => c.date_naissance ? Math.floor((Date.now()-new Date(c.date_naissance).getTime())/31557600000) <= max : false) }
                             if (uc2Region && uc2Region !== 'all') list = list.filter(c => c.nationalite === uc2Region)
-                            if (list.length === 0) return <div className="uc2-premium-empty"><span className="uc2-premium-empty-icon">👶</span><p>{t('uc_no_results')||'Aucun enfant trouvé'}</p></div>
+                            if (list.length === 0) return <div className="uc2-premium-empty"><span className="uc2-premium-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5"/><path d="M6 12v5h3v-3h6v3h3v-5"/></svg></span><p>{t('uc_no_results')||'Aucun enfant trouvé'}</p></div>
                             return list.map(child => {
                               const age = child.date_naissance ? Math.floor((Date.now()-new Date(child.date_naissance).getTime())/31557600000) : null
                               const photo = getChildPhotoUrl(child)
@@ -8199,14 +8257,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     <div className="uc2-premium-card-info">
                                       <div className="uc2-premium-card-name">{child.prenom||''} {child.nom||''}</div>
                                       <div className="uc2-premium-card-uid">#{child.uid}</div>
-                                      <div className="uc2-premium-card-meta">
-                                        <span>{child.sexe === 'M' ? '♂' : child.sexe === 'F' ? '♀' : ''} {child.sexe === 'M' ? (t('form_male')||'M') : child.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
-                                        <span className="uc2-premium-card-dot">·</span>
-                                        <span>{age !== null ? age + ' ' + (t('form_years')||'ans') : '—'}</span>
-                                      </div>
-                                    </div>
-                                    <span className="uc2-premium-card-status" style={{
-                                      background: crit.includes(child.status) ? 'rgba(239,68,68,0.12)' : child.status === 'sick' ? 'rgba(245,158,11,0.12)' : child.status === 'active' ? 'rgba(20,184,166,0.12)' : 'rgba(100,116,139,0.12)',
+                                       <div className="uc2-premium-card-meta">
+                                         <span>{child.sexe === 'M' ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="10" cy="14" r="6"/><path d="M19 5l-5.6 5.6"/><path d="M19 5h-5"/><path d="M19 5v5"/></svg> : child.sexe === 'F' ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="6"/><path d="M12 18v6"/><path d="M9 22h6"/></svg> : ''} {child.sexe === 'M' ? (t('form_male')||'M') : child.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
+                                         <span className="uc2-premium-card-dot">·</span>
+                                         <span>{age !== null ? age + ' ' + (t('form_years')||'ans') : '—'}</span>
+                                       </div>
+                                     </div>
+                                     <span className="uc2-premium-card-status" style={{
+                                       background: crit.includes(child.status) ? 'rgba(239,68,68,0.12)' : child.status === 'sick' ? 'rgba(245,158,11,0.12)' : child.status === 'active' ? 'rgba(20,184,166,0.12)' : 'rgba(100,116,139,0.12)',
                                       color: crit.includes(child.status) ? '#ef4444' : child.status === 'sick' ? '#f59e0b' : child.status === 'active' ? '#14b8a6' : '#94a3b8'
                                     }}>{t('child_status_' + child.status) || child.status}</span>
                                   </div>
@@ -8232,7 +8290,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     ) : uc2Success ? (
                       /* ── Success State ── */
                       <div className="uc2-success">
-                        <div className="uc2-success-icon">✅</div>
+                        <div className="uc2-success-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
                         <div className="uc2-success-title">{t('uc_success') || 'Mise à jour enregistrée !'}</div>
                         <p className="uc2-success-desc">{t('uc_success_desc') || 'Un événement a été ajouté à l\'historique de l\'enfant.'}</p>
                         <div className="uc2-success-actions">
@@ -8284,14 +8342,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div className="uc2-hero-info">
                               <div className="uc2-hero-name">{updateChild.prenom || ''} {updateChild.nom || ''} <span className="uc2-hero-uid">#{updateChild.uid}</span></div>
                               <div className="uc2-hero-meta">
-                                <span>🎂 {updateChild.date_naissance ? Math.floor((Date.now()-new Date(updateChild.date_naissance).getTime())/31557600000)+' '+(t('form_years')||'ans') : '—'}</span>
-                                <span>⚤ {updateChild.sexe === 'M' ? (t('form_male')||'M') : updateChild.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
-                                {updateChild.nationalite && <span>🌍 {updateChild.nationalite}</span>}
+                                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> {updateChild.date_naissance ? Math.floor((Date.now()-new Date(updateChild.date_naissance).getTime())/31557600000)+' '+(t('form_years')||'ans') : '—'}</span>
+                                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> {updateChild.sexe === 'M' ? (t('form_male')||'M') : updateChild.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
+                                {updateChild.nationalite && <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> {updateChild.nationalite}</span>}
                               </div>
                             </div>
                             <div className="uc2-hero-actions">
-                              <button className="uc2-hero-btn" onClick={() => { setActiveKey('history-center'); setHcHistoryChild(updateChild) }}>📜 {t('pd_history')||'Historique'}</button>
-                              <button className="uc2-hero-btn" onClick={() => { setActiveKey('enfants-enregistrés'); setSelectedRegChild(updateChild) }}>👤 {t('form_profile')||'Profil'}</button>
+                              <button className="uc2-hero-btn" onClick={() => { setActiveKey('history-center'); setHcHistoryChild(updateChild) }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> {t('pd_history')||'Historique'}</button>
+                              <button className="uc2-hero-btn" onClick={() => { setActiveKey('enfants-enregistrés'); setSelectedRegChild(updateChild) }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> {t('form_profile')||'Profil'}</button>
                             </div>
                           </div>
 
@@ -8299,7 +8357,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {uc2Step === 0 && !uc2Category && (
                             <div className="uc2-status-card">
                               <div className="uc2-status-card-header">
-                                <span className="uc2-status-card-icon">🔄</span>
+                                <span className="uc2-status-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg></span>
                                 <span className="uc2-status-card-title">{t('uc_current_status')||'Mettre à jour le statut'}</span>
                               </div>
                               <div className="uc2-status-card-body">
@@ -8331,7 +8389,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <div className="uc2-cat-bar-grid">
                                 {UC_CATEGORIES.map(cat => (
                                   <button key={cat.key} className="uc2-cat-bar-card" style={{'--cat-color':cat.color}} onClick={() => { setUc2Category(cat.key); setUc2Step(1) }}>
-                                    <span className="uc2-cat-bar-icon">{cat.icon}</span>
+                                    <span className="uc2-cat-bar-icon">{cat.iconSvg}</span>
                                     <span className="uc2-cat-bar-label">{cat.label}</span>
                                     <span className="uc2-cat-bar-desc">{cat.desc}</span>
                                     <span className="uc2-cat-bar-types">{cat.types.length} types</span>
@@ -8347,7 +8405,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div className="uc2-form-ws">
                               {/* Breadcrumb */}
                               <div className="uc2-form-breadcrumb">
-                                <button className="uc2-breadcrumb-link" onClick={() => { setUc2Category(null); setUc2Step(0); setUc2Type(''); setUc2FormData({}) }}>{UC_CATEGORIES.find(c=>c.key===uc2Category)?.icon} {UC_CATEGORIES.find(c=>c.key===uc2Category)?.label}</button>
+                                <button className="uc2-breadcrumb-link" onClick={() => { setUc2Category(null); setUc2Step(0); setUc2Type(''); setUc2FormData({}) }}>{UC_CATEGORIES.find(c=>c.key===uc2Category)?.iconSvg} {UC_CATEGORIES.find(c=>c.key===uc2Category)?.label}</button>
                                 {uc2Type && <><span className="uc2-breadcrumb-sep">/</span><span className="uc2-breadcrumb-current">{UC_CATEGORIES.find(c=>c.key===uc2Category)?.types.find(t=>t.key===uc2Type)?.label||uc2Type}</span></>}
                               </div>
 
@@ -8355,7 +8413,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <div className="uc2-form-cat-nav">
                                 {UC_CATEGORIES.find(c => c.key === uc2Category)?.types.map(tp => (
                                   <button key={tp.key} className={`uc2-form-cat-nav-btn${uc2Type === tp.key ? ' active' : ''}`} onClick={() => { setUc2Type(tp.key); setUc2FormData({}) }}>
-                                    {tp.icon} {tp.label}
+                                    {tp.iconSvg} {tp.label}
                                   </button>
                                 ))}
                               </div>
@@ -8418,7 +8476,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                           <span>{t('uc_click_browse')||'ou cliquez'}</span>
                                         </div>
                                         {uc2Files.length > 0 && <div className="uc2-file-list">{uc2Files.map((f, i) => (
-                                          <div key={i} className="uc2-file-item"><span>📎 {f.name}</span><span className="uc2-file-size">{(f.size/1024).toFixed(0)} Ko</span><button className="uc2-file-remove" onClick={() => setUc2Files(prev => prev.filter((_, j) => j !== i))}>✕</button></div>
+                                          <div key={i} className="uc2-file-item"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> {f.name}</span><span className="uc2-file-size">{(f.size/1024).toFixed(0)} Ko</span><button className="uc2-file-remove" onClick={() => setUc2Files(prev => prev.filter((_, j) => j !== i))}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
                                         ))}</div>}
                                       </div>
                                     </div>
@@ -8479,7 +8537,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 <div className="uc2-right-uid">#{updateChild.uid}</div>
                               </div>
                             </div>
-                            {uc2Category && <div className="uc2-right-row"><span className="uc2-right-label">{t('uc_category')||'Catégorie'}</span><span>{UC_CATEGORIES.find(c=>c.key===uc2Category)?.icon} {UC_CATEGORIES.find(c=>c.key===uc2Category)?.label}</span></div>}
+                            {uc2Category && <div className="uc2-right-row"><span className="uc2-right-label">{t('uc_category')||'Catégorie'}</span><span>{UC_CATEGORIES.find(c=>c.key===uc2Category)?.iconSvg} {UC_CATEGORIES.find(c=>c.key===uc2Category)?.label}</span></div>}
                             {uc2Type && <div className="uc2-right-row"><span className="uc2-right-label">{t('form_type')||'Type'}</span><span>{t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' ')}</span></div>}
                             {uc2Priority && <div className="uc2-right-row"><span className="uc2-right-label">{t('uc_priority')||'Priorité'}</span><span style={{color:{ low:'#22c55e', normal:'#3b82f6', high:'#f59e0b', critical:'#ef4444' }[uc2Priority]}}>{t('uc_priority_'+uc2Priority)||uc2Priority}</span></div>}
                             {Object.keys(uc2FormData).length > 0 && (
@@ -8502,7 +8560,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div className="uc2-right-card">
                               <div className="uc2-right-card-header">{t('uc_preview')||'Aperçu historique'}</div>
                               <div className="uc2-right-tl">
-                                <div className="uc2-right-tl-dot" style={{background:UC_CATEGORIES.find(c=>c.key===uc2Category)?.color}}>{UC_CATEGORIES.find(c=>c.key===uc2Category)?.icon}</div>
+                                <div className="uc2-right-tl-dot" style={{background:UC_CATEGORIES.find(c=>c.key===uc2Category)?.color}}>{UC_CATEGORIES.find(c=>c.key===uc2Category)?.iconSvg}</div>
                                 <div className="uc2-right-tl-content">
                                   <div className="uc2-right-tl-text">{uc2Type ? (t('uc_type_'+uc2Type)||uc2Type.replace(/_/g,' ')) : ''}</div>
                                   <div className="uc2-right-tl-time">{new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
@@ -8550,7 +8608,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           <div className="hc-standalone-header">
                              <button className="dash-back-btn" onClick={() => { setHcHistoryChild(null); setHcEvents([]); setHcCategory(''); setHcSubcategory(''); setHcFilterCategory(''); setHcFilterType(''); setHcFilterPriority(''); setHcFilterSource(''); setHcSearch(''); setHcDateFrom(''); setHcDateTo(''); setHcStatusOnly(false); setHcExpanded(null); setHcSelectedEvent(null) }}>{'\u2190'} {t('form_back')}</button>
                             <div className="hc-standalone-title">
-                              <span className="hc-standalone-icon">📜</span>
+                              <span className="hc-standalone-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
                               <span>{t('hc_title')||'Centre d\'Historique'}</span>
                             </div>
                           </div>
@@ -8564,8 +8622,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <div className="hc-child-summary-name">{hcHistoryChild.prenom||''} {hcHistoryChild.nom||''}</div>
                               <div className="hc-child-summary-meta">
                                 <span>#{hcHistoryChild.uid}</span>
-                                <span>🎂 {hcHistoryChild.date_naissance ? Math.floor((Date.now()-new Date(hcHistoryChild.date_naissance).getTime())/31557600000) + ' ' + (t('form_years')||'ans') : '—'}</span>
-                                <span>⚤ {hcHistoryChild.sexe === 'M' ? (t('form_male')||'M') : hcHistoryChild.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
+                                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> {hcHistoryChild.date_naissance ? Math.floor((Date.now()-new Date(hcHistoryChild.date_naissance).getTime())/31557600000) + ' ' + (t('form_years')||'ans') : '—'}</span>
+                                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> {hcHistoryChild.sexe === 'M' ? (t('form_male')||'M') : hcHistoryChild.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
                                 {hcHistoryChild.nationalite && <span>{hcHistoryChild.nationalite}</span>}
                               </div>
                             </div>
@@ -8575,15 +8633,15 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {/* History content — Full-page entries layout */}
                           {(() => {
                             const hcSections = [
-                              { key:'identity', icon:'👤', label:(t('hc_section_identity')||'Identité'), color:'#3b82f6' },
-                              { key:'health', icon:'💉', label:(t('uc_category_health')||'Santé'), color:'#22c55e' },
-                              { key:'education', icon:'📚', label:(t('uc_category_education')||'Scolarité'), color:'#3b82f6' },
-                              { key:'family', icon:'👨‍👩‍👧‍👦', label:(t('uc_category_family')||'Famille'), color:'#a855f7' },
-                              { key:'social', icon:'🤝', label:(t('uc_category_social')||'Social'), color:'#ef4444' },
-                              { key:'documents', icon:'📄', label:(t('uc_category_documents')||'Documents'), color:'#f59e0b' },
+                              { key:'identity', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label:(t('hc_section_identity')||'Identité'), color:'#3b82f6' },
+                              { key:'health', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>, label:(t('uc_category_health')||'Santé'), color:'#22c55e' },
+                              { key:'education', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M4 11h16"/></svg>, label:(t('uc_category_education')||'Scolarité'), color:'#3b82f6' },
+                              { key:'family', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label:(t('uc_category_family')||'Famille'), color:'#a855f7' },
+                              { key:'social', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 17a1 1 0 0 1-1 1H5l-3-3 3-3h5a1 1 0 0 1 1 1v4Z"/><path d="M13 7a1 1 0 0 1 1-1h5l3 3-3 3h-5a1 1 0 0 1-1-1V7Z"/><path d="M6 14 3 11l3-3"/><path d="M18 10l3 3-3 3"/><path d="M6 14v4"/><path d="M18 10V6"/></svg>, label:(t('uc_category_social')||'Social'), color:'#ef4444' },
+                              { key:'documents', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>, label:(t('uc_category_documents')||'Documents'), color:'#f59e0b' },
                             ]
                             const catColor = hcSections.find(s=>s.key===hcCategory)?.color || '#3b82f6'
-                            const catIcon = hcSections.find(s=>s.key===hcCategory)?.icon || '📌'
+                            const catIcon = hcSections.find(s=>s.key===hcCategory)?.icon || <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4.5l-4 4L7 10l-1.5 1.5 7 7L14 17l1.5-4 4-4"/><path d="M9 15l-5 5"/></svg>
                             const catLabel = hcSections.find(s=>s.key===hcCategory)?.label || ''
 
                             const catEvents = hcCategory && hcCategory !== 'identity' ? hcEvents.filter(e => e.category === hcCategory) : []
@@ -8593,7 +8651,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             const fieldLabels = {}
                             catTypeDefs.forEach(t => t.fields.forEach(f => { fieldLabels[f.key] = f.label }))
                             const ucIcons = {}
-                            UC_CATEGORIES.forEach(c => c.types.forEach(t => { ucIcons[t.key] = t.icon }))
+                            UC_CATEGORIES.forEach(c => c.types.forEach(t => { ucIcons[t.key] = t.iconSvg }))
 
                             const fmtDate = (d) => d ? new Date(d).toLocaleDateString(lang==='en'?'en-US':'fr-FR',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'
 
@@ -8640,7 +8698,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 {!hcCategory ? (
                                   /* ── No category selected: show a brief welcome + guide ── */
                                   <div className="hc-entries-empty" style={{textAlign:'center',padding:'60px 24px'}}>
-                                    <span style={{fontSize:'48px',display:'block',marginBottom:'16px',opacity:0.5}}>📜</span>
+                                    <span style={{fontSize:'48px',display:'block',marginBottom:'16px',opacity:0.5}}><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
                                     <h3 style={{color:'#e2e8f0',fontSize:'18px',margin:'0 0 8px'}}>{t('hc_title')||'Centre d\'Historique'}</h3>
                                     <p style={{color:'#64748b',fontSize:'14px',margin:0}}>{t('hc_select_tab')||'Sélectionnez une catégorie ci-dessus pour voir l\'historique'}</p>
                                   </div>
@@ -8672,7 +8730,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 ) : Object.keys(subfeatureMap).length === 0 && legacyEvents.length === 0 ? (
                                   /* ── Empty category ── */
                                   <div style={{textAlign:'center',padding:'60px 24px'}}>
-                                    <span style={{fontSize:'40px',display:'block',marginBottom:'12px',opacity:0.5}}>📭</span>
+                                    <span style={{fontSize:'40px',display:'block',marginBottom:'12px',opacity:0.5}}><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><polyline points="22 6 12 13 2 6"/></svg></span>
                                     <p style={{color:'#64748b',fontSize:'14px',margin:0}}>{t('hc_no_events')||'Aucune mise à jour dans cette catégorie'}</p>
                                   </div>
                                 ) : (
@@ -8680,7 +8738,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <div className="hc-subfeature-panels" style={{display:'flex',flexDirection:'column',gap:'20px',paddingBottom:'40px'}}>
                                     {Object.entries(subfeatureMap).map(([subKey, events]) => {
                                       const typeDef = catTypeDefs.find(t => t.key === subKey)
-                                      const icon = typeDef?.icon || ucIcons[subKey] || '📌'
+                                      const icon = typeDef?.iconSvg || ucIcons[subKey] || <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4.5l-4 4L7 10l-1.5 1.5 7 7L14 17l1.5-4 4-4"/><path d="M9 15l-5 5"/></svg>
                                       const label = typeDef?.label || subKey.replace(/_/g, ' ')
                                       return (
                                         <div key={subKey} className="hc-subfeature-panel" style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'14px',overflow:'hidden'}}>
@@ -8741,14 +8799,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                                         <div key={fk} style={{display:'flex',gap:'10px'}}><span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{fieldLabels[fk] || fk}</span><span style={{color:'#e2e8f0'}}>{fv}</span></div>
                                                       ))}
                                                       {evt.reason && <div style={{display:'flex',gap:'10px'}}><span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{t('hc_reason')||'Motif'}</span><span style={{color:'#e2e8f0'}}>{evt.reason}</span></div>}
-                                                      {evt.attachments?.length > 0 && (
+{evt.attachments?.length > 0 && (
                                                         <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
                                                           <span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{t('hc_attachments')||'Fichiers'}</span>
                                                           <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
                                                             {evt.attachments.map((a, ai) => (
                                                               <span key={ai} style={{fontSize:'12px',background:'rgba(99,102,241,0.12)',color:'#818cf8',padding:'4px 12px',borderRadius:'6px',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'6px'}}
                                                                 onClick={(e) => { e.stopPropagation(); window.open(API.replace('/api','')+'/media/'+encodeURIComponent(a), '_blank') }}>
-                                                                📎 {a}
+                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> {a}
                                                               </span>
                                                             ))}
                                                           </div>
@@ -8769,7 +8827,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     {legacyEvents.length > 0 && (
                                       <div className="hc-subfeature-panel" style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'14px',overflow:'hidden'}}>
                                         <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'16px 20px',borderBottom:'1px solid rgba(255,255,255,0.05)',background:'rgba(255,255,255,0.02)'}}>
-                                          <span style={{fontSize:'22px',width:'40px',height:'40px',display:'flex',alignItems:'center',justifyContent:'center',background:catColor+'18',borderRadius:'10px',flexShrink:0}}>📋</span>
+                                          <span style={{fontSize:'22px',width:'40px',height:'40px',display:'flex',alignItems:'center',justifyContent:'center',background:catColor+'18',borderRadius:'10px',flexShrink:0}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span>
                                           <div style={{flex:1}}>
                                             <div style={{fontSize:'15px',fontWeight:700,color:'#e2e8f0'}}>{t('hc_general')||'Général'}</div>
                                             <div style={{fontSize:'12px',color:catColor}}>{legacyEvents.length} événement{legacyEvents.length > 1 ? 's' : ''}</div>
@@ -8807,16 +8865,16 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                                       <div key={fk} style={{display:'flex',gap:'10px'}}><span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{fieldLabels[fk] || fk}</span><span style={{color:'#e2e8f0'}}>{fv}</span></div>
                                                     ))}
                                                     {evt.reason && <div style={{display:'flex',gap:'10px'}}><span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{t('hc_reason')||'Motif'}</span><span style={{color:'#e2e8f0'}}>{evt.reason}</span></div>}
-                                                    {evt.attachments?.length > 0 && (
-                                                      <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
-                                                        <span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{t('hc_attachments')||'Fichiers'}</span>
-                                                        <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
-                                                          {evt.attachments.map((a, ai) => (
-                                                            <span key={ai} style={{fontSize:'12px',background:'rgba(99,102,241,0.12)',color:'#818cf8',padding:'4px 12px',borderRadius:'6px',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'6px'}}
-                                                              onClick={(e) => { e.stopPropagation(); window.open(API.replace('/api','')+'/media/'+encodeURIComponent(a), '_blank') }}>
-                                                              📎 {a}
-                                                            </span>
-                                                          ))}
+                                                        {evt.attachments?.length > 0 && (
+                                                        <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
+                                                          <span style={{color:'#94a3b8',minWidth:'110px',flexShrink:0}}>{t('hc_attachments')||'Fichiers'}</span>
+                                                          <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+                                                            {evt.attachments.map((a, ai) => (
+                                                              <span key={ai} style={{fontSize:'12px',background:'rgba(99,102,241,0.12)',color:'#818cf8',padding:'4px 12px',borderRadius:'6px',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'6px'}}
+                                                                onClick={(e) => { e.stopPropagation(); window.open(API.replace('/api','')+'/media/'+encodeURIComponent(a), '_blank') }}>
+                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> {a}
+                                                              </span>
+                                                            ))}
                                                         </div>
                                                       </div>
                                                     )}
@@ -8905,7 +8963,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             if (hcGender && hcGender !== 'all') list = list.filter(c => c.sexe === hcGender)
                             if (hcAgeRange) { const max = parseInt(hcAgeRange); list = list.filter(c => c.date_naissance ? Math.floor((Date.now()-new Date(c.date_naissance).getTime())/31557600000) <= max : false) }
                             if (hcRegion && hcRegion !== 'all') list = list.filter(c => c.nationalite === hcRegion)
-                            if (list.length === 0) return <div className="uc2-premium-empty"><span className="uc2-premium-empty-icon">👶</span><p>{t('uc_no_results')||'Aucun enfant trouvé'}</p></div>
+                            if (list.length === 0) return <div className="uc2-premium-empty"><span className="uc2-premium-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5"/><path d="M6 12v5h3v-3h6v3h3v-5"/></svg></span><p>{t('uc_no_results')||'Aucun enfant trouvé'}</p></div>
                             return list.map(child => {
                               const age = child.date_naissance ? Math.floor((Date.now()-new Date(child.date_naissance).getTime())/31557600000) : null
                               const photo = localStorage.getItem('cdo_child_photo_'+child.uid)
@@ -8922,14 +8980,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     <div className="uc2-premium-card-info">
                                       <div className="uc2-premium-card-name">{child.prenom||''} {child.nom||''}</div>
                                       <div className="uc2-premium-card-uid">#{child.uid}</div>
-                                      <div className="uc2-premium-card-meta">
-                                        <span>{child.sexe === 'M' ? '♂' : child.sexe === 'F' ? '♀' : ''} {child.sexe === 'M' ? (t('form_male')||'M') : child.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
-                                        <span className="uc2-premium-card-dot">·</span>
-                                        <span>{age !== null ? age + ' ' + (t('form_years')||'ans') : '—'}</span>
-                                      </div>
-                                    </div>
-                                    <span className="uc2-premium-card-status" style={{
-                                      background: crit.includes(child.status) ? 'rgba(239,68,68,0.12)' : child.status === 'sick' ? 'rgba(245,158,11,0.12)' : child.status === 'active' ? 'rgba(99,102,241,0.12)' : 'rgba(100,116,139,0.12)',
+                                       <div className="uc2-premium-card-meta">
+                                         <span>{child.sexe === 'M' ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="10" cy="14" r="6"/><path d="M19 5l-5.6 5.6"/><path d="M19 5h-5"/><path d="M19 5v5"/></svg> : child.sexe === 'F' ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="6"/><path d="M12 18v6"/><path d="M9 22h6"/></svg> : ''} {child.sexe === 'M' ? (t('form_male')||'M') : child.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
+                                         <span className="uc2-premium-card-dot">·</span>
+                                         <span>{age !== null ? age + ' ' + (t('form_years')||'ans') : '—'}</span>
+                                       </div>
+                                     </div>
+                                     <span className="uc2-premium-card-status" style={{
+                                       background: crit.includes(child.status) ? 'rgba(239,68,68,0.12)' : child.status === 'sick' ? 'rgba(245,158,11,0.12)' : child.status === 'active' ? 'rgba(99,102,241,0.12)' : 'rgba(100,116,139,0.12)',
                                       color: crit.includes(child.status) ? '#ef4444' : child.status === 'sick' ? '#f59e0b' : child.status === 'active' ? '#818cf8' : '#94a3b8'
                                     }}>{t('child_status_' + child.status) || child.status}</span>
                                   </div>
@@ -8973,16 +9031,16 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'24px',marginBottom:16}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
                         <div>
-                          <h3 style={{fontSize:22,fontWeight:700,color:'#e2e8f0',margin:0}}>🏛️ {orp.name}</h3>
+                          <h3 style={{fontSize:22,fontWeight:700,color:'#e2e8f0',margin:0}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg> {orp.name}</h3>
                           <p style={{fontSize:13,color:'#64748b',margin:'4px 0 0'}}>Directeur: {orp.director_name || '—'}</p>
                         </div>
                         <span style={{fontSize:12,fontWeight:600,padding:'5px 14px',borderRadius:20,background:orp.status==='approved'?'rgba(34,197,94,0.1)':orp.status==='rejected'?'rgba(239,68,68,0.15)':'rgba(239,68,68,0.15)',color:orp.status==='approved'?'#22c55e':orp.status==='rejected'?'#ef4444':'#ef4444'}}>
-                          {orp.status === 'approved' ? '🟢 Validé' : orp.status === 'rejected' ? '❌ Rejeté' : '🔴 En attente'}
+                          {orp.status === 'approved' ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Validé</> : orp.status === 'rejected' ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Rejeté</> : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg> En attente</>}
                         </span>
                       </div>
                     </div>
                     <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
-                      {[{key:'status',label:'📋 Statut'},{key:'documents',label:'📄 Documents'},{key:'enfants',label:'👶 Enfants'},{key:'besoins',label:'📦 Besoins'},{key:'capacite',label:'🏠 Capacité'}].map(tab => (
+                      {[{key:'status',label:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg> Statut</>},{key:'documents',label:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Documents</>},{key:'enfants',label:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5"/><path d="M6 12v5h3v-3h6v3h3v-5"/></svg> Enfants</>},{key:'besoins',label:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> Besoins</>},{key:'capacite',label:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Capacité</>}].map(tab => (
                         <button type="button" key={tab.key} onClick={()=>setOrpDetailTab(tab.key)}
                           style={{border:'none',borderRadius:10,padding:'8px 18px',fontSize:13,fontWeight:600,cursor:'pointer',background:orpDetailTab===tab.key?'linear-gradient(135deg,#3b82f6,#6366f1)':'rgba(255,255,255,0.05)',color:orpDetailTab===tab.key?'#fff':'#94a3b8',transition:'all .2s'}}>
                           {tab.label}
@@ -9009,8 +9067,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <button type="button" onClick={()=>{
                               if (!canApprove) { showToast('Veuillez vérifier tous les documents requis avant d\'approuver.', 'error'); return }
                               setOrphanageNote(''); validateOrphanage(orp.id,'approve'); setSubKey(null); setOrpDetailTab('status')
-                            }} style={{background:canApprove?'rgba(34,197,94,0.1)':'rgba(100,116,139,0.3)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:10,color:canApprove?'#22c55e':'#64748b',fontSize:13,fontWeight:600,padding:'10px 22px',cursor:canApprove?'pointer':'not-allowed'}}>✅ Approuver</button>
-                            <button type="button" onClick={()=>{const r=prompt('Motif du rejet (optionnel):');if(r!==null){validateOrphanage(orp.id,'reject',r||'');setSubKey(null);setOrpDetailTab('status')}}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:13,fontWeight:600,padding:'10px 22px',cursor:'pointer'}}>✗ Rejeter</button>
+                            }} style={{background:canApprove?'rgba(34,197,94,0.1)':'rgba(100,116,139,0.3)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:10,color:canApprove?'#22c55e':'#64748b',fontSize:13,fontWeight:600,padding:'10px 22px',cursor:canApprove?'pointer':'not-allowed'}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Approuver</button>
+                            <button type="button" onClick={()=>{const r=prompt('Motif du rejet (optionnel):');if(r!==null){validateOrphanage(orp.id,'reject',r||'');setSubKey(null);setOrpDetailTab('status')}}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:13,fontWeight:600,padding:'10px 22px',cursor:'pointer'}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Rejeter</button>
                           </div>
                         )}
                       </div>
@@ -9018,7 +9076,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     {orpDetailTab === 'documents' && (
                       <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
                         <div style={{flex:'1 1 400px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
-                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>📄 Documents soumis</div>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Documents soumis</div>
                           {(() => {
                             const DOC_LABELS = {
                               registration_cert:'Registration Certificate', operating_license:'Operating License',
@@ -9047,7 +9105,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                         </div>
                                         {file ? (
                                           <div style={{display:'flex',alignItems:'center',gap:8,fontSize:11}}>
-                                            <a href={file} target="_blank" rel="noopener noreferrer" style={{color:'#60a5fa',textDecoration:'underline',cursor:'pointer'}}>📖 Ouvrir</a>
+                                            <a href={file} target="_blank" rel="noopener noreferrer" style={{color:'#60a5fa',textDecoration:'underline',cursor:'pointer'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Ouvrir</a>
                                             <a href={file} download style={{color:'#22c55e',textDecoration:'underline',cursor:'pointer'}}>⬇ Télécharger</a>
                                           </div>
                                         ) : (
@@ -9073,7 +9131,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           })()}
                         </div>
                         <div style={{flex:'1 1 280px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',alignSelf:'flex-start'}}>
-                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>✅ Vérification des documents</div>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Vérification des documents</div>
                           {(() => {
                             const DOC_API_MAP = { registration_cert:'registration_cert', operating_license:'operating_license', director_id:'director_id_doc', tax_doc:'tax_doc', child_protection:'child_protection' }
                             const REQ_KEYS = ['registration_cert','operating_license','director_id','tax_doc','child_protection']
@@ -9082,15 +9140,15 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             const allVerified = requiredDocs.length > 0 && verifiedCount === requiredDocs.length
                             return (
                               <div style={{fontSize:13,color:'#94a3b8',lineHeight:2}}>
-                                <p>📄 <strong style={{color:'#e2e8f0'}}>{requiredDocs.length}</strong> document(s) requis soumis</p>
-                                <p>✅ <strong style={{color:'#22c55e'}}>{verifiedCount}/{requiredDocs.length}</strong> vérifié(s)</p>
+                                <p><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> <strong style={{color:'#e2e8f0'}}>{requiredDocs.length}</strong> document(s) requis soumis</p>
+                                <p><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> <strong style={{color:'#22c55e'}}>{verifiedCount}/{requiredDocs.length}</strong> vérifié(s)</p>
                                 {allVerified ? (
                                   <div style={{marginTop:12,padding:'10px 14px',background:'rgba(34,197,94,0.1)',borderRadius:10,fontSize:12,color:'#22c55e',fontWeight:600}}>
-                                    🟢 Tous les documents requis sont vérifiés
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Tous les documents requis sont vérifiés
                                   </div>
                                 ) : requiredDocs.length > 0 && (
                                   <div style={{marginTop:12,padding:'10px 14px',background:'rgba(239,68,68,0.1)',borderRadius:10,fontSize:12,color:'#ef4444',fontWeight:600}}>
-                                    🔴 Veuillez vérifier tous les documents requis
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg> Veuillez vérifier tous les documents requis
                                   </div>
                                 )}
                               </div>
@@ -9116,7 +9174,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 <option key={a.id} value={a.id} style={{background:'#1e293b',color:'#e2e8f0'}}>{a.full_name || `${a.first_name} ${a.last_name}`}</option>
                               ))}
                             </select>
-                            {ambSearchQuery && <button type="button" onClick={()=>setAmbSearchQuery('')} style={{background:'none',border:'none',color:'#64748b',fontSize:13,cursor:'pointer',padding:0}}>✕</button>}
+                            {ambSearchQuery && <button type="button" onClick={()=>setAmbSearchQuery('')} style={{background:'none',border:'none',color:'#64748b',fontSize:13,cursor:'pointer',padding:0}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>}
                           </div>
                           {loadingOrpDetails ? (
                             <div style={{textAlign:'center',padding:30,color:'#64748b'}}>Chargement...</div>
@@ -9142,7 +9200,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                       <div style={{flex:1}}>
                                         <div style={{fontSize:13,fontWeight:600,color:assignment?'#22c55e':'#e2e8f0'}}>{c.child_name || `${c.prenom} ${c.nom}`}</div>
                                         <div style={{fontSize:11,color:'#64748b',marginTop:1}}>
-                                          {c.age ? `${c.age} ans` : ''} {c.sexe === 'M' ? '♂' : '♀'} {c.nationalite ? `• ${c.nationalite}` : ''}
+                                          {c.age ? `${c.age} ans` : ''} {c.sexe === 'M' ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="4"/><path d="M20 2h-4"/><path d="M20 2v4"/><path d="M10 10l10-10"/></svg> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="4"/><path d="M12 9v14"/><path d="M8 23h8"/></svg>} {c.nationalite ? `• ${c.nationalite}` : ''}
                                         </div>
                                       </div>
                                       {assignment ? (
@@ -9163,11 +9221,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           )}
                         </div>
                         <div style={{flex:'1 1 300px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',maxHeight:560,overflowY:'auto'}}>
-                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>📋 Résumé des assignations</div>
+                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:6}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Résumé des assignations</div>
                           <div style={{fontSize:13,color:'#94a3b8',lineHeight:1.8}}>
-                            <p>👶 <strong style={{color:'#e2e8f0'}}>{orphanageChildren.length}</strong> enfant(s) dans cet orphelinat</p>
-                            <p>✅ <strong style={{color:'#22c55e'}}>{Object.values(assignMap).length}</strong> assigné(s) à un ambassadeur</p>
-                            <p>⬜ <strong style={{color:'#64748b'}}>{orphanageChildren.length - Object.values(assignMap).length}</strong> libre(s)</p>
+                            <p><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="6" r="4"/><path d="M12 10c-4 0-6 2-6 4v2c0 1 2 2 6 2s6-1 6-2v-2c0-2-2-4-6-4z"/></svg> <strong style={{color:'#e2e8f0'}}>{orphanageChildren.length}</strong> enfant(s) dans cet orphelinat</p>
+                            <p><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> <strong style={{color:'#22c55e'}}>{Object.values(assignMap).length}</strong> assigné(s) à un ambassadeur</p>
+                            <p><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><rect x="3" y="3" width="18" height="18" rx="2"/></svg> <strong style={{color:'#64748b'}}>{orphanageChildren.length - Object.values(assignMap).length}</strong> libre(s)</p>
                           </div>
                           {Object.values(assignMap).length > 0 && (
                             <div style={{marginTop:16}}>
@@ -9193,10 +9251,25 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     {orpDetailTab === 'besoins' && (
                       <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
                         <div style={{flex:'1 1 380px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
-                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>📦 Besoins soumis</div>
+                           <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:6}}><path d="M20 7.5v9.17a2 2 0 0 1-1.1 1.79l-6.67 3.34a1 1 0 0 1-.46.12H4a2 2 0 0 1-2-2V7.5"/><path d="M16 2H4a2 2 0 0 0-2 2v3.5h16"/><path d="M22 2v3.5h-6V2"/></svg> Besoins soumis</div>
                           {(() => {
                             const needsList = Array.isArray(orp.needs) ? orp.needs : []
-                            const icons = { 'Food':'🍚','Clean Water':'💧','Clothing':'👕','School Supplies':'📚','Medicine':'💊','Beds':'🛏️','Electricity':'⚡','Internet':'🌐','Infrastructure':'🏗️','Transportation':'🚌','Sponsorship Programs':'🤝' }
+                            const getNeedIcon = (need) => {
+                              const icons = {
+                                'Food':<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M3 11h18"/><path d="M5 11v7c0 2 2 3 7 3s7-1 7-3v-7"/></svg>,
+                                'Clean Water':<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M12 2C9 7 6 10 6 14a6 6 0 0 0 12 0c0-4-3-7-6-12z"/></svg>,
+                                'Clothing':<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M6 2h12l2 6h-3l-1-4H8L7 8H4z"/><path d="M4 8v12h16V8"/></svg>,
+                                'School Supplies':<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15z"/></svg>,
+                                'Medicine':<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><rect x="7" y="3" width="10" height="18" rx="5"/></svg>,
+                                'Beds':<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><rect x="2" y="8" width="20" height="6" rx="1"/><path d="M2 14v6"/><path d="M22 14v6"/></svg>,
+                                'Electricity':<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>,
+                                'Internet':<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+                                'Infrastructure':<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg>,
+                                'Transportation':<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18"/><circle cx="9" cy="17" r="1.5"/><circle cx="15" cy="17" r="1.5"/></svg>,
+                                'Sponsorship Programs':<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M11 17a5 5 0 0 1-4.2-2.3C5.9 13.5 4.8 12 3 11l4-4 5 5 5-5 4 4c-1.8 1-2.9 2.5-3.8 3.7A5 5 0 0 1 13 17z"/></svg>,
+                              }
+                              return icons[need]
+                            }
                             if (needsList.length === 0 && !orp.needs_description) {
                               return <div style={{textAlign:'center',padding:30,color:'#64748b',fontSize:14}}>Aucun besoin soumis par l'orphelinat.</div>
                             }
@@ -9206,7 +9279,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}}>
                                     {needsList.map(n => (
                                       <span key={n} style={{padding:'6px 12px',background:'rgba(239,68,68,0.1)',borderRadius:20,fontSize:12,fontWeight:600,color:'#f59e0b'}}>
-                                        {icons[n] || '📌'} {n}
+                                        {getNeedIcon(n) || <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2"/></svg>} {n}
                                       </span>
                                     ))}
                                   </div>
@@ -9215,7 +9288,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <div style={{marginBottom:12,padding:'10px 14px',background:'rgba(99,102,241,0.06)',borderRadius:10,fontSize:13}}>
                                     <span style={{color:'#64748b'}}>Priorité: </span>
                                     <span style={{fontWeight:600,color:{low:'#22c55e',medium:'#f59e0b',high:'#f97316',critical:'#ef4444'}[orp.needs_priority] || '#94a3b8'}}>
-                                      {orp.needs_priority === 'low' ? '🟢 Faible' : orp.needs_priority === 'medium' ? '🟡 Moyenne' : orp.needs_priority === 'high' ? '🟠 Haute' : orp.needs_priority === 'critical' ? '🔴 Critique' : orp.needs_priority}
+                                      {orp.needs_priority === 'low' ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="#22c55e" stroke="none"><circle cx="12" cy="12" r="6"/></svg> Faible</> : orp.needs_priority === 'medium' ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" stroke="none"><circle cx="12" cy="12" r="6"/></svg> Moyenne</> : orp.needs_priority === 'high' ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="#f97316" stroke="none"><circle cx="12" cy="12" r="6"/></svg> Haute</> : orp.needs_priority === 'critical' ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="#ef4444" stroke="none"><circle cx="12" cy="12" r="6"/></svg> Critique</> : orp.needs_priority}
                                     </span>
                                   </div>
                                 )}
@@ -9229,10 +9302,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           })()}
                         </div>
                         <div style={{flex:'1 1 280px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',alignSelf:'flex-start'}}>
-                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>📋 Résumé</div>
+                           <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:6}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Résumé</div>
                           <div style={{fontSize:13,color:'#94a3b8',lineHeight:2}}>
-                            <p>📌 <strong style={{color:'#e2e8f0'}}>{(Array.isArray(orp.needs) ? orp.needs.length : 0)}</strong> besoin(s) identifié(s)</p>
-                            <p>🎯 <strong style={{color:'#e2e8f0'}}>{(Array.isArray(orp.needs) && orp.needs_priority) ? orp.needs_priority : 'Non spécifiée'}</strong> — priorité</p>
+                            <p><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2"/></svg> <strong style={{color:'#e2e8f0'}}>{(Array.isArray(orp.needs) ? orp.needs.length : 0)}</strong> besoin(s) identifié(s)</p>
+                            <p><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> <strong style={{color:'#e2e8f0'}}>{(Array.isArray(orp.needs) && orp.needs_priority) ? orp.needs_priority : 'Non spécifiée'}</strong> — priorité</p>
                           </div>
                         </div>
                       </div>
@@ -9240,7 +9313,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                     {orpDetailTab === 'capacite' && (
                       <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
                         <div style={{flex:'1 1 380px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px'}}>
-                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:16}}>🏠 Capacité d'accueil</div>
+                           <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:16}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:6}}><path d="M3 9.5 12 3l9 6.5"/><path d="M5 9.5V21h6v-6h2v6h6V9.5"/></svg> Capacité d'accueil</div>
                           <div style={{display:'flex',gap:20,flexWrap:'wrap',marginBottom:20}}>
                             <div style={{flex:'1',minWidth:140,background:'rgba(59,130,246,0.08)',borderRadius:12,padding:'16px',textAlign:'center'}}>
                               <div style={{fontSize:28,fontWeight:700,color:'#3b82f6'}}>{orp.capacity || 0}</div>
@@ -9260,39 +9333,39 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>Répartition des enfants</div>
                           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
                             {[
-                              {label:'Garçons',value:orp.boys,icon:'♂️',color:'#3b82f6'},
-                              {label:'Filles',value:orp.girls,icon:'♀️',color:'#ec4899'},
-                              {label:'0-5 ans',value:orp.infants_0_5,icon:'👶',color:'#f59e0b'},
-                              {label:'6-12 ans',value:orp.children_6_12,icon:'🧒',color:'#22c55e'},
-                              {label:'Enfants handicapés',value:orp.children_disabled,icon:'♿',color:'#a855f7'},
+                              {label:'Garçons',value:orp.boys,icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="4"/><path d="M20 2h-4"/><path d="M20 2v4"/><path d="M10 10l10-10"/></svg>,color:'#3b82f6'},
+                              {label:'Filles',value:orp.girls,icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="4"/><path d="M12 9v14"/><path d="M8 23h8"/></svg>,color:'#ec4899'},
+                              {label:'0-5 ans',value:orp.infants_0_5,icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="4"/><path d="M12 10c-4 0-6 2-6 4v2c0 1 2 2 6 2s6-1 6-2v-2c0-2-2-4-6-4z"/></svg>,color:'#f59e0b'},
+                              {label:'6-12 ans',value:orp.children_6_12,icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="4"/><path d="M12 10c-4 0-6 2-6 4v2c0 1 2 2 6 2s6-1 6-2v-2c0-2-2-4-6-4z"/><rect x="10" y="3" width="4" height="2" rx="1"/></svg>,color:'#22c55e'},
+                              {label:'Enfants handicapés',value:orp.children_disabled,icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v7"/><path d="M9 15h6l2 5"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>,color:'#a855f7'},
                             ].map(d => (
                               <div key={d.label} style={{background:'rgba(255,255,255,0.03)',borderRadius:10,padding:'12px',textAlign:'center'}}>
                                 <div style={{fontSize:20,fontWeight:700,color:d.color}}>{d.value ?? '—'}</div>
-                                <div style={{fontSize:11,color:'#64748b',marginTop:2}}>{d.icon} {d.label}</div>
+                                <div style={{fontSize:11,color:'#64748b',marginTop:2,display:'flex',alignItems:'center',justifyContent:'center',gap:3}}>{d.icon} {d.label}</div>
                               </div>
                             ))}
                           </div>
                         </div>
                         <div style={{flex:'1 1 280px',background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'20px',alignSelf:'flex-start'}}>
-                          <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}>👥 Personnel</div>
+                           <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0',marginBottom:12}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:6}}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Personnel</div>
                           {(() => {
                             const staff = [
-                              {label:'Permanent',key:'staff_permanent',icon:'🏢'},
-                              {label:'Bénévoles',key:'staff_volunteers',icon:'🙋'},
-                              {label:'Soignants',key:'staff_caregivers',icon:'🤱'},
-                              {label:'Enseignants',key:'staff_teachers',icon:'👩‍🏫'},
+                              {label:'Permanent',key:'staff_permanent',icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg>},
+                              {label:'Bénévoles',key:'staff_volunteers',icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/><path d="M12 8c-4 0-6 2-6 4v3c0 1 2 2 6 2s6-1 6-2v-3c0-2-2-4-6-4z"/><path d="M10 11h4"/><path d="M12 9v4"/></svg>},
+                              {label:'Soignants',key:'staff_caregivers',icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2.5-3.5 2.5-5.5A4.5 4.5 0 0 0 17 4c-1.5 0-2.9.7-4 2-1.1-1.3-2.5-2-4-2A4.5 4.5 0 0 0 2.5 8.5c0 2 1 4 2.5 5.5l7 7 7-7z"/><path d="M12 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>},
+                              {label:'Enseignants',key:'staff_teachers',icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/><path d="M12 8c-4 0-6 2-6 4v3c0 1 2 2 6 2s6-1 6-2v-3c0-2-2-4-6-4z"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg>},
                             ]
                             const total = staff.reduce((s,f) => s + Number(orp[f.key]||0), 0)
                             return (
                               <>
                                 {staff.map(f => (
                                   <div key={f.key} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 10px',background:'rgba(255,255,255,0.03)',borderRadius:8,marginBottom:6}}>
-                                    <span style={{fontSize:12,color:'#94a3b8'}}>{f.icon} {f.label}</span>
+                                    <span style={{fontSize:12,color:'#94a3b8',display:'flex',alignItems:'center',gap:4}}>{f.icon} {f.label}</span>
                                     <span style={{fontSize:13,fontWeight:600,color:'#e2e8f0'}}>{orp[f.key] || 0}</span>
                                   </div>
                                 ))}
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 10px',background:'rgba(245,158,11,0.1)',borderRadius:8,marginTop:8}}>
-                                  <span style={{fontSize:13,fontWeight:600,color:'#f59e0b'}}>👥 Total personnel</span>
+                                  <span style={{fontSize:13,fontWeight:600,color:'#f59e0b',display:'flex',alignItems:'center',gap:4}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Total personnel</span>
                                   <span style={{fontSize:16,fontWeight:700,color:'#f59e0b'}}>{total}</span>
                                 </div>
                               </>
@@ -9311,13 +9384,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   <div>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
                       <div>
-                        <h3 style={{fontSize:20,fontWeight:700,color:'#e2e8f0',margin:0}}>🏛️ Gestion des Orphelinats</h3>
+                        <h3 style={{fontSize:20,fontWeight:700,color:'#e2e8f0',margin:0}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:8}}><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg> Gestion des Orphelinats</h3>
                         <p style={{fontSize:13,color:'#64748b',margin:'4px 0 0'}}>{orphanageRequests.length} orphelinat{(orphanageRequests.length>1)?'s':''}</p>
                       </div>
                     </div>
                     <div style={{display:'flex',gap:8,marginBottom:20}}>
-                      <button type="button" onClick={()=>setFedTab('pending')} style={{border:'none',borderRadius:10,padding:'8px 18px',fontSize:13,fontWeight:600,cursor:'pointer',background:fedTab==='pending'?'linear-gradient(135deg,#f59e0b,#f97316)':'rgba(255,255,255,0.05)',color:fedTab==='pending'?'#fff':'#94a3b8',transition:'all .2s'}}>📥 En attente ({pending.length})</button>
-                      <button type="button" onClick={()=>setFedTab('processed')} style={{border:'none',borderRadius:10,padding:'8px 18px',fontSize:13,fontWeight:600,cursor:'pointer',background:fedTab==='processed'?'linear-gradient(135deg,#22c55e,#16a34a)':'rgba(255,255,255,0.05)',color:fedTab==='processed'?'#fff':'#94a3b8',transition:'all .2s'}}>✅ Traités ({processed.length})</button>
+                      <button type="button" onClick={()=>setFedTab('pending')} style={{border:'none',borderRadius:10,padding:'8px 18px',fontSize:13,fontWeight:600,cursor:'pointer',background:fedTab==='pending'?'linear-gradient(135deg,#f59e0b,#f97316)':'rgba(255,255,255,0.05)',color:fedTab==='pending'?'#fff':'#94a3b8',transition:'all .2s',display:'flex',alignItems:'center',gap:6}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 16 16 8 16 8 12 2 12"/><path d="M12 2v12"/><path d="m9 9 3 3 3-3"/></svg> En attente ({pending.length})</button>
+                      <button type="button" onClick={()=>setFedTab('processed')} style={{border:'none',borderRadius:10,padding:'8px 18px',fontSize:13,fontWeight:600,cursor:'pointer',background:fedTab==='processed'?'linear-gradient(135deg,#22c55e,#16a34a)':'rgba(255,255,255,0.05)',color:fedTab==='processed'?'#fff':'#94a3b8',transition:'all .2s',display:'flex',alignItems:'center',gap:6}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Traités ({processed.length})</button>
                     </div>
                     {fedTab === 'pending' && (
                       pending.length === 0 ? (
@@ -9333,11 +9406,11 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   </button>
                                   <div style={{fontSize:12,color:'#64748b'}}>Directeur: {o.director_name || '—'}</div>
                                 </div>
-                                <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:'rgba(239,68,68,0.15)',color:'#ef4444'}}>🔴 En attente de validation</span>
+                                <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:'rgba(239,68,68,0.15)',color:'#ef4444',display:'flex',alignItems:'center',gap:4}}><svg width="10" height="10" viewBox="0 0 24 24" fill="#ef4444" stroke="none"><circle cx="12" cy="12" r="6"/></svg> En attente de validation</span>
                               </div>
                               <div style={{display:'flex',gap:8,marginTop:12}}>
-                                <button type="button" onClick={()=>{setOrphanageNote('');validateOrphanage(o.id,'approve')}} style={{background:'rgba(34,197,94,0.1)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:10,color:'#22c55e',fontSize:12,fontWeight:600,padding:'8px 18px',cursor:'pointer'}}>✅ Approuver</button>
-                                <button type="button" onClick={()=>{const r=prompt('Motif du rejet (optionnel):');validateOrphanage(o.id,'reject',r||'')}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:12,fontWeight:600,padding:'8px 18px',cursor:'pointer'}}>✗ Rejeter</button>
+                                <button type="button" onClick={()=>{setOrphanageNote('');validateOrphanage(o.id,'approve')}} style={{background:'rgba(34,197,94,0.1)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:10,color:'#22c55e',fontSize:12,fontWeight:600,padding:'8px 18px',cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Approuver</button>
+                                <button type="button" onClick={()=>{const r=prompt('Motif du rejet (optionnel):');validateOrphanage(o.id,'reject',r||'')}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:10,color:'#ef4444',fontSize:12,fontWeight:600,padding:'8px 18px',cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg> Rejeter</button>
                               </div>
                             </div>
                           ))}
@@ -9359,7 +9432,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <div style={{fontSize:12,color:'#64748b'}}>Directeur: {o.director_name || '—'}</div>
                                 </div>
                                 <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:o.status==='approved'?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.15)',color:o.status==='approved'?'#22c55e':'#ef4444'}}>
-                                  {o.status === 'approved' ? '🟢 Validé' : '❌ Rejeté'}
+                                  {o.status === 'approved' ? <><svg width="10" height="10" viewBox="0 0 24 24" fill="#22c55e" stroke="none"><circle cx="12" cy="12" r="6"/></svg> Validé</> : <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg> Rejeté</>}
                                 </span>
                               </div>
                               {o.validation_note && (
@@ -9393,7 +9466,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>{a.full_name || `${a.first_name} ${a.last_name}`}</div>
                                   <div style={{fontSize:12,color:'#64748b',marginTop:2}}>{a.email} {a.country ? `• ${a.country}` : ''}</div>
                                 </div>
-                                  <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:a.is_active?'rgba(34,197,94,0.1)':'rgba(100,116,139,0.1)',color:a.is_active?'#22c55e':'#64748b'}}>{a.is_active ? '🟢 Actif' : '⚪ Inactif'}</span>
+                                  <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:a.is_active?'rgba(34,197,94,0.1)':'rgba(100,116,139,0.1)',color:a.is_active?'#22c55e':'#64748b',display:'flex',alignItems:'center',gap:4}}>{a.is_active ? <><svg width="10" height="10" viewBox="0 0 24 24" fill="#22c55e" stroke="none"><circle cx="12" cy="12" r="6"/></svg> Actif</> : <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/></svg> Inactif</>}</span>
                               </div>
                             )),
                       },
@@ -9409,7 +9482,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     <div style={{fontSize:15,fontWeight:700,color:'#e2e8f0'}}>{o.name}</div>
                                     <div style={{fontSize:12,color:'#64748b',marginTop:2}}>Directeur: {o.director_name || '—'}</div>
                                   </div>
-                                  <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:'rgba(34,197,94,0.1)',color:'#22c55e'}}>🟢 Validé</span>
+                                  <span style={{fontSize:11,fontWeight:600,padding:'4px 12px',borderRadius:20,background:'rgba(34,197,94,0.1)',color:'#22c55e',display:'flex',alignItems:'center',gap:4}}><svg width="10" height="10" viewBox="0 0 24 24" fill="#22c55e" stroke="none"><circle cx="12" cy="12" r="6"/></svg> Validé</span>
                                 </div>
                                 <div style={{fontSize:12,color:'#64748b'}}>Validé le {o.validated_at ? new Date(o.validated_at).toLocaleDateString('fr-FR') : '—'}</div>
                               </div>
@@ -9451,7 +9524,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                             Retour
                           </button>
-                          <div style={{width:36,height:36,borderRadius:10,background:sv?`${sv.color}15`:0,display:'flex',alignItems:'center',justifyContent:'center',color:sv?.color,flexShrink:0}}>{sv?.icon}</div>
+                          <div style={{width:36,height:36,borderRadius:10,background:sv?`${sv.color}15`:0,display:'flex',alignItems:'center',justifyContent:'center',color:sv?.color,flexShrink:0}}>{sv?.iconSvg}</div>
                           <div>
                             <h3 style={{fontSize:18,fontWeight:700,color:'#e2e8f0',margin:0}}>{subKey}</h3>
                             <p style={{fontSize:12,color:'#64748b',margin:'2px 0 0'}}>{sv?.desc}</p>
@@ -9505,7 +9578,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       {Object.entries(ambAssignments).map(([orpName, children]) => (
                         <div key={orpName} style={{marginBottom:20}}>
                           <h3 style={{fontSize:16,fontWeight:700,color:'#f59e0b',margin:'0 0 10px',display:'flex',alignItems:'center',gap:8}}>
-                            🏛️ {orpName}
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M12 6v6"/><path d="M9 9h6"/></svg> {orpName}
                           </h3>
                           <div style={{display:'flex',flexDirection:'column',gap:8}}>
                             {children.map(a => (
@@ -9517,7 +9590,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>{a.child_name}</div>
                                   <div style={{fontSize:12,color:'#64748b'}}>UID: {a.child_uid} • Assigné le {new Date(a.assigned_at).toLocaleDateString('fr-FR')}</div>
                                 </div>
-                                {a.note && <div style={{fontSize:11,color:'#94a3b8',maxWidth:200}}>📝 {a.note}</div>}
+                                {a.note && <div style={{fontSize:11,color:'#94a3b8',maxWidth:200}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg> {a.note}</div>}
                               </div>
                             ))}
                           </div>
@@ -9552,7 +9625,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚧</div>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 22h20"/><path d="M8 22V4l4 4 4-4v18"/><path d="M12 8v14"/></svg></div>
                     <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-heading,#e2e8f0)', margin: '0 0 8px' }}>{subKey}</h3>
                     <p style={{ fontSize: '14px', color: 'var(--text-muted,#94a3b8)', margin: '0 0 20px' }}>Cette fonctionnalité est en cours de développement.</p>
                     <button className="dash-back-btn" onClick={() => setSubKey(null)}>{'←'} Retour</button>
@@ -9580,7 +9653,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       {unassignConfirm && (
         <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center' }} onClick={() => setUnassignConfirm(null)}>
           <div style={{ background:'#1e293b', border:'1px solid rgba(255,255,255,0.08)', borderRadius:16, padding:'28px 32px', maxWidth:'400px', width:'90%', textAlign:'center', display:'flex', flexDirection:'column', gap:'16px' }} onClick={e => e.stopPropagation()}>
-            <span style={{ fontSize:'40px' }}>✂️</span>
+            <span style={{ fontSize:'40px' }}><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg></span>
             <h3 style={{ margin:0, fontSize:'17px', fontWeight:'700', color:'#e2e8f0' }}>Confirmer la désassignation</h3>
             <p style={{ fontSize:'13px', color:'#94a3b8', margin:0 }}>Retirer l'assignation de <strong style={{color:'#f59e0b'}}>{unassignConfirm.childName}</strong> ?</p>
             <div style={{ display:'flex', gap:'12px', justifyContent:'center', marginTop:'8px' }}>
@@ -9594,7 +9667,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
         <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.65)', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(4px)' }} onClick={() => setDocConfirmModal(null)}>
           <div style={{ background:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:16, padding:'32px', maxWidth:'420px', width:'90%', textAlign:'center', display:'flex', flexDirection:'column', gap:'16px', boxShadow:'0 25px 50px rgba(0,0,0,0.4)' }} onClick={e => e.stopPropagation()}>
             <div style={{ width:56, height:56, borderRadius:'50%', background:'rgba(239,68,68,0.12)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto' }}>
-              <span style={{ fontSize:'28px' }}>🗑️</span>
+              <span style={{ fontSize:'28px' }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
             </div>
             <h3 style={{ margin:0, fontSize:'18px', fontWeight:'700', color:'#f1f5f9' }}>{docConfirmModal.title}</h3>
             <p style={{ fontSize:'14px', color:'#94a3b8', margin:0, lineHeight:'1.5' }}>{docConfirmModal.message}</p>
@@ -9649,13 +9722,13 @@ function ChildAssignmentForm({ API, ambassadors, children, assignments, onAssign
       if (!res) return
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Erreur d'assignation")
-      setMsg(`✅ ${data.results.length} enfant(s) assigné(s) avec succès.`)
+      setMsg(<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> {data.results.length} enfant(s) assigné(s) avec succès.</>)
       setSelChildren([])
       setSelectedAmbassador('')
       setNote('')
       if (onAssigned) onAssigned()
     } catch (err) {
-      setMsg('❌ ' + err.message)
+      setMsg(<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg> {err.message}</>)
     } finally {
       setLoading(false)
     }
@@ -9688,7 +9761,7 @@ function ChildAssignmentForm({ API, ambassadors, children, assignments, onAssign
                     {assignment ? (
                       <div style={{display:'flex',alignItems:'center',gap:3}}>
                         <span style={{fontSize:10,fontWeight:600,padding:'2px 6px',borderRadius:20,background:'rgba(34,197,94,0.1)',color:'#22c55e'}}>{assignment.ambassador_name?.split(' ')[0]}</span>
-                        <button type="button" onClick={()=>setUnassignConfirm?.({childName:c.child_name,assignmentId:assignment.id,onAssigned:onAssigned})} style={{background:'rgba(239,68,68,0.1)',border:'none',borderRadius:4,color:'#ef4444',fontSize:10,cursor:'pointer',padding:'2px 5px'}}>✕</button>
+                        <button type="button" onClick={()=>setUnassignConfirm?.({childName:c.child_name,assignmentId:assignment.id,onAssigned:onAssigned})} style={{background:'rgba(239,68,68,0.1)',border:'none',borderRadius:4,color:'#ef4444',fontSize:10,cursor:'pointer',padding:'2px 5px'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
                       </div>
                     ) : (
                       <span style={{fontSize:10,fontWeight:600,padding:'2px 8px',borderRadius:20,background:'rgba(100,116,139,0.1)',color:'#64748b'}}>Libre</span>
@@ -10244,14 +10317,22 @@ function OpportunityCenter({ user, apiFetch, API, onLogout, t }) {
   useEffect(() => { load() }, [load])
 
   const fmt = (n) => { const v = Number(n) || 0; return v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(1)+'k' : v.toLocaleString('fr-FR') }
-  const TYPE_ICONS = { child: '👶', project: '📋', orphanage_need: '📦', campaign: '📢', emergency: '🚨', education: '📚', healthcare: '🏥' }
+  const TYPE_ICONS = {
+    child: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="6" r="4"/><path d="M12 10c-4 0-6 2-6 4v2c0 1 2 2 6 2s6-1 6-2v-2c0-2-2-4-6-4z"/></svg>,
+    project: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+    orphanage_need: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M20 7.5v9.17a2 2 0 0 1-1.1 1.79l-6.67 3.34a1 1 0 0 1-.46.12H4a2 2 0 0 1-2-2V7.5"/><path d="M16 2H4a2 2 0 0 0-2 2v3.5h16"/><path d="M22 2v3.5h-6V2"/></svg>,
+    campaign: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M3 9v6"/><path d="M3 9c0-2 5-7 9-7v20c-4 0-9-5-9-7"/><path d="M16 12c2.5 1 2.5 3 0 4"/></svg>,
+    emergency: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><polygon points="12 2 2 21 22 21 12 2"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="17" r="1"/></svg>,
+    education: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15z"/></svg>,
+    healthcare: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M12 6v8"/><path d="M8 10h8"/></svg>,
+  }
   const PRIORITY_COLORS = { normal: { bg: 'rgba(59,130,246,0.12)', color: '#3b82f6' }, urgent: { bg: 'rgba(249,115,22,0.12)', color: '#f97316' }, critical: { bg: 'rgba(239,68,68,0.12)', color: '#ef4444' } }
 
   const FILTERS = [
     { key: 'all', label: 'Toutes' },
-    { key: 'urgent', label: '⚠️ Urgentes' },
-    { key: 'funding', label: '💰 Financement' },
-    { key: 'completed', label: '✅ Terminées' },
+    { key: 'urgent', label: <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><polygon points="12 2 2 21 22 21 12 2"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="17" r="1"/></svg> Urgentes</> },
+    { key: 'funding', label: <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Financement</> },
+    { key: 'completed', label: <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Terminées</> },
   ]
 
   return (
@@ -10269,7 +10350,7 @@ function OpportunityCenter({ user, apiFetch, API, onLogout, t }) {
           opportunities.map(opp => (
             <div key={opp.id} className={`opp-card${selectedOpp?.id === opp.id ? ' selected' : ''}`} onClick={() => setSelectedOpp(selectedOpp?.id === opp.id ? null : opp)}>
               <div className="opp-card-top">
-                <span className="opp-type-badge">{TYPE_ICONS[opp.type] || '📌'} {opp.type_label}</span>
+                <span className="opp-type-badge">{TYPE_ICONS[opp.type] || <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2"/></svg>} {opp.type_label}</span>
                 <span className={`opp-priority-badge`} style={PRIORITY_COLORS[opp.priority] || PRIORITY_COLORS.normal}>{opp.priority_label}</span>
               </div>
               <h3 className="opp-card-title">{opp.title}</h3>
@@ -10281,9 +10362,9 @@ function OpportunityCenter({ user, apiFetch, API, onLogout, t }) {
                 </div>
               )}
               <div className="opp-card-meta">
-                {opp.location && <span>📍 {opp.location}</span>}
-                {opp.days_remaining != null && <span>⏱ {opp.days_remaining > 0 ? `${opp.days_remaining}j restants` : 'Expiré'}</span>}
-                {opp.beneficiary_count > 0 && <span>👥 {opp.beneficiary_count}</span>}
+                {opp.location && <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:3}}><path d="M12 22s8-8 8-13c0-4.4-3.6-8-8-8S4 4.6 4 9c0 5 8 13 8 13z"/><circle cx="12" cy="9" r="3"/></svg> {opp.location}</span>}
+                {opp.days_remaining != null && <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:3}}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> {opp.days_remaining > 0 ? `${opp.days_remaining}j restants` : 'Expiré'}</span>}
+                {opp.beneficiary_count > 0 && <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:3}}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> {opp.beneficiary_count}</span>}
               </div>
               {selectedOpp?.id === opp.id && (
                 <div className="opp-detail">
@@ -10411,27 +10492,27 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
                 <span>·</span>
                 <span className="partner-hero-uid">#{selectedChild.uid}</span>
               </div>
-              {selectedChild.orphanage_name && <div style={{fontSize:13,color:'var(--text-muted,#94a3b8)',marginTop:4}}>🏫 {selectedChild.orphanage_name}</div>}
+              {selectedChild.orphanage_name && <div style={{fontSize:13,color:'var(--text-muted,#94a3b8)',marginTop:4}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M2 9.5 12 4l10 5.5"/><path d="M4 11v6h16v-6"/><path d="M8 11v-4h8v4"/><path d="M12 11v5"/></svg> {selectedChild.orphanage_name}</div>}
             </div>
             {selectedChild.sponsorship_status?.sponsored && (
-              <div className="partner-sponsored-badge">✅ Parrainé</div>
+              <div className="partner-sponsored-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Parrainé</div>
             )}
           </div>
 
           {/* TABS */}
           <div className="partner-tabs">
             {[
-              { key:'overview', label:'Aperçu', icon:'📊' },
-              { key:'health', label:'Santé', icon:'❤️' },
-              { key:'education', label:'Éducation', icon:'🏫' },
-              { key:'family', label:'Famille', icon:'👪' },
-              { key:'documents', label:'Documentation', icon:'📄' },
-              { key:'social', label:'Social', icon:'🤝' },
-              { key:'opportunities', label:'Opportunités', icon:'🎯' },
-              { key:'projects', label:'Projets', icon:'📋' },
+              { key:'overview', label:'Aperçu', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
+              { key:'health', label:'Santé', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2.5-3.5 2.5-5.5A4.5 4.5 0 0 0 17 4c-1.5 0-2.9.7-4 2-1.1-1.3-2.5-2-4-2A4.5 4.5 0 0 0 2.5 8.5c0 2 1 4 2.5 5.5l7 7 7-7z"/></svg> },
+              { key:'education', label:'Éducation', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9.5 12 4l10 5.5"/><path d="M4 11v6h16v-6"/><path d="M8 11v-4h8v4"/><path d="M12 11v5"/></svg> },
+              { key:'family', label:'Famille', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+              { key:'documents', label:'Documentation', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> },
+              { key:'social', label:'Social', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17a5 5 0 0 1-4.2-2.3C5.9 13.5 4.8 12 3 11l4-4 5 5 5-5 4 4c-1.8 1-2.9 2.5-3.8 3.7A5 5 0 0 1 13 17z"/></svg> },
+              { key:'opportunities', label:'Opportunités', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> },
+              { key:'projects', label:'Projets', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
             ].map(tab => (
               <button key={tab.key} className={`partner-tab${detailTab === tab.key ? ' active' : ''}`} onClick={() => setDetailTab(tab.key)}>
-                <span>{tab.icon}</span> {tab.label}
+                <span style={{display:'inline-flex',alignItems:'center',gap:5}}>{tab.icon} {tab.label}</span>
               </button>
             ))}
           </div>
@@ -10506,7 +10587,7 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
                       <div className="partner-field"><span>Statut:</span> {o.status}</div>
                       <p>{o.summary || ''}</p>
                       <div className="partner-sponsor-row">
-                        <button className="partner-sponsor-btn" onClick={() => alert(`Soutenir : ${o.title}`)}>🎯 Soutenir cette opportunité</button>
+                        <button className="partner-sponsor-btn" onClick={() => alert(`Soutenir : ${o.title}`)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Soutenir cette opportunité</button>
                       </div>
                     </div>
                   ))}
@@ -10524,7 +10605,7 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
                       <div className="partner-field"><span>Collecté:</span> {Number(p.montant_collecte||0).toLocaleString('fr-FR')} USD</div>
                       <div className="partner-field"><span>Statut:</span> {p.statut}</div>
                       <div className="partner-sponsor-row">
-                        <button className="partner-sponsor-btn" onClick={() => alert(`Financer le projet : ${p.titre}`)}>💰 Financer ce projet</button>
+                        <button className="partner-sponsor-btn" onClick={() => alert(`Financer le projet : ${p.titre}`)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Financer ce projet</button>
                       </div>
                     </div>
                   ))}
@@ -10715,7 +10796,7 @@ function PartnerImpactDashboard({ user, apiFetch, API, onLogout, t }) {
   return (
     <div className="opp-center">
       <div className="opp-header">
-        <div><h2 className="opp-title">📊 Tableau d'Impact</h2><p className="opp-sub">Mesurez l'impact de vos contributions</p></div>
+        <div><h2 className="opp-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:8}}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Tableau d'Impact</h2><p className="opp-sub">Mesurez l'impact de vos contributions</p></div>
       </div>
 
       <div className="impact-kpi-grid">

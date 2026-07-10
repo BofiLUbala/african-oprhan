@@ -3,7 +3,7 @@ import CIcon, { kindToIcon } from './icons'
 import './communication.css'
 import './social.css'
 
-export const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
+export const REACTION_ICONS = ['thumbUp', 'heart', 'smile', 'surprised', 'cry', 'pray']
 
 export const fmtSize = (b) => !b ? '' : b < 1024 ? `${b} o` : b < 1048576 ? `${(b / 1024).toFixed(0)} Ko` : `${(b / 1048576).toFixed(1)} Mo`
 
@@ -32,11 +32,11 @@ export function ReactionPicker({ onPick, onClose, mine }) {
   return (
     <div className="cmv2-picker" role="menu" aria-label="Réagir au message"
       onMouseLeave={onClose}>
-      {REACTION_EMOJIS.map(em => (
+      {REACTION_ICONS.map(em => (
         <button key={em} role="menuitem" aria-label={`Réagir ${em}`}
           className={`cmv2-picker-emoji${mine === em ? ' active' : ''}`}
           onClick={(e) => { e.stopPropagation(); onPick(em) }}>
-          {em}
+          <CIcon name={em} size={18} />
         </button>
       ))}
     </div>
@@ -57,7 +57,7 @@ export function ReactionChips({ reactions, onToggle }) {
             onClick={() => onToggle(r.emoji)}
             onMouseEnter={() => setWho(r.emoji)}
             onMouseLeave={() => setWho(null)}>
-            {r.emoji} {r.count > 1 ? r.count : ''}
+            <CIcon name={r.emoji} size={16} /> {r.count > 1 ? r.count : ''}
           </button>
           {who === r.emoji && (
             <span className="cmv2-who" role="tooltip">{r.users.join(', ')}</span>

@@ -5,6 +5,7 @@ import {
 } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { API, COLORS, getInitials, hueFromName } from '../constants'
+import MobileIcon from '../icons'
 
 function avatarColor(name) {
   const hue = hueFromName(name || '')
@@ -237,7 +238,7 @@ export default function CommunicationScreen({ user }) {
             multiline
           />
           <TouchableOpacity style={[styles.sendBtn, (!input.trim() || sending) && styles.sendBtnDisabled]} onPress={sendMessage} disabled={!input.trim() || sending}>
-            {sending ? <ActivityIndicator size="small" color="#0b1121" /> : <Text style={styles.sendBtnText}>➤</Text>}
+            {sending ? <ActivityIndicator size="small" color="#0b1121" /> : <Text style={styles.sendBtnText}>{'\u27A4'}</Text>}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -259,7 +260,7 @@ export default function CommunicationScreen({ user }) {
         </View>
       ) : conversations.length === 0 ? (
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyIcon}>💬</Text>
+          <MobileIcon name="communication" size={48} color="#475569" />
           <Text style={styles.emptyTitle}>Aucune conversation</Text>
           <Text style={styles.emptyText}>Appuyez sur + pour commencer.</Text>
         </View>

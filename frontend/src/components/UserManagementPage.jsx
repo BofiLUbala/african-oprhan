@@ -34,6 +34,23 @@ const AFRICAN_COUNTRIES = [
   { code: "ZM", name: "Zambie" }, { code: "ZW", name: "Zimbabwe" },
 ]
 
+const ICONS = {
+  pencil: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>',
+  trash: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  ban: '<circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 14.14 14.14"/>',
+  circleCheck: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+}
+
+function Icon({ name, size = 18, className }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}
+      dangerouslySetInnerHTML={{ __html: ICONS[name] || ICONS.x }} />
+  )
+}
+
 export default function UserManagementPage({ onLogout }) {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -170,11 +187,11 @@ export default function UserManagementPage({ onLogout }) {
                 <td>{u.country || '—'}</td>
                 <td><span className={`us-status ${u.is_active ? 'active' : 'inactive'}`}>{u.is_active ? 'Actif' : 'Inactif'}</span></td>
                 <td className="us-cell-actions">
-                  <button className="us-action-btn" title="Modifier" onClick={() => { setEditUser(u); setShowModal(true) }}>✏️</button>
+                  <button className="us-action-btn" title="Modifier" onClick={() => { setEditUser(u); setShowModal(true) }}><Icon name="pencil" /></button>
                   <button className="us-action-btn" title={u.is_active ? 'Désactiver' : 'Activer'} onClick={() => handleToggleActive(u.id)}>
-                    {u.is_active ? '⛔' : '✅'}
+                    <Icon name={u.is_active ? 'ban' : 'circleCheck'} />
                   </button>
-                  <button className="us-action-btn us-action-danger" title="Supprimer" onClick={() => handleDelete(u.id, u.email)}>🗑️</button>
+                  <button className="us-action-btn us-action-danger" title="Supprimer" onClick={() => handleDelete(u.id, u.email)}><Icon name="trash" /></button>
                 </td>
               </tr>
             ))}
@@ -196,7 +213,7 @@ export default function UserManagementPage({ onLogout }) {
 
       {toast && (
         <div className={`dash-toast dash-toast-${toast.type}`} onClick={() => setToast(null)}>
-          <span className="dash-toast-icon">{toast.type === 'success' ? '✓' : '✗'}</span>
+          <span className="dash-toast-icon">{toast.type === 'success' ? <Icon name="check" /> : <Icon name="x" />}</span>
           <span className="dash-toast-msg">{toast.message}</span>
         </div>
       )}
@@ -228,7 +245,7 @@ function UserFormModal({ user, onSave, onClose }) {
       <div className="modal-content us-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{user ? 'Modifier' : 'Créer'} un utilisateur</h2>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose}><Icon name="x" /></button>
         </div>
         <form onSubmit={handleSubmit} className="us-form">
           <div className="us-form-row">
