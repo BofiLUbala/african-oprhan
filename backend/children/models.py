@@ -142,6 +142,10 @@ class ChildUpdate(models.Model):
         ("family", "Famille"),
         ("documents", "Documents"),
         ("social", "Social"),
+        ("food", "Nourriture"),
+        ("clothing", "Vêtements"),
+        ("emergency", "Urgence"),
+        ("progress", "Progrès général"),
     ]
 
     child = models.ForeignKey(Child, on_delete=models.CASCADE, related_name="updates", verbose_name="Enfant")

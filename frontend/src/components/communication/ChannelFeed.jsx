@@ -16,7 +16,7 @@ import ComposerTools from './ComposerTools'
  */
 export default function ChannelFeed({
   channel, messages, user,
-  onSend, onReact, onEdit, onDelete,
+  onSend, onReact, onEdit, onDelete, onShare,
   mediaUrl, roleLabel, timeAgo, avatarUrl,
 }) {
   const [input, setInput] = React.useState('')
@@ -164,16 +164,40 @@ export default function ChannelFeed({
                 )}
 
                 <AttachmentList attachments={m.attachments} mediaUrl={mediaUrl} />
-                <ReactionChips reactions={m.reactions} onToggle={(em) => onReact(m.id, em)} />
+                <ReactionChips reactions={m.reactions?.filter(r => r.emoji !== '👍' && r.emoji !== '👎')} onToggle={(em) => onReact(m.id, em)} />
 
                 <footer className="cmv2-card-foot">
+                  {(() => {
+                    const like = m.reactions?.find(r => r.emoji === '👍')
+                    const dislike = m.reactions?.find(r => r.emoji === '👎')
+                    return (
+                      <>
+                        <button className={`cmv2-foot-btn${like?.me ? ' active' : ''}`}
+                          onClick={() => onReact(m.id, '👍')} aria-pressed={!!like?.me} aria-label="J'aime">
+                          <CIcon name="thumbUp" size={17} /> J'aime{like?.count ? ` (${like.count})` : ''}
+                        </button>
+                        <button className={`cmv2-foot-btn${dislike?.me ? ' active' : ''}`}
+                          onClick={() => onReact(m.id, '👎')} aria-pressed={!!dislike?.me} aria-label="Je n'aime pas">
+                          <CIcon name="thumbDown" size={17} /> Je n'aime pas{dislike?.count ? ` (${dislike.count})` : ''}
+                        </button>
+                      </>
+                    )
+                  })()}
+                  {canPost && (
+                    <button className="cmv2-foot-btn" onClick={() => startReply(m)} aria-label={`Commenter la publication de ${m.sender_name}`}>
+                      <CIcon name="message" size={17} /> Commenter
+                    </button>
+                  )}
+                  <button className="cmv2-foot-btn" onClick={() => onShare(m)} aria-label="Partager">
+                    <CIcon name="share" size={17} /> Partager
+                  </button>
                   <div style={{ position: 'relative' }}>
-                    <button className="cmv2-foot-btn"
+                    <button className="cmv2-foot-btn cmv2-foot-btn-icon"
                       onClick={() => setPickerFor(p => p === m.id ? null : m.id)}
                       onContextMenu={(e) => { e.preventDefault(); setPickerFor(m.id) }}
                       aria-haspopup="menu" aria-expanded={pickerFor === m.id}
-                      aria-label="Réagir">
-                      <CIcon name="smile" size={17} /> Réagir
+                      aria-label="Autre réaction" title="Autre réaction">
+                      <CIcon name="smile" size={17} />
                     </button>
                     {pickerFor === m.id && (
                       <ReactionPicker
@@ -182,7 +206,6 @@ export default function ChannelFeed({
                         onClose={() => setPickerFor(null)} />
                     )}
                   </div>
-                  <button className="cmv2-foot-btn" onClick={() => startReply(m)} aria-label={`Répondre à ${m.sender_name}`}><CIcon name="reply" size={17} /> Répondre</button>
                   <span className="cmv2-foot-time">{fmtTime(m.created_at)}</span>
                 </footer>
               </article>

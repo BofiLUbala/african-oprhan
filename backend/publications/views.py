@@ -35,7 +35,12 @@ def visible_post_filter(user):
 
 
 @api_view(["GET", "POST"])
+@permission_classes([AllowAny])
 def post_list(request):
+    # Lecture publique (visiteurs non connectés : posts « public » approuvés
+    # uniquement, via visible_post_filter). Écriture réservée aux connectés.
+    if request.method == "POST" and not request.user.is_authenticated:
+        return Response({"detail": "Authentification requise."}, status=status.HTTP_401_UNAUTHORIZED)
     if request.method == "GET":
         # A Chef d'Orphelinat (or any author) can review the status of their
         # own submissions — including pending / rejected / needs_changes.

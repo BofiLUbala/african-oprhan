@@ -14,7 +14,7 @@ class ProjetListSerializer(serializers.ModelSerializer):
         model = Project
         fields = [
             "id", "code", "type", "titre", "resume", "description",
-            "orphelinat", "enfant", "createur", "createur_nom",
+            "orphelinat", "enfant", "source_update", "createur", "createur_nom",
             "createur_role", "ambassadeur_validateur", "validateur_nom",
             "statut", "motif_rejet", "commentaire_modification",
             "budget_total", "montant_collecte", "progression",
@@ -45,7 +45,7 @@ class ProjetCreateSerializer(serializers.ModelSerializer):
         model = Project
         fields = [
             "type", "titre", "description", "resume",
-            "orphelinat", "enfant",
+            "orphelinat", "enfant", "source_update",
             "budget_total", "beneficiaires",
             "date_debut", "date_fin",
             "pdf_file", "documents",
@@ -116,17 +116,25 @@ class CandidatureCreateSerializer(serializers.ModelSerializer):
 
 class CandidatureSerializer(serializers.ModelSerializer):
     partenaire_nom = serializers.SerializerMethodField()
+    projet_titre = serializers.SerializerMethodField()
+    projet_type = serializers.SerializerMethodField()
 
     class Meta:
         model = CandidatureProjet
         fields = [
-            "id", "projet", "partenaire", "partenaire_nom",
+            "id", "projet", "projet_titre", "projet_type", "partenaire", "partenaire_nom",
             "montant_propose", "modalite", "message", "statut", "created_at",
         ]
         read_only_fields = ["partenaire", "projet", "statut"]
 
     def get_partenaire_nom(self, obj):
         return obj.partenaire.full_name if obj.partenaire else ""
+
+    def get_projet_titre(self, obj):
+        return obj.projet.titre if obj.projet else ""
+
+    def get_projet_type(self, obj):
+        return obj.projet.type if obj.projet else ""
 
 
 class CandidatureRepondreSerializer(serializers.Serializer):

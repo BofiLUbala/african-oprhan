@@ -11,7 +11,7 @@ import CIcon from './icons'
  * n'est déclenché tant que l'utilisateur n'a pas choisi puis validé.
  */
 export default function ComposerTools({ onFiles, disabled }) {
-  const [sheet, setSheet] = React.useState(null) // 'attach' | 'image' | 'voice' | 'video'
+  const [sheet, setSheet] = React.useState(null) // 'attach' | 'camera' | 'voice' | 'video'
   const galleryRef = React.useRef(null)
   const cameraFrontRef = React.useRef(null)
   const cameraRearRef = React.useRef(null)
@@ -48,21 +48,24 @@ export default function ComposerTools({ onFiles, disabled }) {
         accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z,.txt,.csv,application/*,text/*"
         onChange={e => { emit(e.target.files); e.target.value = '' }} />
 
-      {/* Feuille : Image ou Fichier */}
+      {/* Feuille : pièce jointe (Documents / Images) */}
       {sheet === 'attach' && (
         <BottomSheet title="Ajouter une pièce jointe" onClose={() => setSheet(null)}>
-          <SheetOption icon="image" label="Image" hint="Photo ou capture"
-            onClick={() => setSheet('image')} />
-          <SheetOption icon="file" label="Fichier" hint="PDF, Word, Excel, ZIP…"
+          <div className="cmv2-sheet-section-label">Documents</div>
+          <SheetOption icon="file" label="Document" hint="PDF, Word, Excel, PowerPoint, ZIP…"
             onClick={() => { setSheet(null); fileRef.current?.click() }} />
+          <div className="cmv2-sheet-divider" />
+          <div className="cmv2-sheet-section-label">Images</div>
+          <SheetOption icon="image" label="Galerie" hint="Choisir depuis l'appareil"
+            onClick={() => { setSheet(null); galleryRef.current?.click() }} />
+          <SheetOption icon="camera" label="Prendre une photo" hint="Caméra avant ou arrière"
+            onClick={() => setSheet('camera')} />
         </BottomSheet>
       )}
 
-      {/* Feuille : source de l'image */}
-      {sheet === 'image' && (
-        <BottomSheet title="Choisir une image" onClose={() => setSheet(null)} onBack={() => setSheet('attach')}>
-          <SheetOption icon="image" label="Depuis la galerie" hint="Bibliothèque de l'appareil"
-            onClick={() => { setSheet(null); galleryRef.current?.click() }} />
+      {/* Feuille : choix de la caméra pour une photo */}
+      {sheet === 'camera' && (
+        <BottomSheet title="Choisir la caméra" onClose={() => setSheet(null)} onBack={() => setSheet('attach')}>
           <SheetOption icon="camera" label="Caméra avant" hint="Selfie"
             onClick={() => { setSheet(null); cameraFrontRef.current?.click() }} />
           <SheetOption icon="camera" label="Caméra arrière" hint="Appareil principal"

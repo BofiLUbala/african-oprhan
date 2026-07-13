@@ -39,13 +39,22 @@ def project_list(request):
         if user.role == 'partner':
             projets = Project.objects.filter(statut__in=STATUTS_PARTENAIRE_VISIBLE)
         elif user.role == 'director':
-            projets = Project.objects.filter(createur=user)
-        elif user.role == 'ambassador':
             from django.db.models import Q
             projets = Project.objects.filter(
                 Q(createur=user) |
+                Q(enfant__orphanage=user.orphanage) |
+                Q(orphelinat=user.orphanage)
+            )
+        elif user.role == 'ambassador':
+            from django.db.models import Q
+            from children.models import ChildAssignment
+            enfants_assignes = ChildAssignment.objects.filter(ambassador=user).values_list('child_id', flat=True)
+            orphelinats_assignes = ChildAssignment.objects.filter(ambassador=user).values_list('child__orphanage_id', flat=True)
+            projets = Project.objects.filter(
+                Q(createur=user) |
                 Q(ambassadeur_validateur=user) |
-                Q(createur_role='directeur', orphelinat__isnull=False)
+                Q(enfant_id__in=enfants_assignes) |
+                Q(orphelinat_id__in=orphelinats_assignes)
             )
         elif user.role in ('federation', 'supermaster'):
             projets = Project.objects.all()
@@ -58,6 +67,15 @@ def project_list(request):
         type_projet = request.query_params.get("type")
         if type_projet:
             projets = projets.filter(type=type_projet)
+        enfant_id = request.query_params.get("enfant")
+        if enfant_id:
+            projets = projets.filter(enfant_id=enfant_id)
+        orphelinat_id = request.query_params.get("orphelinat")
+        if orphelinat_id:
+            projets = projets.filter(orphelinat_id=orphelinat_id)
+        createur_role = request.query_params.get("createur_role")
+        if createur_role:
+            projets = projets.filter(createur_role=createur_role)
 
         projets = projets.order_by("-created_at")
         serializer = ProjetListSerializer(projets, many=True)
@@ -66,6 +84,11 @@ def project_list(request):
     elif request.method == "POST":
         if not PeutCreerProjet().has_permission(request, None):
             return Response({"error": "Vous n'avez pas la permission de créer un projet."}, status=status.HTTP_403_FORBIDDEN)
+        if request.data.get("type") == "federation" and request.user.role == "director":
+            return Response(
+                {"error": "Le chef d'orphelinat ne peut pas créer de projet fédération."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         serializer = ProjetCreateSerializer(data=request.data, context={"request": request})
         if serializer.is_valid():
             projet = serializer.save()
@@ -291,6 +314,16 @@ def project_candidature_create(request, project_id):
         )
         return Response(CandidatureSerializer(candidature).data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def mes_candidatures(request):
+    """Toutes les candidatures du partenaire connecté, tous projets confondus —
+    alimente l'onglet Sponsorship (« mes candidatures et leur statut »)."""
+    candidatures = CandidatureProjet.objects.filter(partenaire=request.user).select_related("projet").order_by("-created_at")
+    serializer = CandidatureSerializer(candidatures, many=True)
+    return Response(serializer.data)
 
 
 @api_view(["GET"])

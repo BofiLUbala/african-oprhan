@@ -281,3 +281,92 @@ class TestVisibilitePartenaire(BaseTestMixin, TestCase):
         response = self.client.get("/api/projets/")
         titres = [p["titre"] for p in response.data]
         self.assertNotIn("Cache", titres)
+
+
+class TestPipelinePublication(BaseTestMixin, TestCase):
+    """À la publication d'un projet : Post Accueil + notifications (signaux)."""
+
+    def _creer_projet_publie(self, **extra):
+        self.client.force_authenticate(user=self.ambassadeur)
+        payload = {
+            "type": "enfant", "titre": "Scolarisation Jane",
+            "description": "Frais scolaires pour Jane",
+            "enfant": self.enfant.pk, "orphelinat": self.orphelinat.pk,
+        }
+        payload.update(extra)
+        response = self.client.post("/api/projets/", payload, format="json")
+        self.assertEqual(response.status_code, 201)
+        from .models import Project
+        return Project.objects.get(pk=response.data["id"])
+
+    def test_publication_cree_post_accueil(self):
+        from publications.models import Post
+        projet = self._creer_projet_publie()
+        posts = Post.objects.filter(project=projet)
+        self.assertEqual(posts.count(), 1)
+        post = posts.first()
+        self.assertEqual(post.author, self.ambassadeur)
+        self.assertEqual(post.audience, "public")
+        self.assertEqual(post.status, "approved")
+        self.assertEqual(post.child, self.enfant)
+        self.assertIn("Scolarisation Jane", post.content)
+
+    def test_publication_notifie_les_roles(self):
+        from communications.models import Notification
+        projet = self._creer_projet_publie()
+        notifs = Notification.objects.filter(title__contains=projet.titre)
+        destinataires = set(notifs.values_list("user_id", flat=True))
+        self.assertIn(self.federation.pk, destinataires)
+        self.assertIn(self.ambassadeur.pk, destinataires)  # createur
+        self.assertIn(self.directeur.pk, destinataires)    # directeur orphelinat
+
+    def test_validation_directeur_declenche_publication(self):
+        from publications.models import Post
+        self.client.force_authenticate(user=self.directeur)
+        response = self.client.post("/api/projets/", {
+            "type": "orphelinat", "titre": "Renovation toit",
+            "description": "Toiture endommagee",
+        }, format="json")
+        projet_id = response.data["id"]
+        self.assertEqual(Post.objects.filter(project_id=projet_id).count(), 0)
+
+        self.client.post(f"/api/projets/{projet_id}/soumettre/")
+        self.assertEqual(Post.objects.filter(project_id=projet_id).count(), 0)
+
+        self.client.force_authenticate(user=self.ambassadeur)
+        response = self.client.post(f"/api/projets/{projet_id}/valider/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["statut"], "publie")
+        self.assertEqual(Post.objects.filter(project_id=projet_id).count(), 1)
+
+    def test_republication_ne_duplique_pas_le_post(self):
+        from publications.models import Post
+        from .constants import STATUTS_PROJET
+        projet = self._creer_projet_publie()
+        self.assertEqual(Post.objects.filter(project=projet).count(), 1)
+
+        projet.statut = STATUTS_PROJET['SUSPENDU']
+        projet.save()
+        projet.statut = STATUTS_PROJET['PUBLIE']
+        projet.save()
+        self.assertEqual(Post.objects.filter(project=projet).count(), 1)
+
+    def test_sauvegarde_sans_transition_ne_notifie_pas_deux_fois(self):
+        from communications.models import Notification
+        projet = self._creer_projet_publie()
+        avant = Notification.objects.filter(title__contains=projet.titre).count()
+        projet.beneficiaires = 5
+        projet.save()
+        apres = Notification.objects.filter(title__contains=projet.titre).count()
+        self.assertEqual(avant, apres)
+
+    def test_post_expose_project_info(self):
+        projet = self._creer_projet_publie()
+        self.client.force_authenticate(user=self.partner)
+        response = self.client.get("/api/posts/")
+        self.assertEqual(response.status_code, 200)
+        items = response.data if isinstance(response.data, list) else response.data.get("results", [])
+        lie = [p for p in items if p.get("project_info") and p["project_info"]["id"] == projet.pk]
+        self.assertEqual(len(lie), 1)
+        self.assertEqual(lie[0]["project_info"]["type"], "enfant")
+        self.assertEqual(lie[0]["project_info"]["titre"], "Scolarisation Jane")

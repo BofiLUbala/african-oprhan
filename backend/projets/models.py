@@ -33,6 +33,11 @@ class Project(models.Model):
         "children.Child", on_delete=models.SET_NULL,
         null=True, blank=True, related_name="projets", verbose_name="Enfant",
     )
+    source_update = models.ForeignKey(
+        "children.ChildUpdate", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="projets_generes",
+        verbose_name="Mise à jour d'origine",
+    )
 
     createur = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,

@@ -19,9 +19,25 @@ def _child_info(obj):
         "uid": child.uid,
         "name": f"{child.prenom} {child.nom}".strip() or child.uid,
         "photo": child.photo.url if child.photo else None,
+        "nationalite": child.nationalite or "",
         "orphanage": child.orphanage.name if child.orphanage else None,
         "ambassador_id": ambassador.pk if ambassador else None,
         "ambassador_name": ambassador.full_name if ambassador else None,
+    }
+
+
+def _project_info(obj):
+    """Minimal project summary for a post, used to render the 'Postulate' button."""
+    project = obj.project
+    if not project:
+        return None
+    return {
+        "id": project.pk,
+        "type": project.type,
+        "titre": project.titre,
+        "statut": project.statut,
+        "budget_total": str(project.budget_total),
+        "montant_collecte": str(project.montant_collecte),
     }
 
 
@@ -86,6 +102,7 @@ class PostListSerializer(serializers.ModelSerializer):
     shares_count = serializers.IntegerField(read_only=True)
     is_shared = serializers.SerializerMethodField()
     child_info = serializers.SerializerMethodField()
+    project_info = serializers.SerializerMethodField()
     review_ambassador_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -95,7 +112,7 @@ class PostListSerializer(serializers.ModelSerializer):
             "content", "post_type", "audience", "location", "media",
             "likes_count", "comments_count", "views_count", "is_liked",
             "is_disliked", "dislikes_count", "shares_count", "is_shared",
-            "status", "rejection_reason", "child_info", "review_ambassador_name",
+            "status", "rejection_reason", "child_info", "project_info", "review_ambassador_name",
             "created_at",
         ]
 
@@ -137,6 +154,9 @@ class PostListSerializer(serializers.ModelSerializer):
     def get_child_info(self, obj):
         return _child_info(obj)
 
+    def get_project_info(self, obj):
+        return _project_info(obj)
+
     def get_review_ambassador_name(self, obj):
         return obj.review_ambassador.full_name if obj.review_ambassador else None
 
@@ -157,6 +177,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
     comments = CommentSerializer(many=True, read_only=True)
     viewers = serializers.SerializerMethodField()
     child_info = serializers.SerializerMethodField()
+    project_info = serializers.SerializerMethodField()
     review_ambassador_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -166,12 +187,15 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "content", "post_type", "audience", "location", "media",
             "likes_count", "comments_count", "views_count", "is_liked",
             "is_disliked", "dislikes_count", "shares_count", "is_shared",
-            "status", "rejection_reason", "child_info", "review_ambassador_name",
+            "status", "rejection_reason", "child_info", "project_info", "review_ambassador_name",
             "comments", "viewers", "created_at",
         ]
 
     def get_child_info(self, obj):
         return _child_info(obj)
+
+    def get_project_info(self, obj):
+        return _project_info(obj)
 
     def get_review_ambassador_name(self, obj):
         return obj.review_ambassador.full_name if obj.review_ambassador else None

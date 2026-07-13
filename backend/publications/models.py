@@ -60,6 +60,14 @@ class Post(models.Model):
     location = models.CharField(
         max_length=200, blank=True, verbose_name="Localisation"
     )
+    project = models.ForeignKey(
+        "projets.Project",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="posts",
+        verbose_name="Projet lié",
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Créé le")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Modifié le")
 

@@ -113,7 +113,7 @@ const translations = {
     nav_utilisateurs: 'Utilisateurs',
     nav_orphelinats: 'Orphelinats',
     nav_partenaires: 'Partenaires',
-    nav_opportunites: 'Opportunités',
+    nav_opportunites: 'Sponsorship',
     nav_enfants: 'Enfants',
     nav_impact: 'Impact',
 
@@ -951,7 +951,7 @@ const translations = {
     nav_utilisateurs: 'Users',
     nav_orphelinats: 'Orphanages',
     nav_partenaires: 'Partners',
-    nav_opportunites: 'Opportunities',
+    nav_opportunites: 'Sponsorship',
     nav_enfants: 'Children',
     nav_impact: 'Impact',
 

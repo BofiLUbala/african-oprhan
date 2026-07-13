@@ -10,6 +10,7 @@ urlpatterns = [
     path("projets/<int:project_id>/demander-modification/", views.project_demander_modification, name="project-demander-modification"),
     path("projets/<int:project_id>/suspendre/", views.project_suspendre, name="project-suspendre"),
     path("projets/<int:project_id>/modifier/", views.project_modifier, name="project-modifier"),
+    path("projets/mes-candidatures/", views.mes_candidatures, name="mes-candidatures"),
     path("projets/<int:project_id>/candidatures/", views.project_candidature_list, name="project-candidature-list"),
     path("projets/<int:project_id>/candidature/", views.project_candidature_create, name="project-candidature-create"),
     path("projets/<int:project_id>/candidatures/<int:candidature_id>/repondre/", views.project_candidature_repondre, name="project-candidature-repondre"),

@@ -13,11 +13,12 @@ import ShareDialog from './components/communication/ShareDialog'
 import useLiveChildren from './hooks/useLiveChildren'
 import useNotifications from './hooks/useNotifications'
 import * as HumanizedIcons from './components/HumanizedIcons'
+import PublicAccueil from './components/PublicAccueil'
 import './App.css'
 
-const API = 'http://localhost:8000/api'
+export const API = 'http://localhost:8000/api'
 
-async function apiFetch(url, options = {}, onLogout) {
+export async function apiFetch(url, options = {}, onLogout) {
   const token = localStorage.getItem('access_token')
   const headers = { ...(options.headers || {}) }
   if (token) headers['Authorization'] = `Bearer ${token}`
@@ -110,6 +111,25 @@ const BACKGROUND_LIBRARY = [
   { id: '13', name: 'Precision Engineering', category: 'Professional', tags: ['coral','sage','gradient','warm'], status: 'active', description: 'Dégradé organique corail et sauge' },
   { id: '14', name: 'Industrial Intelligence', category: 'Industrial', tags: ['motion','blur','monochrome','bw'], status: 'active', description: 'Flou de mouvement monochrome dynamique' },
   { id: '15', name: 'Smart Factory', category: 'Industrial', tags: ['concrete','grunge','factory','dark'], status: 'active', description: 'Ambiance usine béton sombre et grunge' },
+  { id: '16', name: 'Concrete Noir', category: 'Industrial', tags: ['concrete','grunge','dark','moody'], status: 'active', description: 'Mur de béton grunge sombre et texturé' },
+  { id: '17', name: 'Diamond Plate', category: 'Industrial', tags: ['metal','diamond-plate','dark','industrial'], status: 'active', description: 'Sol en tôle striée avec mur grunge sombre' },
+  { id: '18', name: 'Glacier Abyss', category: 'Enterprise', tags: ['ice','glacier','blue','deep'], status: 'active', description: 'Paroi glaciaire bleu profond et lumineux' },
+]
+
+/* Fichier image réel d'un thème de BACKGROUND_LIBRARY (seuls les id >= 11
+   ont une photo sur disque ; les thèmes 1-10 sont des rendus CSS purs). */
+function bgPhotoUrl(bg) {
+  return `/backgrounds/bg-${bg.id}-${bg.name.toLowerCase().split(' ')[0]}-${bg.name.toLowerCase().split(' ')[1] || ''}.png`.replace('--', '.png').replace('.png.png', '.png')
+}
+const BG_PHOTO_THEMES = BACKGROUND_LIBRARY.filter(bg => Number(bg.id) >= 11)
+
+/* Combinaisons gauche/droite par défaut : uniquement des paires de thèmes
+   déjà présents dans BACKGROUND_LIBRARY (aucune nouvelle image créée). */
+const BG_COMBO_PRESETS = [
+  { id: 'ocean-glacier', name: 'Océan · Glacier', leftId: '11', rightId: '18' },
+  { id: 'digital-precision', name: 'Digital · Précision', leftId: '12', rightId: '13' },
+  { id: 'intelligence-factory', name: 'Intelligence · Usine', leftId: '14', rightId: '15' },
+  { id: 'concrete-plate', name: 'Béton · Tôle', leftId: '16', rightId: '17' },
 ]
 
 const ROLES = [
@@ -130,7 +150,14 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [activeKey, setActiveKey] = useState('dashboard')
   const [subKey, setSubKey] = useState(null)
+  const [notifTarget, setNotifTarget] = useState(null) // {type:'channel',slug} | {type:'dm',conversationId}
+  const [publicFeed, setPublicFeed] = useState(false) // visiteur : Accueil public en lecture seule
+  const [focusChildId, setFocusChildId] = useState(null) // clic sur une photo du carrousel : verrouille la vue sur ce seul enfant
   const { pool: liveChildren, reportBroken: reportBrokenChildPhoto } = useLiveChildren()
+  // Priorité aux enfants dont un projet est publié dans Accueil ; à défaut,
+  // le carrousel retombe sur le roster public complet.
+  const postedChildren = usePostedChildren()
+  const heroPool = postedChildren.length > 0 ? postedChildren : liveChildren
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -181,12 +208,26 @@ export default function App() {
       return (
         <LangProvider>
           <div className="app">
-            <DashboardHeader user={user} roleLower={roleLower} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} activeKey={activeKey} subKey={subKey} setActiveKey={setActiveKey} setSubKey={setSubKey} />
-            <main><DashboardShell user={user} role={roleLower} onLogout={logout} activeKey={activeKey} setActiveKey={setActiveKey} subKey={subKey} setSubKey={setSubKey} /></main>
+            <DashboardHeader user={user} roleLower={roleLower} roleLabel={ROLES.find(r => r.value === roleLower)?.label || roleLower} activeKey={activeKey} subKey={subKey} setActiveKey={setActiveKey} setSubKey={setSubKey} notifTarget={notifTarget} setNotifTarget={setNotifTarget} />
+            <main><DashboardShell user={user} role={roleLower} onLogout={logout} activeKey={activeKey} setActiveKey={setActiveKey} subKey={subKey} setSubKey={setSubKey} notifTarget={notifTarget} setNotifTarget={setNotifTarget} /></main>
           </div>
         </LangProvider>
       )
     }
+  }
+
+  if (publicFeed) {
+    return (
+      <LangProvider>
+        <div className="app">
+          <PublicAccueil API={API} focusChildId={focusChildId}
+            onBack={() => { setPublicFeed(false); setFocusChildId(null) }}
+            onRequireAuth={(mode) => { if (mode === 'signup') setShowSignup(true); else setShowLogin(true) }} />
+          {showLogin && <LoginModal onClose={() => setShowLogin(false)} onSwitchToSignup={() => { setShowLogin(false); setShowSignup(true) }} onLogin={setUser} />}
+          {showSignup && <SignupModal onClose={() => setShowSignup(false)} onSwitchToLogin={() => { setShowSignup(false); setShowLogin(true) }} />}
+        </div>
+      </LangProvider>
+    )
   }
 
   return (
@@ -194,9 +235,10 @@ export default function App() {
       <div className="app">
         <Header onLoginClick={() => setShowLogin(true)} onSignupClick={() => setShowSignup(true)} onVirtualAssist={() => setChatbotCollapsed(false)} />
         <main>
-          <Hero pool={liveChildren} onBroken={reportBrokenChildPhoto} />
+          <Hero pool={heroPool} onBroken={reportBrokenChildPhoto} onOpenFeed={(childId) => { setFocusChildId(childId); setPublicFeed(true) }} />
           <ProfilesSection pool={liveChildren} onBroken={reportBrokenChildPhoto} />
           <Support />
+          <ProjectsShowcase API={API} />
           <Stats />
           <Contact />
         </main>
@@ -262,14 +304,105 @@ function svgUrl(letter, bg, w, h) {
   return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${bg}dd"/><stop offset="100%" stop-color="${bg}88"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#g)" rx="${Math.round(Math.min(w,h)*0.08)}"/><text x="${w/2}" y="${h*0.58}" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="${Math.round(Math.min(w,h)*0.45)}" font-weight="bold" font-family="Arial,sans-serif">${letter}</text></svg>`)}`
 }
 
-function Hero({ pool, onBroken }) {
+function ProjectsShowcase({ API }) {
+  const [projects, setProjects] = React.useState([])
+  const [loading, setLoading] = React.useState(true)
+  React.useEffect(() => {
+    fetch(`${API}/projets/?statut=publie&limit=9`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { setProjects(Array.isArray(data) ? data : (data.results || [])); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [API])
+  const hues = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316']
+  const PROJECT_TYPES = { enfant: 'Projet Enfant', orphelinat: 'Projet Orphelinat', federation: 'Projet Fédération' }
+  return (
+    <section className="section" id="projects" style={{ background: 'var(--bg-alt,#f8fafc)', padding: '60px 0' }}>
+      <div className="container">
+        <div className="section-heading">
+          <span className="section-tagline">Projets en cours</span>
+          <h2>Découvrez nos projets</h2>
+          <p>Des initiatives concrètes qui transforment des vies — soutenez un projet dès aujourd'hui.</p>
+        </div>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Chargement des projets…</div>
+        ) : projects.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Aucun projet publié pour le moment.</div>
+        ) : (
+          <div className="profiles-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+            {projects.map((p, i) => (
+              <div key={p.id} className="profile-card" style={{ borderRadius: '16px', overflow: 'hidden', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', transition: 'transform 0.2s', cursor: 'pointer' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                <div style={{ height: '120px', background: `linear-gradient(135deg, ${hues[i % hues.length]}dd, ${hues[i % hues.length]}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '32px', fontWeight: 700 }}>
+                  {p.titre?.[0]?.toUpperCase() || 'P'}
+                </div>
+                <div style={{ padding: '16px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#3b82f6', textTransform: 'uppercase' }}>{PROJECT_TYPES[p.type] || 'Projet'}</span>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '6px 0 4px' }}>{p.titre}</h3>
+                  <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.description}</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', fontSize: '12px', color: '#94a3b8' }}>
+                    <span>{p.budget_total ? `${p.budget_total.toLocaleString()}€` : ''}</span>
+                    <span>{p.beneficiaires ? `${p.beneficiaires} bénéficiaires` : ''}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ textAlign: 'center', marginTop: '32px' }}>
+          <button className="btn btn-primary btn-lg" onClick={() => document.getElementById('hero')?.scrollIntoView({ behavior: 'smooth' })}>Rejoignez-nous</button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// Enfants issus des projets publiés (posts Accueil avec profil enfant) :
+// c'est la source du carrousel de la page d'accueil — chaque enfant dont un
+// projet a été publié défile avec sa photo, son pays et son drapeau.
+function usePostedChildren() {
+  const [children, setChildren] = useState([])
+  useEffect(() => {
+    let cancelled = false
+    const poll = () => {
+      fetch(`${API}/posts/?limit=50`)
+        .then(r => r.ok ? r.json() : [])
+        .then(data => {
+          if (cancelled) return
+          const posts = Array.isArray(data) ? data : (data.results || [])
+          const seen = new Set()
+          const pool = []
+          for (const p of posts) {
+            const ci = p.child_info
+            if (!ci || !p.project_info || !ci.photo) continue
+            const key = ci.uid || ci.id
+            if (seen.has(key)) continue
+            seen.add(key)
+            pool.push({
+              id: ci.id, uid: ci.uid, name: ci.name,
+              photo_url: ci.photo.startsWith('http') ? ci.photo : `${API.replace(/\/api$/, '')}${ci.photo}`,
+              nationalite: ci.nationalite || '',
+            })
+          }
+          setChildren(pool)
+        })
+        .catch(() => {})
+    }
+    poll()
+    const id = setInterval(poll, 30000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [])
+  return children
+}
+
+function Hero({ pool, onBroken, onOpenFeed }) {
   const { t } = useTranslation()
   const [slide, setSlide] = useState(0)
   const len = pool.length
 
   useEffect(() => {
     if (len === 0) return
-    const id = setInterval(() => setSlide(s => (s + 1) % len), 18000)
+    const id = setInterval(() => setSlide(s => (s + 1) % len), 8000)
     return () => clearInterval(id)
   }, [len])
 
@@ -293,12 +426,22 @@ function Hero({ pool, onBroken }) {
                 const age = y.age
                 const country = y.nationalite || y.country || ''
                 return (
-                  <div key={y.id || y.uid || i} className={`hero-slide-img${i === slide ? ' active' : ''}`}>
+                  <div key={y.id || y.uid || i} className={`hero-slide-img${i === slide ? ' active' : ''}`}
+                    onClick={() => onOpenFeed?.(y.id ?? y.uid ?? null)} role="button" tabIndex={i === slide ? 0 : -1}
+                    onKeyDown={e => { if (e.key === 'Enter') onOpenFeed?.(y.id ?? y.uid ?? null) }}
+                    style={{ cursor: onOpenFeed ? 'pointer' : undefined }}
+                    title="Voir les publications publiques">
                     {photoUrl ? <img src={photoUrl} alt={name} onError={() => onBroken?.(photoUrl)} onLoad={e => { if (e.currentTarget.naturalWidth < 120 || e.currentTarget.naturalHeight < 120) onBroken?.(photoUrl) }} /> : <div className="hero-slide-placeholder" style={{background:`linear-gradient(135deg,${color}dd,${color}88)`}}><span className="hero-slide-initial">{initial}</span></div>}
                     <div className="hero-slide-overlay" style={{ background: `linear-gradient(transparent 50%, ${color}dd 100%)` }}>
                       <div className="hero-slide-info">
                         <span className="hero-slide-name">{name}</span>
-                        {age != null && <span className="hero-slide-age">{age} ans{country ? ` · ${country}` : ''}</span>}
+                        {(age != null || country) && (
+                          <span className="hero-slide-age">
+                            {age != null ? `${age} ans` : ''}{age != null && country ? ' · ' : ''}
+                            {country && countryCodeFromName(country) && flagImg(countryCodeFromName(country), country, '13px')}
+                            {country}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -391,6 +534,8 @@ function Stats() {
   const { t } = useTranslation()
   const statsRef = useRef(null)
   const [visible, setVisible] = useState(false)
+  const [countries, setCountries] = useState([])
+  const [active, setActive] = useState(0)
 
   useEffect(() => {
     const el = statsRef.current
@@ -402,14 +547,45 @@ function Stats() {
     return () => obs.disconnect()
   }, [])
 
-  const countries = [
-    { name: 'Rép. Dém. Congo', count: 342, pct: 85, code: 'CD' },
-    { name: 'Côte d\'Ivoire', count: 218, pct: 55, code: 'CI' },
-    { name: 'Cameroun', count: 307, pct: 77, code: 'CM' },
-    { name: 'Sénégal', count: 195, pct: 49, code: 'SN' },
-    { name: 'Burkina Faso', count: 178, pct: 45, code: 'BF' },
-    { name: 'Madagascar', count: 412, pct: 100, code: 'MG' },
-  ]
+  // Données réelles : agrège le roster public par nationalité. Repoll toutes
+  // les 60 s — un nouveau pays enregistré dans le système apparaît donc de
+  // lui-même dans la rotation, sans redéploiement.
+  useEffect(() => {
+    let cancelled = false
+    const poll = () => {
+      fetch(`${API}/enfants/public/`)
+        .then(r => r.ok ? r.json() : [])
+        .then(data => {
+          if (cancelled || !Array.isArray(data)) return
+          const counts = {}
+          for (const child of data) {
+            const nat = (child.nationalite || '').trim()
+            if (!nat) continue
+            counts[nat] = (counts[nat] || 0) + 1
+          }
+          const list = Object.entries(counts)
+            .map(([name, count]) => ({ name, count, code: countryCodeFromName(name) }))
+            .sort((a, b) => b.count - a.count)
+          setCountries(list)
+        })
+        .catch(() => {})
+    }
+    poll()
+    const id = setInterval(poll, 60000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [])
+
+  // Rotation un pays à la fois, fondu enchaîné très lent (2,4 s de fondu,
+  // 7 s par pays) : la transition est si douce qu'elle échappe à l'œil.
+  useEffect(() => {
+    if (countries.length < 2) return
+    const id = setInterval(() => setActive(a => (a + 1) % countries.length), 7000)
+    return () => clearInterval(id)
+  }, [countries.length])
+
+  useEffect(() => { if (active >= countries.length) setActive(0) }, [countries.length, active])
+
+  const maxCount = countries.reduce((m, c) => Math.max(m, c.count), 1)
 
   return (
     <section className="stats" id="stats" ref={statsRef}>
@@ -418,17 +594,32 @@ function Stats() {
           <span className="section-tag">{t('stats_tag')}</span>
           <h2>{t('stats_title_1')} <span className="accent">{t('stats_title_2')}</span></h2>
         </div>
-        <div className="stats-row">
-          {countries.map((c, i) => (
-            <div key={i} className="stat-item">
-              <span className="stat-number">{c.count}</span>
-              <span className="stat-label">{flagImg(c.code, c.name)} {c.name}</span>
-              <div className="stat-bar">
-                <div className="stat-fill" style={{ width: visible ? `${c.pct}%` : '0%' }} />
-              </div>
+        {countries.length === 0 ? (
+          <div className="stats-rotator stats-rotator-empty">Chargement des données…</div>
+        ) : (
+          <>
+            <div className="stats-rotator" aria-live="polite">
+              {countries.map((c, i) => (
+                <div key={c.name} className={`stat-slide${i === active ? ' active' : ''}`} aria-hidden={i !== active}>
+                  <span className="stat-number">{c.count}</span>
+                  <span className="stat-label">
+                    {c.code && flagImg(c.code, c.name, '20px')} {c.name}
+                  </span>
+                  <div className="stat-bar">
+                    <div className="stat-fill" style={{ width: visible && i === active ? `${Math.round(c.count / maxCount * 100)}%` : '0%' }} />
+                  </div>
+                  <span className="stat-sub">enfant{c.count > 1 ? 's' : ''} pris en charge</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+            <div className="stats-dots" role="tablist" aria-label="Pays">
+              {countries.map((c, i) => (
+                <button key={c.name} className={`stats-dot${i === active ? ' active' : ''}`}
+                  onClick={() => setActive(i)} aria-label={c.name} title={c.name} />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </section>
   )
@@ -523,6 +714,7 @@ const ROLE_NAV = {
   ],
   federation: [
     { label: 'Tableau de bord', key: 'dashboard' },
+    { label: 'Projets soumis', key: 'projetsSubmitted' },
     { label: 'Finances & Paiements', key: 'finances' },
     { label: 'Utilisateurs', key: 'users' },
     { label: 'Orphelinats', key: 'orphelinats' },
@@ -535,7 +727,7 @@ const ROLE_NAV = {
   ],
   partner: [
     { label: 'Tableau de bord', key: 'dashboard' },
-    { label: 'Opportunités', key: 'opportunites' },
+    { label: 'Sponsorship', key: 'opportunites' },
     { label: 'Enfants', key: 'enfants' },
     { label: 'Projets', key: 'projets' },
     { label: 'Transactions', key: 'transactions' },
@@ -735,7 +927,7 @@ const ROLE_PAGES = {
       { id: 'D3', title: 'Besoins urgents', subtitle: '5 Nouveaux', count: 5 },
       { id: 'D4', title: 'Rapports disponibles', subtitle: '8 Documents', count: 8 },
     ]},
-    opportunites: { title: 'Centre des Opportunités', subtitle: "Découvrez comment soutenir enfants et projets.", categories: [
+    opportunites: { title: 'Sponsorship', subtitle: "Découvrez comment soutenir enfants et projets, et suivez vos candidatures.", categories: [
       { id: 'O1', title: 'Toutes les opportunités', subtitle: 'Consulter', count: 0 },
       { id: 'O2', title: 'Urgent', subtitle: 'Priorité haute', count: 0 },
       { id: 'O3', title: 'Financement', subtitle: "Besoin d'aide", count: 0 },
@@ -764,53 +956,18 @@ const ROLE_PAGES = {
 }
 
 const ROLE_STATS = {
-  director: [
-    { label: 'ENFANTS', value: '24', sub: 'CAPACITÉ : 95%', color: '#f59e0b' },
-    { label: 'PROJETS', value: '6', sub: 'ACTIFS', color: '#3b82f6' },
-    { label: 'AMBASSADEURS', value: '12', sub: 'CONNECTÉS', color: '#a855f7' },
-    { label: 'DEMANDES', value: '5', sub: 'CRITIQUES', color: '#ef4444' },
-  ],
-  ambassador: [
-    { label: 'ORPHELINATS', value: '8', sub: 'SUIVIS', color: '#f59e0b' },
-    { label: 'PROJETS', value: '12', sub: 'EN COURS', color: '#3b82f6' },
-    { label: 'VALIDATIONS', value: '28', sub: 'CE MOIS', color: '#22c55e' },
-    { label: 'ALERTES', value: '3', sub: 'NON RÉSOLUES', color: '#ef4444' },
-  ],
-  supermaster: [
-    { label: 'UTILISATEURS', value: '156', sub: 'ACTIFS : 42', color: '#3b82f6' },
-    { label: 'CENTRES', value: '12', sub: 'OPÉRATIONNELS', color: '#22c55e' },
-    { label: 'AMBASSADEURS', value: '12', sub: 'EN POSTE', color: '#f59e0b' },
-    { label: 'ALERTES', value: '0', sub: 'CRITIQUES', color: '#ef4444' },
-  ],
-  federation: [
-    { label: 'ORPHELINATS', value: '12', sub: 'SUPERVISÉS', color: '#f59e0b' },
-    { label: 'AMBASSADEURS', value: '12', sub: 'ACTIFS', color: '#3b82f6' },
-    { label: 'PARTENAIRES', value: '6', sub: 'ACTIFS', color: '#22c55e' },
-    { label: 'VALIDATIONS', value: '8', sub: 'EN ATTENTE', color: '#ef4444' },
-  ],
-  partner: [
-    { label: 'OPPORTUNITÉS', value: '0', sub: 'ACTIVES', color: '#f59e0b' },
-    { label: 'ENFANTS', value: '0', sub: 'SOUTENUS', color: '#3b82f6' },
-    { label: 'PROJETS', value: '0', sub: 'FINANCÉS', color: '#22c55e' },
-    { label: 'URGENTS', value: '0', sub: 'CRITIQUES', color: '#ef4444' },
-  ],
+  director: [],
+  ambassador: [],
+  supermaster: [],
+  federation: [],
+  partner: [],
 }
 
-const RECENT_ACTIVITIES = [
-  { text: 'Rapport médical ajouté · S. Kone', time: 'il y a 10 min' },
-  { text: 'Validation administrative · Dossier 04', time: 'il y a 1h' },
-]
+const RECENT_ACTIVITIES = []
 
-const INTEGRITY_BARS = [
-  { height: 65, color: '#f59e0b' },
-  { height: 85, color: '#22c55e' },
-  { height: 45, color: '#3b82f6' },
-  { height: 70, color: '#a855f7' },
-  { height: 55, color: '#f59e0b' },
-  { height: 90, color: '#22c55e' },
-]
+const INTEGRITY_BARS = []
 
-function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setActiveKey, setSubKey }) {
+function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setActiveKey, setSubKey, notifTarget, setNotifTarget }) {
   const { t, lang, setLang } = useTranslation()
   const [time, setTime] = useState(new Date())
   const [profileImg, setProfileImg] = useState(localStorage.getItem('cdo_profile_img') || null)
@@ -1040,7 +1197,21 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
                   </div>
                   {notifications.length === 0 && <div style={{padding:'16px',textAlign:'center',fontSize:11,color:'#64748b'}}>Aucune notification</div>}
                   {notifications.slice(0, 20).map(n => (
-                    <div key={n.id} className="hd-dropdown-item" onClick={() => { if (!n.is_read) markNotifRead(n.id); setNotifOpen(false); setActiveKey('documents'); setSubKey(null) }} style={{opacity:n.is_read?0.5:1,cursor:'pointer'}}>
+                    <div key={n.id} className="hd-dropdown-item" onClick={() => {
+                      if (!n.is_read) markNotifRead(n.id)
+                      setNotifOpen(false)
+                      if (n.link && n.link.startsWith('communication:')) {
+                        const parts = n.link.split(':')
+                        if (parts[1] === 'channel') {
+                          setNotifTarget({ type: 'channel', slug: parts[2] })
+                        } else if (parts[1] === 'dm') {
+                          setNotifTarget({ type: 'dm', conversationId: Number(parts[2]) })
+                        }
+                        setActiveKey('communication')
+                      } else {
+                        setActiveKey('documents')
+                      }
+                    }} style={{opacity:n.is_read?0.5:1,cursor:'pointer'}}>
                       <span className="hd-dropdown-icon">{notifIcon(n.title)}</span>
                       <div className="hd-dropdown-body">
                         <div className="hd-dropdown-text" style={{fontWeight:n.is_read?400:600}}>{n.title}</div>
@@ -1524,7 +1695,7 @@ function OrganizationManagement({ onLogout }) {
   )
 }
 
-function EclatSocialApp({ user, onReturn }) {
+function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
   const [esView, setEsView] = useState('home')
   const [esModal, setEsModal] = useState(null) // 'create' | 'detail' | null
   const [esSelectedPost, setEsSelectedPost] = useState(null)
@@ -1533,18 +1704,36 @@ function EclatSocialApp({ user, onReturn }) {
   const [esActiveConv, setEsActiveConv] = React.useState(null)
   const [esMessages, setEsMessages] = React.useState([])
   const [esUsers, setEsUsers] = React.useState([])
+  const [esProjView, setEsProjView] = React.useState('children') // children | orphanage | federation
+  const [esProjProjects, setEsProjProjects] = React.useState([])
+  const [esProjLoading, setEsProjLoading] = React.useState(false)
+  const [esProjChildren, setEsProjChildren] = React.useState([])
+  const [esProjOrphanages, setEsProjOrphanages] = React.useState([])
+  const [esProjUpdates, setEsProjUpdates] = React.useState([])
+  const [esProjUpdatesLoading, setEsProjUpdatesLoading] = React.useState(false)
+  const [esProjSelectedTarget, setEsProjSelectedTarget] = React.useState(null)
+  const [esProjExistingProjects, setEsProjExistingProjects] = React.useState([])
+  const [esProjExistingLoading, setEsProjExistingLoading] = React.useState(false)
+  const [esProjMode, setEsProjMode] = React.useState('list') // list | options | create
+  const [esProjChoice, setEsProjChoice] = React.useState(null) // null | 'update' | 'attach' — le choix explicite à l'étape "options"
+  const [esProjAttaching, setEsProjAttaching] = React.useState(null) // id du projet en cours de rattachement (feedback bouton)
+  const [esProjSourceUpdate, setEsProjSourceUpdate] = React.useState(null) // traçabilité Update → Projet
+  const [esProjForm, setEsProjForm] = React.useState({ titre: '', description: '', budget_total: 0, beneficiaires: 0 })
+  const [esProjFormError, setEsProjFormError] = React.useState('')
+  const [esProjSubmitting, setEsProjSubmitting] = React.useState(false)
 
-  // Système de redimensionnement interactif pour les 3 panneaux principaux
+  // Système de redimensionnement interactif pour les 3 panneaux (gauche,
+  // centre/liste, droite) — applicable à Accueil comme aux Canaux.
   const [panelWidths, setPanelWidths] = React.useState(() => {
     try {
       const saved = localStorage.getItem('es_panel_widths')
-      return saved ? JSON.parse(saved) : { sidebar: 280, list: 300 }
+      return saved ? { sidebar: 280, list: 300, right: 300, ...JSON.parse(saved) } : { sidebar: 280, list: 300, right: 300 }
     } catch (_) {
-      return { sidebar: 280, list: 300 }
+      return { sidebar: 280, list: 300, right: 300 }
     }
   })
 
-  const resizingRef = React.useRef(null) // 'sidebar' | 'list' | null
+  const resizingRef = React.useRef(null) // 'sidebar' | 'list' | 'right' | null
 
   React.useEffect(() => {
     const handleMouseMove = (e) => {
@@ -1561,6 +1750,13 @@ function EclatSocialApp({ user, onReturn }) {
         const newWidth = Math.max(200, Math.min(600, e.clientX - sidebarEnd))
         setPanelWidths(prev => {
           const next = { ...prev, list: newWidth }
+          localStorage.setItem('es_panel_widths', JSON.stringify(next))
+          return next
+        })
+      } else if (resizingRef.current === 'right') {
+        const newWidth = Math.max(220, Math.min(520, window.innerWidth - e.clientX - 24))
+        setPanelWidths(prev => {
+          const next = { ...prev, right: newWidth }
           localStorage.setItem('es_panel_widths', JSON.stringify(next))
           return next
         })
@@ -1607,8 +1803,10 @@ function EclatSocialApp({ user, onReturn }) {
   const [esSearchLoading, setEsSearchLoading] = React.useState(false)
   const [esOnline, setEsOnline] = React.useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const [esOnlineOpen, setEsOnlineOpen] = React.useState(false)
+  const [esNotifOpen, setEsNotifOpen] = React.useState(false)
   const esSearchRef = React.useRef(null)
   const esOnlineRef = React.useRef(null)
+  const esNotifDropRef = React.useRef(null)
 
   // ── Channels (Slack-like, role-based) ──────────────────────────────
   const [esChannels, setEsChannels] = React.useState(STATIC_CHANNELS)
@@ -1707,6 +1905,14 @@ function EclatSocialApp({ user, onReturn }) {
     return false
   }
 
+  // Partager une publication de canal : copie un lien direct (même
+  // mécanisme que « Copier le lien » côté Accueil, réutilisé ici).
+  const esShareChannelMsg = (m) => {
+    const url = `${window.location.origin}/communication/channel/${esActiveChannel?.slug}/message/${m.id}`
+    if (navigator.clipboard) navigator.clipboard.writeText(url).catch(() => {})
+    setEsPostNotice('Lien de la publication copié.')
+    setTimeout(() => setEsPostNotice(''), 4000)
+  }
 
   // Live browser connection status
   React.useEffect(() => {
@@ -1735,6 +1941,107 @@ function EclatSocialApp({ user, onReturn }) {
     markAllRead: esMarkAllNotifs,
   } = useNotifications()
 
+  // Projects — load children, orphanages, projects when the view opens.
+  // /api/enfants/ est déjà scopé par rôle côté serveur : un Ambassadeur n'y
+  // voit que les enfants qui lui sont assignés (assignments__ambassador),
+  // un Chef d'Orphelinat n'y voit que les enfants de son orphelinat
+  // (created_by). Aucune logique de scoping dupliquée ici.
+  const esProjLoadAll = React.useCallback(() => {
+    setEsProjLoading(true)
+    Promise.all([
+      apiFetch(`${API}/enfants/`, {}, onReturn).then(r => r && r.ok ? r.json() : []),
+      apiFetch(`${API}/orphanages/`, {}, onReturn).then(r => r && r.ok ? r.json() : []),
+      apiFetch(`${API}/projets/`, {}, onReturn).then(r => r && r.ok ? r.json() : []),
+    ]).then(([children, orphanages, projects]) => {
+      setEsProjChildren(Array.isArray(children) ? children : (children.results || []))
+      setEsProjOrphanages(Array.isArray(orphanages) ? orphanages : (orphanages.results || []))
+      setEsProjProjects(Array.isArray(projects) ? projects : [])
+      setEsProjLoading(false)
+    }).catch(() => setEsProjLoading(false))
+  }, [])
+
+  React.useEffect(() => {
+    if (esView !== 'projects') return
+    esProjLoadAll()
+  }, [esView, esProjLoadAll])
+
+  // Sélection d'une cible (enfant ou orphelinat) → Étape 2 : proposer les
+  // 3 options (Update existante / Projet existant / Nouveau). Réutilise
+  // l'API Update existante (children/updates) et l'API Projects existante
+  // (filtrée par enfant/orphelinat) — aucune nouvelle source de données.
+  const esProjSelectTarget = (target) => {
+    setEsProjSelectedTarget(target)
+    setEsProjMode('options')
+    setEsProjChoice(null)
+    setEsProjSourceUpdate(null)
+    setEsProjForm({ titre: '', description: '', budget_total: 0, beneficiaires: 0 })
+    setEsProjFormError('')
+
+    if (esProjView === 'children' && target?.id) {
+      setEsProjUpdatesLoading(true)
+      // sort=-created_at (déjà l'ordre par défaut de l'API Update) + on ne
+      // garde que les plus récentes : l'Ambassadeur doit voir l'état actuel
+      // de l'enfant, pas tout l'historique des mises à jour.
+      apiFetch(`${API}/enfants/${target.id}/updates/?sort=-created_at`, {}, onReturn)
+        .then(r => r && r.ok ? r.json() : [])
+        .then(d => setEsProjUpdates((Array.isArray(d) ? d : (d.results || [])).slice(0, 5)))
+        .catch(() => setEsProjUpdates([]))
+        .finally(() => setEsProjUpdatesLoading(false))
+    } else {
+      setEsProjUpdates([])
+    }
+
+    setEsProjExistingLoading(true)
+    const params = new URLSearchParams()
+    if (esProjView === 'children' && target?.id) params.set('enfant', target.id)
+    if (esProjView === 'orphanage' && target?.id) params.set('orphelinat', target.id)
+    apiFetch(`${API}/projets/?${params.toString()}`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(d => setEsProjExistingProjects(Array.isArray(d) ? d : []))
+      .catch(() => setEsProjExistingProjects([]))
+      .finally(() => setEsProjExistingLoading(false))
+  }
+
+  // Option 1 — convertir une Update existante (source de vérité : le
+  // feature Update du Chef d'Orphelinat) en Projet, sans ressaisie.
+  const esProjUseUpdate = (update) => {
+    setEsProjSourceUpdate(update)
+    setEsProjForm({
+      titre: update.title || `${PROJ_UPDATE_CATEGORY_LABELS[update.category] || update.category} — ${esProjSelectedTarget ? (esProjSelectedTarget.prenom ? `${esProjSelectedTarget.prenom} ${esProjSelectedTarget.nom}` : esProjSelectedTarget.name) : ''}`.trim(),
+      // Toujours en texte lisible : le JSON brut du feature Update est
+      // converti en « Libellé : valeur » pour que la publication Accueil
+      // soit compréhensible par tous (publieur, partenaires, visiteurs).
+      description: esReadableUpdate(update.description || update.new_value || ''),
+      budget_total: 0, beneficiaires: 1,
+    })
+    setEsProjMode('create')
+  }
+
+  // Option "Rattacher" — se rattacher à un projet en cours déjà créé par le
+  // Chef d'Orphelinat ou par soi-même, plutôt que d'en recréer un doublon.
+  // Utilise l'endpoint /follow/ existant (idempotent ici : on ne l'appelle
+  // que pour ajouter, jamais pour retirer, afin que le clic soit toujours
+  // un "je me rattache", pas un bascule silencieux).
+  const esProjAttachExisting = async (projet) => {
+    setEsProjAttaching(projet.id)
+    let res = await apiFetch(`${API}/projets/${projet.id}/follow/`, { method: 'POST' }, onReturn)
+    let data = res && res.ok ? await res.json().catch(() => ({})) : null
+    // /follow/ bascule (add/remove) — l'intention ici est toujours "se
+    // rattacher", jamais "se détacher" : si le clic précédent avait déjà
+    // rattaché l'utilisateur, ce second appel remet l'état à true.
+    if (data && data.following === false) {
+      res = await apiFetch(`${API}/projets/${projet.id}/follow/`, { method: 'POST' }, onReturn)
+      data = res && res.ok ? await res.json().catch(() => ({})) : null
+    }
+    setEsProjAttaching(null)
+    if (data && data.following) {
+      setEsPostNotice(`Vous êtes désormais rattaché(e) à « ${projet.titre} ». Il apparaît dans vos projets en cours.`)
+      setTimeout(() => setEsPostNotice(''), 6000)
+      setEsProjMode('list'); setEsProjSelectedTarget(null); setEsProjChoice(null)
+      esLoadPosts()
+    }
+  }
+
   // Settings — theme + language (shared with dashboard via same storage/context)
   const { lang: esLang, setLang: esSetLang } = useTranslation()
   const [esTheme, setEsTheme] = React.useState(() => (typeof localStorage !== 'undefined' && localStorage.getItem('cdo_theme')) || 'dark')
@@ -1745,11 +2052,12 @@ function EclatSocialApp({ user, onReturn }) {
     localStorage.setItem('cdo_theme', next)
   }
 
-  // Close search/filter/online popovers on outside click
+  // Close search/filter/online/notif popovers on outside click
   React.useEffect(() => {
     const handler = (e) => {
       if (esSearchRef.current && !esSearchRef.current.contains(e.target)) { setEsSearchOpen(false); setEsFilterOpen(false) }
       if (esOnlineRef.current && !esOnlineRef.current.contains(e.target)) { setEsOnlineOpen(false) }
+      if (esNotifDropRef.current && !esNotifDropRef.current.contains(e.target)) { setEsNotifOpen(false) }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -1826,11 +2134,26 @@ function EclatSocialApp({ user, onReturn }) {
     auditor: 'Auditeur', sponsor: 'Parrain', staff: 'Personnel',
   }[role] || 'Agent')
 
+  const esNotifIcon = (title) => {
+    if (title.includes('Refusé') || title.includes('rejet')) return <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+    if (title.includes('Modification')) return <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
+    return <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+  }
+
+  const esNotifTimeAgo = (dateStr) => {
+    if (!dateStr) return ''
+    const diffMs = Date.now() - new Date(dateStr).getTime()
+    const mins = Math.floor(diffMs / 60000)
+    if (mins < 1) return "à l'instant"
+    if (mins < 60) return `il y a ${mins} min`
+    return `il y a ${Math.floor(mins / 60)}h`
+  }
+
   const ES_VIEW_META = {
     home: { label: 'Accueil', channel: 'Fil public', icon: 'home' },
+    projects: { label: 'Projets', channel: 'Gestion des projets', icon: 'folder' },
     profil: { label: 'Profil', channel: 'Mon profil', icon: 'user' },
     messages: { label: 'Messages', channel: 'Messagerie directe', icon: 'message' },
-    notifs: { label: 'Notifications', channel: 'Centre de notifications', icon: 'bell' },
     settings: { label: 'Paramètres', channel: 'Préférences', icon: 'settings' },
     channel: { label: 'Canal', channel: 'Canal', icon: 'hash' },
   }
@@ -1870,6 +2193,92 @@ function EclatSocialApp({ user, onReturn }) {
   const [esPostNotice, setEsPostNotice] = React.useState('')
   const [esReviewReasonFor, setEsReviewReasonFor] = React.useState(null) // {id, action}
   const [esReviewReason, setEsReviewReason] = React.useState('')
+
+  /* ── Assistant « Créer un projet » ────────────────────────────────
+   * 3 catégories (Enfant / Orphelinat / Fédération) réutilisant l'API
+   * réelle backend/projets. Aucun système de publication séparé : la
+   * publication dans Accueil est faite automatiquement côté serveur
+   * (signal projets/signals.py) dès que le projet est publié. */
+  const esCanCreateProject = ['ambassador', 'director', 'federation'].includes(user?.role)
+  const PROJECT_TYPE_LABELS = { enfant: 'Projet Enfant', orphelinat: 'Projet Orphelinat', federation: 'Projet Fédération' }
+  const PROJ_UPDATE_CATEGORY_LABELS = {
+    health: 'Santé', education: 'Éducation', family: 'Famille', documents: 'Documents',
+    social: 'Social', food: 'Nourriture', clothing: 'Vêtements', emergency: 'Urgence', progress: 'Progrès général',
+  }
+  // Libellés français des clés techniques rencontrées dans les mises à jour
+  // (le feature Update stocke parfois new_value en JSON structuré).
+  const PROJ_UPDATE_FIELD_LABELS = {
+    hospital: 'Hôpital', admit_date: "Date d'admission", discharge_date: 'Date de sortie',
+    ward: 'Service', doctor: 'Médecin', reason: 'Motif', outcome: 'Résultat', notes: 'Notes',
+    school: 'École', school_name: 'École', level: 'Niveau', grade: 'Classe',
+    date: 'Date', description: 'Description', status: 'Statut', amount: 'Montant',
+  }
+  /* Convertit le contenu d'une Update (souvent du JSON brut) en texte
+   * lisible « Libellé : valeur », ligne par ligne. Si ce n'est pas du
+   * JSON, le texte est retourné tel quel. */
+  const esReadableUpdate = (text) => {
+    if (!text) return ''
+    const t = String(text).trim()
+    const jsonToLines = (raw) => {
+      const obj = JSON.parse(raw)
+      if (Array.isArray(obj)) return obj.map(o => jsonToLines(JSON.stringify(o))).join('\n\n')
+      return Object.entries(obj)
+        .filter(([, v]) => v !== null && v !== '' && typeof v !== 'object')
+        .map(([k, v]) => {
+          const label = PROJ_UPDATE_FIELD_LABELS[k] || k.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())
+          return `${label} : ${v}`
+        })
+        .join('\n')
+    }
+    // Texte entièrement JSON
+    if (t.startsWith('{') || t.startsWith('[')) {
+      try { return jsonToLines(t) } catch { return t }
+    }
+    // Bloc JSON embarqué dans du texte (ex: « Projet Enfant — Titre\n\n{...} »)
+    const start = t.indexOf('{')
+    const end = t.lastIndexOf('}')
+    if (start !== -1 && end > start) {
+      try {
+        const lisible = jsonToLines(t.slice(start, end + 1))
+        return (t.slice(0, start).trimEnd() + '\n\n' + lisible + t.slice(end + 1)).trim()
+      } catch { /* pas du JSON valide — laisser tel quel */ }
+    }
+    return t
+  }
+  // Drapeau du pays de l'enfant — nationalite peut être un nom (« Éthiopie »)
+  // ou un code ISO ; réutilise les helpers pays existants.
+  const esChildFlagCode = (nat) => {
+    if (!nat) return null
+    return nat.length === 2 ? nat.toUpperCase() : countryCodeFromName(nat)
+  }
+
+  const [esCandidature, setEsCandidature] = React.useState(null) // {post, montant, modalite, message, submitting, done}
+  const esOpenCandidature = (post) => setEsCandidature({ post, montant: '', modalite: 'unique', message: '', submitting: false, done: false })
+  const esSubmitCandidature = async () => {
+    if (!esCandidature || esCandidature.submitting) return
+    setEsCandidature(c => ({ ...c, submitting: true }))
+    const projetId = esCandidature.post.project_info.id
+    const res = await apiFetch(`${API}/projets/${projetId}/candidature/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        montant_propose: esCandidature.montant || 0,
+        modalite: esCandidature.modalite,
+        message: esCandidature.message,
+      }),
+    }, onReturn)
+    if (res && res.ok) {
+      setEsCandidature(c => ({ ...c, submitting: false, done: true }))
+      // La candidature soumise, on ramène le partenaire vers son propre
+      // espace Sponsorship (Dashboard → Opportunités) où elle apparaît —
+      // laisse le temps de lire la confirmation avant de naviguer.
+      if (user?.role === 'partner') {
+        setTimeout(() => onReturn('opportunites'), 1800)
+      }
+    } else {
+      const err = res ? await res.json().catch(() => ({})) : {}
+      setEsCandidature(c => ({ ...c, submitting: false, error: err.error || Object.values(err)[0] || 'Une erreur est survenue.' }))
+    }
+  }
 
   // Director: search a registered child to attach to a post
   React.useEffect(() => {
@@ -2209,6 +2618,37 @@ function EclatSocialApp({ user, onReturn }) {
     setEsConversations(prev => prev.map(c => c.id === conv.id ? { ...c, unread_count: 0 } : c))
   }
 
+  // Navigate to notification source when clicking a notification
+  React.useEffect(() => {
+    if (!notifTarget) return
+    if (notifTarget.type === 'channel') {
+      const ch = esChannels.find(c => c.slug === notifTarget.slug)
+      if (ch) {
+        esOpenChannel(ch)
+      } else {
+        apiFetch(`${API}/channels/`, {}, onReturn)
+          .then(r => r && r.ok ? r.json() : null)
+          .then(list => {
+            if (Array.isArray(list)) {
+              const found = list.find(c => c.slug === notifTarget.slug)
+              if (found) esOpenChannel(found)
+            }
+          })
+          .catch(() => {})
+      }
+    } else if (notifTarget.type === 'dm') {
+      apiFetch(`${API}/conversations/`, {}, onReturn)
+        .then(r => r && r.ok ? r.json() : null)
+        .then(data => {
+          const convs = Array.isArray(data) ? data : (data.results || [])
+          const found = convs.find(c => c.id === notifTarget.conversationId)
+          if (found) esOpenConv(found)
+        })
+        .catch(() => {})
+    }
+    setNotifTarget(null)
+  }, [notifTarget])
+
   // Find-or-create a direct conversation with ANY registered agent, then open it.
   const esStartDM = async (other) => {
     if (!other?.id || other.id === user?.id) return
@@ -2247,6 +2687,46 @@ function EclatSocialApp({ user, onReturn }) {
     setEsComments([])
     setEsModal('detail')
     esLoadComments(post.id)
+  }
+
+  // ── SubmittedProjectView (used in federation tab) ──
+  const SubmittedProjectView = ({ projects, user: u, timeAgo, avatarUrl, onRefresh, apiFetch: af, API: aPI, onReturn: oR }) => {
+    const [roleTab, setRoleTab] = React.useState('all')
+    const roleLabels = { all: 'Tous', ambassador: 'Ambassadeur', orphelinat: "Chef d'Orphelinat", federation: 'Fédération' }
+    const roleKeys = ['all', 'ambassador', 'orphelinat', 'federation']
+    const filtered = roleTab === 'all' ? projects : projects.filter(p => p.createur_role === roleTab)
+    return (
+      <div>
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+          {roleKeys.map(rk => (
+            <button key={rk} onClick={() => setRoleTab(rk)}
+              style={{ padding: '5px 12px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '12px', background: roleTab === rk ? 'var(--accent,#3b82f6)' : 'var(--bg-main,#f1f5f9)', color: roleTab === rk ? '#fff' : 'var(--text,#334155)' }}>
+              {roleLabels[rk]} ({rk === 'all' ? projects.length : projects.filter(p => p.createur_role === rk).length})
+            </button>
+          ))}
+        </div>
+        {filtered.length === 0 ? (
+          <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px dashed var(--border-card,#e2e8f0)' }}>
+            Aucun projet soumis.
+          </div>
+        ) : filtered.map(p => (
+          <div key={p.id} style={{ padding: '14px 16px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px solid var(--border-card,#e2e8f0)', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontWeight: 600, fontSize: '14px' }}>{p.titre}</div>
+              <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, background: p.statut === 'publie' ? '#dcfce7' : p.statut === 'valide' ? '#fef3c7' : '#f1f5f9', color: p.statut === 'publie' ? '#16a34a' : p.statut === 'valide' ? '#d97706' : '#64748b' }}>
+                {p.statut}
+              </span>
+            </div>
+            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {p.createur && <span>Par {p.createur.prenom || ''} {p.createur.nom || ''}</span>}
+              {p.type && <span>· {p.type}</span>}
+              <span>· Créé {timeAgo(p.created_at)}</span>
+            </div>
+            <div style={{ fontSize: '13px', color: '#475569', marginTop: '6px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.description}</div>
+          </div>
+        ))}
+      </div>
+    )
   }
 
   return (
@@ -2400,10 +2880,56 @@ function EclatSocialApp({ user, onReturn }) {
             </div>
           )}
 
-          <button className="es-icon-btn" onClick={() => esNavigate('notifs')} title="Notifications" aria-label={`Notifications${esUnreadNotifs ? `, ${esUnreadNotifs} non lues` : ''}`}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-            {esUnreadNotifs > 0 && <span className="es-icon-badge">{esUnreadNotifs > 9 ? '9+' : esUnreadNotifs}</span>}
-          </button>
+          <div className="hd-notif-wrap" ref={esNotifDropRef}>
+            <button className="es-icon-btn" onClick={() => setEsNotifOpen(v => !v)} title="Notifications" aria-label={`Notifications${esUnreadNotifs ? `, ${esUnreadNotifs} non lues` : ''}`}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+              {esUnreadNotifs > 0 && <span className="es-icon-badge">{esUnreadNotifs > 9 ? '9+' : esUnreadNotifs}</span>}
+            </button>
+            {esNotifOpen && (
+              <div className="hd-dropdown" style={{position:'absolute',top:'100%',right:0,zIndex:1000}}>
+                <div className="hd-dropdown-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <span>Notifications</span>
+                  {esUnreadNotifs > 0 && <button onClick={esMarkAllNotifs} style={{background:'none',border:'none',color:'#60a5fa',fontSize:10,cursor:'pointer',padding:0}}>Tout marquer lu</button>}
+                </div>
+                {esNotifs.length === 0 && <div style={{padding:'16px',textAlign:'center',fontSize:11,color:'#64748b'}}>Aucune notification</div>}
+                {esNotifs.slice(0, 20).map(n => (
+                  <div key={n.id} className="hd-dropdown-item" onClick={() => {
+                    setEsNotifOpen(false)
+                    if (!n.is_read) esMarkNotif(n.id)
+                    if (n.link && n.link.startsWith('communication:')) {
+                      const parts = n.link.split(':')
+                      if (parts[1] === 'channel') {
+                        const ch = esChannels.find(c => c.slug === parts[2])
+                        if (ch) esOpenChannel(ch)
+                      } else if (parts[1] === 'dm') {
+                        apiFetch(`${API}/conversations/`, {}, onReturn)
+                          .then(r => r && r.ok ? r.json() : null)
+                          .then(data => {
+                            const convs = Array.isArray(data) ? data : (data.results || [])
+                            const found = convs.find(c => c.id === Number(parts[2]))
+                            if (found) esOpenConv(found)
+                          })
+                          .catch(() => {})
+                      }
+                    }
+                  }} style={{opacity:n.is_read?0.5:1,cursor:'pointer'}}>
+                    <span className="hd-dropdown-icon">{esNotifIcon(n.title)}</span>
+                    <div className="hd-dropdown-body">
+                      <div className="hd-dropdown-text" style={{fontWeight:n.is_read?400:600}}>{n.title}</div>
+                      <div className="hd-dropdown-time" style={{fontSize:10,color:'#94a3b8',whiteSpace:'pre-wrap'}}>{n.content}</div>
+                      <div className="hd-dropdown-time">{esNotifTimeAgo(n.created_at)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {esCanCreateProject && (
+            <button className="es-icon-btn" onClick={() => esNavigate('projects')} title="Projets" aria-label="Projets">
+              <EsIcon name="folder" size={18} />
+            </button>
+          )}
 
           <button className="es-icon-btn es-icon-primary" onClick={() => setEsModal('create')} title="Nouvelle publication" aria-label="Nouvelle publication">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -2423,6 +2949,10 @@ function EclatSocialApp({ user, onReturn }) {
       </header>
         )
       })()}
+
+      {esPostNotice && esView !== 'home' && (
+        <div className="es-global-toast">{esPostNotice}</div>
+      )}
 
       <div className="es-body">
       {/* LEFT SIDEBAR */}
@@ -2467,6 +2997,7 @@ function EclatSocialApp({ user, onReturn }) {
 
         <nav className="es-nav" style={{ flex: 'none' }}>
           <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => esNavigate('home')}><span className="es-nav-icon"><EsIcon name="home" size={18} /></span> Accueil</button>
+          <button className={esNavActive === 'projects' ? 'active' : ''} onClick={() => { esNavigate('projects'); setEsProjView('children') }}><span className="es-nav-icon"><EsIcon name="folder" size={18} /></span> Projets</button>
           <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => esNavigate('settings')}><span className="es-nav-icon"><EsIcon name="settings" size={18} /></span> Paramètres</button>
         </nav>
 
@@ -2572,6 +3103,7 @@ function EclatSocialApp({ user, onReturn }) {
             onReact={esReactToMsg}
             onEdit={esEditChannelMsg}
             onDelete={esDeleteChannelMsg}
+            onShare={esShareChannelMsg}
             mediaUrl={esMediaUrl}
             roleLabel={esRoleLabel}
             timeAgo={esTimeAgo}
@@ -2657,36 +3189,333 @@ function EclatSocialApp({ user, onReturn }) {
           </div>
         )}
 
-        {/* NOTIFICATIONS VIEW */}
-        {esView === 'notifs' && (
-          <div style={{ padding: '32px', maxWidth: '640px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '9px' }}><EsIcon name="bell" size={22} /> Notifications {esUnreadNotifs > 0 && <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg,#f43f5e,#ec4899)', padding: '2px 9px', borderRadius: '12px' }}>{esUnreadNotifs}</span>}</h2>
-              {esUnreadNotifs > 0 && (
-                <button onClick={esMarkAllNotifs} style={{ background: 'transparent', border: 'none', color: '#6366f1', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Tout marquer comme lu</button>
-              )}
+        {/* PROJECTS VIEW */}
+        {esView === 'projects' && (
+          <div style={{ padding: '24px 32px', overflow: 'auto' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '9px' }}><EsIcon name="folder" size={22} /> Projets</h2>
+
+            {/* Catégories */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid var(--border-card,#e2e8f0)', paddingBottom: '8px' }}>
+              {[
+                { key: 'children', label: 'Projets Enfants', icon: 'child' },
+                { key: 'orphanage', label: 'Projets Orphelinat', icon: 'building' },
+                // Le Chef d'Orphelinat ne peut pas créer de Projet Fédération.
+                ...(user?.role !== 'director' ? [{ key: 'federation', label: 'Projets Fédération', icon: 'landmark' }] : []),
+              ].map(t => (
+                <button key={t.key} onClick={() => { setEsProjView(t.key); setEsProjMode('list'); setEsProjSelectedTarget(null) }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: esProjView === t.key ? 'var(--accent,#3b82f6)' : 'var(--bg-card,#f1f5f9)', color: esProjView === t.key ? '#fff' : 'var(--text,#334155)' }}>
+                  <EsIcon name={t.icon} size={16} /> {t.label}
+                </button>
+              ))}
             </div>
-            {esNotifs.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 16px', color: '#94a3b8' }}>
-                <div style={{ width: 60, height: 60, margin: '0 auto 12px', borderRadius: '18px', background: 'var(--bg-card,#f1f5f9)', display: 'grid', placeItems: 'center', color: '#cbd5e1' }}><EsIcon name="bell" size={28} /></div>
-                <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-heading,#334155)' }}>Aucune notification</div>
-                <div style={{ fontSize: '13px', marginTop: '3px' }}>Vous êtes à jour.</div>
-              </div>
-            ) : esNotifs.map(n => (
-              <div key={n.id} style={{ background: n.is_read ? 'var(--bg-card,#f8fafc)' : 'linear-gradient(135deg,#eff6ff,#faf5ff)', border: `1px solid ${n.is_read ? 'var(--border-card,#e2e8f0)' : '#c7d2fe'}`, borderRadius: '13px', padding: '15px 18px', marginBottom: '11px', display: 'flex', alignItems: 'flex-start', gap: '13px' }}>
-                <span style={{ width: 34, height: 34, borderRadius: '10px', flexShrink: 0, background: n.is_read ? 'rgba(148,163,184,0.15)' : 'rgba(99,102,241,0.14)', color: n.is_read ? '#94a3b8' : '#6366f1', display: 'grid', placeItems: 'center' }}><EsIcon name="bell" size={17} /></span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-heading,#0f172a)' }}>{n.title}</div>
-                  {n.content && <div style={{ fontSize: '13px', color: 'var(--text-body,#475569)', marginTop: '2px' }}>{n.content}</div>}
-                  <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '4px' }}>{esTimeAgo(n.created_at)}</div>
-                </div>
-                {!n.is_read && (
-                  <button onClick={() => esMarkNotif(n.id)} title="Marquer comme lu" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#6366f1', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-                  </button>
+
+            {esProjLoading ? (
+              <div className="es-loading">Chargement des projets…</div>
+
+            ) : esProjMode === 'options' ? (
+              /* ── Étape 2 : choix explicite — publier une mise à jour, ou se
+                 rattacher à un projet en cours (à défaut, en créer un) ── */
+              <div style={{ maxWidth: '640px' }}>
+                <button className="es-pj-back" onClick={() => { setEsProjMode('list'); setEsProjSelectedTarget(null); setEsProjChoice(null) }}>{'←'} Retour</button>
+
+                {esProjView === 'children' && esProjSelectedTarget && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', background: 'var(--bg-card,#f8fafc)', border: '1px solid var(--border-card,#e2e8f0)', borderRadius: '14px', marginBottom: '18px' }}>
+                    <img src={esProjSelectedTarget.photo || esAgentAvatar(esProjSelectedTarget, 56)} alt="" style={{ width: 56, height: 56, borderRadius: '14px', objectFit: 'cover', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                        {esProjSelectedTarget.prenom} {esProjSelectedTarget.nom}
+                        {esChildFlagCode(esProjSelectedTarget.nationalite) && flagImg(esChildFlagCode(esProjSelectedTarget.nationalite), esProjSelectedTarget.nationalite, '15px')}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#94a3b8' }}>ID {esProjSelectedTarget.uid}{esProjSelectedTarget.nationalite ? ` · ${esProjSelectedTarget.nationalite}` : ''}{esProjSelectedTarget.orphanage_name ? ` · ${esProjSelectedTarget.orphanage_name}` : ''}</div>
+                      <div style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 600, marginTop: '2px' }}>Statut actuel : {esProjSelectedTarget.status_label || esProjSelectedTarget.status || 'Non renseigné'}</div>
+                    </div>
+                  </div>
+                )}
+                {esProjView === 'orphanage' && esProjSelectedTarget && (
+                  <div className="es-pj-target-chip" style={{ marginBottom: '18px' }}><EsIcon name="building" size={14} /> {esProjSelectedTarget.name}</div>
+                )}
+
+                {esProjChoice === null && (
+                  /* ── Choix explicite : publier une mise à jour, ou se rattacher à un projet ── */
+                  <div className="es-pj-choice-grid">
+                    {esProjView === 'children' && (
+                      <button className="es-pj-choice-card" onClick={() => setEsProjChoice('update')}>
+                        <span className="es-pj-choice-icon"><EsIcon name="file" size={20} /></span>
+                        <span className="es-pj-choice-title">Publier une mise à jour</span>
+                        <span className="es-pj-choice-desc">Santé, scolarité, situation actuelle — depuis le suivi du Chef d'Orphelinat.</span>
+                        {esProjUpdates.length > 0 && <span className="es-pj-choice-count">{esProjUpdates.length} disponible{esProjUpdates.length > 1 ? 's' : ''}</span>}
+                      </button>
+                    )}
+                    <button className="es-pj-choice-card" onClick={() => setEsProjChoice('attach')}>
+                      <span className="es-pj-choice-icon"><EsIcon name="folder" size={20} /></span>
+                      <span className="es-pj-choice-title">Rattacher un projet en cours</span>
+                      <span className="es-pj-choice-desc">Continuer un projet déjà créé par le Chef d'Orphelinat ou par vous-même — ou en créer un nouveau si aucun n'existe.</span>
+                      {esProjExistingProjects.length > 0 && <span className="es-pj-choice-count">{esProjExistingProjects.length} en cours</span>}
+                    </button>
+                  </div>
+                )}
+
+                {esProjChoice === 'update' && (
+                  <>
+                    <button className="es-pj-back" style={{ marginBottom: '10px' }} onClick={() => setEsProjChoice(null)}>{'←'} Changer de choix</button>
+                    <div className="es-pj-step-label">Mises à jour récentes (Chef d'Orphelinat)</div>
+                    {esProjUpdatesLoading ? (
+                      <div className="es-pj-empty">Chargement des mises à jour…</div>
+                    ) : esProjUpdates.length === 0 ? (
+                      <div className="es-pj-empty">Aucune mise à jour disponible pour cet enfant.</div>
+                    ) : (
+                      <div className="es-pj-target-list" style={{ marginBottom: '18px' }}>
+                        {esProjUpdates.map(u => (
+                          <button key={u.id} className="es-pj-target-item" style={{ alignItems: 'flex-start' }} onClick={() => esProjUseUpdate(u)}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                                <span className="es-pj-option-badge">{PROJ_UPDATE_CATEGORY_LABELS[u.category] || u.category}</span>
+                                <span className="es-pj-target-label">{u.title}</span>
+                              </div>
+                              {(u.description || u.new_value) && (
+                                <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '2px', whiteSpace: 'pre-line', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                  {esReadableUpdate(u.description || u.new_value)}
+                                </div>
+                              )}
+                              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>{u.created_by_name ? `Par ${u.created_by_name} · ` : ''}{esTimeAgo(u.created_at)}</div>
+                            </div>
+                            <EsIcon name="chevron-right" size={16} style={{ color: '#94a3b8', flexShrink: 0, marginTop: '2px' }} />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {esProjChoice === 'attach' && (
+                  <>
+                    <button className="es-pj-back" style={{ marginBottom: '10px' }} onClick={() => setEsProjChoice(null)}>{'←'} Changer de choix</button>
+                    <div className="es-pj-step-label">Projets en cours pour cette cible</div>
+                    {esProjExistingLoading ? (
+                      <div className="es-pj-empty">Chargement…</div>
+                    ) : esProjExistingProjects.length === 0 ? (
+                      <div className="es-pj-empty">Aucun projet existant pour cette cible — créez-en un ci-dessous.</div>
+                    ) : (
+                      <div className="es-pj-target-list" style={{ marginBottom: '18px' }}>
+                        {esProjExistingProjects.map(p => (
+                          <button key={p.id} className="es-pj-target-item" disabled={esProjAttaching === p.id} onClick={() => esProjAttachExisting(p)}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <span className="es-pj-option-badge">{p.statut}</span>{' '}
+                              <span className="es-pj-target-label">{p.titre}</span>
+                              <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '2px' }}>Par {p.createur_nom} · {esTimeAgo(p.created_at)}</div>
+                            </div>
+                            {esProjAttaching === p.id
+                              ? <span style={{ fontSize: '12px', color: '#94a3b8' }}>Rattachement…</span>
+                              : <EsIcon name="chevron-right" size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <button className="es-pj-new-btn" onClick={() => setEsProjMode('create')}>
+                      <EsIcon name="plus" size={16} /> Nouveau {PROJECT_TYPE_LABELS[esProjView === 'children' ? 'enfant' : esProjView === 'orphanage' ? 'orphelinat' : 'federation']}
+                    </button>
+                  </>
                 )}
               </div>
-            ))}
+
+            ) : esProjMode === 'create' ? (
+              /* ── Étape 3 : formulaire (pré-rempli si issu d'une Update) ── */
+              <div style={{ background: 'var(--bg-card,#f8fafc)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-card,#e2e8f0)', maxWidth: '600px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Nouveau projet ({esProjView === 'children' ? 'Enfant' : esProjView === 'orphanage' ? 'Orphelinat' : 'Fédération'})</h3>
+
+                {esProjSelectedTarget && (
+                  <div style={{ padding: '10px 14px', background: 'var(--bg-main,#eef2ff)', borderRadius: '10px', marginBottom: '12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <EsIcon name="check" size={14} /> Cible : <strong>{esProjSelectedTarget.prenom ? `${esProjSelectedTarget.prenom} ${esProjSelectedTarget.nom}` : esProjSelectedTarget.name}</strong>
+                  </div>
+                )}
+                {esProjSourceUpdate && (
+                  <div className="es-pj-source-chip" style={{ marginBottom: '12px' }}>
+                    <EsIcon name="link" size={12} /> Depuis la mise à jour « {esProjSourceUpdate.title} » — traçabilité conservée
+                  </div>
+                )}
+
+                <input placeholder="Titre du projet" value={esProjForm.titre} onChange={e => setEsProjForm(f => ({ ...f, titre: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border-card,#e2e8f0)', marginBottom: '12px', background: 'var(--bg-main,#fff)', color: 'var(--text,#334155)', fontSize: '14px', boxSizing: 'border-box' }} />
+                <textarea placeholder="Description" value={esProjForm.description} onChange={e => setEsProjForm(f => ({ ...f, description: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border-card,#e2e8f0)', marginBottom: '12px', background: 'var(--bg-main,#fff)', color: 'var(--text,#334155)', fontSize: '14px', minHeight: '100px', resize: 'vertical', boxSizing: 'border-box' }} />
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Budget total (€)</label>
+                    <input type="number" placeholder="0" value={esProjForm.budget_total} onChange={e => setEsProjForm(f => ({ ...f, budget_total: Number(e.target.value) }))}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-card,#e2e8f0)', background: 'var(--bg-main,#fff)', color: 'var(--text,#334155)', fontSize: '14px', boxSizing: 'border-box' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Bénéficiaires</label>
+                    <input type="number" placeholder="0" value={esProjForm.beneficiaires} onChange={e => setEsProjForm(f => ({ ...f, beneficiaires: Number(e.target.value) }))}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-card,#e2e8f0)', background: 'var(--bg-main,#fff)', color: 'var(--text,#334155)', fontSize: '14px', boxSizing: 'border-box' }} />
+                  </div>
+                </div>
+
+                {esProjFormError && <div className="es-pj-error" style={{ marginBottom: '12px' }}>{esProjFormError}</div>}
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={async () => {
+                    if (!esProjForm.titre.trim() || !esProjForm.description.trim()) { setEsProjFormError('Titre et description sont requis.'); return }
+                    setEsProjSubmitting(true); setEsProjFormError('')
+                    const payload = {
+                      type: esProjView === 'children' ? 'enfant' : esProjView === 'orphanage' ? 'orphelinat' : 'federation',
+                      titre: esProjForm.titre.trim(), description: esProjForm.description.trim(),
+                      budget_total: esProjForm.budget_total || 0, beneficiaires: esProjForm.beneficiaires || 0,
+                    }
+                    if (esProjSelectedTarget?.id) {
+                      if (esProjView === 'children') payload.enfant = esProjSelectedTarget.id
+                      else if (esProjView === 'orphanage') payload.orphelinat = esProjSelectedTarget.id
+                    }
+                    if (esProjSourceUpdate?.id) payload.source_update = esProjSourceUpdate.id
+                    const res = await apiFetch(`${API}/projets/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }, onReturn)
+                    if (res && res.ok) {
+                      const created = await res.json()
+                      setEsProjForm({ titre: '', description: '', budget_total: 0, beneficiaires: 0 })
+                      setEsProjSelectedTarget(null); setEsProjSourceUpdate(null); setEsProjSubmitting(false); setEsProjMode('list')
+                      setEsPostNotice(created.statut === 'publie' ? `« ${created.titre} » a été publié dans Accueil.` : `« ${created.titre} » a été soumis pour validation.`)
+                      setTimeout(() => setEsPostNotice(''), 8000)
+                      setEsProjProjects(prev => [created, ...prev])
+                      esLoadPosts()
+                    } else {
+                      const err = res ? await res.json().catch(() => ({})) : {}
+                      setEsProjFormError(err.error || 'Une erreur est survenue.'); setEsProjSubmitting(false)
+                    }
+                  }} disabled={esProjSubmitting} style={{ padding: '10px 24px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '14px', background: 'var(--accent,#3b82f6)', color: '#fff' }}>
+                    {esProjSubmitting ? 'Envoi…' : 'Soumettre le projet'}
+                  </button>
+                  <button onClick={() => { setEsProjMode(esProjSelectedTarget ? 'options' : 'list'); setEsProjForm({ titre: '', description: '', budget_total: 0, beneficiaires: 0 }); setEsProjFormError(''); setEsProjSourceUpdate(null) }}
+                    style={{ padding: '10px 24px', borderRadius: '10px', border: '1px solid var(--border-card,#e2e8f0)', cursor: 'pointer', fontWeight: 600, fontSize: '14px', background: 'transparent', color: 'var(--text,#334155)' }}>
+                    Annuler
+                  </button>
+                </div>
+              </div>
+
+            ) : (
+              /* ── Étape 1 : choisir la cible (ou, pour Fédération, créer directement) ── */
+              <div>
+                {esProjView === 'children' && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '12px' }}>
+                      {user?.role === 'ambassador' ? 'Enfants qui vous sont assignés' : 'Enfants de votre orphelinat'}
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {esProjChildren.length === 0 ? (
+                        <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px dashed var(--border-card,#e2e8f0)' }}>
+                          {user?.role === 'ambassador' ? "Aucun enfant ne vous est assigné pour l'instant." : 'Aucun enfant enregistré.'}
+                        </div>
+                      ) : esProjChildren.map(child => (
+                        <div key={child.id} onClick={() => esProjSelectTarget(child)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px solid var(--border-card,#e2e8f0)', cursor: 'pointer' }}>
+                          <img src={child.photo || esAgentAvatar(child, 44)} alt="" style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: '14px' }}>{child.prenom} {child.nom}</div>
+                            <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>ID {child.uid}{child.nationalite ? ` · ${child.nationalite}` : ''}{child.orphanage_name ? ` · ${child.orphanage_name}` : ''}</div>
+                          </div>
+                          <EsIcon name="chevron-right" size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {esProjView === 'orphanage' && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '12px' }}>Orphelinats</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {esProjOrphanages.length === 0 ? (
+                        <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px dashed var(--border-card,#e2e8f0)' }}>
+                          Aucun orphelinat trouvé.
+                        </div>
+                      ) : esProjOrphanages.map(org => (
+                        <div key={org.id} onClick={() => esProjSelectTarget(org)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px solid var(--border-card,#e2e8f0)', cursor: 'pointer' }}>
+                          <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6', fontWeight: 700, fontSize: '16px' }}>{org.name?.[0] || 'O'}</div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: '14px' }}>{org.name}</div>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>{org.address || ''}</div>
+                          </div>
+                          <EsIcon name="chevron-right" size={16} style={{ color: '#94a3b8' }} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {esProjView === 'federation' && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <h3 style={{ fontSize: '15px', fontWeight: 600 }}>Projets Fédération</h3>
+                      <button onClick={() => { setEsProjSelectedTarget(null); setEsProjSourceUpdate(null); setEsProjMode('create') }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '12px', background: 'var(--accent,#3b82f6)', color: '#fff' }}>
+                        <EsIcon name="plus" size={14} /> Nouveau projet
+                      </button>
+                    </div>
+
+                    {/* Chef de Fédération : « Project Submitted » — 3 sections par rôle créateur */}
+                    {(user?.role === 'federation' || user?.role === 'supermaster') && (
+                      <div style={{ marginTop: '8px' }}>
+                        <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#64748b', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Projets soumis</h4>
+                        {[
+                          { role: 'ambassadeur', label: 'Ambassadeur' },
+                          { role: 'directeur', label: "Chef d'Orphelinat" },
+                          { role: 'federation', label: 'Fédération' },
+                        ].map(section => {
+                          const items = esProjProjects.filter(p => p.createur_role === section.role)
+                          return (
+                            <div key={section.role} style={{ marginBottom: '18px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                <span style={{ fontSize: '13px', fontWeight: 700 }}>{section.label}</span>
+                                <span style={{ fontSize: '11px', color: '#94a3b8' }}>({items.length})</span>
+                              </div>
+                              {items.length === 0 ? (
+                                <div style={{ fontSize: '12.5px', color: '#94a3b8', padding: '2px 2px 4px' }}>Aucun projet.</div>
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  {items.map(p => (
+                                    <div key={p.id} style={{ padding: '10px 14px', background: 'var(--bg-card,#f8fafc)', borderRadius: '10px', border: '1px solid var(--border-card,#e2e8f0)', fontSize: '13px' }}>
+                                      <strong>{p.titre}</strong> <span style={{ color: '#94a3b8' }}>— {p.createur_nom} · {esTimeAgo(p.created_at)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Projets en cours */}
+                {esProjView !== 'federation' && (
+                  <div>
+                    <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '12px', marginTop: '8px' }}>
+                      Projets en cours ({esProjProjects.filter(p => esProjView === 'children' ? p.type === 'enfant' : p.type === 'orphelinat').length})
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {esProjProjects.filter(p => esProjView === 'children' ? p.type === 'enfant' : p.type === 'orphelinat').map(p => (
+                        <div key={p.id} style={{ padding: '14px 16px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px solid var(--border-card,#e2e8f0)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ fontWeight: 600, fontSize: '14px' }}>{p.titre}</div>
+                            <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, background: p.statut === 'publie' ? '#dcfce7' : p.statut === 'soumis_validation' ? '#fef3c7' : '#f1f5f9', color: p.statut === 'publie' ? '#16a34a' : p.statut === 'soumis_validation' ? '#d97706' : '#64748b' }}>
+                              {p.statut}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.description}</div>
+                          {p.budget_total > 0 && <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '6px' }}>Budget: {p.budget_total}€ · Bénéficiaires: {p.beneficiaires || 0}</div>}
+                          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>Créé {esTimeAgo(p.created_at)}</div>
+                        </div>
+                      ))}
+                      {esProjProjects.filter(p => esProjView === 'children' ? p.type === 'enfant' : p.type === 'orphelinat').length === 0 && (
+                        <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px dashed var(--border-card,#e2e8f0)' }}>
+                          Aucun projet en cours. Sélectionnez {esProjView === 'children' ? 'un enfant' : 'un orphelinat'} ci-dessus pour commencer.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -2951,8 +3780,24 @@ function EclatSocialApp({ user, onReturn }) {
                     </div>
                     <button className="es-post-options" onClick={e => { e.stopPropagation(); esHandleShare(post) }} aria-label="Options">···</button>
                   </div>
+                  {/* Publication liée à un enfant : profil enfant en tête,
+                      façon Facebook — photo, nom complet, ID, drapeau pays. */}
+                  {post.child_info && post.project_info && (
+                    <div className="es-post-child-profile">
+                      {post.child_info.photo
+                        ? <img src={esMediaUrl(post.child_info.photo)} alt="" className="es-post-child-photo" />
+                        : <span className="es-post-child-photo es-post-child-photo-fallback"><EsIcon name="child" size={22} /></span>}
+                      <div className="es-post-child-meta">
+                        <span className="es-post-child-name">
+                          {post.child_info.name}
+                          {esChildFlagCode(post.child_info.nationalite) && flagImg(esChildFlagCode(post.child_info.nationalite), post.child_info.nationalite, '14px')}
+                        </span>
+                        <span className="es-post-child-sub">ID {post.child_info.uid}{post.child_info.nationalite ? ` · ${post.child_info.nationalite}` : ''}{post.child_info.orphanage ? ` · ${post.child_info.orphanage}` : ''}</span>
+                      </div>
+                    </div>
+                  )}
                   <div className="es-post-content">
-                    <p>{post.content}</p>
+                    <p style={{ whiteSpace: 'pre-line' }}>{esReadableUpdate(post.content)}</p>
                     {media && (
                       media.media_type === 'video' ? (
                         <div className="es-video-preview">
@@ -2966,6 +3811,14 @@ function EclatSocialApp({ user, onReturn }) {
                       )
                     )}
                   </div>
+                  {post.project_info && (
+                    <div className="es-project-plain">
+                      <span>{PROJECT_TYPE_LABELS[post.project_info.type] || 'Projet'} · {post.project_info.montant_collecte} / {post.project_info.budget_total} collectés</span>
+                      {user?.role === 'partner' && (
+                        <button className="es-project-plain-postulate" onClick={() => esOpenCandidature(post)}>Postuler</button>
+                      )}
+                    </div>
+                  )}
                   <div className="es-post-stats">
                     {post.likes_count > 0
                       ? <button className="es-stat-likes es-stat-link" onClick={() => setEsLikesModal(post.id)} aria-label={`Voir qui a aimé (${post.likes_count})`}>{post.likes_count} j'aime</button>
@@ -3018,7 +3871,8 @@ function EclatSocialApp({ user, onReturn }) {
       </main>
 
       {/* RIGHT SIDEBAR */}
-      <aside className="es-right-sidebar">
+      <div className="es-resize-handle" onMouseDown={(e) => { e.preventDefault(); resizingRef.current = 'right'; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none' }} />
+      <aside className="es-right-sidebar" style={{ width: panelWidths.right, minWidth: panelWidths.right, flexShrink: 0 }}>
         <div className="es-suggestions-widget">
           <h3>Membres de la fédération {esOtherAgents.length > 0 && <span className="es-members-count">{esOtherAgents.length}</span>}</h3>
           {esOtherAgents.length === 0 ? (
@@ -3051,19 +3905,54 @@ function EclatSocialApp({ user, onReturn }) {
           <span className="es-nav-icon"><EsIcon name="search" size={22} /></span>
           <span className="es-nav-label">Explorer</span>
         </button>
+        <button className={esNavActive === 'projects' ? 'active' : ''} onClick={() => { esNavigate('projects'); setEsProjView('children') }}>
+          <span className="es-nav-icon"><EsIcon name="folder" size={22} /></span>
+          <span className="es-nav-label">Projets</span>
+        </button>
         <button className="es-nav-publish" onClick={() => setEsModal('create')}>
           <span className="es-nav-icon"><EsIcon name="plus" size={22} /></span>
           <span className="es-nav-label">Publier</span>
-        </button>
-        <button className={esNavActive === 'notifs' ? 'active' : ''} onClick={() => esNavigate('notifs')}>
-          <span className="es-nav-icon"><EsIcon name="bell" size={22} /></span>
-          <span className="es-nav-label">Notifs</span>
         </button>
         <button className={esNavActive === 'profil' ? 'active' : ''} onClick={() => esNavigate('profil')}>
           <span className="es-nav-icon"><EsIcon name="user" size={22} /></span>
           <span className="es-nav-label">Profil</span>
         </button>
       </nav>
+
+      {/* CANDIDATURE PARTENAIRE (Postuler) — réutilise l'API projets/candidature existante */}
+      {esCandidature && (
+        <div className="es-modal-overlay" onClick={() => setEsCandidature(null)}>
+          <div className="es-create-modal es-pj-modal" onClick={e => e.stopPropagation()}>
+            <div className="es-modal-header">
+              <button className="es-close-btn" onClick={() => setEsCandidature(null)} aria-label="Fermer"><EsIcon name='x' size={18} /></button>
+              <h3>Postuler</h3>
+              <span style={{ width: 34 }} />
+            </div>
+            {esCandidature.done ? (
+              <div className="es-pj-step">
+                <div className="es-pj-empty">Votre candidature a été envoyée. Vous serez notifié de la réponse.</div>
+              </div>
+            ) : (
+              <div className="es-pj-step">
+                <div className="es-pj-target-chip"><EsIcon name="folder" size={14} /> {esCandidature.post.project_info.titre}</div>
+                <input className="es-pj-input" type="number" min="0" placeholder="Montant proposé (€)"
+                  value={esCandidature.montant} onChange={e => setEsCandidature(c => ({ ...c, montant: e.target.value }))} />
+                <div className="es-pj-form-row">
+                  <label className="es-pj-radio"><input type="radio" checked={esCandidature.modalite === 'unique'} onChange={() => setEsCandidature(c => ({ ...c, modalite: 'unique' }))} /> Paiement unique</label>
+                  <label className="es-pj-radio"><input type="radio" checked={esCandidature.modalite === 'echelonne'} onChange={() => setEsCandidature(c => ({ ...c, modalite: 'echelonne' }))} /> Échelonné</label>
+                </div>
+                <textarea className="es-pj-textarea" placeholder="Message (optionnel)" rows={3}
+                  value={esCandidature.message} onChange={e => setEsCandidature(c => ({ ...c, message: e.target.value }))} />
+                {esCandidature.error && <div className="es-pj-error">{esCandidature.error}</div>}
+                <div className="es-pj-form-actions">
+                  <span />
+                  <button className="es-publish-btn" onClick={esSubmitCandidature} disabled={esCandidature.submitting}>{esCandidature.submitting ? '…' : 'Envoyer la candidature'}</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* CREATE POST MODAL */}
       {esModal === 'create' && (
@@ -3247,7 +4136,7 @@ function EclatSocialApp({ user, onReturn }) {
   )
 }
 
-function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey, setSubKey }) {
+function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey, setSubKey, notifTarget, setNotifTarget }) {
   const [registeredChildren, setRegisteredChildren] = useState([])
   const [selectedRegChild, setSelectedRegChild] = useState(null)
   const [editingChild, setEditingChild] = useState(null)
@@ -3279,6 +4168,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [dashTime, setDashTime] = useState(new Date())
   const [dashChannels, setDashChannels] = useState(STATIC_CHANNELS)
   const [dashChannelSearch, setDashChannelSearch] = useState('')
+  // Widget « Notifications » du tableau de bord : même store partagé que
+  // le header et Communication (useNotifications singleton).
+  const { notifications: dashNotifs } = useNotifications()
   /* ── Public message composer ── */
   const [fedTab, setFedTab] = useState('pending')
   const [fedDocTab, setFedDocTab] = useState('dossiers')
@@ -3710,6 +4602,9 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [bgTheme, setBgTheme] = useState(localStorage.getItem('cdo_bg') || '')
   const [bgLibSearch, setBgLibSearch] = useState('')
   const [bgLibCat, setBgLibCat] = useState('All')
+  const [bgCombo, setBgCombo] = useState(() => {
+    try { const raw = localStorage.getItem('cdo_bg_combo'); return raw ? JSON.parse(raw) : null } catch { return null }
+  })
   const [gpsLoading, setGpsLoading] = useState(false)
   /* ── Document management (director + federation) ── */
   const [docTypes, setDocTypes] = useState([])
@@ -3793,6 +4688,21 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     }
     localStorage.setItem('cdo_bg', bgTheme)
   }, [bgTheme])
+
+  useEffect(() => {
+    if (bgCombo) {
+      const left = BACKGROUND_LIBRARY.find(bg => bg.id === bgCombo.leftId)
+      const right = BACKGROUND_LIBRARY.find(bg => bg.id === bgCombo.rightId)
+      if (left && right) {
+        document.documentElement.style.setProperty('--bg-overlay',
+          `url('${bgPhotoUrl(left)}') left/50% 100% no-repeat, url('${bgPhotoUrl(right)}') right/50% 100% no-repeat`)
+        localStorage.setItem('cdo_bg_combo', JSON.stringify(bgCombo))
+        return
+      }
+    }
+    document.documentElement.style.removeProperty('--bg-overlay')
+    localStorage.removeItem('cdo_bg_combo')
+  }, [bgCombo])
 
   useEffect(() => {
     const fetchChildren = async () => {
@@ -3922,7 +4832,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
       })
       .catch(() => {})
   }, [role])
-  const statCards = liveStats || ROLE_STATS[role] || ROLE_STATS.director
+  const statCards = liveStats || []
   const roleLabel = ROLES.find(r => r.value === role)?.label || role
 
   const page = pages[activeKey]
@@ -4020,15 +4930,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     { value: 'federation', label: t('proj_type_federation') || 'Pour la fédération', icon: '\u{1F465}' },
   ]
 
-  const MOCK_PROJECTS = [
-    { id: 1, code: 'XK7M9B2R', type: 'enfant', title: 'Scolarisation 2026', summary: 'Prise en charge scolaire de 50 enfants', description: 'Projet de scolarisation complète incluant fournitures, uniformes et cantine scolaire pour 50 enfants de l\'orphelinat.', pdf_url: '', status: 'open', amount: 15000, raised: 8500, beneficiaries: 50, created_at: '2026-01-15' },
-    { id: 2, code: 'HT4N8P1W', type: 'enfant', title: 'Soins médicaux', summary: 'Campagne de vaccination et soins de base', description: 'Programme de vaccination et consultations médicales pour 120 enfants.', pdf_url: '', status: 'open', amount: 8000, raised: 3000, beneficiaries: 120, created_at: '2026-02-01' },
-    { id: 3, code: 'JF6L2ZK5', type: 'orphelinat', title: 'Rénovation du bâtiment', summary: 'Réfection des dortoirs et salles de classe', description: 'Travaux de rénovation complète des dortoirs, installation électrique et peinture.', pdf_url: '', status: 'open', amount: 45000, raised: 20000, beneficiaries: 0, created_at: '2026-03-10' },
-    { id: 4, code: 'PQ9A3WM8', type: 'orphelinat', title: 'Installation solaire', summary: 'Panneaux solaires pour l\'autonomie énergétique', description: 'Installation de panneaux solaires pour couvrir 80% des besoins énergétiques de l\'orphelinat.', pdf_url: '', status: 'funded', amount: 25000, raised: 25000, beneficiaries: 0, created_at: '2026-04-05' },
-    { id: 5, code: 'VC2R7LG4', type: 'federation', title: 'Formation des éducateurs', summary: 'Programme de formation pour 30 éducateurs', description: 'Formation professionnelle des éducateurs des orphelinats membres de la fédération.', pdf_url: '', status: 'open', amount: 30000, raised: 12000, beneficiaries: 30, created_at: '2026-05-20' },
-    { id: 6, code: 'BD5Y1TF9', type: 'federation', title: 'Plateforme numérique', summary: 'Déploiement de la plateforme CDO dans 10 orphelinats', description: 'Déploiement et formation à la plateforme de gestion dans les orphelinats membres.', pdf_url: '', status: 'open', amount: 60000, raised: 15000, beneficiaries: 0, created_at: '2026-06-01' },
-  ]
-
   const [projects, setProjects] = useState([])
   const [ongoingProjects, setOngoingProjects] = useState([])
   const [projectTypeFilter, setProjectTypeFilter] = useState(null)
@@ -4036,6 +4937,15 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [projectLoading, setProjectLoading] = useState(false)
   const [showOngoing, setShowOngoing] = useState(false)
   const [showExpired, setShowExpired] = useState(false)
+  const [showProjHistory, setShowProjHistory] = useState(false)
+  const PROJ_STATUT_LABELS = {
+    brouillon: 'Brouillon', soumis_validation: 'Soumis', modification_demandee: 'À modifier',
+    rejete: 'Rejeté', publie: 'Publié', en_financement: 'En financement',
+    finance: 'Financé', cloture: 'Clôturé', suspendu: 'Suspendu',
+  }
+  // Historique « Projet soumis & publié » : tous les projets créés par
+  // l'utilisateur courant, quel que soit leur statut (archive vivante).
+  const myProjHistory = projects.filter(p => p.createur === user?.id)
 
   const genProjectCode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -4045,18 +4955,18 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }
 
   useEffect(() => {
-    if (activeKey !== 'projets' && activeKey !== 'dashboard') return
+    if (activeKey !== 'projets' && activeKey !== 'dashboard' && activeKey !== 'projetsSubmitted') return
     if (projects.length > 0) return
     setProjectLoading(true)
     apiFetch(`${API}/projets/`, {}, onLogout)
       .then(r => r && r.ok ? r.json() : null)
       .then(data => {
-        const list = Array.isArray(data) ? data : data?.results || MOCK_PROJECTS
+        const list = Array.isArray(data) ? data : data?.results || []
         setProjects(list)
         setOngoingProjects(list)
         setProjectLoading(false)
       })
-      .catch(() => { setProjects(MOCK_PROJECTS); setOngoingProjects(MOCK_PROJECTS); setProjectLoading(false) })
+      .catch(() => { setProjects([]); setOngoingProjects([]); setProjectLoading(false) })
   }, [activeKey])
 
   const loadOrphanages = async () => {
@@ -4131,7 +5041,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }
 
   if (activeKey === 'communication') {
-    return <EclatSocialApp user={user} onReturn={() => { setActiveKey('dashboard'); setSubKey(null) }} />
+    return <EclatSocialApp user={user} onReturn={(key) => { setActiveKey(key || 'dashboard'); setSubKey(null); setNotifTarget(null) }} notifTarget={notifTarget} setNotifTarget={setNotifTarget} />
   }
 
   return (
@@ -4190,7 +5100,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
             <div className="dash-dashboard">
               <div className="dash-dash-welcome">
                 <div className="dash-dash-welcome-left">
-                  <h1 className="dash-dash-greeting">{t('dash_greeting') || 'Bonjour'}, {user.first_name || 'Administrateur'} <span className="dash-dash-wave">{'\u{1F44B}'}</span></h1>
+                  <h1 className="dash-dash-greeting">{t('dash_greeting') || 'Bonjour'}, {user.first_name || 'Administrateur'} <span className="dash-dash-wave"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 21a4 4 0 0 1-4-4c0-1.5.5-3 2-5 1.5-2 2-3.5 2-5 0-1.1.4-2 1-2 .6 0 1 .9 1 2 0 1.5-.5 3-2 5-1.5 2-2 3.5-2 5 0 .6.2 1 .5 1.3"/><path d="M17 21a4 4 0 0 1 4-4c0-1.5-.5-3-2-5-1.5-2-2-3.5-2-5 0-1.1-.4-2-1-2-.6 0-1 .9-1 2 0 1.5.5 3 2 5 1.5 2 2 3.5 2 5 0 .6-.2 1-.5 1.3"/><path d="M12 13c0-1.5-.5-3-2-5-1.5-2-2-3.5-2-5 0-1.1.4-2 1-2 .6 0 1 .9 1 2 0 1.5-.5 3-2 5-1.5 2-2 3.5-2 5 0 .6.2 1 .5 1.3"/></svg></span></h1>
                   <div className="dash-dash-welcome-meta">
                     <span className="dash-dash-meta-item">{dashTime.toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}</span>
                     <span className="dash-dash-meta-divider">·</span>
@@ -4209,10 +5119,16 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
               <div className="dash-dash-kpi-row">
                 {statCards.map((card, i) => {
-                  const kpiIcons = ['\u{1F476}', '\u{1F465}', '\u{1F4C1}', '\u{1F4E8}', '\u{1F4CB}']
-                  const kpiTrends = ['+12%', '+8%', '+23%', '-2%', '+15%']
-                  const trendColors = ['#22c55e', '#22c55e', '#22c55e', '#ef4444', '#22c55e']
-                  const barColors = ['#f59e0b', '#a855f7', '#3b82f6', '#ef4444', '#22c55e']
+                  const kpiIcons = [
+                    React.createElement('svg', { viewBox: '0 0 24 24', width: '22', height: '22', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M12 2a10 10 0 0 1 10 10c0 2.2-.7 4.2-1.9 5.9L12 12V2z' })),
+                    React.createElement('svg', { viewBox: '0 0 24 24', width: '22', height: '22', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' }), React.createElement('circle', { cx: '9', cy: '7', r: '4' }), React.createElement('path', { d: 'M23 21v-2a4 4 0 0 0-3-3.87' }), React.createElement('path', { d: 'M16 3.13a4 4 0 0 1 0 7.75' })),
+                    React.createElement('svg', { viewBox: '0 0 24 24', width: '22', height: '22', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z' }), React.createElement('path', { d: 'M9 20v-4h6v4' }), React.createElement('path', { d: 'M3 12h18' })),
+                    React.createElement('svg', { viewBox: '0 0 24 24', width: '22', height: '22', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M22 17v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-4' }), React.createElement('rect', { x: '2', y: '7', width: '20', height: '8', rx: '2' }), React.createElement('path', { d: 'M12 5V2' }), React.createElement('path', { d: 'M8 5V2' }), React.createElement('path', { d: 'M16 5V2' })),
+                    React.createElement('svg', { viewBox: '0 0 24 24', width: '22', height: '22', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('rect', { width: '8', height: '4', x: '8', y: '2', rx: '1' }), React.createElement('path', { d: 'M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2' })),
+                  ]
+                  const kpiTrends = []
+                  const trendColors = []
+                  const barColors = []
                   return (
                     <div key={i} className="dash-dash-kpi">
                       <div className="dash-dash-kpi-icon" style={{ background: `rgba(${i === 3 ? '239,68,68' : i === 1 ? '168,85,247' : i === 2 ? '59,130,246' : i === 4 ? '34,197,94' : '245,158,11'},0.1)` }}>{kpiIcons[i % kpiIcons.length]}</div>
@@ -4235,13 +5151,13 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
 
               <div className="dash-dash-actions-row">
                 {[
-                  { icon: '\u{2795}', label: t('dash_add_child') || 'Ajouter un enfant', key: 'enfants', color: '#f59e0b' },
-                  { icon: '\u{2795}', label: t('dash_new_project') || 'Nouveau projet', key: 'projets', color: '#3b82f6' },
-                  { icon: '\u{2795}', label: t('dash_new_doc') || 'Nouveau document', key: 'documents', color: '#a855f7' },
-                  { icon: '\u{2795}', label: t('dash_new_request') || 'Nouvelle demande', key: 'demandes', color: '#22c55e' },
+                  { icon: 'plus', label: t('dash_add_child') || 'Ajouter un enfant', key: 'enfants', color: '#f59e0b' },
+                  { icon: 'plus', label: t('dash_new_project') || 'Nouveau projet', key: 'projets', color: '#3b82f6' },
+                  { icon: 'plus', label: t('dash_new_doc') || 'Nouveau document', key: 'documents', color: '#a855f7' },
+                  { icon: 'plus', label: t('dash_new_request') || 'Nouvelle demande', key: 'demandes', color: '#22c55e' },
                 ].map((action, i) => (
                   <button key={i} className="dash-dash-action-btn" style={{ '--action-color': action.color }} onClick={() => { setActiveKey(action.key); setSubKey(null); setEditingChild(null); }}>
-                    <span className="dash-dash-action-icon">{action.icon}</span>
+                    <span className="dash-dash-action-icon">{action.icon === 'plus' ? React.createElement('svg', { viewBox: '0 0 24 24', width: 18, height: 18, fill: 'none', stroke: 'currentColor', strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M12 5v14' }), React.createElement('path', { d: 'M5 12h14' })) : action.icon}</span>
                     <span className="dash-dash-action-label">{action.label}</span>
                   </button>
                 ))}
@@ -4272,10 +5188,10 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   <div className="dash-dash-card dash-dash-upcoming">
                     <div className="dash-dash-card-header">
                       <span className="dash-dash-card-title">{t('dash_upcoming_projects') || 'Projets à venir'}</span>
-                      <span className="dash-dash-card-badge">{(ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS).length}</span>
+                      <span className="dash-dash-card-badge">{ongoingProjects.length}</span>
                     </div>
                     <div className="dash-dash-card-body">
-                      {(ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS).slice(0, 4).map((proj, i) => (
+                      {ongoingProjects.slice(0, 4).map((proj, i) => (
                         <div key={i} className="dash-dash-project-item" onClick={() => { const _exp = proj.end_date && proj.end_date < new Date().toISOString().split('T')[0]; setActiveKey('projets'); setProjectTypeFilter(null); setSelectedProject(proj); _exp ? (setShowOngoing(false), setShowExpired(true)) : (setShowOngoing(true), setShowExpired(false)); }}>
                           <div className="dash-dash-project-top">
                             <span className="dash-dash-project-name">{proj.title}</span>
@@ -4296,19 +5212,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   <div className="dash-dash-card dash-dash-notifs">
                     <div className="dash-dash-card-header">
                       <span className="dash-dash-card-title">{t('dash_notifications') || 'Notifications'}</span>
-                      <span className="dash-dash-card-badge dash-dash-card-badge-alert">3</span>
+                      <span className="dash-dash-card-badge">{dashNotifs.length}</span>
                     </div>
                     <div className="dash-dash-card-body">
-                      {[
-                        { text: t('dash_notif_critical') || 'Demandes critiques en attente', type: 'critical' },
-                        { text: t('dash_notif_approvals') || 'Approbations en attente', type: 'warning' },
-                        { text: t('dash_notif_messages') || 'Nouveaux messages reçus', type: 'info' },
-                      ].map((notif, i) => (
-                        <div key={i} className={`dash-dash-notif-item dash-dash-notif-${notif.type}`}>
-                          <div className="dash-dash-notif-icon">
-                            {notif.type === 'critical' ? '\u{26A0}\u{FE0F}' : notif.type === 'warning' ? '\u{23F3}' : '\u{1F4E8}'}
-                          </div>
-                          <span className="dash-dash-notif-text">{notif.text}</span>
+                      {dashNotifs.length === 0 ? (
+                        <div className="dash-dash-empty">{t('dash_no_notifs') || 'Aucune notification'}</div>
+                      ) : dashNotifs.slice(0, 5).map((n, i) => (
+                        <div key={n.id || i} className="dash-dash-notif-item">
+                          <span className="dash-dash-notif-text">{n.title || n.message || n.text}</span>
                         </div>
                       ))}
                     </div>
@@ -4353,7 +5264,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       t('dash_mod_demandes') || 'Gestion des demandes',
                       t('dash_mod_comm') || 'Messages et annonces',
                     ]
-                    const moduleCounts = [registeredChildren.length || statCards[0]?.value || 0, '86', (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS).length + ' actifs', statCards[2]?.value || 12, statCards[3]?.value || 5, '']
+                    const moduleCounts = [registeredChildren.length || statCards[0]?.value || 0, '86', ongoingProjects.length + ' actifs', statCards[2]?.value || 12, statCards[3]?.value || 5, '']
                     const colors = ['#f59e0b', '#3b82f6', '#22c55e', '#a855f7', '#ef4444', '#06b6d4']
                     return (
                       <button key={item.key} className="dash-dash-module-card" style={{ '--mod-color': colors[i % colors.length] }} onClick={() => { setActiveKey(item.key); setSubKey(null); setEditingChild(null); }}>
@@ -5319,7 +6230,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <div 
                                 key={bg.id} 
                                 className={`bg-lib-card ${bgTheme === bg.id ? 'selected' : ''}`}
-                                onClick={() => setBgTheme(bg.id)}
+                                onClick={() => { setBgTheme(bg.id); setBgCombo(null) }}
                               >
                                 {bgTheme === bg.id && <div className="bg-lib-badge selected-badge">Actif</div>}
                                 
@@ -5348,6 +6259,61 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           {BACKGROUND_LIBRARY.filter(bg => (bgLibCat === 'All' || bg.category === bgLibCat) && (bg.name.toLowerCase().includes(bgLibSearch.toLowerCase()) || bg.tags.some(t => t.includes(bgLibSearch.toLowerCase())))).length === 0 && (
                             <div className="bg-lib-empty">Aucun thème ne correspond à votre recherche.</div>
                           )}
+                        </div>
+                      </div>
+
+                      <div className="dash-form-field" style={{ gridColumn: '1 / -1' }}>
+                        <label className="dash-form-label" style={{ marginBottom:'4px' }}>Combinaison de fonds (gauche / droite)</label>
+                        <p style={{ margin:'0 0 16px', fontSize:'13px', color:'var(--text-muted)' }}>Affichez deux fonds différents de la bibliothèque, un de chaque côté du tableau de bord.</p>
+
+                        <div className="bg-combo">
+                          <div className="bg-combo-presets">
+                            {BG_COMBO_PRESETS.map(p => {
+                              const left = BACKGROUND_LIBRARY.find(bg => bg.id === p.leftId)
+                              const right = BACKGROUND_LIBRARY.find(bg => bg.id === p.rightId)
+                              const isSelected = bgCombo?.leftId === p.leftId && bgCombo?.rightId === p.rightId
+                              return (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  className={`bg-combo-preset${isSelected ? ' selected' : ''}`}
+                                  onClick={() => { setBgCombo({ leftId: p.leftId, rightId: p.rightId }); setBgTheme('') }}
+                                  aria-pressed={isSelected}
+                                  title={p.name}
+                                >
+                                  <span className="bg-combo-preset-thumb">
+                                    <img src={bgPhotoUrl(left)} alt="" />
+                                    <img src={bgPhotoUrl(right)} alt="" />
+                                  </span>
+                                  <span className="bg-combo-preset-name">{p.name}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+
+                          <div className="bg-combo-custom">
+                            <div className="bg-combo-select">
+                              <label htmlFor="bg-combo-left">Fond gauche</label>
+                              <select id="bg-combo-left"
+                                value={bgCombo?.leftId || BG_COMBO_PRESETS[0].leftId}
+                                onChange={e => { setBgCombo(c => ({ leftId: e.target.value, rightId: c?.rightId || BG_COMBO_PRESETS[0].rightId })); setBgTheme('') }}>
+                                {BG_PHOTO_THEMES.map(bg => <option key={bg.id} value={bg.id}>{bg.name}</option>)}
+                              </select>
+                            </div>
+                            <div className="bg-combo-select">
+                              <label htmlFor="bg-combo-right">Fond droit</label>
+                              <select id="bg-combo-right"
+                                value={bgCombo?.rightId || BG_COMBO_PRESETS[0].rightId}
+                                onChange={e => { setBgCombo(c => ({ leftId: c?.leftId || BG_COMBO_PRESETS[0].leftId, rightId: e.target.value })); setBgTheme('') }}>
+                                {BG_PHOTO_THEMES.map(bg => <option key={bg.id} value={bg.id}>{bg.name}</option>)}
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="bg-combo-preview">
+                            <img src={bgPhotoUrl(BACKGROUND_LIBRARY.find(bg => bg.id === (bgCombo?.leftId || BG_COMBO_PRESETS[0].leftId)))} alt="" />
+                            <img src={bgPhotoUrl(BACKGROUND_LIBRARY.find(bg => bg.id === (bgCombo?.rightId || BG_COMBO_PRESETS[0].rightId)))} alt="" />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -7988,7 +8954,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <div className="dash-proj-list-header">
                           <button className="dash-back-btn" onClick={() => { setShowOngoing(false); setShowExpired(false); setSelectedProject(null) }}>{'\u2190'} {t('form_back')}</button>
                           <span className="dash-section-title">{t('proj_ongoing') || 'Projets en cours'}</span>
-                          <span className="dash-proj-count">{(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => !p.end_date || p.end_date >= new Date().toISOString().split('T')[0]).length} {t('proj_projects') || 'projets'}</span>
+                          <span className="dash-proj-count">{(projects.length > 0 ? projects : ongoingProjects).filter(p => !p.end_date || p.end_date >= new Date().toISOString().split('T')[0]).length} {t('proj_projects') || 'projets'}</span>
                         </div>
                         {selectedProject ? (
                           <div className="dash-sub-form">
@@ -8014,13 +8980,15 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               {role === 'partner' && selectedProject.status === 'open' && (
                                 <button className="dash-form-save" onClick={async () => {
                                   try {
-                                    const res = await apiFetch(`${API}/projets/${selectedProject.id}/apply/`, {
+                                    const res = await apiFetch(`${API}/projets/${selectedProject.id}/candidature/`, {
                                       method: 'POST', headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ message: '' }),
+                                      body: JSON.stringify({ montant_propose: 0, modalite: 'unique', message: '' }),
                                     }, onLogout)
                                     if (!res) return
-                                    if (res.ok) alert(t('proj_applied') || 'Candidature envoyée avec succès !')
-                                    else throw new Error()
+                                    if (res.ok) {
+                                      alert(t('proj_applied') || 'Candidature envoyée avec succès ! Retrouvez-la dans Sponsorship.')
+                                      setActiveKey('opportunites')
+                                    } else throw new Error()
                                   } catch { alert(t('proj_error') || 'Erreur lors de la candidature') }
                                 }}>{t('proj_apply') || 'Postuler pour financer'}</button>
                               )}
@@ -8028,7 +8996,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           </div>
                         ) : (
                           <div className="dash-proj-list">
-                            {(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => !p.end_date || p.end_date >= new Date().toISOString().split('T')[0]).map(proj => (
+                            {(projects.length > 0 ? projects : ongoingProjects).filter(p => !p.end_date || p.end_date >= new Date().toISOString().split('T')[0]).map(proj => (
                               <div key={proj.code} className="dash-proj-card" onClick={() => setSelectedProject(proj)}>
                                 <div className="dash-proj-card-top">
                                   <span className="dash-proj-code">{proj.code}</span>
@@ -8041,18 +9009,44 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 </div>
                               </div>
                             ))}
-                            {(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => !p.end_date || p.end_date >= new Date().toISOString().split('T')[0]).length === 0 && (
+                            {(projects.length > 0 ? projects : ongoingProjects).filter(p => !p.end_date || p.end_date >= new Date().toISOString().split('T')[0]).length === 0 && (
                               <div className="dash-empty-state"><span className="dash-empty-icon">{'\u{1F4CB}'}</span><p>{t('proj_no_ongoing') || 'Aucun projet en cours'}</p></div>
                             )}
                           </div>
                         )}
+                      </div>
+                    ) : showProjHistory ? (
+                      <div className="dash-projects">
+                        <div className="dash-proj-list-header">
+                          <button className="dash-back-btn" onClick={() => { setShowProjHistory(false); setSelectedProject(null) }}>{'\u2190'} {t('form_back')}</button>
+                          <span className="dash-section-title">Historique \u2014 Projets soumis & publi\u00e9s</span>
+                          <span className="dash-proj-count">{myProjHistory.length} projets</span>
+                        </div>
+                        <div className="dash-proj-list">
+                          {myProjHistory.map(proj => (
+                            <div key={proj.id} className="dash-proj-card" style={{ cursor: 'default' }}>
+                              <div className="dash-proj-card-top">
+                                <span className="dash-proj-code">{proj.code}</span>
+                                <span className="dash-proj-badge">{PROJ_STATUT_LABELS[proj.statut] || proj.statut}</span>
+                              </div>
+                              <h4 className="dash-proj-card-title">{proj.titre || proj.title}</h4>
+                              <p className="dash-proj-card-summary">{(proj.resume || proj.description || '').substring(0, 80)}</p>
+                              <div className="dash-proj-card-dates">
+                                <span>Soumis le {proj.created_at ? new Date(proj.created_at).toLocaleDateString('fr-FR') : '\u2014'}{proj.budget_total ? ` \u00b7 ${proj.montant_collecte || 0} / ${proj.budget_total}` : ''}</span>
+                              </div>
+                            </div>
+                          ))}
+                          {myProjHistory.length === 0 && (
+                            <div className="dash-empty-state"><p>Aucun projet soumis pour l'instant.</p></div>
+                          )}
+                        </div>
                       </div>
                     ) : showExpired ? (
                       <div className="dash-projects">
                         <div className="dash-proj-list-header">
                           <button className="dash-back-btn" onClick={() => { setShowExpired(false); setSelectedProject(null) }}>{'\u2190'} {t('form_back')}</button>
                           <span className="dash-section-title">{t('proj_expired') || 'Projets expirés'}</span>
-                          <span className="dash-proj-count">{(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).length} {t('proj_expired_projects') || 'projets expirés'}</span>
+                          <span className="dash-proj-count">{(projects.length > 0 ? projects : ongoingProjects).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).length} {t('proj_expired_projects') || 'projets expirés'}</span>
                         </div>
                         {selectedProject ? (
                           <div className="dash-sub-form">
@@ -8079,7 +9073,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           </div>
                         ) : (
                           <div className="dash-proj-list">
-                            {(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).map(proj => (
+                            {(projects.length > 0 ? projects : ongoingProjects).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).map(proj => (
                               <div key={proj.code} className="dash-proj-card expired" onClick={() => setSelectedProject(proj)}>
                                 <div className="dash-proj-card-top">
                                   <span className="dash-proj-code">{proj.code}</span>
@@ -8092,7 +9086,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 </div>
                               </div>
                             ))}
-                            {(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).length === 0 && (
+                            {(projects.length > 0 ? projects : ongoingProjects).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).length === 0 && (
                               <div className="dash-empty-state"><span className="dash-empty-icon">{'\u{1F4CB}'}</span><p>{t('proj_no_expired') || 'Aucun projet expiré'}</p></div>
                             )}
                           </div>
@@ -8265,11 +9259,16 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px' }}>
                           <span className="dash-section-title" style={{ fontSize:'15px', fontWeight:'700', color:'#e2e8f0' }}>{t('proj_choose_type') || 'Choisissez un type de projet'}</span>
                           <button className="dash-proj-tab" style={{ marginLeft:'auto', fontSize:'12px', padding:'6px 14px' }} onClick={() => { setShowOngoing(true); setShowExpired(false); setSelectedProject(null) }}>
-                            {'\u{25B6}'} {t('proj_ongoing') || 'En cours'} ({(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => !p.end_date || p.end_date >= new Date().toISOString().split('T')[0]).length})
+                            {'\u{25B6}'} {t('proj_ongoing') || 'En cours'} ({(projects.length > 0 ? projects : ongoingProjects).filter(p => !p.end_date || p.end_date >= new Date().toISOString().split('T')[0]).length})
                           </button>
                           <button className="dash-proj-tab dash-proj-tab-expired" style={{ fontSize:'12px', padding:'6px 14px' }} onClick={() => { setShowExpired(true); setShowOngoing(false); setSelectedProject(null) }}>
-                            {'\u{23F3}'} {t('proj_expired') || 'Expirés'} ({(projects.length > 0 ? projects : (ongoingProjects.length > 0 ? ongoingProjects : MOCK_PROJECTS)).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).length})
+                            {'\u{23F3}'} {t('proj_expired') || 'Expirés'} ({(projects.length > 0 ? projects : ongoingProjects).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).length})
                           </button>
+                          {(role === 'ambassador' || role === 'director') && (
+                            <button className="dash-proj-tab" style={{ fontSize:'12px', padding:'6px 14px' }} onClick={() => { setShowProjHistory(true); setShowOngoing(false); setShowExpired(false); setSelectedProject(null) }}>
+                              <HumanizedIcons.HumanizedDocumentIcon size={13} style={{verticalAlign:'-2px'}} /> Historique ({myProjHistory.length})
+                            </button>
+                          )}
                         </div>
                         <div className="dash-category-cards" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
                           {PROJECT_TYPES.map(pt => (
@@ -8285,10 +9284,51 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       </>
                     )}
                   </div>
+                ) : activeKey === 'projetsSubmitted' && (role === 'federation' || role === 'supermaster') ? (
+                  <div className="dash-projects">
+                    <div className="dash-proj-list-header">
+                      <span className="dash-section-title">Projets soumis</span>
+                      <span className="dash-proj-count">{projects.length} projets</span>
+                    </div>
+                    {[
+                      { role: 'ambassadeur', label: 'Projets Ambassadeur' },
+                      { role: 'directeur', label: "Projets Chef d'Orphelinat" },
+                      { role: 'federation', label: 'Projets Fédération' },
+                    ].map(section => {
+                      const items = projects.filter(p => p.createur_role === section.role)
+                      return (
+                        <div key={section.role} style={{ marginBottom: '26px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                            <span className="dash-section-title" style={{ fontSize: '14px' }}>{section.label}</span>
+                            <span className="dash-proj-count">{items.length}</span>
+                          </div>
+                          {items.length === 0 ? (
+                            <div style={{ fontSize: '13px', color: 'var(--text-muted,#94a3b8)', padding: '6px 2px 2px' }}>Aucun projet dans cette section.</div>
+                          ) : (
+                            <div className="dash-proj-list">
+                              {items.map(proj => (
+                                <div key={proj.id} className="dash-proj-card" style={{ cursor: 'default' }}>
+                                  <div className="dash-proj-card-top">
+                                    <span className="dash-proj-code">{proj.code}</span>
+                                    <span className="dash-proj-badge">{PROJ_STATUT_LABELS[proj.statut] || proj.statut}</span>
+                                  </div>
+                                  <h4 className="dash-proj-card-title">{proj.titre || proj.title}</h4>
+                                  <p className="dash-proj-card-summary">{(proj.resume || proj.description || '').substring(0, 80)}</p>
+                                  <div className="dash-proj-card-dates">
+                                    <span>{proj.createur_nom || '—'} · {proj.created_at ? new Date(proj.created_at).toLocaleDateString('fr-FR') : '—'}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 ) : activeKey === 'opportunites' && role === 'partner' ? (
                   <OpportunityCenter user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} />
                 ) : activeKey === 'enfants' && role === 'partner' ? (
-                  <PartnerChildren user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} countryName={countryName} flagImg={flagImg} />
+                  <PartnerChildren user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} countryName={countryName} flagImg={flagImg} onNavigateSponsorship={() => setActiveKey('opportunites')} />
                 ) : activeKey === 'transactions' && role === 'partner' ? (
                   <PartnerTransactions apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} />
                 ) : activeKey === 'impact' && role === 'partner' ? (
@@ -10424,6 +11464,22 @@ function OpportunityCenter({ user, apiFetch, API, onLogout, t }) {
   const [filter, setFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedOpp, setSelectedOpp] = useState(null)
+  const [mesCandidatures, setMesCandidatures] = useState([])
+  const [candLoading, setCandLoading] = useState(true)
+
+  // Sponsorship — mes candidatures soumises (tous projets confondus) et
+  // leur statut, pour que le partenaire retrouve ici ce qu'il a « postulé »
+  // depuis l'Accueil de Communication.
+  const loadCandidatures = useCallback(() => {
+    setCandLoading(true)
+    apiFetch(`${API}/projets/mes-candidatures/`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(data => { setMesCandidatures(Array.isArray(data) ? data : []); setCandLoading(false) })
+      .catch(() => setCandLoading(false))
+  }, [])
+  useEffect(() => { loadCandidatures() }, [loadCandidatures])
+
+  const CAND_STATUT_LABELS = { en_attente_reponse: 'En attente', acceptee: 'Acceptée', refusee: 'Refusée' }
 
   const load = useCallback(() => {
     setLoading(true)
@@ -10461,8 +11517,24 @@ function OpportunityCenter({ user, apiFetch, API, onLogout, t }) {
   return (
     <div className="opp-center">
       <div className="opp-header">
-        <div><h2 className="opp-title">Centre des Opportunités</h2><p className="opp-sub">Découvrez comment soutenir enfants et projets</p></div>
+        <div><h2 className="opp-title">Sponsorship</h2><p className="opp-sub">Découvrez comment soutenir enfants et projets, et suivez vos candidatures</p></div>
       </div>
+
+      {!candLoading && mesCandidatures.length > 0 && (
+        <div className="opp-my-candidatures">
+          <h3 className="opp-my-candidatures-title">Mes candidatures ({mesCandidatures.length})</h3>
+          <div className="opp-my-candidatures-list">
+            {mesCandidatures.map(c => (
+              <div key={c.id} className="opp-candidature-row">
+                <span className={`opp-cand-statut opp-cand-statut-${c.statut}`}>{CAND_STATUT_LABELS[c.statut] || c.statut}</span>
+                <span className="opp-cand-titre">{c.projet_titre}</span>
+                <span className="opp-cand-montant">{c.montant_propose > 0 ? `${Number(c.montant_propose).toLocaleString('fr-FR')} €` : '—'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="opp-toolbar">
         <div className="opp-search"><input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Rechercher opportunités..." /></div>
         <div className="opp-filters">{FILTERS.map(f => <button key={f.key} className={`opp-filter${filter === f.key ? ' active' : ''}`} onClick={() => setFilter(f.key)}>{f.label}</button>)}</div>
@@ -10506,7 +11578,7 @@ function OpportunityCenter({ user, apiFetch, API, onLogout, t }) {
 }
 
 /* ═══════════ PARTNER — CHILDREN LIST ═══════════ */
-function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagImg }) {
+function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagImg, onNavigateSponsorship }) {
   const [children, setChildren] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -10515,6 +11587,27 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
   const [selectedChild, setSelectedChild] = useState(null)
   const [detailTab, setDetailTab] = useState('overview')
   const [detailLoading, setDetailLoading] = useState(false)
+  const [fundingProjectId, setFundingProjectId] = useState(null)
+
+  // Candidature réelle sur un projet (même endpoint que le "Postuler" de
+  // l'Accueil Communication) — remplace l'alerte factice "Financer ce
+  // projet" par un véritable envoi de candidature au Chef d'Orphelinat.
+  const financerProjet = async (projet) => {
+    if (fundingProjectId) return
+    setFundingProjectId(projet.id)
+    const res = await apiFetch(`${API}/projets/${projet.id}/candidature/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ montant_propose: 0, modalite: 'unique', message: `Intérêt exprimé depuis la fiche de ${N}.` }),
+    }, onLogout)
+    setFundingProjectId(null)
+    if (res && res.ok) {
+      alert(`Candidature envoyée pour « ${projet.titre} ». Retrouvez-la dans Sponsorship.`)
+      onNavigateSponsorship?.()
+    } else {
+      const err = res ? await res.json().catch(() => ({})) : {}
+      alert(err.error || Object.values(err)[0] || 'Une erreur est survenue.')
+    }
+  }
 
   const load = useCallback(() => {
     setLoading(true)
@@ -10659,7 +11752,7 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
               <div className="partner-section-grid">
                 {renderUpdates(updates.health)}
                 <div className="partner-sponsor-row" style={{marginTop:8}}>
-                  <button className="partner-sponsor-btn" onClick={() => alert('Parrainer pour la santé')}>Parrainer pour la santé</button>
+                  <button className="partner-sponsor-btn" onClick={() => onNavigateSponsorship?.()}>Parrainer pour la santé</button>
                 </div>
               </div>
             )}
@@ -10668,7 +11761,7 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
               <div className="partner-section-grid">
                 {renderUpdates(updates.education)}
                 <div className="partner-sponsor-row" style={{marginTop:8}}>
-                  <button className="partner-sponsor-btn" onClick={() => alert('Parrainer pour l\'éducation')}>Parrainer pour l'éducation</button>
+                  <button className="partner-sponsor-btn" onClick={() => onNavigateSponsorship?.()}>Parrainer pour l'éducation</button>
                 </div>
               </div>
             )}
@@ -10677,7 +11770,7 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
               <div className="partner-section-grid">
                 {renderUpdates(updates.family)}
                 <div className="partner-sponsor-row" style={{marginTop:8}}>
-                  <button className="partner-sponsor-btn" onClick={() => alert('Parrainer pour le soutien familial')}>Parrainer pour la famille</button>
+                  <button className="partner-sponsor-btn" onClick={() => onNavigateSponsorship?.()}>Parrainer pour la famille</button>
                 </div>
               </div>
             )}
@@ -10686,7 +11779,7 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
               <div className="partner-section-grid">
                 {renderUpdates(updates.documents)}
                 <div className="partner-sponsor-row" style={{marginTop:8}}>
-                  <button className="partner-sponsor-btn" onClick={() => alert('Soutenir pour la documentation')}>Soutenir</button>
+                  <button className="partner-sponsor-btn" onClick={() => onNavigateSponsorship?.()}>Soutenir</button>
                 </div>
               </div>
             )}
@@ -10695,7 +11788,7 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
               <div className="partner-section-grid">
                 {renderUpdates(updates.social)}
                 <div className="partner-sponsor-row" style={{marginTop:8}}>
-                  <button className="partner-sponsor-btn" onClick={() => alert('Soutenir pour le suivi social')}>Soutenir</button>
+                  <button className="partner-sponsor-btn" onClick={() => onNavigateSponsorship?.()}>Soutenir</button>
                 </div>
               </div>
             )}
@@ -10710,7 +11803,7 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
                       <div className="partner-field"><span>Statut:</span> {o.status}</div>
                       <p>{o.summary || ''}</p>
                       <div className="partner-sponsor-row">
-                        <button className="partner-sponsor-btn" onClick={() => alert(`Soutenir : ${o.title}`)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Soutenir cette opportunité</button>
+                        <button className="partner-sponsor-btn" onClick={() => onNavigateSponsorship?.()}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Soutenir cette opportunité</button>
                       </div>
                     </div>
                   ))}
@@ -10728,7 +11821,7 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
                       <div className="partner-field"><span>Collecté:</span> {Number(p.montant_collecte||0).toLocaleString('fr-FR')} USD</div>
                       <div className="partner-field"><span>Statut:</span> {p.statut}</div>
                       <div className="partner-sponsor-row">
-                        <button className="partner-sponsor-btn" onClick={() => alert(`Financer le projet : ${p.titre}`)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Financer ce projet</button>
+                        <button className="partner-sponsor-btn" disabled={fundingProjectId === p.id} onClick={() => financerProjet(p)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> {fundingProjectId === p.id ? 'Envoi…' : 'Financer ce projet'}</button>
                       </div>
                     </div>
                   ))}
