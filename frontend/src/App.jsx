@@ -289,7 +289,7 @@ function Header({ onLoginClick, onSignupClick, onVirtualAssist }) {
   return (
     <header className="header" data-scrolled={scrolled}>
       <div className="header-inner container">
-        <a href="#" className="logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
+        <a href="" className="logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
           <img src="/logo.jpg" alt="Logo" className="logo-img" />
           <span className="logo-text">Fédération<span className="accent"> des Orphelinats</span></span>
         </a>
@@ -671,7 +671,7 @@ function Contact() {
               { label: 'YouTube', icon: 'yt' },
               { label: 'TikTok', icon: 'tk' },
             ].map((s, i) => (
-              <a key={i} href="#" className="social-badge" onClick={e => e.preventDefault()}>
+              <a key={i} href="" className="social-badge" onClick={e => e.preventDefault()}>
                 <span className="soc-icon">{s.icon}</span>
                 {s.label}
               </a>
@@ -1737,6 +1737,28 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
   const [esProjForm, setEsProjForm] = React.useState({ titre: '', description: '', budget_total: 0, beneficiaires: 0 })
   const [esProjFormError, setEsProjFormError] = React.useState('')
   const [esProjSubmitting, setEsProjSubmitting] = React.useState(false)
+
+  const esProjPhotoSyncAttempted = React.useRef(new Set())
+  React.useEffect(() => {
+    if (!esProjChildren.length) return
+    esProjChildren.forEach(child => {
+      if (child.photo || !child.uid || esProjPhotoSyncAttempted.current.has(child.uid)) return
+      const local = localStorage.getItem('cdo_child_photo_' + child.uid)
+      if (!local || !local.startsWith('data:image')) return
+      esProjPhotoSyncAttempted.current.add(child.uid)
+      apiFetch(`${API}/enfants/${child.id}/`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photo: local }),
+      }, onReturn)
+        .then(r => {
+          if (r && r.ok) {
+            setEsProjChildren(prev => prev.map(c => c.id === child.id ? { ...c, photo: local } : c))
+          }
+        })
+        .catch(() => {})
+    })
+  }, [esProjChildren, onReturn])
 
   // Système de redimensionnement interactif pour les 3 panneaux (gauche,
   // centre/liste, droite) — applicable à Accueil comme aux Canaux.
@@ -3234,19 +3256,26 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
               <div style={{ maxWidth: '640px' }}>
                 <button className="es-pj-back" onClick={() => { setEsProjMode('list'); setEsProjSelectedTarget(null); setEsProjChoice(null) }}>{'←'} Retour</button>
 
-                {esProjView === 'children' && esProjSelectedTarget && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', background: 'var(--bg-card,#f8fafc)', border: '1px solid var(--border-card,#e2e8f0)', borderRadius: '14px', marginBottom: '18px' }}>
-                    <img src={esProjSelectedTarget.photo || esAgentAvatar(esProjSelectedTarget, 56)} alt="" style={{ width: 56, height: 56, borderRadius: '14px', objectFit: 'cover', flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '7px' }}>
-                        {esProjSelectedTarget.prenom} {esProjSelectedTarget.nom}
-                        {esChildFlagCode(esProjSelectedTarget.nationalite) && flagImg(esChildFlagCode(esProjSelectedTarget.nationalite), esProjSelectedTarget.nationalite, '15px')}
+                {esProjView === 'children' && esProjSelectedTarget && (() => {
+                  const localPhoto = localStorage.getItem('cdo_child_photo_' + esProjSelectedTarget.uid);
+                  const hues = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316'];
+                  const cc = hues[(esProjSelectedTarget.prenom?.charCodeAt(0) || 0) % hues.length];
+                  const initial = (esProjSelectedTarget.prenom?.[0] || esProjSelectedTarget.nom?.[0] || '?').toUpperCase();
+                  const photoSrc = localPhoto || (esProjSelectedTarget.photo ? esMediaUrl(esProjSelectedTarget.photo) : svgUrl(initial, cc, 56, 56));
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', background: 'var(--bg-card,#f8fafc)', border: '1px solid var(--border-card,#e2e8f0)', borderRadius: '14px', marginBottom: '18px' }}>
+                      <img src={photoSrc} alt="" style={{ width: 56, height: 56, borderRadius: '14px', objectFit: 'cover', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                          {esProjSelectedTarget.prenom} {esProjSelectedTarget.nom}
+                          {esChildFlagCode(esProjSelectedTarget.nationalite) && flagImg(esChildFlagCode(esProjSelectedTarget.nationalite), esProjSelectedTarget.nationalite, '15px')}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>ID {esProjSelectedTarget.uid ? esProjSelectedTarget.uid.replace('#', '') : ''}{esProjSelectedTarget.nationalite ? ` · ${esProjSelectedTarget.nationalite}` : ''}{esProjSelectedTarget.orphanage_name ? ` · ${esProjSelectedTarget.orphanage_name}` : ''}</div>
+                        <div style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 600, marginTop: '2px' }}>Statut actuel : {esProjSelectedTarget.status_label || esProjSelectedTarget.status || 'Non renseigné'}</div>
                       </div>
-                      <div style={{ fontSize: '12px', color: '#94a3b8' }}>ID {esProjSelectedTarget.uid}{esProjSelectedTarget.nationalite ? ` · ${esProjSelectedTarget.nationalite}` : ''}{esProjSelectedTarget.orphanage_name ? ` · ${esProjSelectedTarget.orphanage_name}` : ''}</div>
-                      <div style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 600, marginTop: '2px' }}>Statut actuel : {esProjSelectedTarget.status_label || esProjSelectedTarget.status || 'Non renseigné'}</div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
                 {esProjView === 'orphanage' && esProjSelectedTarget && (
                   <div className="es-pj-target-chip" style={{ marginBottom: '18px' }}><EsIcon name="building" size={14} /> {esProjSelectedTarget.name}</div>
                 )}
@@ -3419,20 +3448,27 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                         <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px dashed var(--border-card,#e2e8f0)' }}>
                           {user?.role === 'ambassador' ? "Aucun enfant ne vous est assigné pour l'instant." : 'Aucun enfant enregistré.'}
                         </div>
-                      ) : esProjChildren.map(child => (
-                        <div key={child.id} onClick={() => esProjSelectTarget(child)}
-                          style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px solid var(--border-card,#e2e8f0)', cursor: 'pointer' }}>
-                          <img src={child.photo ? esMediaUrl(child.photo) : esAgentAvatar(child, 44)} alt="" style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              {child.prenom} {child.nom}
-                              {esChildFlagCode(child.nationalite) && flagImg(esChildFlagCode(child.nationalite), child.nationalite, '13px')}
+                      ) : esProjChildren.map(child => {
+                        const localPhoto = localStorage.getItem('cdo_child_photo_' + child.uid);
+                        const hues = ['#f59e0b','#22c55e','#a855f7','#3b82f6','#ef4444','#ec4899','#14b8a6','#f97316'];
+                        const cc = hues[(child.prenom?.charCodeAt(0) || 0) % hues.length];
+                        const initial = (child.prenom?.[0] || child.nom?.[0] || '?').toUpperCase();
+                        const photoSrc = localPhoto || (child.photo ? esMediaUrl(child.photo) : svgUrl(initial, cc, 44, 44));
+                        return (
+                          <div key={child.id} onClick={() => esProjSelectTarget(child)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px solid var(--border-card,#e2e8f0)', cursor: 'pointer' }}>
+                            <img src={photoSrc} alt="" style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {child.prenom} {child.nom}
+                                {esChildFlagCode(child.nationalite) && flagImg(esChildFlagCode(child.nationalite), child.nationalite, '13px')}
+                              </div>
+                              <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>ID {child.uid ? child.uid.replace('#', '') : ''}{child.nationalite ? ` · ${child.nationalite}` : ''}{child.orphanage_name ? ` · ${child.orphanage_name}` : ''}</div>
                             </div>
-                            <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>ID {child.uid}{child.nationalite ? ` · ${child.nationalite}` : ''}{child.orphanage_name ? ` · ${child.orphanage_name}` : ''}</div>
+                            <EsIcon name="chevron-right" size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />
                           </div>
-                          <EsIcon name="chevron-right" size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -3801,20 +3837,24 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                   </div>
                   {/* Publication liée à un enfant : profil enfant en tête,
                       façon Facebook — photo, nom complet, ID, drapeau pays. */}
-                  {post.child_info && post.project_info && (
-                    <div className="es-post-child-profile">
-                      {post.child_info.photo
-                        ? <img src={esMediaUrl(post.child_info.photo)} alt="" className="es-post-child-photo" />
-                        : <span className="es-post-child-photo es-post-child-photo-fallback"><EsIcon name="child" size={22} /></span>}
-                      <div className="es-post-child-meta">
-                        <span className="es-post-child-name">
-                          {post.child_info.name}
-                          {esChildFlagCode(post.child_info.nationalite) && flagImg(esChildFlagCode(post.child_info.nationalite), post.child_info.nationalite, '14px')}
-                        </span>
-                        <span className="es-post-child-sub">ID {post.child_info.uid}{post.child_info.nationalite ? ` · ${post.child_info.nationalite}` : ''}{post.child_info.orphanage ? ` · ${post.child_info.orphanage}` : ''}</span>
+                  {post.child_info && post.project_info && (() => {
+                    const localPhoto = localStorage.getItem('cdo_child_photo_' + post.child_info.uid);
+                    const photoSrc = localPhoto || (post.child_info.photo ? esMediaUrl(post.child_info.photo) : null);
+                    return (
+                      <div className="es-post-child-profile">
+                        {photoSrc
+                          ? <img src={photoSrc} alt="" className="es-post-child-photo" />
+                          : <span className="es-post-child-photo es-post-child-photo-fallback"><EsIcon name="child" size={22} /></span>}
+                        <div className="es-post-child-meta">
+                          <span className="es-post-child-name">
+                            {post.child_info.name}
+                            {esChildFlagCode(post.child_info.nationalite) && flagImg(esChildFlagCode(post.child_info.nationalite), post.child_info.nationalite, '14px')}
+                          </span>
+                          <span className="es-post-child-sub">ID {post.child_info.uid ? post.child_info.uid.replace('#', '') : ''}{post.child_info.nationalite ? ` · ${post.child_info.nationalite}` : ''}{post.child_info.orphanage ? ` · ${post.child_info.orphanage}` : ''}</span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                   <div className="es-post-content">
                     <p style={{ whiteSpace: 'pre-line' }}>{esReadableUpdate(post.content)}</p>
                     {media && (
@@ -3999,16 +4039,20 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
               {/* Director -> child selector + approval routing */}
               {esIsDirector && (
                 <div style={{ margin: '4px 0 12px' }}>
-                  {esSelectedChild ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '11px' }}>
-                      <span style={{ width: 34, height: 34, borderRadius: '9px', overflow: 'hidden', flexShrink: 0, background: '#e0e7ff', display: 'grid', placeItems: 'center', fontSize: '15px' }}>{esSelectedChild.photo ? <img src={esSelectedChild.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <EsIcon name='child' size={16} />}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#312e81' }}>{esChildName(esSelectedChild)}</div>
-                        <div style={{ fontSize: '11.5px', color: '#6366f1' }}>{esSelectedChild.uid}</div>
+                  {esSelectedChild ? (() => {
+                    const localPhoto = localStorage.getItem('cdo_child_photo_' + esSelectedChild.uid);
+                    const photoSrc = localPhoto || esSelectedChild.photo;
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '11px' }}>
+                        <span style={{ width: 34, height: 34, borderRadius: '9px', overflow: 'hidden', flexShrink: 0, background: '#e0e7ff', display: 'grid', placeItems: 'center', fontSize: '15px' }}>{photoSrc ? <img src={photoSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <EsIcon name='child' size={16} />}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: '#312e81' }}>{esChildName(esSelectedChild)}</div>
+                          <div style={{ fontSize: '11.5px', color: '#6366f1' }}>{esSelectedChild.uid ? esSelectedChild.uid.replace('#', '') : ''}</div>
+                        </div>
+                        <button aria-label='Retirer' onClick={() => setEsSelectedChild(null)} style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', display: 'inline-flex' }}><EsIcon name='x' size={16} /></button>
                       </div>
-                      <button aria-label='Retirer' onClick={() => setEsSelectedChild(null)} style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', display: 'inline-flex' }}><EsIcon name='x' size={16} /></button>
-                    </div>
-                  ) : (
+                    );
+                  })() : (
                     <div style={{ position: 'relative' }}>
                       <input value={esChildQuery} onChange={e => setEsChildQuery(e.target.value)}
                         placeholder="Rechercher l'enfant concerné (nom ou code)…"
@@ -4019,10 +4063,18 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                             <button key={ch.id || ch.uid} onClick={() => { setEsSelectedChild(ch); setEsChildQuery(''); setEsChildResults([]) }}
                               style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '9px 12px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
                               onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                              <span style={{ width: 30, height: 30, borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: '#e0e7ff', display: 'grid', placeItems: 'center', fontSize: '13px' }}>{ch.photo ? <img src={ch.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <EsIcon name='child' size={14} />}</span>
+                              {(() => {
+                                const localPhoto = localStorage.getItem('cdo_child_photo_' + ch.uid);
+                                const photoSrc = localPhoto || ch.photo;
+                                return (
+                                  <span style={{ width: 30, height: 30, borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: '#e0e7ff', display: 'grid', placeItems: 'center', fontSize: '13px' }}>
+                                    {photoSrc ? <img src={photoSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <EsIcon name='child' size={14} />}
+                                  </span>
+                                );
+                              })()}
                               <div style={{ minWidth: 0 }}>
                                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>{esChildName(ch)}</div>
-                                <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>{ch.uid}</div>
+                                <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>{ch.uid ? ch.uid.replace('#', '') : ''}</div>
                               </div>
                             </button>
                           ))}
@@ -9474,7 +9526,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     </div>
                                     <div className="uc2-premium-card-info">
                                       <div className="uc2-premium-card-name">{child.prenom||''} {child.nom||''}</div>
-                                      <div className="uc2-premium-card-uid">#{child.uid}</div>
+                                      <div className="uc2-premium-card-uid">{child.uid ? child.uid.replace('#', '') : ''}</div>
                                        <div className="uc2-premium-card-meta">
                                          <span>{child.sexe === 'M' ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="10" cy="14" r="6"/><path d="M19 5l-5.6 5.6"/><path d="M19 5h-5"/><path d="M19 5v5"/></svg> : child.sexe === 'F' ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="6"/><path d="M12 18v6"/><path d="M9 22h6"/></svg> : ''} {child.sexe === 'M' ? (t('form_male')||'M') : child.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
                                          <span className="uc2-premium-card-dot">·</span>
@@ -9542,7 +9594,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 </div>
                                 <div className="uc2-left-item-info">
                                   <div className="uc2-left-item-name">{child.prenom||''} {child.nom||''}</div>
-                                  <div className="uc2-left-item-meta">#{child.uid} · {child.date_naissance ? Math.floor((Date.now()-new Date(child.date_naissance).getTime())/31557600000)+' '+(t('form_years')||'ans') : '—'}</div>
+                                  <div className="uc2-left-item-meta">{child.uid ? child.uid.replace('#', '') : ''} · {child.date_naissance ? Math.floor((Date.now()-new Date(child.date_naissance).getTime())/31557600000)+' '+(t('form_years')||'ans') : '—'}</div>
                                 </div>
                                 <span className="uc2-left-item-status" style={{background:child.status==='active'?'rgba(34,197,94,0.12)':child.status==='hospitalized'||child.status==='missing'?'rgba(239,68,68,0.12)':'rgba(100,116,139,0.12)',color:child.status==='active'?'#22c55e':child.status==='hospitalized'||child.status==='missing'?'#ef4444':'#94a3b8'}}>{t('child_status_'+child.status)||child.status}</span>
                               </button>
@@ -9558,7 +9610,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               {(() => { const pu = getChildPhotoUrl(updateChild); if (pu) return <img src={pu} alt="" />; return <span>{updateChild.prenom?.[0] || updateChild.nom?.[0] || '?'}</span> })()}
                             </div>
                             <div className="uc2-hero-info">
-                              <div className="uc2-hero-name">{updateChild.prenom || ''} {updateChild.nom || ''} <span className="uc2-hero-uid">#{updateChild.uid}</span></div>
+                              <div className="uc2-hero-name">{updateChild.prenom || ''} {updateChild.nom || ''} <span className="uc2-hero-uid">{updateChild.uid ? updateChild.uid.replace('#', '') : ''}</span></div>
                               <div className="uc2-hero-meta">
                                 <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> {updateChild.date_naissance ? Math.floor((Date.now()-new Date(updateChild.date_naissance).getTime())/31557600000)+' '+(t('form_years')||'ans') : '—'}</span>
                                 <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> {updateChild.sexe === 'M' ? (t('form_male')||'M') : updateChild.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
@@ -9752,7 +9804,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               </div>
                               <div>
                                 <div className="uc2-right-name">{updateChild.prenom||''} {updateChild.nom||''}</div>
-                                <div className="uc2-right-uid">#{updateChild.uid}</div>
+                                <div className="uc2-right-uid">{updateChild.uid ? updateChild.uid.replace('#', '') : ''}</div>
                               </div>
                             </div>
                             {uc2Category && <div className="uc2-right-row"><span className="uc2-right-label">{t('uc_category')||'Catégorie'}</span><span>{UC_CATEGORIES.find(c=>c.key===uc2Category)?.iconSvg} {UC_CATEGORIES.find(c=>c.key===uc2Category)?.label}</span></div>}
@@ -9839,7 +9891,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div className="hc-child-summary-info">
                               <div className="hc-child-summary-name">{hcHistoryChild.prenom||''} {hcHistoryChild.nom||''}</div>
                               <div className="hc-child-summary-meta">
-                                <span>#{hcHistoryChild.uid}</span>
+                                <span>{hcHistoryChild.uid ? hcHistoryChild.uid.replace('#', '') : ''}</span>
                                 <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> {hcHistoryChild.date_naissance ? Math.floor((Date.now()-new Date(hcHistoryChild.date_naissance).getTime())/31557600000) + ' ' + (t('form_years')||'ans') : '—'}</span>
                                 <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> {hcHistoryChild.sexe === 'M' ? (t('form_male')||'M') : hcHistoryChild.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
                                 {hcHistoryChild.nationalite && <span>{hcHistoryChild.nationalite}</span>}
@@ -9934,7 +9986,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                         { label:t('form_age')||'Âge', value:hcHistoryChild.date_naissance ? Math.floor((Date.now()-new Date(hcHistoryChild.date_naissance).getTime())/31557600000)+' '+(t('form_years')||'ans') : '—' },
                                         { label:t('form_gender')||'Sexe', value:hcHistoryChild.sexe === 'M' ? (t('form_male')||'Masculin') : hcHistoryChild.sexe === 'F' ? (t('form_female')||'Féminin') : '—' },
                                         { label:t('form_nationality')||'Nationalité', value:hcHistoryChild.nationalite || '—' },
-                                        { label:t('form_uid')||'UID', value:'#'+hcHistoryChild.uid },
+                                        { label:t('form_uid')||'UID', value:hcHistoryChild.uid ? hcHistoryChild.uid.replace('#', '') : '' },
                                         { label:t('form_status')||'Statut', value:t('child_status_'+hcHistoryChild.status)||hcHistoryChild.status||(t('form_active')||'Actif') },
                                         { label:t('form_address')||'Adresse', value:hcHistoryChild.adresse || '—' },
                                       ].map((f, fi) => (
@@ -10197,7 +10249,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                     </div>
                                     <div className="uc2-premium-card-info">
                                       <div className="uc2-premium-card-name">{child.prenom||''} {child.nom||''}</div>
-                                      <div className="uc2-premium-card-uid">#{child.uid}</div>
+                                      <div className="uc2-premium-card-uid">{child.uid ? child.uid.replace('#', '') : ''}</div>
                                        <div className="uc2-premium-card-meta">
                                          <span>{child.sexe === 'M' ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="10" cy="14" r="6"/><path d="M19 5l-5.6 5.6"/><path d="M19 5h-5"/><path d="M19 5v5"/></svg> : child.sexe === 'F' ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="6"/><path d="M12 18v6"/><path d="M9 22h6"/></svg> : ''} {child.sexe === 'M' ? (t('form_male')||'M') : child.sexe === 'F' ? (t('form_female')||'F') : '—'}</span>
                                          <span className="uc2-premium-card-dot">·</span>
@@ -11040,16 +11092,16 @@ function Footer() {
     <footer className="footer">
       <div className="footer-inner container">
         <div className="footer-brand">
-          <a href="#" className="logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
+          <a href="" className="logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
             <span className="logo-icon">&#x2726;</span>
             <span className="logo-text">Fédération<span className="accent"> des Orphelinats</span></span>
           </a>
           <p className="footer-desc">{t('footer_tagline')}</p>
         </div>
         <div className="footer-links">
-          <a href="#" onClick={e => e.preventDefault()}>{t('footer_privacy')}</a>
-          <a href="#" onClick={e => e.preventDefault()}>{t('footer_terms')}</a>
-          <a href="#" onClick={e => e.preventDefault()}>{t('footer_faq')}</a>
+          <a href="" onClick={e => e.preventDefault()}>{t('footer_privacy')}</a>
+          <a href="" onClick={e => e.preventDefault()}>{t('footer_terms')}</a>
+          <a href="" onClick={e => e.preventDefault()}>{t('footer_faq')}</a>
         </div>
         <div className="footer-copy">
             <p>{t('footer_copyright')}</p>
@@ -11503,7 +11555,7 @@ function WhatsAppFloat() {
   useDraggable('waFloat')
 
   return (
-    <a href="#" className="wa-float" id="waFloat" onClick={e => e.preventDefault()} title="WhatsApp">
+    <a href="" className="wa-float" id="waFloat" onClick={e => e.preventDefault()} title="WhatsApp">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="white">
         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.76-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
         <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.554 4.122 1.525 5.852L.525 24l6.403-1.553A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.776 0-3.468-.494-4.94-1.42l-.36-.215-3.8.922.996-3.677-.25-.39A9.963 9.963 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/>
@@ -11761,7 +11813,7 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
                 <span>·</span>
                 <span>{selectedChild.sexe === 'M' ? 'Garçon' : 'Fille'}</span>
                 <span>·</span>
-                <span className="partner-hero-uid">#{selectedChild.uid}</span>
+                <span className="partner-hero-uid">{selectedChild.uid ? selectedChild.uid.replace('#', '') : ''}</span>
               </div>
               {selectedChild.orphanage_name && <div style={{fontSize:13,color:'var(--text-muted,#94a3b8)',marginTop:4}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M2 9.5 12 4l10 5.5"/><path d="M4 11v6h16v-6"/><path d="M8 11v-4h8v4"/><path d="M12 11v5"/></svg> {selectedChild.orphanage_name}</div>}
             </div>

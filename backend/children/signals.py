@@ -8,6 +8,8 @@ from .constants import CLASSIFICATION_EVENEMENTS, EVENEMENTS_VALIDATION_REQUISE
 from .current_user import get_current_user
 from .models import Child, ChildHistory, ChildUpdate
 
+IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.gif', '.webp')
+
 
 def _resoudre_auteur(instance, auteur=None):
     if auteur:
@@ -170,6 +172,17 @@ def child_pre_save(sender, instance, **kwargs):
 def child_update_post_save(sender, instance, created, **kwargs):
     if not created:
         return
+
+    # When a ChildUpdate contains image attachments, touch the child's
+    # updated_at so the public serializer re-evaluates photo_url (which
+    # falls back to update attachments) on the next API call.
+    has_photo = False
+    for att in (instance.attachments or []):
+        if isinstance(att, str) and att.lower().endswith(IMAGE_EXTS):
+            has_photo = True
+            break
+    if has_photo:
+        Child.objects.filter(pk=instance.child_id).update(updated_at=instance.created_at)
 
     # Parse new_value as JSON to get per-field data
     try:

@@ -3,7 +3,7 @@ import { io } from 'socket.io-client'
 
 const WS_URL = 'http://localhost:8000'
 const API_URL = 'http://localhost:8000/api'
-const POLL_MS = 30000
+const POLL_MS = 5000
 
 function hasHttpPhoto(child) {
   const url = child.photo_url || child.photo || ''
