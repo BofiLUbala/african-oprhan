@@ -50,6 +50,10 @@ class Project(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True, related_name="projets_valides", verbose_name="Validateur",
     )
+    assigned_reviewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="projets_a_reviser", verbose_name="Assigné à",
+    )
 
     statut = models.CharField(
         max_length=30, choices=STATUTS_CHOICES, default=STATUTS_PROJET['BROUILLON'],

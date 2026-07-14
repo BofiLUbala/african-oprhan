@@ -7,6 +7,8 @@ from .constants import STATUTS_PROJET, ROLE_MAP
 class ProjetListSerializer(serializers.ModelSerializer):
     createur_nom = serializers.SerializerMethodField()
     validateur_nom = serializers.SerializerMethodField()
+    assigned_reviewer_nom = serializers.SerializerMethodField()
+    enfant_info = serializers.SerializerMethodField()
     progression = serializers.SerializerMethodField()
     followers_count = serializers.SerializerMethodField()
 
@@ -16,9 +18,11 @@ class ProjetListSerializer(serializers.ModelSerializer):
             "id", "code", "type", "titre", "resume", "description",
             "orphelinat", "enfant", "source_update", "createur", "createur_nom",
             "createur_role", "ambassadeur_validateur", "validateur_nom",
+            "assigned_reviewer", "assigned_reviewer_nom",
             "statut", "motif_rejet", "commentaire_modification",
             "budget_total", "montant_collecte", "progression",
             "beneficiaires", "date_debut", "date_fin",
+            "enfant_info",
             "followers_count",
             "created_at", "updated_at",
         ]
@@ -28,6 +32,23 @@ class ProjetListSerializer(serializers.ModelSerializer):
 
     def get_validateur_nom(self, obj):
         return obj.ambassadeur_validateur.full_name if obj.ambassadeur_validateur else ""
+
+    def get_assigned_reviewer_nom(self, obj):
+        return obj.assigned_reviewer.full_name if obj.assigned_reviewer else ""
+
+    def get_enfant_info(self, obj):
+        if not obj.enfant:
+            return None
+        return {
+            "id": obj.enfant.id,
+            "uid": obj.enfant.uid,
+            "prenom": obj.enfant.prenom,
+            "nom": obj.enfant.nom,
+            "photo": obj.enfant.photo,
+            "nationalite": obj.enfant.nationalite,
+            "status_label": (obj.enfant.get_status_display() if hasattr(obj.enfant, 'get_status_display') else obj.enfant.status or ""),
+            "orphanage_name": getattr(obj.enfant.orphanage, 'name', "") if obj.enfant.orphanage else "",
+        }
 
     def get_progression(self, obj):
         if obj.budget_total > 0:

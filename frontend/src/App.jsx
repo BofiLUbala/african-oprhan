@@ -324,7 +324,7 @@ function ProjectsShowcase({ API }) {
   const [projects, setProjects] = React.useState([])
   const [loading, setLoading] = React.useState(true)
   React.useEffect(() => {
-    fetch(`${API}/projets/?statut=publie&limit=9`)
+    fetch(`${API}/projets/public/?limit=9`)
       .then(r => r.ok ? r.json() : [])
       .then(data => { setProjects(Array.isArray(data) ? data : (data.results || [])); setLoading(false) })
       .catch(() => setLoading(false))
@@ -1124,7 +1124,7 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
           </div>
           <nav className="hd-breadcrumb" aria-label="Breadcrumb">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <span>{t('nav_' + activeKey.replace(/-/g, '_')) || activeKey}</span>
+            <span>{t('nav_' + (typeof activeKey === 'string' ? (typeof activeKey === 'string' ? activeKey.replace(/-/g, '_') : '') : '')) || activeKey}</span>
             {subKey && <><span className="hd-breadcrumb-sep">/</span><span className="hd-breadcrumb-current">{subKey}</span></>}
           </nav>
         </div>
@@ -1222,6 +1222,10 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
                           setNotifTarget({ type: 'channel', slug: parts[2] })
                         } else if (parts[1] === 'dm') {
                           setNotifTarget({ type: 'dm', conversationId: Number(parts[2]) })
+                        } else if (parts[1] === 'projects' && parts[2] === 'review') {
+                          setNotifTarget({ type: 'project_review', projectId: Number(parts[3]) })
+                        } else if (parts[1] === 'projects' && parts[2] === 'response') {
+                          setNotifTarget({ type: 'project_response', projectId: Number(parts[3]) })
                         }
                         setActiveKey('communication')
                       } else {
@@ -2190,6 +2194,8 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
   const ES_VIEW_META = {
     home: { label: 'Accueil', channel: 'Fil public', icon: 'home' },
     projects: { label: 'Projets', channel: 'Gestion des projets', icon: 'folder' },
+    requests: { label: 'Requêtes', channel: 'Validation des projets', icon: 'inbox' },
+    response: { label: 'Réponses', channel: 'Réponses aux validations', icon: 'message' },
     profil: { label: 'Profil', channel: 'Mon profil', icon: 'user' },
     messages: { label: 'Messages', channel: 'Messagerie directe', icon: 'message' },
     settings: { label: 'Paramètres', channel: 'Préférences', icon: 'settings' },
@@ -2231,6 +2237,14 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
   const [esPostNotice, setEsPostNotice] = React.useState('')
   const [esReviewReasonFor, setEsReviewReasonFor] = React.useState(null) // {id, action}
   const [esReviewReason, setEsReviewReason] = React.useState('')
+  const [esRequests, setEsRequests] = React.useState([])
+  const [esRequestsLoading, setEsRequestsLoading] = React.useState(false)
+  const [esResponses, setEsResponses] = React.useState([])
+  const [esResponsesLoading, setEsResponsesLoading] = React.useState(false)
+  const [esSelectedRequest, setEsSelectedRequest] = React.useState(null)
+  const [esReviewAction, setEsReviewAction] = React.useState(null)
+  const [esReviewComment, setEsReviewComment] = React.useState('')
+  const [esReviewSubmitting, setEsReviewSubmitting] = React.useState(false)
 
   /* ── Assistant « Créer un projet » ────────────────────────────────
    * 3 catégories (Enfant / Orphelinat / Fédération) réutilisant l'API
@@ -2348,7 +2362,31 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
       .then(data => { if (data) setEsMyPosts((Array.isArray(data) ? data : (data.results || [])).filter(p => p.status !== 'approved')) })
       .catch(() => {})
   }
+  const esLoadRequests = () => {
+    if (!esIsReviewer) return
+    setEsRequestsLoading(true)
+    apiFetch(`${API}/projets/requests/`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(data => {
+        setEsRequests(Array.isArray(data) ? data : (data.results || []))
+        setEsRequestsLoading(false)
+      })
+      .catch(() => setEsRequestsLoading(false))
+  }
+  const esLoadResponses = () => {
+    if (!esIsDirector) return
+    setEsResponsesLoading(true)
+    apiFetch(`${API}/projets/responses/`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(data => {
+        setEsResponses(Array.isArray(data) ? data : (data.results || []))
+        setEsResponsesLoading(false)
+      })
+      .catch(() => setEsResponsesLoading(false))
+  }
   React.useEffect(() => { if (esView === 'home') { esLoadPending(); esLoadMyPosts() } }, [esView])
+  React.useEffect(() => { if (esView === 'requests') esLoadRequests() }, [esView])
+  React.useEffect(() => { if (esView === 'response') esLoadResponses() }, [esView])
 
   const esChildName = (c) => `${c.prenom || c.first_name || ''} ${c.nom || c.last_name || ''}`.trim() || c.uid
 
@@ -2387,6 +2425,73 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
       setEsReviewReasonFor(null); setEsReviewReason('')
       if (decision === 'approved') esLoadPosts()
     }
+  }
+
+  const esApproveRequest = async (projetId) => {
+    setEsReviewSubmitting(true)
+    const res = await apiFetch(`${API}/projets/${projetId}/valider/`, { method: 'POST' }, onReturn)
+    if (res && res.ok) {
+      const data = await res.json()
+      setEsRequests(prev => prev.filter(p => p.id !== projetId))
+      setEsSelectedRequest(null)
+      setEsReviewAction(null)
+      setEsReviewComment('')
+      // auto-publish
+      if (data.statut === 'approuve') {
+        await apiFetch(`${API}/projets/${projetId}/publier/`, { method: 'POST' }, onReturn)
+      }
+      setEsPostNotice('Projet approuvé et publié dans Accueil.')
+      setTimeout(() => setEsPostNotice(''), 6000)
+    } else {
+      const err = res ? await res.json().catch(() => ({})) : {}
+      setEsPostNotice(err.error || 'Erreur lors de la validation.')
+      setTimeout(() => setEsPostNotice(''), 6000)
+    }
+    setEsReviewSubmitting(false)
+  }
+
+  const esRejectRequest = async (projetId) => {
+    if (!esReviewComment.trim()) return
+    setEsReviewSubmitting(true)
+    const res = await apiFetch(`${API}/projets/${projetId}/rejeter/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ motif: esReviewComment.trim() }),
+    }, onReturn)
+    if (res && res.ok) {
+      setEsRequests(prev => prev.filter(p => p.id !== projetId))
+      setEsSelectedRequest(null)
+      setEsReviewAction(null)
+      setEsReviewComment('')
+      setEsPostNotice('Projet rejeté. Le chef d\'orphelinat sera notifié.')
+      setTimeout(() => setEsPostNotice(''), 6000)
+    } else {
+      const err = res ? await res.json().catch(() => ({})) : {}
+      setEsPostNotice(err.error || 'Erreur lors du rejet.')
+      setTimeout(() => setEsPostNotice(''), 6000)
+    }
+    setEsReviewSubmitting(false)
+  }
+
+  const esRequestImprovements = async (projetId) => {
+    if (!esReviewComment.trim()) return
+    setEsReviewSubmitting(true)
+    const res = await apiFetch(`${API}/projets/${projetId}/demander-modification/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commentaire: esReviewComment.trim() }),
+    }, onReturn)
+    if (res && res.ok) {
+      setEsRequests(prev => prev.filter(p => p.id !== projetId))
+      setEsSelectedRequest(null)
+      setEsReviewAction(null)
+      setEsReviewComment('')
+      setEsPostNotice('Modifications demandées. Le chef d\'orphelinat sera notifié.')
+      setTimeout(() => setEsPostNotice(''), 6000)
+    } else {
+      const err = res ? await res.json().catch(() => ({})) : {}
+      setEsPostNotice(err.error || 'Erreur lors de la demande de modification.')
+      setTimeout(() => setEsPostNotice(''), 6000)
+    }
+    setEsReviewSubmitting(false)
   }
 
   const esToggleLike = async (postId) => {
@@ -2683,6 +2788,12 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
           if (found) esOpenConv(found)
         })
         .catch(() => {})
+    } else if (notifTarget.type === 'project_review') {
+      esNavigate('requests')
+      esLoadRequests()
+    } else if (notifTarget.type === 'project_response') {
+      esNavigate('response')
+      esLoadResponses()
     }
     setNotifTarget(null)
   }, [notifTarget])
@@ -2751,9 +2862,9 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
           <div key={p.id} style={{ padding: '14px 16px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px solid var(--border-card,#e2e8f0)', marginBottom: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontWeight: 600, fontSize: '14px' }}>{p.titre}</div>
-              <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, background: p.statut === 'publie' ? '#dcfce7' : p.statut === 'valide' ? '#fef3c7' : '#f1f5f9', color: p.statut === 'publie' ? '#16a34a' : p.statut === 'valide' ? '#d97706' : '#64748b' }}>
+              {p.statut !== 'brouillon' && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, background: p.statut === 'publie' ? '#dcfce7' : p.statut === 'valide' ? '#fef3c7' : '#f1f5f9', color: p.statut === 'publie' ? '#16a34a' : p.statut === 'valide' ? '#d97706' : '#64748b' }}>
                 {p.statut}
-              </span>
+              </span>}
             </div>
             <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', display: 'flex', gap: '8px', alignItems: 'center' }}>
               {p.createur && <span>Par {p.createur.prenom || ''} {p.createur.nom || ''}</span>}
@@ -2948,6 +3059,12 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                             if (found) esOpenConv(found)
                           })
                           .catch(() => {})
+                      } else if (parts[1] === 'projects' && parts[2] === 'review') {
+                        esNavigate('requests')
+                        esLoadRequests()
+                      } else if (parts[1] === 'projects' && parts[2] === 'response') {
+                        esNavigate('response')
+                        esLoadResponses()
                       }
                     }
                   }} style={{opacity:n.is_read?0.5:1,cursor:'pointer'}}>
@@ -3036,6 +3153,12 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
         <nav className="es-nav" style={{ flex: 'none' }}>
           <button className={esNavActive === 'home' ? 'active' : ''} onClick={() => esNavigate('home')}><span className="es-nav-icon"><EsIcon name="home" size={18} /></span> Accueil</button>
           <button className={esNavActive === 'projects' ? 'active' : ''} onClick={() => { esNavigate('projects'); setEsProjView('children') }}><span className="es-nav-icon"><EsIcon name="folder" size={18} /></span> Projets</button>
+          {esIsReviewer && (
+            <button className={esNavActive === 'requests' ? 'active' : ''} onClick={() => esNavigate('requests')}><span className="es-nav-icon"><EsIcon name="inbox" size={18} /></span> Requêtes</button>
+          )}
+          {esIsDirector && (
+            <button className={esNavActive === 'response' ? 'active' : ''} onClick={() => esNavigate('response')}><span className="es-nav-icon"><EsIcon name="message" size={18} /></span> Réponses</button>
+          )}
           <button className={esNavActive === 'settings' ? 'active' : ''} onClick={() => esNavigate('settings')}><span className="es-nav-icon"><EsIcon name="settings" size={18} /></span> Paramètres</button>
         </nav>
 
@@ -3345,7 +3468,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                         {esProjExistingProjects.map(p => (
                           <button key={p.id} className="es-pj-target-item" disabled={esProjAttaching === p.id} onClick={() => esProjAttachExisting(p)}>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <span className="es-pj-option-badge">{p.statut}</span>{' '}
+                              {p.statut !== 'brouillon' && <span className="es-pj-option-badge">{p.statut}</span>}{' '}
                               <span className="es-pj-target-label">{p.titre}</span>
                               <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '2px' }}>Par {p.createur_nom} · {esTimeAgo(p.created_at)}</div>
                             </div>
@@ -3415,12 +3538,28 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                     const res = await apiFetch(`${API}/projets/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }, onReturn)
                     if (res && res.ok) {
                       const created = await res.json()
+                      // Pour un chef d'orphelinat créant un projet enfant :
+                      // soumettre automatiquement pour validation (workflow approval)
+                      if (user?.role === 'director' && created.type === 'enfant' && created.statut === 'brouillon') {
+                        const submitRes = await apiFetch(`${API}/projets/${created.id}/soumettre/`, { method: 'POST' }, onReturn)
+                        if (submitRes && submitRes.ok) {
+                          const submitted = await submitRes.json()
+                          setEsPostNotice(`« ${created.titre} » a été soumis pour validation.`)
+                          setTimeout(() => setEsPostNotice(''), 8000)
+                          setEsProjProjects(prev => [submitted, ...prev])
+                        } else {
+                          setEsProjProjects(prev => [created, ...prev])
+                          setEsPostNotice(`« ${created.titre} » a été créé (brouillon).`)
+                          setTimeout(() => setEsPostNotice(''), 8000)
+                        }
+                      } else {
+                        setEsPostNotice(created.statut === 'publie' ? `« ${created.titre} » a été publié dans Accueil.` : `« ${created.titre} » a été créé.`)
+                        setTimeout(() => setEsPostNotice(''), 8000)
+                        setEsProjProjects(prev => [created, ...prev])
+                        if (created.statut === 'publie') esLoadPosts()
+                      }
                       setEsProjForm({ titre: '', description: '', budget_total: 0, beneficiaires: 0 })
                       setEsProjSelectedTarget(null); setEsProjSourceUpdate(null); setEsProjSubmitting(false); setEsProjMode('list')
-                      setEsPostNotice(created.statut === 'publie' ? `« ${created.titre} » a été publié dans Accueil.` : `« ${created.titre} » a été soumis pour validation.`)
-                      setTimeout(() => setEsPostNotice(''), 8000)
-                      setEsProjProjects(prev => [created, ...prev])
-                      esLoadPosts()
                     } else {
                       const err = res ? await res.json().catch(() => ({})) : {}
                       setEsProjFormError(err.error || 'Une erreur est survenue.'); setEsProjSubmitting(false)
@@ -3552,9 +3691,11 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                         <div key={p.id} style={{ padding: '14px 16px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px solid var(--border-card,#e2e8f0)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <div style={{ fontWeight: 600, fontSize: '14px' }}>{p.titre}</div>
-                            <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, background: p.statut === 'publie' ? '#dcfce7' : p.statut === 'soumis_validation' ? '#fef3c7' : '#f1f5f9', color: p.statut === 'publie' ? '#16a34a' : p.statut === 'soumis_validation' ? '#d97706' : '#64748b' }}>
-                              {p.statut}
-                            </span>
+                            {p.statut !== 'brouillon' && (
+                              <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, background: p.statut === 'publie' ? '#dcfce7' : p.statut === 'soumis_validation' ? '#fef3c7' : '#f1f5f9', color: p.statut === 'publie' ? '#16a34a' : p.statut === 'soumis_validation' ? '#d97706' : '#64748b' }}>
+                                {p.statut}
+                              </span>
+                            )}
                           </div>
                           <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.description}</div>
                           {p.budget_total > 0 && <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '6px' }}>Budget: {p.budget_total}€ · Bénéficiaires: {p.beneficiaires || 0}</div>}
@@ -3569,6 +3710,213 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* REQUESTS VIEW — Ambassador / Federation review queue */}
+        {esView === 'requests' && (
+          <div style={{ padding: '24px 32px', overflow: 'auto' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '9px' }}><EsIcon name="inbox" size={22} /> Requêtes de validation</h2>
+
+            {esSelectedRequest ? (
+              /* ── Request Detail ── */
+              <div style={{ maxWidth: '720px' }}>
+                <button className="es-pj-back" onClick={() => { setEsSelectedRequest(null); setEsReviewAction(null); setEsReviewComment('') }}>{'←'} Retour aux requêtes</button>
+
+                <div style={{ marginTop: '16px', background: 'var(--bg-card,#f8fafc)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-card,#e2e8f0)' }}>
+                  {/* Child info */}
+                  {esSelectedRequest.enfant_info && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#eef2ff', borderRadius: '12px', marginBottom: '16px' }}>
+                      <span style={{ width: 44, height: 44, borderRadius: '12px', background: '#c7d2fe', display: 'grid', placeItems: 'center', fontSize: '18px', fontWeight: 700, color: '#4338ca', overflow: 'hidden' }}>
+                        {esSelectedRequest.enfant_info.photo
+                          ? <img src={esMediaUrl(esSelectedRequest.enfant_info.photo)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : (esSelectedRequest.enfant_info.prenom?.[0] || '?')}
+                      </span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: '15px' }}>{esSelectedRequest.enfant_info.prenom} {esSelectedRequest.enfant_info.nom}</div>
+                        <div style={{ fontSize: '12px', color: '#6366f1' }}>ID {esSelectedRequest.enfant_info.uid || ''} · {esSelectedRequest.enfant_info.orphanage_name || ''}</div>
+                      </div>
+                      <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', fontWeight: 600, background: '#fef3c7', color: '#d97706' }}>
+                        {esSelectedRequest.statut === 'en_attente_ambassadeur' ? 'En attente ambassadeur' : 'En attente fédération'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Project info */}
+                  <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>{esSelectedRequest.titre}</h3>
+                  <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '12px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <span>Soumis par: <strong>{esSelectedRequest.createur_nom}</strong></span>
+                    <span>Type: <strong>{esSelectedRequest.type}</strong></span>
+                    <span>{esTimeAgo(esSelectedRequest.created_at)}</span>
+                  </div>
+                  <p style={{ fontSize: '14px', color: '#334155', lineHeight: 1.6, whiteSpace: 'pre-line', marginBottom: '16px' }}>{esSelectedRequest.description}</p>
+
+                  {esSelectedRequest.budget_total > 0 && (
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', fontSize: '13px', color: '#64748b' }}>
+                      <span>Budget: <strong>{esSelectedRequest.budget_total}€</strong></span>
+                      <span>Bénéficiaires: <strong>{esSelectedRequest.beneficiaires || 0}</strong></span>
+                    </div>
+                  )}
+
+                  {/* Review actions */}
+                  <div style={{ borderTop: '1px solid var(--border-card,#e2e8f0)', paddingTop: '16px', marginTop: '16px' }}>
+                    {esReviewAction ? (
+                      <div>
+                        <textarea value={esReviewComment} onChange={e => setEsReviewComment(e.target.value)} rows={3}
+                          placeholder={esReviewAction === 'reject' ? 'Motif du rejet (obligatoire)…' : esReviewAction === 'improve' ? 'Modifications demandées (obligatoire)…' : 'Commentaire (optionnel)…'}
+                          style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border-card,#e2e8f0)', fontSize: '13px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', background: 'var(--bg-main,#fff)', color: 'var(--text,#334155)' }} />
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                          {esReviewAction === 'approve' && (
+                            <button onClick={() => esApproveRequest(esSelectedRequest.id)} disabled={esReviewSubmitting}
+                              style={{ padding: '9px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: '#10b981', color: '#fff' }}>
+                              {esReviewSubmitting ? 'Approbation…' : '✓ Approuver & publier'}
+                            </button>
+                          )}
+                          {esReviewAction === 'reject' && (
+                            <button onClick={() => esRejectRequest(esSelectedRequest.id)} disabled={esReviewSubmitting || !esReviewComment.trim()}
+                              style={{ padding: '9px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: '#ef4444', color: '#fff', opacity: (esReviewSubmitting || !esReviewComment.trim()) ? 0.6 : 1 }}>
+                              {esReviewSubmitting ? 'Rejet…' : '✕ Confirmer le rejet'}
+                            </button>
+                          )}
+                          {esReviewAction === 'improve' && (
+                            <button onClick={() => esRequestImprovements(esSelectedRequest.id)} disabled={esReviewSubmitting || !esReviewComment.trim()}
+                              style={{ padding: '9px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: '#f59e0b', color: '#fff', opacity: (esReviewSubmitting || !esReviewComment.trim()) ? 0.6 : 1 }}>
+                              {esReviewSubmitting ? 'Envoi…' : '↻ Envoyer la demande'}
+                            </button>
+                          )}
+                          <button onClick={() => { setEsReviewAction(null); setEsReviewComment('') }}
+                            style={{ padding: '9px 20px', borderRadius: '10px', border: '1px solid var(--border-card,#e2e8f0)', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: 'transparent', color: 'var(--text,#334155)' }}>
+                            Annuler
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <button onClick={() => setEsReviewAction('approve')}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '9px 18px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: '#10b981', color: '#fff' }}>
+                          <EsIcon name="check" size={15} /> Approuver
+                        </button>
+                        <button onClick={() => setEsReviewAction('improve')}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '9px 18px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: '#fef3c7', color: '#92400e' }}>
+                          <EsIcon name="pencil" size={15} /> Demander modification
+                        </button>
+                        <button onClick={() => setEsReviewAction('reject')}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '9px 18px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: '#fef2f2', color: '#dc2626' }}>
+                          <EsIcon name="x" size={15} /> Rejeter
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* ── Requests List ── */
+              <div>
+                {esRequestsLoading ? (
+                  <div className="es-loading">Chargement des requêtes…</div>
+                ) : esRequests.length === 0 ? (
+                  <div style={{ padding: '32px', textAlign: 'center', color: '#94a3b8', fontSize: '14px', background: 'var(--bg-card,#f8fafc)', borderRadius: '16px', border: '1px dashed var(--border-card,#e2e8f0)' }}>
+                    <EsIcon name="inbox" size={32} style={{ marginBottom: '8px', opacity: 0.4 }} />
+                    <div>Aucune requête en attente de validation.</div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {esRequests.map(p => (
+                      <div key={p.id} onClick={() => setEsSelectedRequest(p)}
+                        style={{ padding: '14px 16px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px solid var(--border-card,#e2e8f0)', cursor: 'pointer' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ fontWeight: 600, fontSize: '14px' }}>{p.titre}</div>
+                          <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, background: '#fef3c7', color: '#d97706' }}>
+                            {p.statut === 'en_attente_ambassadeur' ? 'Ambassadeur' : 'Fédération'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                          {p.enfant_info && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#6366f1', background: '#eef2ff', padding: '3px 8px', borderRadius: '6px' }}>
+                              <EsIcon name="child" size={12} /> {p.enfant_info.prenom} {p.enfant_info.nom}
+                            </span>
+                          )}
+                          <span style={{ fontSize: '12px', color: '#94a3b8' }}>Par {p.createur_nom}</span>
+                          <span style={{ fontSize: '12px', color: '#94a3b8' }}>· {esTimeAgo(p.created_at)}</span>
+                        </div>
+                        {p.description && (
+                          <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.description}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* RESPONSE VIEW — Director sees feedback */}
+        {esView === 'response' && (
+          <div style={{ padding: '24px 32px', overflow: 'auto' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '9px' }}><EsIcon name="message" size={22} /> Réponses</h2>
+
+            {esResponsesLoading ? (
+              <div className="es-loading">Chargement des réponses…</div>
+            ) : esResponses.length === 0 ? (
+              <div style={{ padding: '32px', textAlign: 'center', color: '#94a3b8', fontSize: '14px', background: 'var(--bg-card,#f8fafc)', borderRadius: '16px', border: '1px dashed var(--border-card,#e2e8f0)' }}>
+                <EsIcon name="message" size={32} style={{ marginBottom: '8px', opacity: 0.4 }} />
+                <div>Aucune réponse de validation pour le moment.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {esResponses.map(p => {
+                  const statusConfig = {
+                    rejete: { bg: '#fee2e2', fg: '#dc2626', label: 'Rejeté', icon: 'x' },
+                    modification_demandee: { bg: '#fef3c7', fg: '#d97706', label: 'Modifications demandées', icon: 'pencil' },
+                    approuve: { bg: '#dcfce7', fg: '#16a34a', label: 'Approuvé (en attente de publication)', icon: 'check' },
+                    publie: { bg: '#dcfce7', fg: '#16a34a', label: 'Publié', icon: 'check' },
+                  }
+                  const cfg = statusConfig[p.statut] || { bg: '#f1f5f9', fg: '#64748b', label: p.statut, icon: 'clock' }
+                  return (
+                    <div key={p.id} style={{ padding: '14px 16px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px solid var(--border-card,#e2e8f0)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ fontWeight: 600, fontSize: '14px' }}>{p.titre}</div>
+                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, background: cfg.bg, color: cfg.fg }}>
+                          {cfg.label}
+                        </span>
+                      </div>
+                      {p.enfant_info && (
+                        <div style={{ fontSize: '12px', color: '#6366f1', fontWeight: 600, marginTop: '6px' }}>
+                          <EsIcon name="child" size={12} /> {p.enfant_info.prenom} {p.enfant_info.nom} · ID {p.enfant_info.uid || ''}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>Soumis {esTimeAgo(p.created_at)}</div>
+                      {p.statut === 'rejete' && p.motif_rejet && (
+                        <div style={{ marginTop: '8px', padding: '10px 12px', background: '#fef2f2', borderRadius: '9px', border: '1px solid #fecaca' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', marginBottom: '4px' }}>Motif du rejet :</div>
+                          <div style={{ fontSize: '13px', color: '#991b1b' }}>{p.motif_rejet}</div>
+                        </div>
+                      )}
+                      {p.statut === 'modification_demandee' && p.commentaire_modification && (
+                        <div style={{ marginTop: '8px', padding: '10px 12px', background: '#fffbeb', borderRadius: '9px', border: '1px solid #fde68a' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: '#d97706', marginBottom: '4px' }}>Modifications demandées :</div>
+                          <div style={{ fontSize: '13px', color: '#92400e' }}>{p.commentaire_modification}</div>
+                        </div>
+                      )}
+                      {p.statut === 'modification_demandee' && (
+                        <div style={{ marginTop: '10px' }}>
+                          <button onClick={() => { esNavigate('projects'); setEsProjView('children') }}
+                            style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '12px', background: '#f59e0b', color: '#fff' }}>
+                            <EsIcon name="pencil" size={13} /> Modifier le projet
+                          </button>
+                        </div>
+                      )}
+                      {p.assigned_reviewer_nom && (
+                        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+                          Validé par: {p.assigned_reviewer_nom}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -3968,6 +4316,18 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
           <span className="es-nav-icon"><EsIcon name="folder" size={22} /></span>
           <span className="es-nav-label">Projets</span>
         </button>
+        {esIsReviewer && (
+          <button className={esNavActive === 'requests' ? 'active' : ''} onClick={() => esNavigate('requests')}>
+            <span className="es-nav-icon"><EsIcon name="inbox" size={22} /></span>
+            <span className="es-nav-label">Requêtes</span>
+          </button>
+        )}
+        {esIsDirector && (
+          <button className={esNavActive === 'response' ? 'active' : ''} onClick={() => esNavigate('response')}>
+            <span className="es-nav-icon"><EsIcon name="message" size={22} /></span>
+            <span className="es-nav-label">Réponses</span>
+          </button>
+        )}
         <button className="es-nav-publish" onClick={() => setEsModal('create')}>
           <span className="es-nav-icon"><EsIcon name="plus" size={22} /></span>
           <span className="es-nav-label">Publier</span>
@@ -5390,7 +5750,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
             <div className="dash-content-grid" style={{ paddingTop: '24px' }}>
               <div className="dash-content-left">
                 <div className="dash-section-header">
-                  <span className="dash-section-title">{t('page_' + role + '_' + activeKey.replace(/-/g, '_') + '_title') || page?.title || activeKey}</span>
+                  <span className="dash-section-title">{t('page_' + role + '_' + (typeof activeKey === 'string' ? (typeof activeKey === 'string' ? activeKey.replace(/-/g, '_') : '') : '') + '_title') || page?.title || activeKey}</span>
                 </div>
 
                 {subKey && (
@@ -9048,8 +9408,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           <div className="dash-card-icon-wrap">
                             <span className="dash-card-icon">{CATEGORY_ICONS[i % CATEGORY_ICONS.length]}</span>
                           </div>
-                          <span className="dash-card-title">{t('cat_' + role + '_' + activeKey.replace(/-/g, '_') + '_' + cat.id + '_title') || cat.title}</span>
-                          <span className="dash-card-desc">{t('cat_' + role + '_' + activeKey.replace(/-/g, '_') + '_' + cat.id + '_sub') || cat.subtitle}</span>
+                          <span className="dash-card-title">{t('cat_' + role + '_' + (typeof activeKey === 'string' ? activeKey.replace(/-/g, '_') : '') + '_' + cat.id + '_title') || cat.title}</span>
+                          <span className="dash-card-desc">{t('cat_' + role + '_' + (typeof activeKey === 'string' ? activeKey.replace(/-/g, '_') : '') + '_' + cat.id + '_sub') || cat.subtitle}</span>
                         </button>
                       ))}
                     </div>
@@ -9134,7 +9494,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <div key={proj.id} className="dash-proj-card" style={{ cursor: 'default' }}>
                               <div className="dash-proj-card-top">
                                 <span className="dash-proj-code">{proj.code}</span>
-                                <span className="dash-proj-badge">{PROJ_STATUT_LABELS[proj.statut] || proj.statut}</span>
+                                {proj.statut !== 'brouillon' && <span className="dash-proj-badge">{PROJ_STATUT_LABELS[proj.statut] || proj.statut}</span>}
                               </div>
                               <h4 className="dash-proj-card-title">{proj.titre || proj.title}</h4>
                               <p className="dash-proj-card-summary">{(proj.resume || proj.description || '').substring(0, 80)}</p>
@@ -9417,7 +9777,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 <div key={proj.id} className="dash-proj-card" style={{ cursor: 'default' }}>
                                   <div className="dash-proj-card-top">
                                     <span className="dash-proj-code">{proj.code}</span>
-                                    <span className="dash-proj-badge">{PROJ_STATUT_LABELS[proj.statut] || proj.statut}</span>
+                                {proj.statut !== 'brouillon' && <span className="dash-proj-badge">{PROJ_STATUT_LABELS[proj.statut] || proj.statut}</span>}
                                   </div>
                                   <h4 className="dash-proj-card-title">{proj.titre || proj.title}</h4>
                                   <p className="dash-proj-card-summary">{(proj.resume || proj.description || '').substring(0, 80)}</p>
@@ -10888,8 +11248,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         <div className="dash-card-icon-wrap">
                           <span className="dash-card-icon">{CATEGORY_ICONS[i % CATEGORY_ICONS.length]}</span>
                         </div>
-                        <span className="dash-card-title">{t('cat_' + role + '_' + activeKey.replace(/-/g, '_') + '_' + cat.id + '_title') || cat.title}</span>
-                        <span className="dash-card-desc">{t('cat_' + role + '_' + activeKey.replace(/-/g, '_') + '_' + cat.id + '_sub') || cat.subtitle}</span>
+                        <span className="dash-card-title">{t('cat_' + role + '_' + (typeof activeKey === 'string' ? activeKey.replace(/-/g, '_') : '') + '_' + cat.id + '_title') || cat.title}</span>
+                        <span className="dash-card-desc">{t('cat_' + role + '_' + (typeof activeKey === 'string' ? activeKey.replace(/-/g, '_') : '') + '_' + cat.id + '_sub') || cat.subtitle}</span>
                       </button>
                     ))}
                   </div>
@@ -11926,7 +12286,7 @@ function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagIm
                       <div className="partner-project-bar"><div className="partner-project-fill" style={{width:p.budget_total > 0 ? `${Math.min(100,Math.round((p.montant_collecte||0)/p.budget_total*100))}%` : '0%'}} /></div>
                       <div className="partner-field"><span>Objectif:</span> {Number(p.budget_total||0).toLocaleString('fr-FR')} USD</div>
                       <div className="partner-field"><span>Collecté:</span> {Number(p.montant_collecte||0).toLocaleString('fr-FR')} USD</div>
-                      <div className="partner-field"><span>Statut:</span> {p.statut}</div>
+                      <div className="partner-field"><span>Statut:</span> {p.statut !== 'brouillon' ? p.statut : ''}</div>
                       <div className="partner-sponsor-row">
                         <button className="partner-sponsor-btn" disabled={fundingProjectId === p.id} onClick={() => financerProjet(p)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> {fundingProjectId === p.id ? 'Envoi…' : 'Financer ce projet'}</button>
                       </div>
