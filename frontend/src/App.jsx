@@ -89,9 +89,25 @@ function countryName(code) {
   const c = AFRICAN_COUNTRIES.find(c => c.code === code)
   return c ? c.name : code
 }
+// Variantes rencontrées dans les données réelles (démonymes, sigles, abréviations)
+const COUNTRY_NAME_ALIASES = {
+  'rdc': 'CD', 'congolaise': 'CD', 'congolais': 'CD', 'congo': 'CD',
+  'rép. dém. congo': 'CD', 'republique democratique du congo': 'CD',
+  'côte d ivoire': 'CI', 'cote d\'ivoire': 'CI', 'ivoirien': 'CI', 'ivoirienne': 'CI',
+  'camerounais': 'CM', 'camerounaise': 'CM',
+  'sénégalais': 'SN', 'sénégalaise': 'SN',
+  'éthiopien': 'ET', 'éthiopienne': 'ET',
+  'kenyan': 'KE', 'kenyane': 'KE',
+  'malgache': 'MG',
+}
 function countryCodeFromName(name) {
+  if (!name) return null
   const c = AFRICAN_COUNTRIES.find(c => c.name === name)
-  return c ? c.code : null
+  if (c) return c.code
+  const key = String(name).trim().toLowerCase()
+  if (COUNTRY_NAME_ALIASES[key]) return COUNTRY_NAME_ALIASES[key]
+  const loose = AFRICAN_COUNTRIES.find(c => c.name.toLowerCase() === key)
+  return loose ? loose.code : null
 }
 
 const BACKGROUND_LIBRARY = [
@@ -3406,9 +3422,12 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                       ) : esProjChildren.map(child => (
                         <div key={child.id} onClick={() => esProjSelectTarget(child)}
                           style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'var(--bg-card,#f8fafc)', borderRadius: '12px', border: '1px solid var(--border-card,#e2e8f0)', cursor: 'pointer' }}>
-                          <img src={child.photo || esAgentAvatar(child, 44)} alt="" style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                          <img src={child.photo ? esMediaUrl(child.photo) : esAgentAvatar(child, 44)} alt="" style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: '14px' }}>{child.prenom} {child.nom}</div>
+                            <div style={{ fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              {child.prenom} {child.nom}
+                              {esChildFlagCode(child.nationalite) && flagImg(esChildFlagCode(child.nationalite), child.nationalite, '13px')}
+                            </div>
                             <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>ID {child.uid}{child.nationalite ? ` · ${child.nationalite}` : ''}{child.orphanage_name ? ` · ${child.orphanage_name}` : ''}</div>
                           </div>
                           <EsIcon name="chevron-right" size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />
@@ -4715,6 +4734,34 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
     }
     fetchChildren()
   }, [activeKey])
+
+  // Synchronisation photo locale -> backend : les photos choisies via
+  // « Enfants enregistrés » / « Mise à jour » n'existaient que dans le
+  // localStorage de CE navigateur. Dès que la liste est chargée, toute photo
+  // locale absente du serveur est envoyée (Base64ImageField accepte les
+  // data-URLs), pour qu'elle apparaisse partout : Projets, Accueil, landing.
+  const photoSyncAttempted = useRef(new Set())
+  useEffect(() => {
+    if (!registeredChildren.length) return
+    registeredChildren.forEach(child => {
+      if (child.photo || !child.uid || photoSyncAttempted.current.has(child.uid)) return
+      const local = localStorage.getItem('cdo_child_photo_' + child.uid)
+      if (!local || !local.startsWith('data:image')) return
+      photoSyncAttempted.current.add(child.uid)
+      // PUT partiel (le endpoint n'accepte pas PATCH mais fait partial=True)
+      apiFetch(`${API}/enfants/${child.id}/`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photo: local }),
+      }, onLogout)
+        .then(r => {
+          if (r && r.ok) {
+            setRegisteredChildren(prev => prev.map(c => c.id === child.id ? { ...c, photo: local } : c))
+          }
+        })
+        .catch(() => {})
+    })
+  }, [registeredChildren, onLogout])
 
   useEffect(() => {
     const t = setTimeout(async () => {
@@ -7754,7 +7801,15 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               return <img src={svgUrl((selectedRegChild.prenom?.[0] || selectedRegChild.nom?.[0] || '?').toUpperCase(), hues[(selectedRegChild.prenom?.charCodeAt(0)||0)%hues.length], 72, 72)} alt="" style={{width:'72px',height:'72px',borderRadius:'16px',objectFit:'cover'}} />
                             })()}
                             <div className="pd-hero-avatar-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
-                            <input id={'cdu-' + selectedRegChild.uid} type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = ev => { localStorage.setItem('cdo_child_photo_' + selectedRegChild.uid, ev.target.result); setSelectedRegChild({...selectedRegChild}) }; r.readAsDataURL(f) }} />
+                            <input id={'cdu-' + selectedRegChild.uid} type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = ev => {
+                              localStorage.setItem('cdo_child_photo_' + selectedRegChild.uid, ev.target.result)
+                              setSelectedRegChild({...selectedRegChild})
+                              // Persistance immédiate côté serveur : la photo doit vivre dans le
+                              // backend, pas seulement dans le localStorage de ce navigateur.
+                              apiFetch(`${API}/enfants/${selectedRegChild.id}/`, { method:'PUT', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ photo: ev.target.result }) }, onLogout)
+                                .then(res => { if (res && res.ok) setRegisteredChildren(prev => prev.map(c => c.id === selectedRegChild.id ? { ...c, photo: ev.target.result } : c)) })
+                                .catch(() => {})
+                            }; r.readAsDataURL(f) }} />
                           </div>
                           <div className="pd-hero-info">
                             <div className="pd-hero-name">{selectedRegChild.prenom || ''} {selectedRegChild.nom || ''}</div>

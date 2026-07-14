@@ -81,6 +81,13 @@ class ChildSerializer(serializers.ModelSerializer):
         validated_data["created_by"] = self.context["request"].user
         return super().create(validated_data)
 
+    def update(self, instance, validated_data):
+        # Une mise à jour sans nouvelle image ne doit JAMAIS effacer la photo
+        # existante (les formulaires renvoient souvent photo=null/'' par défaut).
+        if "photo" in validated_data and not validated_data["photo"]:
+            validated_data.pop("photo")
+        return super().update(instance, validated_data)
+
 
 class ChildPublicSerializer(serializers.ModelSerializer):
     age = serializers.SerializerMethodField()
