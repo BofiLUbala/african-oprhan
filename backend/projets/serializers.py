@@ -1,7 +1,13 @@
 from rest_framework import serializers
 
 from .models import Project, CandidatureProjet, ProjetHistory
-from .constants import STATUTS_PROJET, ROLE_MAP
+from .constants import (
+    STATUTS_PROJET, ROLE_MAP,
+    CATEGORIES_ENFANT_CHOICES, CATEGORIES_ORPHELINAT_CHOICES,
+)
+
+CATEGORIES_ENFANT_VALUES = {v for v, _ in CATEGORIES_ENFANT_CHOICES}
+CATEGORIES_ORPHELINAT_VALUES = {v for v, _ in CATEGORIES_ORPHELINAT_CHOICES}
 
 
 class ProjetListSerializer(serializers.ModelSerializer):
@@ -13,22 +19,30 @@ class ProjetListSerializer(serializers.ModelSerializer):
     followers_count = serializers.SerializerMethodField()
     date_status = serializers.SerializerMethodField()
     source_update_category = serializers.SerializerMethodField()
+    amelioration_fichier_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         fields = [
-            "id", "code", "type", "titre", "resume", "description",
+            "id", "code", "type", "category", "titre", "resume", "description",
             "orphelinat", "enfant", "source_update", "source_update_category",
             "createur", "createur_nom",
             "createur_role", "ambassadeur_validateur", "validateur_nom",
             "assigned_reviewer", "assigned_reviewer_nom",
-            "statut", "motif_rejet", "commentaire_modification",
+            "statut", "motif_rejet", "commentaire_modification", "amelioration_fichier_url",
             "budget_total", "montant_collecte", "progression",
             "beneficiaires", "date_debut", "date_fin", "date_status",
             "enfant_info",
             "followers_count",
             "created_at", "updated_at",
         ]
+
+    def get_amelioration_fichier_url(self, obj):
+        if not obj.amelioration_fichier:
+            return None
+        request = self.context.get("request")
+        url = obj.amelioration_fichier.url
+        return request.build_absolute_uri(url) if request else url
 
     def get_createur_nom(self, obj):
         return obj.createur.full_name if obj.createur else ""
@@ -85,7 +99,7 @@ class ProjetCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            "type", "titre", "description", "resume",
+            "type", "category", "titre", "description", "resume",
             "orphelinat", "enfant", "source_update",
             "budget_total", "beneficiaires",
             "date_debut", "date_fin",
@@ -97,6 +111,32 @@ class ProjetCreateSerializer(serializers.ModelSerializer):
         if request and request.user.role == "director" and value == "federation":
             raise serializers.ValidationError("Un chef d'orphelinat ne peut pas créer un projet de type fédération.")
         return value
+
+    def validate(self, data):
+        type_projet = data.get("type")
+        category = data.get("category", "")
+
+        if type_projet == "enfant":
+            if not data.get("enfant"):
+                raise serializers.ValidationError({"enfant": "Un projet de type enfant doit être associé à un enfant."})
+            if category and category not in CATEGORIES_ENFANT_VALUES:
+                raise serializers.ValidationError({"category": "Catégorie invalide pour un projet enfant."})
+        elif type_projet == "orphelinat":
+            if not data.get("orphelinat"):
+                # Les chefs d'orphelinat avec un orphelinat géré se le voient
+                # auto-attribuer dans create() — sinon la cible est requise.
+                request = self.context.get("request")
+                user = request.user if request else None
+                auto_fillable = bool(user and user.role == "director" and getattr(user, "managed_orphanage", None))
+                if not auto_fillable:
+                    raise serializers.ValidationError({"orphelinat": "Un projet de type orphelinat doit être associé à un orphelinat."})
+            if category and category not in CATEGORIES_ORPHELINAT_VALUES:
+                raise serializers.ValidationError({"category": "Catégorie invalide pour un projet orphelinat."})
+        elif type_projet == "federation":
+            if category:
+                raise serializers.ValidationError({"category": "Un projet de type fédération n'a pas de catégorie."})
+
+        return data
 
     def create(self, validated_data):
         validated_data.pop("pdf_file", None)
@@ -137,6 +177,7 @@ class ProjetRejeterSerializer(serializers.Serializer):
 
 class ProjetDemanderModificationSerializer(serializers.Serializer):
     commentaire = serializers.CharField(required=True)
+    fichier = serializers.FileField(required=False)
 
 
 class ProjetSuspendreSerializer(serializers.Serializer):

@@ -285,8 +285,10 @@ class ChildAssignmentSerializer(serializers.ModelSerializer):
     child_uid = serializers.SerializerMethodField()
     child_photo = serializers.SerializerMethodField()
     child_age = serializers.SerializerMethodField()
+    child_sexe = serializers.SerializerMethodField()
     child_status_label = serializers.SerializerMethodField()
     orphanage_name = serializers.SerializerMethodField()
+    orphanage_id = serializers.SerializerMethodField()
     ambassador_name = serializers.SerializerMethodField()
     ambassador_avatar = serializers.SerializerMethodField()
     assigned_by_name = serializers.SerializerMethodField()
@@ -295,8 +297,8 @@ class ChildAssignmentSerializer(serializers.ModelSerializer):
         model = ChildAssignment
         fields = [
             "id", "child", "child_name", "child_uid", "child_photo",
-            "child_age", "child_status_label",
-            "orphanage_name",
+            "child_age", "child_sexe", "child_status_label",
+            "orphanage_name", "orphanage_id",
             "ambassador", "ambassador_name", "ambassador_avatar",
             "assigned_by", "assigned_by_name",
             "note", "assigned_at", "updated_at",
@@ -315,11 +317,17 @@ class ChildAssignmentSerializer(serializers.ModelSerializer):
     def get_child_age(self, obj):
         return _compute_age(obj.child.date_naissance)
 
+    def get_child_sexe(self, obj):
+        return obj.child.sexe
+
     def get_child_status_label(self, obj):
         return dict(Child.STATUS_CHOICES).get(obj.child.status, obj.child.status)
 
     def get_orphanage_name(self, obj):
         return obj.child.orphanage.name if obj.child.orphanage else ""
+
+    def get_orphanage_id(self, obj):
+        return obj.child.orphanage_id
 
     def get_ambassador_name(self, obj):
         return obj.ambassador.full_name

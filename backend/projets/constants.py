@@ -23,6 +23,48 @@ TYPES_PROJET = {
 
 TYPES_PROJET_CHOICES = [(v, f"Pour un {v}" if v != 'federation' else "Pour la fédération") for v in TYPES_PROJET.values()]
 
+CATEGORIES_ENFANT = {
+    'EDUCATION': 'education',
+    'SANTE': 'health',
+    'FAMILLE': 'family',
+    'SOCIAL': 'social',
+    'AUTRE': 'other',
+}
+CATEGORIES_ENFANT_CHOICES = [
+    ('education', 'Éducation'),
+    ('health', 'Santé'),
+    ('family', 'Famille'),
+    ('social', 'Social'),
+    ('other', 'Other Projects'),
+]
+
+CATEGORIES_ORPHELINAT = {
+    'NOURRITURE': 'food',
+    'VETEMENTS': 'clothes',
+    'FOURNITURES_SCOLAIRES': 'school_accessories',
+    'MEDICAMENTS': 'medicine',
+    'CONSTRUCTION': 'construction',
+    'FINANCEMENT': 'funding',
+    'AUTRE': 'other',
+}
+CATEGORIES_ORPHELINAT_CHOICES = [
+    ('food', 'Food'),
+    ('clothes', 'Clothes'),
+    ('school_accessories', 'School Accessories'),
+    ('medicine', 'Medicine'),
+    ('construction', 'Construction'),
+    ('funding', 'Funding'),
+    ('other', 'Other'),
+]
+
+CATEGORIES_PROJET_CHOICES = CATEGORIES_ENFANT_CHOICES + CATEGORIES_ORPHELINAT_CHOICES
+
+CODE_PREFIX_BY_TYPE = {
+    'enfant': 'CHD',
+    'orphelinat': 'ORP',
+    'federation': 'FED',
+}
+
 ROLES_CREATEUR = {
     'DIRECTEUR': 'directeur',
     'AMBASSADEUR': 'ambassadeur',

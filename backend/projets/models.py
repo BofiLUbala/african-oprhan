@@ -7,6 +7,8 @@ from django.db import models
 from .constants import (
     STATUTS_CHOICES, STATUTS_PROJET,
     TYPES_PROJET_CHOICES,
+    CATEGORIES_PROJET_CHOICES,
+    CODE_PREFIX_BY_TYPE,
     ROLES_CREATEUR_CHOICES,
     STATUTS_CANDIDATURE_CHOICES,
     MODALITES_CHOICES,
@@ -19,8 +21,29 @@ def generer_code_unique():
     return "".join(random.choices(chars, k=8))
 
 
+def generer_code_projet(type_projet):
+    """Code unique, préfixé par type et scopé par année : CHD-2026-0001,
+    ORP-2026-0001, FED-2026-0001. Retente en cas de collision concurrente."""
+    from django.utils import timezone
+    prefix = CODE_PREFIX_BY_TYPE.get(type_projet, 'PRJ')
+    year = timezone.now().year
+    base = f"{prefix}-{year}-"
+    last = Project.objects.filter(code__startswith=base).order_by('-code').first()
+    next_num = 1
+    if last and last.code[len(base):].isdigit():
+        next_num = int(last.code[len(base):]) + 1
+    for _ in range(20):
+        candidate = f"{base}{next_num:04d}"
+        if not Project.objects.filter(code=candidate).exists():
+            return candidate
+        next_num += 1
+    raise RuntimeError("Impossible de générer un code de projet unique.")
+
+
 class Project(models.Model):
+    code = models.CharField(max_length=20, unique=True, blank=True, db_index=True, verbose_name="Code")
     type = models.CharField(max_length=20, choices=TYPES_PROJET_CHOICES, verbose_name="Type")
+    category = models.CharField(max_length=30, choices=CATEGORIES_PROJET_CHOICES, blank=True, default="", verbose_name="Catégorie")
     titre = models.CharField(max_length=255, verbose_name="Titre")
     description = models.TextField(verbose_name="Description")
     resume = models.CharField(max_length=255, blank=True, verbose_name="Résumé")
@@ -61,6 +84,10 @@ class Project(models.Model):
     )
     motif_rejet = models.TextField(blank=True, verbose_name="Motif de rejet")
     commentaire_modification = models.TextField(blank=True, verbose_name="Commentaire de modification")
+    amelioration_fichier = models.FileField(
+        upload_to="projets/ameliorations/", blank=True, null=True,
+        verbose_name="Fichier joint à la demande d'amélioration",
+    )
 
     budget_total = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Budget total")
     montant_collecte = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Montant collecté")
@@ -83,10 +110,6 @@ class Project(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Modifié le")
 
     # backward-compat aliases for existing frontend references
-    @property
-    def code(self):
-        return f"PRJ-{self.pk:04d}" if self.pk else ""
-
     @property
     def title(self):
         return self.titre
@@ -118,6 +141,11 @@ class Project(models.Model):
 
     def __str__(self):
         return f"{self.code} — {self.titre}"
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = generer_code_projet(self.type)
+        super().save(*args, **kwargs)
 
     def peut_transitionner_vers(self, nouveau_statut):
         from .constants import TRANSITIONS_AUTORISEES

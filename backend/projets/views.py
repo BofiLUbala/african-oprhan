@@ -363,21 +363,26 @@ def project_demander_modification(request, project_id):
     statut_avant = projet.statut
     projet.statut = STATUTS_PROJET['MODIFICATION_DEMANDEE']
     projet.commentaire_modification = serializer.validated_data["commentaire"]
+    fichier = serializer.validated_data.get("fichier")
+    if fichier:
+        projet.amelioration_fichier = fichier
     projet.save()
     _creer_evenement(
         projet, 'modification_demandee', auteur=request.user,
         statut_avant=statut_avant, statut_apres=projet.statut,
         description=f"Modification demandée par {request.user.full_name}: {projet.commentaire_modification}",
+        metadata={"fichier": bool(fichier)},
     )
 
     _notification(
         projet.createur,
         f"Modifications demandées : {projet.titre}",
-        f"{request.user.full_name} a demandé des modifications sur votre projet « {projet.titre} ».\nCommentaire: {projet.commentaire_modification}",
+        f"{request.user.full_name} a demandé des modifications sur votre projet « {projet.titre} ».\nCommentaire: {projet.commentaire_modification}"
+        + ("\nUn fichier a été joint à la demande." if fichier else ""),
         f"communication:projects:response:{projet.id}",
     )
 
-    return Response(ProjetListSerializer(projet).data)
+    return Response(ProjetListSerializer(projet, context={"request": request}).data)
 
 
 @api_view(["POST"])
@@ -762,7 +767,7 @@ def project_requests(request):
         assigned_reviewer=user,
         statut__in=reviewable_statuses,
     ).order_by("-created_at")
-    serializer = ProjetListSerializer(projets, many=True)
+    serializer = ProjetListSerializer(projets, many=True, context={"request": request})
     return Response(serializer.data)
 
 
@@ -779,5 +784,5 @@ def project_responses(request):
         createur=user,
         statut__in=[STATUTS_PROJET['REJETE'], STATUTS_PROJET['MODIFICATION_DEMANDEE'], STATUTS_PROJET['APPROUVE'], STATUTS_PROJET['PUBLIE']],
     ).order_by("-created_at")
-    serializer = ProjetListSerializer(projets, many=True)
+    serializer = ProjetListSerializer(projets, many=True, context={"request": request})
     return Response(serializer.data)

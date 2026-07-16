@@ -1,0 +1,170 @@
+/* ══════════════════════════════════════════════════════════════════
+   Partner Dashboard — enterprise glow/morphism theme (2026-07-16)
+   Scoped entirely under .pph-theme-* wrapper classes added to the 4
+   Partner pages (Child/Orphanage/Federation/Response Board) so the base
+   .pph-*/.rb-* rules in App.css — also reused by director/federation
+   Sponsorship pages — are left untouched. Distinct from the existing
+   Communication glassmorphism pass: deeper glass + neumorphic soft
+   shadow + a category-tinted glow accent per page.
+   ══════════════════════════════════════════════════════════════════ */
+
+.pph-theme-child { --pph-accent: #f59e0b; --pph-accent-2: #fb7185; --pph-accent-rgb: 245,158,11; }
+.pph-theme-orphanage { --pph-accent: #14b8a6; --pph-accent-2: #22d3ee; --pph-accent-rgb: 20,184,166; }
+.pph-theme-federation { --pph-accent: #8b5cf6; --pph-accent-2: #6366f1; --pph-accent-rgb: 139,92,246; }
+.pph-theme-response { --pph-accent: #94a3b8; --pph-accent-2: #64748b; --pph-accent-rgb: 148,163,184; }
+
+@keyframes pphFadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pphGlowPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+/* ── Header : titre avec léger glow de la couleur de catégorie ── */
+.pph-theme-child .pph-title,
+.pph-theme-orphanage .pph-title,
+.pph-theme-federation .pph-title,
+.pph-theme-response .pph-title {
+  background: linear-gradient(135deg, #f1f5f9, var(--pph-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.01em;
+}
+.pph-theme-child .pph-header,
+.pph-theme-orphanage .pph-header,
+.pph-theme-federation .pph-header,
+.pph-theme-response .pph-header {
+  position: relative;
+  padding-bottom: 16px;
+}
+.pph-theme-child .pph-header::after,
+.pph-theme-orphanage .pph-header::after,
+.pph-theme-federation .pph-header::after,
+.pph-theme-response .pph-header::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: 0;
+  width: 64px; height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--pph-accent), var(--pph-accent-2));
+  box-shadow: 0 0 14px -2px var(--pph-accent);
+}
+
+/* ── Category tabs : glow actif teinté ── */
+.pph-theme-child .pph-cat-tab.active,
+.pph-theme-orphanage .pph-cat-tab.active {
+  background: rgba(var(--pph-accent-rgb), 0.16);
+  border-color: rgba(var(--pph-accent-rgb), 0.4);
+  color: var(--pph-accent);
+  box-shadow: 0 0 18px -4px rgba(var(--pph-accent-rgb), 0.55);
+}
+
+/* ── Cards : glass + neumorphic soft shadow + glow border on hover ── */
+.pph-theme-child .pph-card,
+.pph-theme-orphanage .pph-card,
+.pph-theme-federation .pph-card,
+.pph-theme-response .pph-card,
+.pph-theme-response .rb-card {
+  position: relative;
+  background: linear-gradient(160deg, rgba(30,41,59,0.68), rgba(15,23,42,0.82));
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 1px 2px rgba(0,0,0,0.4),
+    0 12px 32px -12px rgba(0,0,0,0.55);
+  transition: transform .25s cubic-bezier(.16,1,.3,1), box-shadow .3s, border-color .3s;
+  animation: pphFadeUp .35s cubic-bezier(.16,1,.3,1) both;
+}
+.pph-theme-child .pph-card:hover,
+.pph-theme-orphanage .pph-card:hover,
+.pph-theme-federation .pph-card:hover,
+.pph-theme-response .pph-card:hover,
+.pph-theme-response .rb-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(var(--pph-accent-rgb), 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 1px 2px rgba(0,0,0,0.4),
+    0 18px 40px -14px rgba(var(--pph-accent-rgb), 0.35);
+}
+.pph-theme-child .pph-card::before,
+.pph-theme-orphanage .pph-card::before,
+.pph-theme-federation .pph-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(var(--pph-accent-rgb),0.5), transparent 40%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* ── Primary buttons : accent gradient + glow ── */
+.pph-theme-child .pph-btn-primary,
+.pph-theme-orphanage .pph-btn-primary,
+.pph-theme-federation .pph-btn-primary,
+.pph-theme-response .pph-btn-primary {
+  background: linear-gradient(135deg, var(--pph-accent), var(--pph-accent-2));
+  box-shadow: 0 4px 16px -4px rgba(var(--pph-accent-rgb), 0.5);
+}
+.pph-theme-child .pph-btn-primary:hover:not(:disabled),
+.pph-theme-orphanage .pph-btn-primary:hover:not(:disabled),
+.pph-theme-federation .pph-btn-primary:hover:not(:disabled),
+.pph-theme-response .pph-btn-primary:hover:not(:disabled) {
+  box-shadow: 0 8px 24px -6px rgba(var(--pph-accent-rgb), 0.65);
+}
+
+/* ── Status pill glow (Response Board) — currentColor already set inline ── */
+.pph-theme-response .rb-status-pill {
+  box-shadow: 0 0 14px -3px currentColor;
+}
+
+/* ── Empty state : soft glow ring instead of a flat dashed box ── */
+.pph-theme-child .pph-empty,
+.pph-theme-orphanage .pph-empty,
+.pph-theme-federation .pph-empty,
+.pph-theme-response .pph-empty {
+  border: 1px dashed rgba(var(--pph-accent-rgb), 0.3);
+  background: radial-gradient(circle at 50% 0%, rgba(var(--pph-accent-rgb),0.06), transparent 70%);
+  border-radius: 20px;
+}
+
+/* ── Loading skeletons : shimmer tinted with the page accent ── */
+.pph-theme-child .pph-skeleton,
+.pph-theme-orphanage .pph-skeleton,
+.pph-theme-federation .pph-skeleton,
+.pph-theme-response .pph-skeleton {
+  background: linear-gradient(90deg, rgba(var(--pph-accent-rgb),0.06) 25%, rgba(var(--pph-accent-rgb),0.14) 50%, rgba(var(--pph-accent-rgb),0.06) 75%);
+  background-size: 200% 100%;
+  border: 1px solid rgba(var(--pph-accent-rgb), 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pph-theme-child .pph-card,
+  .pph-theme-orphanage .pph-card,
+  .pph-theme-federation .pph-card,
+  .pph-theme-response .pph-card,
+  .pph-theme-response .rb-card {
+    animation: none;
+  }
+}
+
+/* ── Responsive : cartes en grille sur écrans larges, colonne unique en
+   dessous de 640px (déjà géré par .pph-list flex-column par défaut). ── */
+@media (min-width: 900px) {
+  .pph-theme-child .pph-list,
+  .pph-theme-orphanage .pph-list,
+  .pph-theme-federation .pph-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 18px;
+  }
+}

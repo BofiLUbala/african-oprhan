@@ -195,6 +195,13 @@ def orphanage_list(request):
         queryset = Orphanage.objects.select_related("director").all().order_by("-created_at")
     elif user.role == "director":
         queryset = Orphanage.objects.filter(director=user).select_related("director")
+    elif user.role == "ambassador":
+        # Un ambassadeur ne doit voir/choisir que les orphelinats des enfants
+        # qui lui sont assignés (Gestion multi-orphelinats) — jamais la liste
+        # complète, réservée à la fédération/au super master.
+        queryset = Orphanage.objects.filter(
+            children__assignments__ambassador=user,
+        ).select_related("director").distinct()
     else:
         queryset = Orphanage.objects.none()
 

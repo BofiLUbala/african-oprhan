@@ -1,3 +1,4 @@
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -9,21 +10,25 @@ from orphanages.models import Orphanage
 
 class BaseTestMixin:
     def setUp(self):
+        # is_active=True : par défaut un User n'est pas activé (vérification
+        # email) — le fallback fédération de get_reviewer_for_child() filtre
+        # explicitement is_active=True, donc un compte de test inactif ne
+        # serait jamais trouvé comme reviewer.
         self.partner = User.objects.create(
             email="partner@test.com", first_name="P", last_name="Test",
-            country="CD", role="partner",
+            country="CD", role="partner", is_active=True,
         )
         self.directeur = User.objects.create(
             email="director@test.com", first_name="Dir", last_name="Test",
-            country="CD", role="director",
+            country="CD", role="director", is_active=True,
         )
         self.ambassadeur = User.objects.create(
             email="amb@test.com", first_name="Amb", last_name="Test",
-            country="CD", role="ambassador",
+            country="CD", role="ambassador", is_active=True,
         )
         self.federation = User.objects.create(
             email="fed@test.com", first_name="Fed", last_name="Test",
-            country="CD", role="federation",
+            country="CD", role="federation", is_active=True,
         )
         self.orphelinat = Orphanage.objects.create(
             name="Orphelinat Test", director=self.directeur,
@@ -54,7 +59,7 @@ class TestCycleVieProjet(BaseTestMixin, TestCase):
         self.client.force_authenticate(user=self.ambassadeur)
         response = self.client.post("/api/projets/", {
             "type": "enfant", "titre": "Scolarisation",
-            "description": "Projet test",
+            "description": "Projet test", "enfant": self.enfant.pk,
         }, format="json")
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["statut"], "publie")
@@ -77,43 +82,56 @@ class TestCycleVieProjet(BaseTestMixin, TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_soumission_validation(self):
+        # /soumettre/ enchaîne immédiatement _send_to_reviewer : un projet
+        # orphelinat (pas d'enfant -> pas d'ambassadeur assigné) atterrit donc
+        # directement en_attente_federation, jamais soumis_validation.
         self.client.force_authenticate(user=self.directeur)
         create = self.client.post("/api/projets/", {
             "type": "orphelinat", "titre": "Test",
-            "description": "Test",
+            "description": "Test", "orphelinat": self.orphelinat.pk,
         }, format="json")
         projet_id = create.data["id"]
         response = self.client.post(f"/api/projets/{projet_id}/soumettre/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["statut"], "soumis_validation")
+        self.assertEqual(response.data["statut"], "en_attente_federation")
+        self.assertEqual(response.data["assigned_reviewer"], self.federation.id)
 
 
 class TestValidationAmbassadeur(BaseTestMixin, TestCase):
-    def test_ambassadeur_valide_projet(self):
+    """Un projet orphelinat n'a pas d'enfant -> get_reviewer_for_child(None)
+    retombe toujours sur la fédération (confirmé métier 2026-07-16) : c'est
+    l'ambassadeur qui valide un projet ENFANT (via ChildAssignment), la
+    fédération qui valide un projet ORPHELINAT. Ces tests utilisaient à tort
+    self.ambassadeur pour un projet orphelinat."""
+    def test_federation_valide_projet_orphelinat(self):
         self.client.force_authenticate(user=self.directeur)
         create = self.client.post("/api/projets/", {
             "type": "orphelinat", "titre": "Test",
-            "description": "Test",
+            "description": "Test", "orphelinat": self.orphelinat.pk,
         }, format="json")
         projet_id = create.data["id"]
         self.client.post(f"/api/projets/{projet_id}/soumettre/")
 
-        self.client.force_authenticate(user=self.ambassadeur)
+        self.client.force_authenticate(user=self.federation)
         response = self.client.post(f"/api/projets/{projet_id}/valider/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["statut"], "publie")
-        self.assertEqual(response.data["ambassadeur_validateur"], self.ambassadeur.id)
+        self.assertEqual(response.data["statut"], "approuve")
+        self.assertEqual(response.data["ambassadeur_validateur"], self.federation.id)
 
-    def test_ambassadeur_rejette_projet(self):
+        response = self.client.post(f"/api/projets/{projet_id}/publier/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["statut"], "publie")
+
+    def test_federation_rejette_projet_orphelinat(self):
         self.client.force_authenticate(user=self.directeur)
         create = self.client.post("/api/projets/", {
             "type": "orphelinat", "titre": "Test",
-            "description": "Test",
+            "description": "Test", "orphelinat": self.orphelinat.pk,
         }, format="json")
         projet_id = create.data["id"]
         self.client.post(f"/api/projets/{projet_id}/soumettre/")
 
-        self.client.force_authenticate(user=self.ambassadeur)
+        self.client.force_authenticate(user=self.federation)
         response = self.client.post(f"/api/projets/{projet_id}/rejeter/", {
             "motif": "Budget insuffisant",
         }, format="json")
@@ -125,7 +143,7 @@ class TestValidationAmbassadeur(BaseTestMixin, TestCase):
         self.client.force_authenticate(user=self.directeur)
         create = self.client.post("/api/projets/", {
             "type": "orphelinat", "titre": "Test",
-            "description": "Test",
+            "description": "Test", "orphelinat": self.orphelinat.pk,
         }, format="json")
         projet_id = create.data["id"]
         self.client.post(f"/api/projets/{projet_id}/soumettre/")
@@ -137,12 +155,12 @@ class TestValidationAmbassadeur(BaseTestMixin, TestCase):
         self.client.force_authenticate(user=self.directeur)
         create = self.client.post("/api/projets/", {
             "type": "orphelinat", "titre": "Test",
-            "description": "Test",
+            "description": "Test", "orphelinat": self.orphelinat.pk,
         }, format="json")
         projet_id = create.data["id"]
         self.client.post(f"/api/projets/{projet_id}/soumettre/")
 
-        self.client.force_authenticate(user=self.ambassadeur)
+        self.client.force_authenticate(user=self.federation)
         self.client.post(f"/api/projets/{projet_id}/demander-modification/", {
             "commentaire": "Ajouter le budget détaillé",
         }, format="json")
@@ -152,7 +170,30 @@ class TestValidationAmbassadeur(BaseTestMixin, TestCase):
             "titre": "Test modifié",
         }, format="json")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["statut"], "soumis_validation")
+        # modifier() repasse par _send_to_reviewer, qui pour un projet
+        # orphelinat (pas d'enfant) retombe directement sur la fédération.
+        self.assertEqual(response.data["statut"], "en_attente_federation")
+        self.assertEqual(response.data["assigned_reviewer"], self.federation.id)
+
+    def test_demande_modification_avec_fichier_joint(self):
+        self.client.force_authenticate(user=self.directeur)
+        create = self.client.post("/api/projets/", {
+            "type": "orphelinat", "titre": "Test",
+            "description": "Test", "orphelinat": self.orphelinat.pk,
+        }, format="json")
+        projet_id = create.data["id"]
+        self.client.post(f"/api/projets/{projet_id}/soumettre/")
+
+        self.client.force_authenticate(user=self.federation)
+        fichier = SimpleUploadedFile("budget_corrige.pdf", b"%PDF-1.4 dummy content", content_type="application/pdf")
+        response = self.client.post(f"/api/projets/{projet_id}/demander-modification/", {
+            "commentaire": "Merci de joindre un budget détaillé, voir fichier joint.",
+            "fichier": fichier,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["statut"], "modification_demandee")
+        self.assertIsNotNone(response.data["amelioration_fichier_url"])
+        self.assertIn("budget_corrige", response.data["amelioration_fichier_url"])
 
 
 class TestSuspensionFederation(BaseTestMixin, TestCase):
@@ -160,7 +201,7 @@ class TestSuspensionFederation(BaseTestMixin, TestCase):
         self.client.force_authenticate(user=self.ambassadeur)
         create = self.client.post("/api/projets/", {
             "type": "orphelinat", "titre": "Test",
-            "description": "Test",
+            "description": "Test", "orphelinat": self.orphelinat.pk,
         }, format="json")
         projet_id = create.data["id"]
 
@@ -175,7 +216,7 @@ class TestSuspensionFederation(BaseTestMixin, TestCase):
         self.client.force_authenticate(user=self.directeur)
         create = self.client.post("/api/projets/", {
             "type": "orphelinat", "titre": "Test",
-            "description": "Test",
+            "description": "Test", "orphelinat": self.orphelinat.pk,
         }, format="json")
         projet_id = create.data["id"]
 
@@ -188,7 +229,7 @@ class TestCandidatures(BaseTestMixin, TestCase):
         self.client.force_authenticate(user=self.ambassadeur)
         create = self.client.post("/api/projets/", {
             "type": "orphelinat", "titre": "Test",
-            "description": "Test",
+            "description": "Test", "orphelinat": self.orphelinat.pk,
         }, format="json")
         projet_id = create.data["id"]
 
@@ -203,7 +244,7 @@ class TestCandidatures(BaseTestMixin, TestCase):
         self.client.force_authenticate(user=self.ambassadeur)
         create = self.client.post("/api/projets/", {
             "type": "orphelinat", "titre": "Test",
-            "description": "Test", "budget_total": 10000,
+            "description": "Test", "budget_total": 10000, "orphelinat": self.orphelinat.pk,
         }, format="json")
         projet_id = create.data["id"]
 
@@ -228,7 +269,7 @@ class TestCandidatures(BaseTestMixin, TestCase):
         self.client.force_authenticate(user=self.ambassadeur)
         create = self.client.post("/api/projets/", {
             "type": "orphelinat", "titre": "Test",
-            "description": "Test",
+            "description": "Test", "orphelinat": self.orphelinat.pk,
         }, format="json")
         projet_id = create.data["id"]
 
@@ -245,7 +286,7 @@ class TestCandidatures(BaseTestMixin, TestCase):
         self.client.force_authenticate(user=self.ambassadeur)
         create = self.client.post("/api/projets/", {
             "type": "orphelinat", "titre": "Test",
-            "description": "Test",
+            "description": "Test", "orphelinat": self.orphelinat.pk,
         }, format="json")
         projet_id = create.data["id"]
 
@@ -256,13 +297,93 @@ class TestCandidatures(BaseTestMixin, TestCase):
         self.assertEqual(events[0]["type_evenement"], "projet_cree")
 
 
+class TestCategorieEtCode(BaseTestMixin, TestCase):
+    def test_enfant_sans_cible_refuse(self):
+        self.client.force_authenticate(user=self.ambassadeur)
+        response = self.client.post("/api/projets/", {
+            "type": "enfant", "titre": "Sans enfant",
+            "description": "Test",
+        }, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("enfant", response.data)
+
+    def test_orphelinat_sans_cible_refuse_pour_non_directeur(self):
+        self.client.force_authenticate(user=self.ambassadeur)
+        response = self.client.post("/api/projets/", {
+            "type": "orphelinat", "titre": "Sans orphelinat",
+            "description": "Test",
+        }, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("orphelinat", response.data)
+
+    def test_orphelinat_sans_cible_ok_pour_directeur_avec_orphelinat_gere(self):
+        self.client.force_authenticate(user=self.directeur)
+        response = self.client.post("/api/projets/", {
+            "type": "orphelinat", "titre": "Auto-rempli",
+            "description": "Test",
+        }, format="json")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["orphelinat"], self.orphelinat.pk)
+
+    def test_categorie_invalide_pour_type_refuse(self):
+        self.client.force_authenticate(user=self.ambassadeur)
+        response = self.client.post("/api/projets/", {
+            "type": "enfant", "titre": "Mauvaise categorie",
+            "description": "Test", "enfant": self.enfant.pk,
+            "category": "food",
+        }, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("category", response.data)
+
+    def test_categorie_valide_acceptee(self):
+        self.client.force_authenticate(user=self.ambassadeur)
+        response = self.client.post("/api/projets/", {
+            "type": "enfant", "titre": "Bonne categorie",
+            "description": "Test", "enfant": self.enfant.pk,
+            "category": "health",
+        }, format="json")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["category"], "health")
+
+    def test_federation_avec_categorie_refuse(self):
+        self.client.force_authenticate(user=self.federation)
+        response = self.client.post("/api/projets/", {
+            "type": "federation", "titre": "Federation categorisee",
+            "description": "Test", "category": "food",
+        }, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("category", response.data)
+
+    def test_code_prefixe_par_type_et_unique(self):
+        self.client.force_authenticate(user=self.ambassadeur)
+        r1 = self.client.post("/api/projets/", {
+            "type": "enfant", "titre": "Code enfant",
+            "description": "Test", "enfant": self.enfant.pk,
+        }, format="json")
+        r2 = self.client.post("/api/projets/", {
+            "type": "orphelinat", "titre": "Code orphelinat",
+            "description": "Test", "orphelinat": self.orphelinat.pk,
+        }, format="json")
+        self.client.force_authenticate(user=self.federation)
+        r3 = self.client.post("/api/projets/", {
+            "type": "federation", "titre": "Code federation",
+            "description": "Test",
+        }, format="json")
+        self.assertTrue(r1.data["code"].startswith("CHD-"))
+        self.assertTrue(r2.data["code"].startswith("ORP-"))
+        self.assertTrue(r3.data["code"].startswith("FED-"))
+        codes = {r1.data["code"], r2.data["code"], r3.data["code"]}
+        self.assertEqual(len(codes), 3)
+
+
 class TestVisibilitePartenaire(BaseTestMixin, TestCase):
     def test_partner_voit_projets_publies(self):
         self.client.force_authenticate(user=self.ambassadeur)
-        self.client.post("/api/projets/", {
+        create = self.client.post("/api/projets/", {
             "type": "orphelinat", "titre": "Visible",
-            "description": "Test",
+            "description": "Test", "orphelinat": self.orphelinat.pk,
         }, format="json")
+        self.assertEqual(create.status_code, 201)
 
         self.client.force_authenticate(user=self.partner)
         response = self.client.get("/api/projets/")
@@ -333,8 +454,15 @@ class TestPipelinePublication(BaseTestMixin, TestCase):
         self.client.post(f"/api/projets/{projet_id}/soumettre/")
         self.assertEqual(Post.objects.filter(project_id=projet_id).count(), 0)
 
-        self.client.force_authenticate(user=self.ambassadeur)
+        # Projet orphelinat -> pas d'enfant -> reviewer = fédération, pas
+        # l'ambassadeur (cf. get_reviewer_for_child(None)).
+        self.client.force_authenticate(user=self.federation)
         response = self.client.post(f"/api/projets/{projet_id}/valider/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["statut"], "approuve")
+        self.assertEqual(Post.objects.filter(project_id=projet_id).count(), 0)
+
+        response = self.client.post(f"/api/projets/{projet_id}/publier/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["statut"], "publie")
         self.assertEqual(Post.objects.filter(project_id=projet_id).count(), 1)

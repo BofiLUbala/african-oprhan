@@ -16,6 +16,7 @@ import useNotifications from './hooks/useNotifications'
 import * as HumanizedIcons from './components/HumanizedIcons'
 import PublicAccueil from './components/PublicAccueil'
 import './App.css'
+import './components/partner/partner-dashboard.css'
 
 export const API = 'http://localhost:8000/api'
 
@@ -748,13 +749,10 @@ const ROLE_NAV = {
   ],
   partner: [
     { label: 'Tableau de bord', key: 'dashboard' },
-    { label: 'Sponsorship', key: 'opportunites' },
     { label: 'Child', key: 'partnerChild' },
     { label: 'Orphanage', key: 'partnerOrphanage' },
     { label: 'Federation', key: 'partnerFederation' },
     { label: 'Response Board', key: 'partnerResponseBoard' },
-    { label: 'Enfants', key: 'enfants' },
-    { label: 'Projets', key: 'projets' },
     { label: 'Transactions', key: 'transactions' },
     { label: 'Impact', key: 'impact' },
     { label: 'Communication', key: 'communication' },
@@ -774,7 +772,7 @@ const DASH_MODULE_ICON = {
   validationLocale: 'shield', verifications: 'check', dons: 'gift',
   rapports: 'trend', executive: 'activity', organizations: 'landmark',
   finances: 'dollar', systeme: 'settings', users: 'users', partenaires: 'users',
-  opportunites: 'heart', transactions: 'dollar', impact: 'trend',
+  transactions: 'dollar', impact: 'trend',
 }
 const hexToRgba = (hex, alpha) => {
   const h = (hex || '#f59e0b').replace('#', '')
@@ -1003,22 +1001,6 @@ const ROLE_PAGES = {
       { id: 'D2', title: 'Parrainages en cours', subtitle: '3 Enfants', count: 3 },
       { id: 'D3', title: 'Besoins urgents', subtitle: '5 Nouveaux', count: 5 },
       { id: 'D4', title: 'Rapports disponibles', subtitle: '8 Documents', count: 8 },
-    ]},
-    opportunites: { title: 'Sponsorship', subtitle: "Découvrez comment soutenir enfants et projets, et suivez vos candidatures.", categories: [
-      { id: 'O1', title: 'Toutes les opportunités', subtitle: 'Consulter', count: 0 },
-      { id: 'O2', title: 'Urgent', subtitle: 'Priorité haute', count: 0 },
-      { id: 'O3', title: 'Financement', subtitle: "Besoin d'aide", count: 0 },
-      { id: 'O4', title: 'Terminé', subtitle: 'Réalisations', count: 0 },
-    ]},
-    enfants: { title: 'Profils Enfants', subtitle: "Découvrez les enfants soutenus.", categories: [
-      { id: 'E1', title: 'Tous les profils', subtitle: 'Liste complète', count: 0 },
-      { id: 'E2', title: 'Rechercher', subtitle: 'Par nom ou pays', count: 0 },
-    ]},
-    projets: { title: 'Financement de projets', subtitle: 'Contribuer aux projets locaux.', categories: [
-      { id: 'P1', title: 'Projets ouverts', subtitle: '6 Disponibles', count: 6 },
-      { id: 'P2', title: 'Mes financements', subtitle: '12 Projets', count: 12 },
-      { id: 'P3', title: "Rapports d'impact", subtitle: '8 Reçus', count: 8 },
-      { id: 'P4', title: "Propositions", subtitle: '2 Nouvelles', count: 2 },
     ]},
     impact: { title: "Tableau d'Impact", subtitle: 'Mesurez votre impact réel.', categories: [
       { id: 'I1', title: 'Statistiques', subtitle: 'Indicateurs clés', count: 0 },
@@ -1266,43 +1248,59 @@ function DashboardHeader({ user, roleLower, roleLabel, activeKey, subKey, setAct
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 {notifCount > 0 && <span className="hd-badge">{notifCount}</span>}
               </button>
-              {notifOpen && (
+              {notifOpen && (() => {
+                const unread = notifications.filter(n => !n.is_read)
+                return (
                 <div className="hd-dropdown">
-                  <div className="hd-dropdown-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <span>{t('dash_notifications')}</span>
-                    {notifCount > 0 && <button onClick={markAllRead} style={{background:'none',border:'none',color:'#60a5fa',fontSize:10,cursor:'pointer',padding:0}}>Tout marquer lu</button>}
+                  <div className="hd-dropdown-header">
+                    <span className="hd-dropdown-title">{t('dash_notifications') || 'Notifications'}{unread.length > 0 && <span className="hd-dropdown-count">{unread.length}</span>}</span>
+                    {unread.length > 0 && <button className="hd-dropdown-markall" onClick={markAllRead}>Tout marquer lu</button>}
                   </div>
-                  {notifications.length === 0 && <div style={{padding:'16px',textAlign:'center',fontSize:11,color:'#64748b'}}>Aucune notification</div>}
-                  {notifications.slice(0, 20).map(n => (
-                    <div key={n.id} className="hd-dropdown-item" onClick={() => {
-                      if (!n.is_read) markNotifRead(n.id)
-                      setNotifOpen(false)
-                      if (n.link && n.link.startsWith('communication:')) {
-                        const parts = n.link.split(':')
-                        if (parts[1] === 'channel') {
-                          setNotifTarget({ type: 'channel', slug: parts[2] })
-                        } else if (parts[1] === 'dm') {
-                          setNotifTarget({ type: 'dm', conversationId: Number(parts[2]) })
-                        } else if (parts[1] === 'projects' && parts[2] === 'review') {
-                          setNotifTarget({ type: 'project_review', projectId: Number(parts[3]) })
-                        } else if (parts[1] === 'projects' && parts[2] === 'response') {
-                          setNotifTarget({ type: 'project_response', projectId: Number(parts[3]) })
-                        }
-                        setActiveKey('communication')
-                      } else {
-                        setActiveKey('documents')
-                      }
-                    }} style={{opacity:n.is_read?0.5:1,cursor:'pointer'}}>
-                      <span className="hd-dropdown-icon">{notifIcon(n.title)}</span>
-                      <div className="hd-dropdown-body">
-                        <div className="hd-dropdown-text" style={{fontWeight:n.is_read?400:600}}>{n.title}</div>
-                        <div className="hd-dropdown-time" style={{fontSize:10,color:'#94a3b8',whiteSpace:'pre-wrap'}}>{n.content}</div>
-                        <div className="hd-dropdown-time">{new Date(n.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+                  <div className="hd-dropdown-list">
+                    {unread.length === 0 && (
+                      <div className="hd-dropdown-empty">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="m2 2 20 20" opacity="0"/></svg>
+                        <span>Vous êtes à jour</span>
                       </div>
-                    </div>
-                  ))}
+                    )}
+                    {unread.slice(0, 20).map(n => (
+                      <div key={n.id} className="hd-dropdown-item hd-dropdown-item-unread" onClick={() => {
+                        markNotifRead(n.id)
+                        setNotifOpen(false)
+                        const link = n.link || ''
+                        const postMatch = link.match(/^\/posts\/(\d+)$/)
+                        if (link === 'communication:sponsorship:response-board') {
+                          setActiveKey(roleLower === 'federation' ? 'sponsorshipResponses' : 'partnerResponseBoard')
+                        } else if (link.startsWith('communication:')) {
+                          const parts = link.split(':')
+                          if (parts[1] === 'channel') {
+                            setNotifTarget({ type: 'channel', slug: parts[2] })
+                          } else if (parts[1] === 'dm') {
+                            setNotifTarget({ type: 'dm', conversationId: Number(parts[2]) })
+                          } else if (parts[1] === 'projects' && parts[2] === 'review') {
+                            setNotifTarget({ type: 'project_review', projectId: Number(parts[3]) })
+                          } else if (parts[1] === 'projects' && parts[2] === 'response') {
+                            setNotifTarget({ type: 'project_response', projectId: Number(parts[3]) })
+                          }
+                          setActiveKey('communication')
+                        } else if (postMatch) {
+                          setNotifTarget({ type: 'post', postId: Number(postMatch[1]) })
+                          setActiveKey('communication')
+                        }
+                      }}>
+                        <span className="hd-dropdown-dot" />
+                        <span className="hd-dropdown-icon">{notifIcon(n.title)}</span>
+                        <div className="hd-dropdown-body">
+                          <div className="hd-dropdown-text">{n.title}</div>
+                          <div className="hd-dropdown-snippet">{n.content}</div>
+                          <div className="hd-dropdown-time">{new Date(n.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              )}
+                )
+              })()}
             </div>
 
             <button className="hd-icon-btn" onClick={toggleTheme} title={theme === 'dark' ? t('dash_theme_light') : t('dash_theme_dark')} aria-label="Toggle theme">
@@ -1798,7 +1796,8 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
   const [esProjSelectedTarget, setEsProjSelectedTarget] = React.useState(null)
   const [esProjExistingProjects, setEsProjExistingProjects] = React.useState([])
   const [esProjExistingLoading, setEsProjExistingLoading] = React.useState(false)
-  const [esProjMode, setEsProjMode] = React.useState('list') // list | options | create
+  const [esProjMode, setEsProjMode] = React.useState('list') // list | options | category | create
+  const [esProjNewCategory, setEsProjNewCategory] = React.useState(null) // catégorie du NOUVEAU projet (enfant/orphelinat), distincte de esProjUpdateCategory
   const [esProjChoice, setEsProjChoice] = React.useState(null) // null | 'update' | 'attach' — le choix explicite à l'étape "options"
   // Sous-étape du choix « Publier une mise à jour » : quelle catégorie de
   // suivi (Santé / Éducation / Famille / Social / Documents — les mêmes
@@ -2093,6 +2092,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
     setEsProjChoice(null)
     setEsProjUpdateCategory(null)
     setEsProjSourceUpdate(null)
+    setEsProjNewCategory(null)
     setEsProjForm({ titre: '', description: '', budget_total: 0, beneficiaires: 0, date_debut: '', date_fin: '' })
     setEsProjFormError('')
 
@@ -2148,6 +2148,12 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
       description: esReadableUpdate(update.description || update.new_value || ''),
       budget_total: 0, beneficiaires: 1, date_debut: '', date_fin: '',
     })
+    // La catégorie du projet enfant reprend celle de la mise à jour source
+    // (mêmes 5 valeurs que ES_PROJ_NEW_CATEGORIES_ENFANT ; les catégories
+    // Update sans équivalent direct — nourriture/vêtements/urgence/progrès —
+    // retombent sur "other").
+    const catMap = { health: 'health', education: 'education', family: 'family', social: 'social' }
+    setEsProjNewCategory(catMap[update.category] || 'other')
     setEsProjMode('create')
   }
 
@@ -2171,7 +2177,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
     if (data && data.following) {
       setEsPostNotice(`Vous êtes désormais rattaché(e) à « ${projet.titre} ». Il apparaît dans vos projets en cours.`)
       setTimeout(() => setEsPostNotice(''), 6000)
-      setEsProjMode('list'); setEsProjSelectedTarget(null); setEsProjChoice(null)
+      setEsProjMode('list'); setEsProjSelectedTarget(null); setEsProjChoice(null); setEsProjNewCategory(null)
       esLoadPosts()
     }
   }
@@ -2336,6 +2342,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
   const [esSelectedRequest, setEsSelectedRequest] = React.useState(null)
   const [esReviewAction, setEsReviewAction] = React.useState(null)
   const [esReviewComment, setEsReviewComment] = React.useState('')
+  const [esReviewFile, setEsReviewFile] = React.useState(null)
   const [esReviewSubmitting, setEsReviewSubmitting] = React.useState(false)
 
   /* ── Assistant « Créer un projet » ────────────────────────────────
@@ -2345,6 +2352,30 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
    * (signal projets/signals.py) dès que le projet est publié. */
   const esCanCreateProject = ['ambassador', 'director', 'federation'].includes(user?.role)
   const PROJECT_TYPE_LABELS = { enfant: 'Projet Enfant', orphelinat: 'Projet Orphelinat', federation: 'Projet Fédération' }
+  // project_info.createur_role vient de Project.createur_role (français —
+  // ROLES_CREATEUR_CHOICES), distinct de User.role (anglais) utilisé par
+  // PARTNER_ROLE_LABEL ailleurs dans le fichier.
+  const ES_CREATEUR_ROLE_LABEL = { directeur: "Chef d'Orphelinat", ambassadeur: 'Ambassadeur', federation: 'Fédération' }
+  // Catégories du projet lui-même (indépendantes de esProjUpdateCategory,
+  // qui ne concerne que le sous-flux "Publier une mise à jour"). Mêmes
+  // valeurs que la page Dashboard "Projets" (PROJ_CATEGORIES_ENFANT/
+  // ORPHELINAT) pour que les deux points de création restent identiques.
+  const ES_PROJ_NEW_CATEGORIES_ENFANT = [
+    { value: 'education', label: 'Éducation', icon: 'book' },
+    { value: 'health', label: 'Santé', icon: 'heart' },
+    { value: 'family', label: 'Famille', icon: 'users' },
+    { value: 'social', label: 'Social', icon: 'smile' },
+    { value: 'other', label: 'Other Projects', icon: 'file' },
+  ]
+  const ES_PROJ_NEW_CATEGORIES_ORPHELINAT = [
+    { value: 'food', label: 'Food', icon: 'gift' },
+    { value: 'clothes', label: 'Clothes', icon: 'gift' },
+    { value: 'school_accessories', label: 'School Accessories', icon: 'book' },
+    { value: 'medicine', label: 'Medicine', icon: 'heart' },
+    { value: 'construction', label: 'Construction', icon: 'building' },
+    { value: 'funding', label: 'Funding', icon: 'dollar' },
+    { value: 'other', label: 'Other', icon: 'file' },
+  ]
   const PROJ_UPDATE_CATEGORY_LABELS = {
     health: 'Santé', education: 'Éducation', family: 'Famille', documents: 'Documents',
     social: 'Social', food: 'Nourriture', clothing: 'Vêtements', emergency: 'Urgence', progress: 'Progrès général',
@@ -2481,6 +2512,19 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
   React.useEffect(() => { if (esView === 'home') { esLoadPending(); esLoadMyPosts() } }, [esView])
   React.useEffect(() => { if (esView === 'requests') esLoadRequests() }, [esView])
   React.useEffect(() => { if (esView === 'response') esLoadResponses() }, [esView])
+  // La décision d'un ambassadeur (valider/annuler/demander amélioration) est
+  // prise dans une AUTRE session — pas de push temps réel (pas de WebSocket).
+  // On sonde pendant que le Chef d'Orphelinat reste sur Réponses / que
+  // l'ambassadeur reste sur Requêtes, pour que le statut apparaisse sans
+  // devoir quitter puis revenir sur la page.
+  React.useEffect(() => {
+    if (esView !== 'response' && esView !== 'requests') return
+    const id = setInterval(() => {
+      if (esView === 'response') esLoadResponses()
+      else if (esView === 'requests') esLoadRequests()
+    }, 15000)
+    return () => clearInterval(id)
+  }, [esView])
 
   const esChildName = (c) => `${c.prenom || c.first_name || ''} ${c.nom || c.last_name || ''}`.trim() || c.uid
 
@@ -2534,6 +2578,11 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
       if (data.statut === 'approuve') {
         await apiFetch(`${API}/projets/${projetId}/publier/`, { method: 'POST' }, onReturn)
       }
+      // Le projet publié devient un Post Accueil (signal backend) — on
+      // recharge le fil pour que le Project Card apparaisse immédiatement
+      // chez l'ambassadeur qui vient de valider, sans qu'il doive naviguer
+      // hors de la page puis y revenir.
+      esLoadPosts()
       setEsPostNotice('Projet approuvé et publié dans Accueil.')
       setTimeout(() => setEsPostNotice(''), 6000)
     } else {
@@ -2569,15 +2618,18 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
   const esRequestImprovements = async (projetId) => {
     if (!esReviewComment.trim()) return
     setEsReviewSubmitting(true)
+    const body = new FormData()
+    body.append('commentaire', esReviewComment.trim())
+    if (esReviewFile) body.append('fichier', esReviewFile)
     const res = await apiFetch(`${API}/projets/${projetId}/demander-modification/`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ commentaire: esReviewComment.trim() }),
+      method: 'POST', body,
     }, onReturn)
     if (res && res.ok) {
       setEsRequests(prev => prev.filter(p => p.id !== projetId))
       setEsSelectedRequest(null)
       setEsReviewAction(null)
       setEsReviewComment('')
+      setEsReviewFile(null)
       setEsPostNotice('Modifications demandées. Le chef d\'orphelinat sera notifié.')
       setTimeout(() => setEsPostNotice(''), 6000)
     } else {
@@ -2931,6 +2983,12 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
     } else if (notifTarget.type === 'project_response') {
       esNavigate('response')
       esLoadResponses()
+    } else if (notifTarget.type === 'post') {
+      esNavigate('home')
+      apiFetch(`${API}/posts/${notifTarget.postId}/`, {}, onReturn)
+        .then(r => r && r.ok ? r.json() : null)
+        .then(post => { if (post) openPostDetail(post) })
+        .catch(() => {})
     }
     setNotifTarget(null)
   }, [notifTarget])
@@ -3171,50 +3229,71 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
               {esUnreadNotifs > 0 && <span className="es-icon-badge">{esUnreadNotifs > 9 ? '9+' : esUnreadNotifs}</span>}
             </button>
-            {esNotifOpen && (
+            {esNotifOpen && (() => {
+              const esUnread = esNotifs.filter(n => !n.is_read)
+              return (
               <div className="hd-dropdown" style={{position:'absolute',top:'100%',right:0,zIndex:1000}}>
-                <div className="hd-dropdown-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <span>Notifications</span>
-                  {esUnreadNotifs > 0 && <button onClick={esMarkAllNotifs} style={{background:'none',border:'none',color:'#60a5fa',fontSize:10,cursor:'pointer',padding:0}}>Tout marquer lu</button>}
+                <div className="hd-dropdown-header">
+                  <span className="hd-dropdown-title">Notifications{esUnread.length > 0 && <span className="hd-dropdown-count">{esUnread.length}</span>}</span>
+                  {esUnread.length > 0 && <button className="hd-dropdown-markall" onClick={esMarkAllNotifs}>Tout marquer lu</button>}
                 </div>
-                {esNotifs.length === 0 && <div style={{padding:'16px',textAlign:'center',fontSize:11,color:'#64748b'}}>Aucune notification</div>}
-                {esNotifs.slice(0, 20).map(n => (
-                  <div key={n.id} className="hd-dropdown-item" onClick={() => {
-                    setEsNotifOpen(false)
-                    if (!n.is_read) esMarkNotif(n.id)
-                    if (n.link && n.link.startsWith('communication:')) {
-                      const parts = n.link.split(':')
-                      if (parts[1] === 'channel') {
-                        const ch = esChannels.find(c => c.slug === parts[2])
-                        if (ch) esOpenChannel(ch)
-                      } else if (parts[1] === 'dm') {
-                        apiFetch(`${API}/conversations/`, {}, onReturn)
-                          .then(r => r && r.ok ? r.json() : null)
-                          .then(data => {
-                            const convs = Array.isArray(data) ? data : (data.results || [])
-                            const found = convs.find(c => c.id === Number(parts[2]))
-                            if (found) esOpenConv(found)
-                          })
-                          .catch(() => {})
-                      } else if (parts[1] === 'projects' && parts[2] === 'review') {
-                        esNavigate('requests')
-                        esLoadRequests()
-                      } else if (parts[1] === 'projects' && parts[2] === 'response') {
-                        esNavigate('response')
-                        esLoadResponses()
-                      }
-                    }
-                  }} style={{opacity:n.is_read?0.5:1,cursor:'pointer'}}>
-                    <span className="hd-dropdown-icon">{esNotifIcon(n.title)}</span>
-                    <div className="hd-dropdown-body">
-                      <div className="hd-dropdown-text" style={{fontWeight:n.is_read?400:600}}>{n.title}</div>
-                      <div className="hd-dropdown-time" style={{fontSize:10,color:'#94a3b8',whiteSpace:'pre-wrap'}}>{n.content}</div>
-                      <div className="hd-dropdown-time">{esNotifTimeAgo(n.created_at)}</div>
+                <div className="hd-dropdown-list">
+                  {esUnread.length === 0 && (
+                    <div className="hd-dropdown-empty">
+                      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                      <span>Vous êtes à jour</span>
                     </div>
-                  </div>
-                ))}
+                  )}
+                  {esUnread.slice(0, 20).map(n => (
+                    <div key={n.id} className="hd-dropdown-item hd-dropdown-item-unread" onClick={() => {
+                      setEsNotifOpen(false)
+                      esMarkNotif(n.id)
+                      const link = n.link || ''
+                      const postMatch = link.match(/^\/posts\/(\d+)$/)
+                      if (link === 'communication:sponsorship:response-board') {
+                        onReturn(user?.role === 'federation' ? 'sponsorshipResponses' : 'partnerResponseBoard')
+                      } else if (link.startsWith('communication:')) {
+                        const parts = link.split(':')
+                        if (parts[1] === 'channel') {
+                          const ch = esChannels.find(c => c.slug === parts[2])
+                          if (ch) esOpenChannel(ch)
+                        } else if (parts[1] === 'dm') {
+                          apiFetch(`${API}/conversations/`, {}, onReturn)
+                            .then(r => r && r.ok ? r.json() : null)
+                            .then(data => {
+                              const convs = Array.isArray(data) ? data : (data.results || [])
+                              const found = convs.find(c => c.id === Number(parts[2]))
+                              if (found) esOpenConv(found)
+                            })
+                            .catch(() => {})
+                        } else if (parts[1] === 'projects' && parts[2] === 'review') {
+                          esNavigate('requests')
+                          esLoadRequests()
+                        } else if (parts[1] === 'projects' && parts[2] === 'response') {
+                          esNavigate('response')
+                          esLoadResponses()
+                        }
+                      } else if (postMatch) {
+                        esNavigate('home')
+                        apiFetch(`${API}/posts/${postMatch[1]}/`, {}, onReturn)
+                          .then(r => r && r.ok ? r.json() : null)
+                          .then(post => { if (post) openPostDetail(post) })
+                          .catch(() => {})
+                      }
+                    }}>
+                      <span className="hd-dropdown-dot" />
+                      <span className="hd-dropdown-icon">{esNotifIcon(n.title)}</span>
+                      <div className="hd-dropdown-body">
+                        <div className="hd-dropdown-text">{n.title}</div>
+                        <div className="hd-dropdown-snippet">{n.content}</div>
+                        <div className="hd-dropdown-time">{esNotifTimeAgo(n.created_at)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            )}
+              )
+            })()}
           </div>
 
           {esCanCreateProject && (
@@ -3501,7 +3580,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                 // Le Chef d'Orphelinat ne peut pas créer de Projet Fédération.
                 ...(user?.role !== 'director' ? [{ key: 'federation', label: 'Projets Fédération', icon: 'landmark' }] : []),
               ].map(t => (
-                <button key={t.key} onClick={() => { setEsProjView(t.key); setEsProjMode('list'); setEsProjSelectedTarget(null) }}
+                <button key={t.key} onClick={() => { setEsProjView(t.key); setEsProjMode('list'); setEsProjSelectedTarget(null); setEsProjNewCategory(null) }}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: esProjView === t.key ? 'var(--accent,#3b82f6)' : 'var(--bg-card,#f1f5f9)', color: esProjView === t.key ? '#fff' : 'var(--text,#334155)' }}>
                   <EsIcon name={t.icon} size={16} /> {t.label}
                 </button>
@@ -3515,7 +3594,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
               /* ── Étape 2 : choix explicite — publier une mise à jour, ou se
                  rattacher à un projet en cours (à défaut, en créer un) ── */
               <div style={{ maxWidth: '640px' }}>
-                <button className="es-pj-back" onClick={() => { setEsProjMode('list'); setEsProjSelectedTarget(null); setEsProjChoice(null) }}>{'←'} Retour</button>
+                <button className="es-pj-back" onClick={() => { setEsProjMode('list'); setEsProjSelectedTarget(null); setEsProjChoice(null); setEsProjNewCategory(null) }}>{'←'} Retour</button>
 
                 {esProjView === 'children' && esProjSelectedTarget && (() => {
                   const localPhoto = localStorage.getItem('cdo_child_photo_' + esProjSelectedTarget.uid);
@@ -3643,11 +3722,29 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                         ))}
                       </div>
                     )}
-                    <button className="es-pj-new-btn" onClick={() => setEsProjMode('create')}>
+                    <button className="es-pj-new-btn" onClick={() => { setEsProjNewCategory(null); setEsProjMode('category') }}>
                       <EsIcon name="plus" size={16} /> Nouveau {PROJECT_TYPE_LABELS[esProjView === 'children' ? 'enfant' : esProjView === 'orphanage' ? 'orphelinat' : 'federation']}
                     </button>
                   </>
                 )}
+              </div>
+
+            ) : esProjMode === 'category' ? (
+              /* ── Étape 2b : catégorie du nouveau projet (mêmes valeurs que
+                 la page Dashboard "Projets" — Éducation/Santé/Famille/Social/
+                 Other Projects pour enfant, Food/Clothes/School Accessories/
+                 Medicine/Construction/Funding/Other pour orphelinat) ── */
+              <div style={{ maxWidth: '640px' }}>
+                <button className="es-pj-back" onClick={() => setEsProjMode('options')}>{'←'} Retour</button>
+                <div className="es-pj-step-label" style={{ marginTop: '10px' }}>Choisissez une catégorie</div>
+                <div className="es-pj-choice-grid">
+                  {(esProjView === 'children' ? ES_PROJ_NEW_CATEGORIES_ENFANT : ES_PROJ_NEW_CATEGORIES_ORPHELINAT).map(cat => (
+                    <button key={cat.value} className="es-pj-choice-card" onClick={() => { setEsProjNewCategory(cat.value); setEsProjMode('create') }}>
+                      <span className="es-pj-choice-icon"><EsIcon name={cat.icon} size={20} /></span>
+                      <span className="es-pj-choice-title">{cat.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
             ) : esProjMode === 'create' ? (
@@ -3714,12 +3811,16 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                       else if (esProjView === 'orphanage') payload.orphelinat = esProjSelectedTarget.id
                     }
                     if (esProjSourceUpdate?.id) payload.source_update = esProjSourceUpdate.id
+                    if (esProjNewCategory) payload.category = esProjNewCategory
                     const res = await apiFetch(`${API}/projets/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }, onReturn)
                     if (res && res.ok) {
                       const created = await res.json()
-                      // Pour un chef d'orphelinat créant un projet enfant :
-                      // soumettre automatiquement pour validation (workflow approval)
-                      if (user?.role === 'director' && created.type === 'enfant' && created.statut === 'brouillon') {
+                      // Pour un chef d'orphelinat créant un projet enfant OU
+                      // orphelinat : soumettre automatiquement pour validation
+                      // (workflow approval — routage vers l'ambassadeur assigné
+                      // pour un projet enfant, vers la fédération pour un
+                      // projet orphelinat, cf. _send_to_reviewer côté backend).
+                      if (user?.role === 'director' && (created.type === 'enfant' || created.type === 'orphelinat') && created.statut === 'brouillon') {
                         const submitRes = await apiFetch(`${API}/projets/${created.id}/soumettre/`, { method: 'POST' }, onReturn)
                         if (submitRes && submitRes.ok) {
                           const submitted = await submitRes.json()
@@ -3738,10 +3839,11 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                         if (created.statut === 'publie') esLoadPosts()
                       }
                       setEsProjForm({ titre: '', description: '', budget_total: 0, beneficiaires: 0, date_debut: '', date_fin: '' })
-                      setEsProjSelectedTarget(null); setEsProjSourceUpdate(null); setEsProjSubmitting(false); setEsProjMode('list')
+                      setEsProjSelectedTarget(null); setEsProjSourceUpdate(null); setEsProjNewCategory(null); setEsProjSubmitting(false); setEsProjMode('list')
                     } else {
                       const err = res ? await res.json().catch(() => ({})) : {}
-                      setEsProjFormError(err.error || 'Une erreur est survenue.'); setEsProjSubmitting(false)
+                      const msg = err.error || (typeof err === 'object' ? Object.values(err).flat().join(' ') : '')
+                      setEsProjFormError(msg || 'Une erreur est survenue.'); setEsProjSubmitting(false)
                     }
                   }} disabled={esProjSubmitting} style={{ padding: '10px 24px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '14px', background: 'var(--accent,#3b82f6)', color: '#fff' }}>
                     {esProjSubmitting ? 'Envoi…' : 'Soumettre le projet'}
@@ -3818,7 +3920,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                   <div style={{ marginBottom: '20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                       <h3 style={{ fontSize: '15px', fontWeight: 600 }}>Projets Fédération</h3>
-                      <button onClick={() => { setEsProjSelectedTarget(null); setEsProjSourceUpdate(null); setEsProjMode('create') }}
+                      <button onClick={() => { setEsProjSelectedTarget(null); setEsProjSourceUpdate(null); setEsProjNewCategory(null); setEsProjMode('create') }}
                         style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '12px', background: 'var(--accent,#3b82f6)', color: '#fff' }}>
                         <EsIcon name="plus" size={14} /> Nouveau projet
                       </button>
@@ -3903,7 +4005,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
             {esSelectedRequest ? (
               /* ── Request Detail ── */
               <div style={{ maxWidth: '720px' }}>
-                <button className="es-pj-back" onClick={() => { setEsSelectedRequest(null); setEsReviewAction(null); setEsReviewComment('') }}>{'←'} Retour aux requêtes</button>
+                <button className="es-pj-back" onClick={() => { setEsSelectedRequest(null); setEsReviewAction(null); setEsReviewComment(''); setEsReviewFile(null) }}>{'←'} Retour aux requêtes</button>
 
                 <div style={{ marginTop: '16px', background: 'var(--bg-card,#f8fafc)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-card,#e2e8f0)' }}>
                   {/* Child info */}
@@ -3945,28 +4047,40 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                     {esReviewAction ? (
                       <div>
                         <textarea value={esReviewComment} onChange={e => setEsReviewComment(e.target.value)} rows={3}
-                          placeholder={esReviewAction === 'reject' ? 'Motif du rejet (obligatoire)…' : esReviewAction === 'improve' ? 'Modifications demandées (obligatoire)…' : 'Commentaire (optionnel)…'}
+                          placeholder={esReviewAction === 'reject' ? 'Cancellation reason (required)…' : esReviewAction === 'improve' ? 'Improvement comments (required)…' : 'Comment (optional)…'}
                           style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border-card,#e2e8f0)', fontSize: '13px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', background: 'var(--bg-main,#fff)', color: 'var(--text,#334155)' }} />
+                        {esReviewAction === 'improve' && (
+                          <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '8px', border: '1px dashed var(--border-card,#e2e8f0)', fontSize: '12.5px', fontWeight: 600, color: 'var(--text,#334155)', cursor: 'pointer' }}>
+                              <EsIcon name="file" size={14} />
+                              {esReviewFile ? esReviewFile.name : 'Attach a file (optional)'}
+                              <input type="file" hidden onChange={e => setEsReviewFile(e.target.files?.[0] || null)} />
+                            </label>
+                            {esReviewFile && (
+                              <button onClick={() => setEsReviewFile(null)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>Remove</button>
+                            )}
+                          </div>
+                        )}
                         <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                           {esReviewAction === 'approve' && (
                             <button onClick={() => esApproveRequest(esSelectedRequest.id)} disabled={esReviewSubmitting}
                               style={{ padding: '9px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: '#10b981', color: '#fff' }}>
-                              {esReviewSubmitting ? 'Approbation…' : '✓ Approuver & publier'}
+                              {esReviewSubmitting ? 'Validating…' : '✓ Validate'}
                             </button>
                           )}
                           {esReviewAction === 'reject' && (
                             <button onClick={() => esRejectRequest(esSelectedRequest.id)} disabled={esReviewSubmitting || !esReviewComment.trim()}
                               style={{ padding: '9px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: '#ef4444', color: '#fff', opacity: (esReviewSubmitting || !esReviewComment.trim()) ? 0.6 : 1 }}>
-                              {esReviewSubmitting ? 'Rejet…' : '✕ Confirmer le rejet'}
+                              {esReviewSubmitting ? 'Cancelling…' : '✕ Confirm Cancel'}
                             </button>
                           )}
                           {esReviewAction === 'improve' && (
                             <button onClick={() => esRequestImprovements(esSelectedRequest.id)} disabled={esReviewSubmitting || !esReviewComment.trim()}
                               style={{ padding: '9px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: '#f59e0b', color: '#fff', opacity: (esReviewSubmitting || !esReviewComment.trim()) ? 0.6 : 1 }}>
-                              {esReviewSubmitting ? 'Envoi…' : '↻ Envoyer la demande'}
+                              {esReviewSubmitting ? 'Sending…' : '↻ Send'}
                             </button>
                           )}
-                          <button onClick={() => { setEsReviewAction(null); setEsReviewComment('') }}
+                          <button onClick={() => { setEsReviewAction(null); setEsReviewComment(''); setEsReviewFile(null) }}
                             style={{ padding: '9px 20px', borderRadius: '10px', border: '1px solid var(--border-card,#e2e8f0)', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: 'transparent', color: 'var(--text,#334155)' }}>
                             Annuler
                           </button>
@@ -3976,15 +4090,15 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         <button onClick={() => setEsReviewAction('approve')}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '9px 18px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: '#10b981', color: '#fff' }}>
-                          <EsIcon name="check" size={15} /> Approuver
+                          <EsIcon name="check" size={15} /> Validate
                         </button>
                         <button onClick={() => setEsReviewAction('improve')}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '9px 18px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: '#fef3c7', color: '#92400e' }}>
-                          <EsIcon name="pencil" size={15} /> Demander modification
+                          <EsIcon name="pencil" size={15} /> Request Improvement
                         </button>
                         <button onClick={() => setEsReviewAction('reject')}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '9px 18px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', background: '#fef2f2', color: '#dc2626' }}>
-                          <EsIcon name="x" size={15} /> Rejeter
+                          <EsIcon name="x" size={15} /> Cancel
                         </button>
                       </div>
                     )}
@@ -4049,10 +4163,10 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {esResponses.map(p => {
                   const statusConfig = {
-                    rejete: { bg: '#fee2e2', fg: '#dc2626', label: 'Rejeté', icon: 'x' },
-                    modification_demandee: { bg: '#fef3c7', fg: '#d97706', label: 'Modifications demandées', icon: 'pencil' },
-                    approuve: { bg: '#dcfce7', fg: '#16a34a', label: 'Approuvé (en attente de publication)', icon: 'check' },
-                    publie: { bg: '#dcfce7', fg: '#16a34a', label: 'Publié', icon: 'check' },
+                    rejete: { bg: '#fee2e2', fg: '#dc2626', label: 'Cancelled', icon: 'x' },
+                    modification_demandee: { bg: '#fef3c7', fg: '#d97706', label: 'Improvement Requested', icon: 'pencil' },
+                    approuve: { bg: '#dcfce7', fg: '#16a34a', label: 'Validated (en attente de publication)', icon: 'check' },
+                    publie: { bg: '#dcfce7', fg: '#16a34a', label: 'Validated', icon: 'check' },
                   }
                   const cfg = statusConfig[p.statut] || { bg: '#f1f5f9', fg: '#64748b', label: p.statut, icon: 'clock' }
                   return (
@@ -4071,14 +4185,19 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                       <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>Soumis {esTimeAgo(p.created_at)}</div>
                       {p.statut === 'rejete' && p.motif_rejet && (
                         <div style={{ marginTop: '8px', padding: '10px 12px', background: '#fef2f2', borderRadius: '9px', border: '1px solid #fecaca' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', marginBottom: '4px' }}>Motif du rejet :</div>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', marginBottom: '4px' }}>Cancellation reason:</div>
                           <div style={{ fontSize: '13px', color: '#991b1b' }}>{p.motif_rejet}</div>
                         </div>
                       )}
                       {p.statut === 'modification_demandee' && p.commentaire_modification && (
                         <div style={{ marginTop: '8px', padding: '10px 12px', background: '#fffbeb', borderRadius: '9px', border: '1px solid #fde68a' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 700, color: '#d97706', marginBottom: '4px' }}>Modifications demandées :</div>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: '#d97706', marginBottom: '4px' }}>Improvement Requested — ambassador comments:</div>
                           <div style={{ fontSize: '13px', color: '#92400e' }}>{p.commentaire_modification}</div>
+                          {p.amelioration_fichier_url && (
+                            <a href={p.amelioration_fichier_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '8px', fontSize: '12.5px', fontWeight: 700, color: '#d97706', textDecoration: 'underline' }}>
+                              <EsIcon name="file" size={13} /> Voir le fichier joint
+                            </a>
+                          )}
                         </div>
                       )}
                       {p.statut === 'modification_demandee' && (
@@ -4354,7 +4473,12 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
               const postAvatar = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="20" fill="hsl(${av.hue},50%,45%)"/><text x="20" y="20" dominant-baseline="central" text-anchor="middle" fill="white" font-size="16" font-weight="700">${av.initials}</text></svg>`)}`
               const media = post.media && post.media[0]
               return (
-                <article key={post.id} className="es-post">
+                <article key={post.id} className={`es-post${post.project_info ? ' es-post-project' : ''}`}>
+                  {post.project_info && (
+                    <div className="es-project-card-badge">
+                      <EsIcon name="folder" size={12} /> PROJECT
+                    </div>
+                  )}
                   <div className="es-post-header">
                     <img src={postAvatar} alt={post.author_name} className="es-avatar-sm" />
                     <div className="es-post-meta">
@@ -4430,17 +4554,41 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                       )
                     )}
                   </div>
-                  {post.project_info && (
-                    <>
-                      <ProjectMetaBar project={post.project_info} compact />
-                      <div className="es-project-plain">
-                        <span>{PROJECT_TYPE_LABELS[post.project_info.type] || 'Projet'} · {post.project_info.montant_collecte} / {post.project_info.budget_total} collectés</span>
-                        {user?.role === 'partner' && (
-                          <button className="es-project-plain-postulate" onClick={() => esOpenCandidature(post)}>Postuler</button>
+                  {post.project_info && (() => {
+                    const pi = post.project_info
+                    const goal = Number(pi.budget_total) || 0
+                    const raised = Number(pi.montant_collecte) || 0
+                    const pct = goal > 0 ? Math.min(100, Math.round((raised / goal) * 100)) : 0
+                    return (
+                      <div className="es-project-panel">
+                        <ProjectMetaBar project={pi} compact />
+                        {goal > 0 && (
+                          <div className="es-project-funding">
+                            <div className="es-project-funding-track"><div className="es-project-funding-fill" style={{ width: `${pct}%` }} /></div>
+                            <span className="es-project-funding-label">{raised.toLocaleString('fr-FR')} € / {goal.toLocaleString('fr-FR')} € · {pct}%</span>
+                          </div>
                         )}
+                        <div className="es-project-panel-footer">
+                          <span className="es-project-initiator">
+                            <EsIcon name="user" size={13} />
+                            Initiated by <strong>{pi.createur_nom || post.author_name}</strong>
+                            {pi.createur_role ? ` · ${ES_CREATEUR_ROLE_LABEL[pi.createur_role] || pi.createur_role}` : ''}
+                          </span>
+                          <button
+                            className={`es-project-plain-postulate${user?.role !== 'partner' ? ' es-project-postulate-disabled' : ''}`}
+                            title={user?.role !== 'partner' ? 'Réservé aux partenaires' : undefined}
+                            onClick={() => {
+                              if (user?.role === 'partner') { esOpenCandidature(post); return }
+                              setEsPostNotice('Seuls les partenaires peuvent postuler à un projet.')
+                              setTimeout(() => setEsPostNotice(''), 4000)
+                            }}
+                          >
+                            <EsIcon name="heart" size={14} /> Postulate
+                          </button>
+                        </div>
                       </div>
-                    </>
-                  )}
+                    )
+                  })()}
                   <div className="es-post-stats">
                     {post.likes_count > 0
                       ? <button className="es-stat-likes es-stat-link" onClick={() => setEsLikesModal(post.id)} aria-label={`Voir qui a aimé (${post.likes_count})`}>{post.likes_count} j'aime</button>
@@ -4929,6 +5077,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   /* Amb assign / Multi-orphelinats / Federation child data */
   const [ambAssignments, setAmbAssignments] = useState([])
   const [ambLoading, setAmbLoading] = useState(false)
+  const [ambSelectedAssignment, setAmbSelectedAssignment] = useState(null)
   const [fedAllChildren, setFedAllChildren] = useState([])
   const [fedAllAssignments, setFedAllAssignments] = useState([])
   const [fedLoadingData, setFedLoadingData] = useState(false)
@@ -5596,7 +5745,24 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const PROJECT_TYPES = [
     { value: 'enfant', label: t('proj_type_enfant') || "Pour enfant", icon: '\u{1F476}' },
     { value: 'orphelinat', label: t('proj_type_orphelinat') || "Pour l'orphelinat", icon: '\u{1F3E5}' },
-    { value: 'federation', label: t('proj_type_federation') || 'Pour la fédération', icon: '\u{1F465}' },
+    ...(role !== 'director' ? [{ value: 'federation', label: t('proj_type_federation') || 'Pour la fédération', icon: '\u{1F465}' }] : []),
+  ]
+
+  const PROJ_CATEGORIES_ENFANT = [
+    { value: 'education', label: t('proj_cat_education') || 'Éducation', icon: '\u{1F4DA}' },
+    { value: 'health', label: t('proj_cat_health') || 'Santé', icon: '\u{2764}\u{FE0F}' },
+    { value: 'family', label: t('proj_cat_family') || 'Famille', icon: '\u{1F46A}' },
+    { value: 'social', label: t('proj_cat_social') || 'Social', icon: '\u{1F91D}' },
+    { value: 'other', label: t('proj_cat_other') || 'Other Projects', icon: '\u{1F4C1}' },
+  ]
+  const PROJ_CATEGORIES_ORPHELINAT = [
+    { value: 'food', label: t('proj_cat_food') || 'Food', icon: '\u{1F35E}' },
+    { value: 'clothes', label: t('proj_cat_clothes') || 'Clothes', icon: '\u{1F455}' },
+    { value: 'school_accessories', label: t('proj_cat_school') || 'School Accessories', icon: '\u{1F392}' },
+    { value: 'medicine', label: t('proj_cat_medicine') || 'Medicine', icon: '\u{1F48A}' },
+    { value: 'construction', label: t('proj_cat_construction') || 'Construction', icon: '\u{1F3D7}\u{FE0F}' },
+    { value: 'funding', label: t('proj_cat_funding') || 'Funding', icon: '\u{1F4B0}' },
+    { value: 'other', label: t('proj_cat_other') || 'Other', icon: '\u{1F4C1}' },
   ]
 
   const [projects, setProjects] = useState([])
@@ -5607,6 +5773,37 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   const [showOngoing, setShowOngoing] = useState(false)
   const [showExpired, setShowExpired] = useState(false)
   const [showProjHistory, setShowProjHistory] = useState(false)
+
+  // Fix (2026-07-16): la page classique "Projets" créait des projets sans
+  // cible enfant/orphelinat et avec des noms de champs ne correspondant pas
+  // à l'API réelle (title/start_date/end_date au lieu de titre/date_debut/
+  // date_fin) — les projets n'atteignaient jamais le backend et restaient
+  // invisibles partout (Communication, Ambassadeur, Partenaire). On réutilise
+  // les mêmes endpoints /enfants/ et /orphanages/ (déjà scopés par rôle côté
+  // serveur) que le composer Communication pour la sélection de cible.
+  const [projTargetChildren, setProjTargetChildren] = useState([])
+  const [projTargetOrphanages, setProjTargetOrphanages] = useState([])
+  const [projTargetsLoading, setProjTargetsLoading] = useState(false)
+  const [projSelectedTarget, setProjSelectedTarget] = useState(null)
+  const [projSelectedCategory, setProjSelectedCategory] = useState(null)
+  const [projCreateError, setProjCreateError] = useState('')
+  const [projCreateSubmitting, setProjCreateSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!projectTypeFilter || projectTypeFilter === 'federation') return
+    if (projSelectedTarget) return
+    setProjTargetsLoading(true)
+    const url = projectTypeFilter === 'enfant' ? `${API}/enfants/` : `${API}/orphanages/`
+    apiFetch(url, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(data => {
+        const list = Array.isArray(data) ? data : (data.results || [])
+        if (projectTypeFilter === 'enfant') setProjTargetChildren(list)
+        else setProjTargetOrphanages(list)
+        setProjTargetsLoading(false)
+      })
+      .catch(() => setProjTargetsLoading(false))
+  }, [projectTypeFilter])
   const PROJ_STATUT_LABELS = {
     brouillon: 'Brouillon', soumis_validation: 'Soumis', modification_demandee: 'À modifier',
     rejete: 'Rejeté', publie: 'Publié', en_financement: 'En financement',
@@ -5971,18 +6168,36 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <HumanizedIcons.HumanizedBuildingIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> {orpName}
                           </h3>
                           <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                            {children.map(a => (
-                              <div key={a.id} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:12,padding:'14px 16px',display:'flex',alignItems:'center',gap:12}}>
-                                <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#3b82f6,#2563eb)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'#fff',flexShrink:0}}>
-                                  {(a.child_name||'?')[0]?.toUpperCase()}
-                                </div>
+                            {children.map(a => {
+                              const isOpen = ambSelectedAssignment?.id === a.id
+                              const photoUrl = a.child_photo ? (a.child_photo.startsWith('http') ? a.child_photo : `${API.replace('/api', '')}${a.child_photo.startsWith('/') ? '' : '/'}${a.child_photo}`) : null
+                              return (
+                              <div key={a.id}>
+                                <div onClick={() => setAmbSelectedAssignment(isOpen ? null : a)} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:12,padding:'14px 16px',display:'flex',alignItems:'center',gap:12,cursor:'pointer'}}>
+                                {photoUrl ? (
+                                  <img src={photoUrl} alt="" style={{width:36,height:36,borderRadius:'50%',objectFit:'cover',flexShrink:0}} />
+                                ) : (
+                                  <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#3b82f6,#2563eb)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'#fff',flexShrink:0}}>
+                                    {(a.child_name||'?')[0]?.toUpperCase()}
+                                  </div>
+                                )}
                                 <div style={{flex:1}}>
                                   <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>{a.child_name}</div>
                                   <div style={{fontSize:12,color:'#64748b'}}>UID: {a.child_uid} • Assigné le {new Date(a.assigned_at).toLocaleDateString('fr-FR')}</div>
                                 </div>
                                 {a.note && <div style={{fontSize:11,color:'#94a3b8',maxWidth:200}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg> {a.note}</div>}
+                                </div>
+                                {isOpen && (
+                                  <div style={{background:'rgba(15,23,42,0.6)',border:'1px solid rgba(255,255,255,0.06)',borderTop:'none',borderRadius:'0 0 12px 12px',padding:'12px 16px',marginTop:'-4px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,fontSize:12,color:'#cbd5e1'}}>
+                                    <span><strong style={{color:'#94a3b8'}}>Orphelinat :</strong> {a.orphanage_name || orpName}</span>
+                                    <span><strong style={{color:'#94a3b8'}}>Âge :</strong> {a.child_age ?? '—'}</span>
+                                    <span><strong style={{color:'#94a3b8'}}>Sexe :</strong> {a.child_sexe || '—'}</span>
+                                    <span><strong style={{color:'#94a3b8'}}>Statut :</strong> {a.child_status_label || '—'}</span>
+                                  </div>
+                                )}
                               </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         </div>
                       ))}
@@ -9599,7 +9814,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   <SponsorshipInbox role={role} apiFetch={apiFetch} API={API} onLogout={onLogout} />
                 ) : activeKey === 'sponsorshipResponses' && role === 'federation' ? (
                   <SponsorshipResponses apiFetch={apiFetch} API={API} onLogout={onLogout} />
-                ) : activeKey === 'projets' ? (
+                ) : activeKey === 'projets' && role !== 'partner' ? (
                   <div className="dash-projects">
                     {showOngoing ? (
                       <div className="dash-projects">
@@ -9747,7 +9962,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           </div>
                         )}
                       </div>
-                    ) : projectTypeFilter !== null ? (
+                    ) : projectTypeFilter !== null && (projectTypeFilter === 'enfant' || (projectTypeFilter === 'orphelinat' && role !== 'director')) && !projSelectedTarget ? (
                       <div className="dash-proj-create">
                         <div className="dash-proj-create-header">
                           <button className="dash-proj-back-btn" onClick={() => setProjectTypeFilter(null)}>
@@ -9755,19 +9970,99 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {t('form_back')}
                           </button>
                           <div className="dash-proj-create-title-group">
+                            <h2 className="dash-proj-create-title">{projectTypeFilter === 'enfant' ? (t('proj_choose_child') || 'Choisissez un enfant') : (t('proj_choose_orphanage') || 'Choisissez un orphelinat')}</h2>
+                          </div>
+                        </div>
+                        <div className="dash-proj-create-body">
+                          {projTargetsLoading ? (
+                            <div className="dash-empty-state"><p>{t('form_loading') || 'Chargement…'}</p></div>
+                          ) : projectTypeFilter === 'enfant' ? (
+                            projTargetChildren.length === 0 ? (
+                              <div className="dash-empty-state"><p>{t('proj_no_children') || 'Aucun enfant disponible.'}</p></div>
+                            ) : (
+                              <div className="dash-proj-list">
+                                {projTargetChildren.map(child => (
+                                  <div key={child.id} className="dash-proj-card" onClick={() => setProjSelectedTarget(child)}>
+                                    <h4 className="dash-proj-card-title">{child.prenom} {child.nom}</h4>
+                                    <p className="dash-proj-card-summary">{t('proj_child_id') || 'ID'} {child.uid || ''}{child.orphanage_name ? ` · ${child.orphanage_name}` : ''}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )
+                          ) : (
+                            projTargetOrphanages.length === 0 ? (
+                              <div className="dash-empty-state"><p>{t('proj_no_orphanages') || 'Aucun orphelinat disponible.'}</p></div>
+                            ) : (
+                              <div className="dash-proj-list">
+                                {projTargetOrphanages.map(org => (
+                                  <div key={org.id} className="dash-proj-card" onClick={() => setProjSelectedTarget(org)}>
+                                    <h4 className="dash-proj-card-title">{org.name}</h4>
+                                    <p className="dash-proj-card-summary">{org.address || ''}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    ) : projectTypeFilter !== null && projectTypeFilter !== 'federation' && !projSelectedCategory ? (
+                      <div className="dash-proj-create">
+                        <div className="dash-proj-create-header">
+                          <button className="dash-proj-back-btn" onClick={() => {
+                            if (projectTypeFilter === 'orphelinat' && role === 'director') setProjectTypeFilter(null)
+                            else setProjSelectedTarget(null)
+                          }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                            {t('form_back')}
+                          </button>
+                          <div className="dash-proj-create-title-group">
+                            <h2 className="dash-proj-create-title">{t('proj_choose_category') || 'Choisissez une catégorie'}</h2>
+                          </div>
+                        </div>
+                        <div className="dash-category-cards" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                          {(projectTypeFilter === 'enfant' ? PROJ_CATEGORIES_ENFANT : PROJ_CATEGORIES_ORPHELINAT).map(cat => (
+                            <button key={cat.value} className="dash-category-card" onClick={() => setProjSelectedCategory(cat.value)}>
+                              <div className="dash-card-icon-wrap"><span className="dash-card-icon" style={{ fontSize: '32px' }}>{cat.icon}</span></div>
+                              <span className="dash-card-title">{cat.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : projectTypeFilter !== null ? (
+                      <div className="dash-proj-create">
+                        <div className="dash-proj-create-header">
+                          <button className="dash-proj-back-btn" onClick={() => { if (projectTypeFilter !== 'federation') setProjSelectedCategory(null); else setProjectTypeFilter(null) }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                            {t('form_back')}
+                          </button>
+                          <div className="dash-proj-create-title-group">
                             <span className="dash-proj-create-type-icon">{PROJECT_TYPES.find(pt => pt.value === projectTypeFilter)?.iconSvg}</span>
                             <h2 className="dash-proj-create-title">{t('proj_new_project') || 'Nouveau projet'}</h2>
                           </div>
-                          <div className="dash-proj-create-code">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                            <span>{genProjectCode()}</span>
-                          </div>
                         </div>
+                        {projSelectedTarget && (
+                          <div className="es-pj-target-chip" style={{ margin: '0 0 12px' }}>
+                            {projectTypeFilter === 'enfant' ? `${projSelectedTarget.prenom} ${projSelectedTarget.nom}` : projSelectedTarget.name}
+                          </div>
+                        )}
 
                         <div className="dash-proj-create-body">
+                          {projCreateError && <div className="es-pj-error" style={{ marginBottom: '12px' }}>{projCreateError}</div>}
+
                           <div className="dash-proj-field">
                             <label className="dash-proj-field-label" htmlFor="proj-title-input">{t('proj_title') || 'Titre du projet'}</label>
                             <input id="proj-title-input" type="text" className="dash-proj-input" placeholder={t('proj_title_placeholder') || 'Ex: Construction d\'une bibliothèque'} />
+                          </div>
+
+                          <div className="dash-proj-grid-2">
+                            <div className="dash-proj-field">
+                              <label className="dash-proj-field-label" htmlFor="proj-budget">{t('proj_budget') || 'Budget total (€)'}</label>
+                              <input id="proj-budget" type="number" min="0" className="dash-proj-input" placeholder="0" />
+                            </div>
+                            <div className="dash-proj-field">
+                              <label className="dash-proj-field-label" htmlFor="proj-beneficiaires">{t('proj_beneficiaries') || 'Bénéficiaires'}</label>
+                              <input id="proj-beneficiaires" type="number" min="0" className="dash-proj-input" placeholder="0" />
+                            </div>
                           </div>
 
                           <div className="dash-proj-grid-2">
@@ -9849,61 +10144,76 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                           </div>
 
                           <div className="dash-proj-create-actions">
-                            <button className="dash-proj-btn dash-proj-btn-primary" id="proj-submit-btn" onClick={async () => {
+                            <button className="dash-proj-btn dash-proj-btn-primary" id="proj-submit-btn" disabled={projCreateSubmitting} onClick={async () => {
                               const btn = document.getElementById('proj-submit-btn')
-                              if (btn) btn.classList.add('dash-proj-btn-loading')
-                              const title = document.getElementById('proj-title-input')?.value?.trim()
-                              const desc = document.getElementById('proj-desc-input')?.value?.trim()
-                              const startDate = document.getElementById('proj-start-date')?.value
-                              const endDate = document.getElementById('proj-end-date')?.value
+                              setProjCreateError('')
+                              const titre = document.getElementById('proj-title-input')?.value?.trim()
+                              const description = document.getElementById('proj-desc-input')?.value?.trim()
+                              const budgetTotal = document.getElementById('proj-budget')?.value
+                              const beneficiaires = document.getElementById('proj-beneficiaires')?.value
+                              const dateDebut = document.getElementById('proj-start-date')?.value
+                              const dateFin = document.getElementById('proj-end-date')?.value
                               const pdfInput = document.getElementById('proj-pdf-input')
                               const pdfFile = pdfInput?.files?.[0]
-                              if (!title) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_title_required') || 'Veuillez entrer un titre'); return }
-                              if (!desc) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_desc_required') || 'Veuillez entrer une description'); return }
-                              if (!startDate || !endDate) { if (btn) btn.classList.remove('dash-proj-btn-loading'); alert(t('proj_start_end_required') || 'Veuillez sélectionner les dates de début et de fin'); return }
+                              if (!titre) { setProjCreateError(t('proj_title_required') || 'Veuillez entrer un titre'); return }
+                              if (!description) { setProjCreateError(t('proj_desc_required') || 'Veuillez entrer une description'); return }
+                              if (!dateDebut || !dateFin) { setProjCreateError(t('proj_start_end_required') || 'Veuillez sélectionner les dates de début et de fin'); return }
+                              if (dateFin < dateDebut) { setProjCreateError(t('proj_date_order') || 'La date de fin doit être postérieure à la date de début.'); return }
+                              if (btn) btn.classList.add('dash-proj-btn-loading')
+                              setProjCreateSubmitting(true)
                               const body = new FormData()
                               body.append('type', projectTypeFilter)
-                              body.append('title', title)
-                              body.append('description', desc)
-                              body.append('summary', desc.substring(0, 80))
-                              body.append('start_date', startDate)
-                              body.append('end_date', endDate)
+                              body.append('titre', titre)
+                              body.append('description', description)
+                              body.append('resume', description.substring(0, 80))
+                              body.append('date_debut', dateDebut)
+                              body.append('date_fin', dateFin)
+                              if (budgetTotal) body.append('budget_total', budgetTotal)
+                              if (beneficiaires) body.append('beneficiaires', beneficiaires)
+                              if (projSelectedCategory) body.append('category', projSelectedCategory)
+                              if (projSelectedTarget?.id) {
+                                if (projectTypeFilter === 'enfant') body.append('enfant', projSelectedTarget.id)
+                                else if (projectTypeFilter === 'orphelinat') body.append('orphelinat', projSelectedTarget.id)
+                              }
                               if (pdfFile && pdfFile.type === 'application/pdf') body.append('pdf_file', pdfFile)
                               try {
                                 const res = await apiFetch(`${API}/projets/`, {
                                   method: 'POST',
                                   body,
                                 }, onLogout)
-                                if (!res) return
-                                if (!res.ok) { const e = await res.json().catch(() => ({ error: 'Erreur' })); throw new Error(e.error || 'Erreur') }
-                                const saved = await res.json()
+                                if (!res) { setProjCreateSubmitting(false); if (btn) btn.classList.remove('dash-proj-btn-loading'); return }
+                                if (!res.ok) {
+                                  const e = await res.json().catch(() => ({ error: 'Erreur' }))
+                                  const msg = typeof e === 'object' ? Object.values(e).flat().join(' ') : (e.error || 'Erreur')
+                                  throw new Error(msg || 'Erreur lors de la création du projet.')
+                                }
+                                let saved = await res.json()
+                                // Chef d'Orphelinat + projet enfant ou orphelinat : soumission
+                                // automatique pour validation (ambassadeur assigné pour un
+                                // projet enfant, fédération pour un projet orphelinat),
+                                // identique au composer Communication.
+                                if (role === 'director' && (saved.type === 'enfant' || saved.type === 'orphelinat') && saved.statut === 'brouillon') {
+                                  const submitRes = await apiFetch(`${API}/projets/${saved.id}/soumettre/`, { method: 'POST' }, onLogout)
+                                  if (submitRes && submitRes.ok) saved = await submitRes.json()
+                                }
                                 setOngoingProjects(prev => [saved, ...prev])
                                 setProjects(prev => [saved, ...prev])
                                 setProjectTypeFilter(null)
+                                setProjSelectedTarget(null)
+                                setProjSelectedCategory(null)
                                 setShowOngoing(true); setShowExpired(false)
                               } catch (e) {
-                                // fallback: save locally
-                                const code = genProjectCode()
-                                const newProj = {
-                                  id: Date.now(), code, type: projectTypeFilter,
-                                  title, description: desc, summary: desc.substring(0, 80),
-                                  pdf_url: '', status: 'open', amount: 0, raised: 0,
-                                  beneficiaries: 0, start_date: startDate, end_date: endDate,
-                                  created_at: new Date().toISOString().split('T')[0],
-                                }
-                                setOngoingProjects(prev => [newProj, ...prev])
-                                setProjects(prev => [newProj, ...prev])
-                                setProjectTypeFilter(null)
-                                setShowOngoing(true); setShowExpired(false)
+                                setProjCreateError(e.message || 'Une erreur est survenue.')
                               }
+                              setProjCreateSubmitting(false)
                               if (btn) btn.classList.remove('dash-proj-btn-loading')
                             }}>
-                              <span className="dash-proj-btn-label">{t('proj_submit') || 'Soumettre le projet'}</span>
+                              <span className="dash-proj-btn-label">{projCreateSubmitting ? (t('form_sending') || 'Envoi…') : (t('proj_submit') || 'Soumettre le projet')}</span>
                               <span className="dash-proj-btn-spinner">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round"/></svg>
                               </span>
                             </button>
-                            <button className="dash-proj-btn dash-proj-btn-secondary" onClick={() => setProjectTypeFilter(null)}>
+                            <button className="dash-proj-btn dash-proj-btn-secondary" onClick={() => { setProjectTypeFilter(null); setProjSelectedTarget(null); setProjSelectedCategory(null); setProjCreateError('') }}>
                               {t('form_cancel') || 'Annuler'}
                             </button>
                           </div>
@@ -9927,7 +10237,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                         </div>
                         <div className="dash-category-cards" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
                           {PROJECT_TYPES.map(pt => (
-                            <button key={pt.value} className="dash-category-card" onClick={() => setProjectTypeFilter(pt.value)}>
+                            <button key={pt.value} className="dash-category-card" onClick={() => { setProjectTypeFilter(pt.value); setProjSelectedTarget(null); setProjSelectedCategory(null); setProjCreateError('') }}>
                               <div className="dash-card-icon-wrap">
                                 <span className="dash-card-icon" style={{ fontSize: '32px' }}>{pt.icon}</span>
                               </div>
@@ -9981,8 +10291,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       )
                     })}
                   </div>
-                ) : activeKey === 'opportunites' && role === 'partner' ? (
-                  <OpportunityCenter user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} />
                 ) : activeKey === 'partnerChild' && role === 'partner' ? (
                   <PartnerChildFeature user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} />
                 ) : activeKey === 'partnerOrphanage' && role === 'partner' ? (
@@ -9991,8 +10299,6 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   <PartnerFederationFeature user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} />
                 ) : activeKey === 'partnerResponseBoard' && role === 'partner' ? (
                   <PartnerResponseBoard user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} />
-                ) : activeKey === 'enfants' && role === 'partner' ? (
-                  <PartnerChildren user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} countryName={countryName} flagImg={flagImg} onNavigateSponsorship={() => setActiveKey('opportunites')} />
                 ) : activeKey === 'transactions' && role === 'partner' ? (
                   <PartnerTransactions apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} />
                 ) : activeKey === 'impact' && role === 'partner' ? (
@@ -11408,18 +11714,36 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             <HumanizedIcons.HumanizedBuildingIcon size={16} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> {orpName}
                           </h3>
                           <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                            {children.map(a => (
-                              <div key={a.id} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:12,padding:'14px 16px',display:'flex',alignItems:'center',gap:12}}>
-                                <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#3b82f6,#2563eb)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'#fff',flexShrink:0}}>
-                                  {(a.child_name||'?')[0]?.toUpperCase()}
-                                </div>
+                            {children.map(a => {
+                              const isOpen = ambSelectedAssignment?.id === a.id
+                              const photoUrl = a.child_photo ? (a.child_photo.startsWith('http') ? a.child_photo : `${API.replace('/api', '')}${a.child_photo.startsWith('/') ? '' : '/'}${a.child_photo}`) : null
+                              return (
+                              <div key={a.id}>
+                                <div onClick={() => setAmbSelectedAssignment(isOpen ? null : a)} style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:12,padding:'14px 16px',display:'flex',alignItems:'center',gap:12,cursor:'pointer'}}>
+                                {photoUrl ? (
+                                  <img src={photoUrl} alt="" style={{width:36,height:36,borderRadius:'50%',objectFit:'cover',flexShrink:0}} />
+                                ) : (
+                                  <div style={{width:36,height:36,borderRadius:'50%',background:'linear-gradient(135deg,#3b82f6,#2563eb)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'#fff',flexShrink:0}}>
+                                    {(a.child_name||'?')[0]?.toUpperCase()}
+                                  </div>
+                                )}
                                 <div style={{flex:1}}>
                                   <div style={{fontSize:14,fontWeight:600,color:'#e2e8f0'}}>{a.child_name}</div>
                                   <div style={{fontSize:12,color:'#64748b'}}>UID: {a.child_uid} • Assigné le {new Date(a.assigned_at).toLocaleDateString('fr-FR')}</div>
                                 </div>
                                 {a.note && <div style={{fontSize:11,color:'#94a3b8',maxWidth:200}}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle',marginRight:2}}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg> {a.note}</div>}
+                                </div>
+                                {isOpen && (
+                                  <div style={{background:'rgba(15,23,42,0.6)',border:'1px solid rgba(255,255,255,0.06)',borderTop:'none',borderRadius:'0 0 12px 12px',padding:'12px 16px',marginTop:'-4px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,fontSize:12,color:'#cbd5e1'}}>
+                                    <span><strong style={{color:'#94a3b8'}}>Orphelinat :</strong> {a.orphanage_name || orpName}</span>
+                                    <span><strong style={{color:'#94a3b8'}}>Âge :</strong> {a.child_age ?? '—'}</span>
+                                    <span><strong style={{color:'#94a3b8'}}>Sexe :</strong> {a.child_sexe || '—'}</span>
+                                    <span><strong style={{color:'#94a3b8'}}>Statut :</strong> {a.child_status_label || '—'}</span>
+                                  </div>
+                                )}
                               </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         </div>
                       ))}
@@ -12121,125 +12445,7 @@ function WhatsAppFloat() {
   )
 }
 
-/* ═══════════ PARTNER — OPPORTUNITY CENTER ═══════════ */
-function OpportunityCenter({ user, apiFetch, API, onLogout, t }) {
-  const [opportunities, setOpportunities] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('all')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedOpp, setSelectedOpp] = useState(null)
-  const [mesCandidatures, setMesCandidatures] = useState([])
-  const [candLoading, setCandLoading] = useState(true)
 
-  // Sponsorship — mes candidatures soumises (tous projets confondus) et
-  // leur statut, pour que le partenaire retrouve ici ce qu'il a « postulé »
-  // depuis l'Accueil de Communication.
-  const loadCandidatures = useCallback(() => {
-    setCandLoading(true)
-    apiFetch(`${API}/projets/mes-candidatures/`, {}, onLogout)
-      .then(r => r && r.ok ? r.json() : [])
-      .then(data => { setMesCandidatures(Array.isArray(data) ? data : []); setCandLoading(false) })
-      .catch(() => setCandLoading(false))
-  }, [])
-  useEffect(() => { loadCandidatures() }, [loadCandidatures])
-
-  const CAND_STATUT_LABELS = { en_attente_reponse: 'En attente', acceptee: 'Acceptée', refusee: 'Refusée' }
-
-  const load = useCallback(() => {
-    setLoading(true)
-    const q = new URLSearchParams()
-    if (filter === 'urgent') q.set('urgent', 'true')
-    else if (filter === 'funding') q.set('funding', 'open')
-    else if (filter === 'completed') q.set('status', 'completed')
-    if (searchQuery.trim()) q.set('search', searchQuery.trim())
-    apiFetch(`${API}/opportunities/?${q.toString()}`, {}, onLogout)
-      .then(r => r && r.ok ? r.json() : [])
-      .then(data => { setOpportunities(Array.isArray(data) ? data : []); setLoading(false) })
-      .catch(() => { setLoading(false) })
-  }, [filter, searchQuery])
-  useEffect(() => { load() }, [load])
-
-  const fmt = (n) => { const v = Number(n) || 0; return v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(1)+'k' : v.toLocaleString('fr-FR') }
-  const TYPE_ICONS = {
-    child: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="6" r="4"/><path d="M12 10c-4 0-6 2-6 4v2c0 1 2 2 6 2s6-1 6-2v-2c0-2-2-4-6-4z"/></svg>,
-    project: <HumanizedIcons.HumanizedDocumentIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} />,
-    orphanage_need: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M20 7.5v9.17a2 2 0 0 1-1.1 1.79l-6.67 3.34a1 1 0 0 1-.46.12H4a2 2 0 0 1-2-2V7.5"/><path d="M16 2H4a2 2 0 0 0-2 2v3.5h16"/><path d="M22 2v3.5h-6V2"/></svg>,
-    campaign: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M3 9v6"/><path d="M3 9c0-2 5-7 9-7v20c-4 0-9-5-9-7"/><path d="M16 12c2.5 1 2.5 3 0 4"/></svg>,
-    emergency: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><polygon points="12 2 2 21 22 21 12 2"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="17" r="1"/></svg>,
-    education: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15z"/></svg>,
-    healthcare: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M12 6v8"/><path d="M8 10h8"/></svg>,
-  }
-  const PRIORITY_COLORS = { normal: { bg: 'rgba(59,130,246,0.12)', color: '#3b82f6' }, urgent: { bg: 'rgba(249,115,22,0.12)', color: '#f97316' }, critical: { bg: 'rgba(239,68,68,0.12)', color: '#ef4444' } }
-
-  const FILTERS = [
-    { key: 'all', label: 'Toutes' },
-    { key: 'urgent', label: <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><polygon points="12 2 2 21 22 21 12 2"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="17" r="1"/></svg> Urgentes</> },
-    { key: 'funding', label: <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Financement</> },
-    { key: 'completed', label: <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Terminées</> },
-  ]
-
-  return (
-    <div className="opp-center">
-      <div className="opp-header">
-        <div><h2 className="opp-title">Sponsorship</h2><p className="opp-sub">Découvrez comment soutenir enfants et projets, et suivez vos candidatures</p></div>
-      </div>
-
-      {!candLoading && mesCandidatures.length > 0 && (
-        <div className="opp-my-candidatures">
-          <h3 className="opp-my-candidatures-title">Mes candidatures ({mesCandidatures.length})</h3>
-          <div className="opp-my-candidatures-list">
-            {mesCandidatures.map(c => (
-              <div key={c.id} className="opp-candidature-row">
-                <span className={`opp-cand-statut opp-cand-statut-${c.statut}`}>{CAND_STATUT_LABELS[c.statut] || c.statut}</span>
-                <span className="opp-cand-titre">{c.projet_titre}</span>
-                <span className="opp-cand-montant">{c.montant_propose > 0 ? `${Number(c.montant_propose).toLocaleString('fr-FR')} €` : '—'}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="opp-toolbar">
-        <div className="opp-search"><input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Rechercher opportunités..." /></div>
-        <div className="opp-filters">{FILTERS.map(f => <button key={f.key} className={`opp-filter${filter === f.key ? ' active' : ''}`} onClick={() => setFilter(f.key)}>{f.label}</button>)}</div>
-      </div>
-      <div className="opp-grid">
-            {loading ? Array.from({length:6}).map((_,i) => <div key={i} className="opp-card opp-skeleton" />) :
-              opportunities.length === 0 ? <div className="opp-empty">Aucune opportunité trouvée</div> :
-              opportunities.map(opp => (
-                <div key={opp.id} className={`opp-card${selectedOpp?.id === opp.id ? ' selected' : ''}`} onClick={() => setSelectedOpp(selectedOpp?.id === opp.id ? null : opp)}>
-                  <div className="opp-card-top">
-                    <span className="opp-type-badge">{TYPE_ICONS[opp.type] || <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2"/></svg>} {opp.type_label}</span>
-                    <span className={`opp-priority-badge`} style={PRIORITY_COLORS[opp.priority] || PRIORITY_COLORS.normal}>{opp.priority_label}</span>
-                  </div>
-                  <h3 className="opp-card-title">{opp.title}</h3>
-                  <p className="opp-card-desc">{opp.summary || opp.description?.substring(0, 100) || ''}</p>
-                  {opp.funding_goal > 0 && (
-                    <div className="opp-funding-bar">
-                      <div className="opp-funding-track"><div className="opp-funding-fill" style={{ width: `${opp.funding_percentage}%` }} /></div>
-                      <span className="opp-funding-label">{fmt(opp.current_funding)} / {fmt(opp.funding_goal)} ({opp.funding_percentage}%)</span>
-                    </div>
-                  )}
-                  <div className="opp-card-meta">
-                    {opp.location && <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:3}}><path d="M12 22s8-8 8-13c0-4.4-3.6-8-8-8S4 4.6 4 9c0 5 8 13 8 13z"/><circle cx="12" cy="9" r="3"/></svg> {opp.location}</span>}
-                    {opp.days_remaining != null && <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:3}}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> {opp.days_remaining > 0 ? `${opp.days_remaining}j restants` : 'Expiré'}</span>}
-                    {opp.beneficiary_count > 0 && <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:3}}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> {opp.beneficiary_count}</span>}
-                  </div>
-                  {selectedOpp?.id === opp.id && (
-                    <div className="opp-detail">
-                      <p>{opp.description}</p>
-                      <div className="opp-detail-actions">
-                        <button className="opp-btn-primary" onClick={e => { e.stopPropagation(); alert('Fonctionnalité à venir : soutenir cette opportunité') }}>Soutenir</button>
-                        <button className="opp-btn-ghost" onClick={e => { e.stopPropagation(); setSelectedOpp(null) }}>Fermer</button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-      </div>
-    </div>
-  )
-}
 
 /* ═══════════ PARTNER — trois features indépendantes (Child / Orphanage /
    Federation), chacune avec sa propre entrée de navigation, son propre
@@ -12397,20 +12603,22 @@ function PartnerChildFeature({ user, apiFetch, API, onLogout }) {
 
   const CATEGORY_TABS = [
     { key: 'all', label: 'Toutes' },
+    { key: 'education', label: 'Education', icon: 'graduation' },
     { key: 'health', label: 'Health', icon: 'heart' },
     { key: 'family', label: 'Family', icon: 'users' },
     { key: 'social', label: 'Social', icon: 'smile' },
-    { key: 'education', label: 'Education', icon: 'graduation' },
-    { key: 'documents', label: 'Documents', icon: 'fileText' },
-    { key: 'autres', label: 'Autres', icon: 'hash' },
+    { key: 'other', label: 'Other Projects', icon: 'hash' },
   ]
-  const visible = categoryTab === 'all' ? projects : projects.filter(p => (p.source_update_category || 'autres') === categoryTab)
+  // La catégorie vit désormais sur le projet lui-même (Project.category) ;
+  // source_update_category reste un fallback pour les anciens projets créés
+  // avant l'ajout de ce champ (issus d'une mise à jour, sans catégorie propre).
+  const visible = categoryTab === 'all' ? projects : projects.filter(p => (p.category || p.source_update_category || 'other') === categoryTab)
 
   return (
-    <div className="pph-center">
+    <div className="pph-center pph-theme-child">
       <div className="pph-header">
         <h2 className="pph-title">Child</h2>
-        <p className="pph-sub">Projets Enfant publiés — Health, Family, Social, Education, Documents</p>
+        <p className="pph-sub">Projets Enfant publiés — Education, Health, Family, Social, Other Projects</p>
       </div>
       <div className="pph-cat-tabs" role="tablist" aria-label="Catégorie de suivi enfant">
         {CATEGORY_TABS.map(c => (
@@ -12440,6 +12648,7 @@ function PartnerChildFeature({ user, apiFetch, API, onLogout }) {
 function PartnerOrphanageFeature({ user, apiFetch, API, onLogout }) {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
+  const [categoryTab, setCategoryTab] = useState('all')
   const { openForm, closeForm, formProjet, submitForm, postulatingId, postulatedIds } = usePartnerCandidature({ apiFetch, API, onLogout })
 
   useEffect(() => {
@@ -12451,18 +12660,39 @@ function PartnerOrphanageFeature({ user, apiFetch, API, onLogout }) {
       .finally(() => setLoading(false))
   }, [])
 
+  const CATEGORY_TABS = [
+    { key: 'all', label: 'Toutes' },
+    { key: 'food', label: 'Food', icon: 'gift' },
+    { key: 'clothes', label: 'Clothes', icon: 'gift' },
+    { key: 'school_accessories', label: 'School Accessories', icon: 'graduation' },
+    { key: 'medicine', label: 'Medicine', icon: 'heart' },
+    { key: 'construction', label: 'Construction', icon: 'building' },
+    { key: 'funding', label: 'Funding', icon: 'dollar' },
+    { key: 'other', label: 'Other', icon: 'hash' },
+  ]
+  const visible = categoryTab === 'all' ? projects : projects.filter(p => (p.category || 'other') === categoryTab)
+
   return (
-    <div className="pph-center">
+    <div className="pph-center pph-theme-orphanage">
       <div className="pph-header">
         <h2 className="pph-title">Orphanage</h2>
-        <p className="pph-sub">Projets Orphelinat publiés</p>
+        <p className="pph-sub">Projets Orphelinat publiés — Food, Clothes, School Accessories, Medicine, Construction, Funding</p>
+      </div>
+      <div className="pph-cat-tabs" role="tablist" aria-label="Catégorie de projet orphelinat">
+        {CATEGORY_TABS.map(c => (
+          <button key={c.key} role="tab" aria-selected={categoryTab === c.key}
+            className={`pph-cat-tab${categoryTab === c.key ? ' active' : ''}`}
+            onClick={() => setCategoryTab(c.key)}>
+            {c.icon && <EsIcon name={c.icon} size={13} />} {c.label}
+          </button>
+        ))}
       </div>
       <div className="pph-list">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <div key={i} className="pph-card pph-skeleton" />)
-        ) : projects.length === 0 ? (
-          <div className="pph-empty">Aucun projet orphelinat publié pour le moment.</div>
-        ) : projects.map(p => (
+        ) : visible.length === 0 ? (
+          <div className="pph-empty">Aucun projet orphelinat publié dans cette catégorie pour le moment.</div>
+        ) : visible.map(p => (
           <PartnerProjectCard key={p.id} p={p} onApply={openForm} postulatingId={postulatingId} postulatedIds={postulatedIds} />
         ))}
       </div>
@@ -12488,7 +12718,7 @@ function PartnerFederationFeature({ user, apiFetch, API, onLogout }) {
   }, [])
 
   return (
-    <div className="pph-center">
+    <div className="pph-center pph-theme-federation">
       <div className="pph-header">
         <h2 className="pph-title">Federation</h2>
         <p className="pph-sub">Projets Fédération publiés</p>
@@ -12555,7 +12785,7 @@ function PartnerResponseBoard({ user, apiFetch, API, onLogout }) {
   }
 
   return (
-    <div className="pph-center">
+    <div className="pph-center pph-theme-response">
       <div className="pph-header">
         <h2 className="pph-title">Response Board</h2>
         <p className="pph-sub">Suivez le statut de chaque candidature de sponsorship</p>
@@ -12776,333 +13006,7 @@ function SponsorshipResponses({ apiFetch, API, onLogout }) {
   )
 }
 
-/* ═══════════ PARTNER — CHILDREN LIST ═══════════ */
-function PartnerChildren({ user, apiFetch, API, onLogout, t, countryName, flagImg, onNavigateSponsorship }) {
-  const [children, setChildren] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [countryFilter, setCountryFilter] = useState('')
-  const [sexFilter, setSexFilter] = useState('')
-  const [selectedChild, setSelectedChild] = useState(null)
-  const [detailTab, setDetailTab] = useState('overview')
-  const [detailLoading, setDetailLoading] = useState(false)
-  const [fundingProjectId, setFundingProjectId] = useState(null)
 
-  // Candidature réelle sur un projet (même endpoint que le "Postuler" de
-  // l'Accueil Communication) — remplace l'alerte factice "Financer ce
-  // projet" par un véritable envoi de candidature au Chef d'Orphelinat.
-  const financerProjet = async (projet) => {
-    if (fundingProjectId) return
-    setFundingProjectId(projet.id)
-    const res = await apiFetch(`${API}/projets/${projet.id}/candidature/`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ montant_propose: 0, modalite: 'unique', message: `Intérêt exprimé depuis la fiche de ${N}.` }),
-    }, onLogout)
-    setFundingProjectId(null)
-    if (res && res.ok) {
-      alert(`Candidature envoyée pour « ${projet.titre} ». Retrouvez-la dans Sponsorship.`)
-      onNavigateSponsorship?.()
-    } else {
-      const err = res ? await res.json().catch(() => ({})) : {}
-      alert(err.error || Object.values(err)[0] || 'Une erreur est survenue.')
-    }
-  }
-
-  const load = useCallback(() => {
-    setLoading(true)
-    const q = new URLSearchParams()
-    if (search.trim()) q.set('search', search.trim())
-    if (countryFilter) q.set('country', countryFilter)
-    if (sexFilter) q.set('sexe', sexFilter)
-    apiFetch(`${API}/partner/children/?${q.toString()}`, {}, onLogout)
-      .then(r => r && r.ok ? r.json() : [])
-      .then(data => { setChildren(Array.isArray(data) ? data : []); setLoading(false) })
-      .catch(() => { setLoading(false) })
-  }, [search, countryFilter, sexFilter])
-  useEffect(() => { load() }, [load])
-
-  const openDetail = (child) => {
-    setSelectedChild(null)
-    setDetailLoading(true)
-    setDetailTab('overview')
-    apiFetch(`${API}/partner/children/${child.uid}/`, {}, onLogout)
-      .then(r => { if (!r || !r.ok) throw new Error(r?.status || 'network'); return r.json() })
-      .then(data => {
-        setSelectedChild(data)
-        setDetailLoading(false)
-      })
-      .catch(err => {
-        setDetailLoading(false)
-        console.error('Failed to load child detail:', err)
-        alert('Erreur lors du chargement du profil enfant. Vérifiez la console.')
-      })
-  }
-
-  const N = selectedChild?.prenom || ''
-  const ages = selectedChild?.date_naissance ? Math.floor((Date.now() - new Date(selectedChild.date_naissance).getTime()) / 31557600000) : null
-  const updates = selectedChild?.updates || {}
-  const opportunities = selectedChild?.opportunities || []
-  const projects = selectedChild?.projets || []
-
-  const renderUpdates = (list) => {
-    if (!list || list.length === 0) return <p className="partner-empty-text">Aucune information enregistrée.</p>
-    return list.map((u,i) => (
-      <div key={u.id || i} className="partner-card">
-        <h4>{u.title}</h4>
-        {u.description && <p style={{fontSize:13,color:'var(--text-secondary,#94a3b8)',marginBottom:8}}>{u.description}</p>}
-        {u.new_value && <div className="partner-field"><span>Valeur:</span> {u.new_value}</div>}
-        {u.reason && <div className="partner-field"><span>Raison:</span> {u.reason}</div>}
-        {u.update_type && <div className="partner-field"><span>Type:</span> {u.update_type.replace(/_/g,' ')}</div>}
-        {u.created_at && <div className="partner-field"><span>Date:</span> {new Date(u.created_at).toLocaleDateString('fr-FR', {day:'numeric',month:'short',year:'numeric'})}</div>}
-        {u.attachments?.length > 0 && (
-          <div className="partner-sub-section">
-            <h5>Pièces jointes ({u.attachments.length})</h5>
-          </div>
-        )}
-      </div>
-    ))
-  }
-
-  return (
-    <div className="partner-children">
-      <div className="opp-header">
-        <div><h2 className="opp-title">Profils Enfants</h2><p className="opp-sub">Découvrez les enfants soutenus par la fédération</p></div>
-      </div>
-      <div className="opp-toolbar" style={{flexWrap:'wrap',gap:8}}>
-        <div className="opp-search"><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher par nom, prénom ou UID..." /></div>
-        <select className="opp-filter-select" value={countryFilter} onChange={e => setCountryFilter(e.target.value)}>
-          <option value="">Tous les pays</option>
-          {['CD','CI','CM','SN','BF','MG','ML','ET','GH'].map(code => <option key={code} value={code}>{countryName(code)}</option>)}
-        </select>
-        <select className="opp-filter-select" value={sexFilter} onChange={e => setSexFilter(e.target.value)}>
-          <option value="">Tous</option>
-          <option value="M">Masculin</option>
-          <option value="F">Féminin</option>
-        </select>
-      </div>
-
-      {selectedChild ? (
-        /* ── FULL PROFILE VIEW ── */
-        <div className="partner-detail">
-          <div className="partner-detail-top">
-            <button className="partner-back-btn" onClick={() => setSelectedChild(null)}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6"/></svg>
-              Retour
-            </button>
-          </div>
-
-          {/* HERO */}
-          <div className="partner-hero">
-            <div className="partner-hero-avatar">
-              {selectedChild.photo_url ? <img src={selectedChild.photo_url} alt="" /> : <span className="partner-hero-initial">{N[0] || '?'}</span>}
-            </div>
-            <div className="partner-hero-info">
-              <div className="partner-hero-name">{selectedChild.prenom || ''} {selectedChild.nom || ''}</div>
-              <div className="partner-hero-meta">
-                <span>{ages != null ? `${ages} ans` : ''}</span>
-                <span>·</span>
-                <span>{selectedChild.nationalite || ''}</span>
-                <span>·</span>
-                <span>{selectedChild.sexe === 'M' ? 'Garçon' : 'Fille'}</span>
-                <span>·</span>
-                <span className="partner-hero-uid">{selectedChild.uid ? selectedChild.uid.replace('#', '') : ''}</span>
-              </div>
-              {selectedChild.orphanage_name && <div style={{fontSize:13,color:'var(--text-muted,#94a3b8)',marginTop:4}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M2 9.5 12 4l10 5.5"/><path d="M4 11v6h16v-6"/><path d="M8 11v-4h8v4"/><path d="M12 11v5"/></svg> {selectedChild.orphanage_name}</div>}
-            </div>
-            {selectedChild.sponsorship_status?.sponsored && (
-              <div className="partner-sponsored-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Parrainé</div>
-            )}
-          </div>
-
-          {/* TABS */}
-          <div className="partner-tabs">
-            {[
-              { key:'overview', label:'Aperçu', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
-              { key:'health', label:'Santé', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2.5-3.5 2.5-5.5A4.5 4.5 0 0 0 17 4c-1.5 0-2.9.7-4 2-1.1-1.3-2.5-2-4-2A4.5 4.5 0 0 0 2.5 8.5c0 2 1 4 2.5 5.5l7 7 7-7z"/></svg> },
-              { key:'education', label:'Éducation', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9.5 12 4l10 5.5"/><path d="M4 11v6h16v-6"/><path d="M8 11v-4h8v4"/><path d="M12 11v5"/></svg> },
-              { key:'family', label:'Famille', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
-              { key:'documents', label:'Documentation', icon:<HumanizedIcons.HumanizedDocumentIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> },
-              { key:'social', label:'Social', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17a5 5 0 0 1-4.2-2.3C5.9 13.5 4.8 12 3 11l4-4 5 5 5-5 4 4c-1.8 1-2.9 2.5-3.8 3.7A5 5 0 0 1 13 17z"/></svg> },
-              { key:'opportunities', label:'Opportunités', icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> },
-              { key:'projects', label:'Projets', icon:<HumanizedIcons.HumanizedDocumentIcon size={14} color="currentColor" style={{verticalAlign:'middle', marginRight:4}} /> },
-            ].map(tab => (
-              <button key={tab.key} className={`partner-tab${detailTab === tab.key ? ' active' : ''}`} onClick={() => setDetailTab(tab.key)}>
-                <span style={{display:'inline-flex',alignItems:'center',gap:5}}>{tab.icon} {tab.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* TAB CONTENT */}
-          <div className="partner-content">
-            {detailTab === 'overview' && (
-              <div className="partner-section-grid">
-                <div className="partner-card">
-                  <h4>À propos de {selectedChild.prenom || selectedChild.nom}</h4>
-                  <div className="partner-field"><span>UID:</span> {selectedChild.uid}</div>
-                  {selectedChild.orphanage_name && <div className="partner-field"><span>Orphelinat:</span> {selectedChild.orphanage_name}</div>}
-                  {selectedChild.status && <div className="partner-field"><span>Statut:</span> {selectedChild.status}</div>}
-                  {selectedChild.biography && <div className="partner-field" style={{display:'block',marginTop:8}}><span>Biographie:</span><br/>{selectedChild.biography}</div>}
-                  {selectedChild.dream && <div className="partner-field" style={{display:'block',marginTop:8}}><span>Rêve:</span><br/>{selectedChild.dream}</div>}
-                </div>
-              </div>
-            )}
-
-            {detailTab === 'health' && (
-              <div className="partner-section-grid">
-                {renderUpdates(updates.health)}
-                <div className="partner-sponsor-row" style={{marginTop:8}}>
-                  <button className="partner-sponsor-btn" onClick={() => onNavigateSponsorship?.()}>Parrainer pour la santé</button>
-                </div>
-              </div>
-            )}
-
-            {detailTab === 'education' && (
-              <div className="partner-section-grid">
-                {renderUpdates(updates.education)}
-                <div className="partner-sponsor-row" style={{marginTop:8}}>
-                  <button className="partner-sponsor-btn" onClick={() => onNavigateSponsorship?.()}>Parrainer pour l'éducation</button>
-                </div>
-              </div>
-            )}
-
-            {detailTab === 'family' && (
-              <div className="partner-section-grid">
-                {renderUpdates(updates.family)}
-                <div className="partner-sponsor-row" style={{marginTop:8}}>
-                  <button className="partner-sponsor-btn" onClick={() => onNavigateSponsorship?.()}>Parrainer pour la famille</button>
-                </div>
-              </div>
-            )}
-
-            {detailTab === 'documents' && (
-              <div className="partner-section-grid">
-                {renderUpdates(updates.documents)}
-                <div className="partner-sponsor-row" style={{marginTop:8}}>
-                  <button className="partner-sponsor-btn" onClick={() => onNavigateSponsorship?.()}>Soutenir</button>
-                </div>
-              </div>
-            )}
-
-            {detailTab === 'social' && (
-              <div className="partner-section-grid">
-                {renderUpdates(updates.social)}
-                <div className="partner-sponsor-row" style={{marginTop:8}}>
-                  <button className="partner-sponsor-btn" onClick={() => onNavigateSponsorship?.()}>Soutenir</button>
-                </div>
-              </div>
-            )}
-
-            {detailTab === 'opportunities' && (
-              <div className="partner-section-grid">
-                {opportunities.length === 0 ? <div className="partner-card"><h4>Opportunités</h4><p className="partner-empty-text">Aucune opportunité disponible.</p></div> :
-                  opportunities.map((o,i) => (
-                    <div key={o.id || i} className="partner-card">
-                      <h4>{o.title}</h4>
-                      <div className="partner-field"><span>Type:</span> {o.type}</div>
-                      <div className="partner-field"><span>Statut:</span> {o.status}</div>
-                      <p>{o.summary || ''}</p>
-                      <div className="partner-sponsor-row">
-                        <button className="partner-sponsor-btn" onClick={() => onNavigateSponsorship?.()}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Soutenir cette opportunité</button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            )}
-
-            {detailTab === 'projects' && (
-              <div className="partner-section-grid">
-                {projects.length === 0 ? <div className="partner-card"><h4>Projets</h4><p className="partner-empty-text">Aucun projet associé.</p></div> :
-                  projects.map((p,i) => (
-                    <div key={p.id || i} className="partner-card">
-                      <h4>{p.titre}</h4>
-                      <div className="partner-project-bar"><div className="partner-project-fill" style={{width:p.budget_total > 0 ? `${Math.min(100,Math.round((p.montant_collecte||0)/p.budget_total*100))}%` : '0%'}} /></div>
-                      <div className="partner-field"><span>Objectif:</span> {Number(p.budget_total||0).toLocaleString('fr-FR')} USD</div>
-                      <div className="partner-field"><span>Collecté:</span> {Number(p.montant_collecte||0).toLocaleString('fr-FR')} USD</div>
-                      <div className="partner-field"><span>Statut:</span> {p.statut !== 'brouillon' ? p.statut : ''}</div>
-                      <div className="partner-sponsor-row">
-                        <button className="partner-sponsor-btn" disabled={fundingProjectId === p.id} onClick={() => financerProjet(p)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> {fundingProjectId === p.id ? 'Envoi…' : 'Financer ce projet'}</button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        /* ── GRID VIEW ── */
-        <div className="partner-children-grid">
-          {loading ? Array.from({length:8}).map((_,i) => <div key={i} className="partner-child-card opp-skeleton" />) :
-            children.length === 0 ? <div className="opp-empty">Aucun enfant trouvé</div> :
-            children.map(child => (
-              <div key={child.id || child.uid} className="partner-child-card" onClick={() => openDetail(child)} style={{cursor:'pointer'}}>
-                <div className="partner-child-photo">
-                  {child.photo_url ? <img src={child.photo_url} alt="" /> : <span className="partner-child-initial">{(child.prenom||'?')[0]}</span>}
-                </div>
-                <div className="partner-child-info">
-                  <span className="partner-child-name">{child.prenom} {child.nom}</span>
-                  <span className="partner-child-detail">{child.age != null ? `${child.age} ans` : ''} · {child.nationalite || ''} · {child.sexe === 'M' ? 'Garçon' : 'Fille'}</span>
-                  <span className="partner-child-uid">UID: {child.uid}</span>
-                </div>
-              </div>
-            ))}
-        </div>
-      )}
-
-      <style>{`
-        .partner-detail { max-width:960px; margin:0 auto; }
-        .partner-detail-top { margin-bottom:16px; }
-        .partner-back-btn { display:inline-flex; align-items:center; gap:4px; padding:6px 14px; border:1px solid var(--border-card,#334155); border-radius:8px; background:transparent; color:var(--text-muted,#64748b); font-size:13px; cursor:pointer; }
-        .partner-back-btn:hover { color:var(--text-primary,#f1f5f9); background:rgba(255,255,255,0.04); }
-        .partner-hero { display:flex; align-items:center; gap:20px; padding:20px 24px; background:var(--bg-card,#1e293b); border-radius:14px; border:1px solid var(--border-card,#334155); margin-bottom:16px; }
-        .partner-hero-avatar { width:72px; height:72px; border-radius:16px; overflow:hidden; flex-shrink:0; background:linear-gradient(135deg,#f59e0bdd,#f59e0b88); display:flex; align-items:center; justify-content:center; }
-        .partner-hero-avatar img { width:100%; height:100%; object-fit:cover; }
-        .partner-hero-initial { font-size:32px; font-weight:700; color:#fff; }
-        .partner-hero-info { flex:1; }
-        .partner-hero-name { font-size:20px; font-weight:700; color:var(--text-primary,#f1f5f9); margin-bottom:4px; }
-        .partner-hero-meta { display:flex; gap:6px; font-size:13px; color:var(--text-muted,#64748b); flex-wrap:wrap; }
-        .partner-hero-uid { font-family:monospace; color:var(--text-muted,#94a3b8); }
-        .partner-sponsored-badge { padding:6px 14px; border-radius:100px; background:rgba(34,197,94,0.12); color:#22c55e; font-size:12px; font-weight:600; }
-        .partner-tabs { display:flex; gap:4px; margin-bottom:16px; background:var(--bg-card,#1e293b); border-radius:10px; padding:4px; overflow-x:auto; }
-        .partner-tab { display:flex; align-items:center; gap:6px; padding:8px 14px; border:none; background:transparent; color:var(--text-muted,#64748b); font-size:12px; font-weight:500; border-radius:8px; cursor:pointer; white-space:nowrap; transition:all 0.15s; }
-        .partner-tab.active { background:var(--bg-active,#334155); color:var(--text-primary,#f1f5f9); }
-        .partner-content { }
-        .partner-section-grid { display:flex; flex-direction:column; gap:12px; }
-        .partner-card { padding:18px 20px; background:var(--bg-card,#1e293b); border-radius:12px; border:1px solid var(--border-card,#334155); }
-        .partner-card h4 { font-size:14px; font-weight:600; color:var(--text-primary,#f1f5f9); margin:0 0 10px; }
-        .partner-card p { font-size:13px; color:var(--text-primary,#f1f5f9); line-height:1.6; margin:0 0 8px; }
-        .partner-empty-text { color:var(--text-muted,#64748b); font-style:italic; }
-        .partner-tags { display:flex; flex-wrap:wrap; gap:6px; }
-        .partner-tag { padding:3px 10px; border-radius:100px; font-size:12px; background:rgba(99,102,241,0.12); color:#818cf8; }
-        .partner-field { font-size:13px; color:var(--text-primary,#f1f5f9); margin-bottom:4px; }
-        .partner-field span { color:var(--text-muted,#64748b); margin-right:4px; }
-        .partner-sub-section { margin-top:12px; padding-top:12px; border-top:1px solid var(--border-card,#334155); }
-        .partner-sub-section h5 { font-size:12px; font-weight:600; color:var(--text-primary,#f1f5f9); margin:0 0 8px; }
-        .partner-sponsor-row { margin-top:14px; padding-top:14px; border-top:1px solid var(--border-card,#334155); }
-        .partner-sponsor-btn { padding:10px 24px; border:none; border-radius:8px; background:linear-gradient(135deg,#f59e0b,#eab308); color:#1e293b; font-size:13px; font-weight:700; cursor:pointer; transition:all 0.15s; width:100%; }
-        .partner-sponsor-btn:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(245,158,11,0.3); }
-        .partner-need-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-        .partner-need-header h4 { margin-bottom:0; }
-        .partner-need-status { padding:3px 10px; border-radius:100px; font-size:11px; font-weight:500; }
-        .partner-need-status.urgent { background:rgba(239,68,68,0.12); color:#ef4444; }
-        .partner-need-status.open { background:rgba(245,158,11,0.12); color:#f59e0b; }
-        .partner-need-status.completed { background:rgba(34,197,94,0.12); color:#22c55e; }
-        .partner-project-bar { height:8px; background:rgba(255,255,255,0.06); border-radius:100px; overflow:hidden; margin-bottom:8px; }
-        .partner-project-fill { height:100%; background:linear-gradient(90deg,#6366f1,#818cf8); border-radius:100px; transition:width 0.3s; }
-        @media (max-width:700px) { .partner-stats { grid-template-columns:repeat(3,1fr); } }
-        .partner-children-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
-        .partner-child-card { background:var(--bg-card,#1e293b); border-radius:14px; border:1px solid var(--border-card,#334155); overflow:hidden; transition:all 0.15s; }
-        .partner-child-card:hover { border-color:var(--accent,#f59e0b); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.2); }
-        .partner-child-photo { width:100%; height:180px; overflow:hidden; background:linear-gradient(135deg,#1e293b,#334155); display:flex; align-items:center; justify-content:center; }
-        .partner-child-photo img { width:100%; height:100%; object-fit:cover; }
-        .partner-child-initial { font-size:48px; font-weight:700; color:var(--text-muted,#64748b); }
-        .partner-child-info { padding:14px 16px; }
-        .partner-child-name { display:block; font-size:15px; font-weight:600; color:var(--text-primary,#f1f5f9); margin-bottom:4px; }
-        .partner-child-detail { display:block; font-size:12px; color:var(--text-muted,#64748b); margin-bottom:2px; }
-        .partner-child-uid { display:block; font-size:11px; font-family:monospace; color:var(--text-muted,#94a3b8); }
-      `}</style>
-    </div>
-  )
-}
 
 /* ═══════════ PARTNER — TRANSACTIONS ═══════════ */
 function PartnerTransactions({ apiFetch, API, onLogout, t }) {
