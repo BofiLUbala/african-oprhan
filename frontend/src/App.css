@@ -1461,19 +1461,18 @@ section::before {
   line-height:1;
 }
 
-/* Notification wrap + dropdown — redesigned 2026-07-16: industry-standard
-   notification panel (header with live count + mark-all, scrollable list
-   capped in height, left accent bar + dot for unread, clean empty state).
-   Only ever lists UNREAD items — once read/clicked, an item leaves the list,
-   so an all-caught-up inbox shows the empty state instead of stale history. */
+/* Notification wrap + dropdown — redesigned 2026-07-16 v2: white panel,
+   compact single-line indigo/purple pills that expand to reveal the full
+   description on hover. Only ever lists UNREAD items — once read/clicked,
+   an item leaves the list, so an all-caught-up inbox shows the empty state. */
 .hd-notif-wrap { position:relative; }
 .hd-dropdown {
   position:absolute; top:calc(100% + 10px); right:0;
-  width:340px; max-width:calc(100vw - 32px);
-  background:rgba(17,24,39,0.99); backdrop-filter:blur(24px);
-  border:1px solid rgba(255,255,255,0.09);
-  border-radius:16px; z-index:2000;
-  box-shadow:0 20px 56px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3);
+  width:290px; max-width:calc(100vw - 32px);
+  background:#ffffff;
+  border:1px solid #e5e7eb;
+  border-radius:14px; z-index:2000;
+  box-shadow:0 16px 44px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.08);
   animation:hd-dropdownIn .16s cubic-bezier(.16,1,.3,1);
   overflow:hidden;
   display:flex; flex-direction:column;
@@ -1484,61 +1483,80 @@ section::before {
 }
 .hd-dropdown-header {
   display:flex; align-items:center; justify-content:space-between;
-  padding:16px 18px; flex-shrink:0;
-  border-bottom:1px solid rgba(255,255,255,0.06);
+  padding:12px 14px; flex-shrink:0;
+  border-bottom:1px solid #eef0f4;
 }
 .hd-dropdown-title {
-  display:flex; align-items:center; gap:8px;
-  font-size:14px; font-weight:700; color:#f1f5f9; letter-spacing:-0.01em;
+  display:flex; align-items:center; gap:7px;
+  font-size:13px; font-weight:700; color:#1e1b3a; letter-spacing:-0.01em;
 }
 .hd-dropdown-count {
   display:inline-flex; align-items:center; justify-content:center;
-  min-width:20px; height:20px; padding:0 6px; border-radius:10px;
-  background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff;
-  font-size:11px; font-weight:800; line-height:1;
+  min-width:18px; height:18px; padding:0 5px; border-radius:9px;
+  background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff;
+  font-size:10px; font-weight:800; line-height:1;
 }
 .hd-dropdown-markall {
-  background:none; border:none; color:#818cf8; font-size:12px; font-weight:600;
-  cursor:pointer; padding:4px 6px; border-radius:6px; transition:background .15s, color .15s;
+  background:none; border:none; color:#6d28d9; font-size:11px; font-weight:700;
+  cursor:pointer; padding:3px 6px; border-radius:6px; transition:background .15s;
   white-space:nowrap;
 }
-.hd-dropdown-markall:hover { background:rgba(129,140,248,0.12); color:#a5b4fc; }
+.hd-dropdown-markall:hover { background:#f3e8ff; }
 .hd-dropdown-list {
-  max-height:360px; overflow-y:auto;
-  scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.15) transparent;
+  max-height:320px; overflow-y:auto;
+  padding:8px; display:flex; flex-direction:column; gap:6px;
+  scrollbar-width:thin; scrollbar-color:#d8d4f5 transparent;
 }
 .hd-dropdown-list::-webkit-scrollbar { width:6px; }
-.hd-dropdown-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:10px; }
+.hd-dropdown-list::-webkit-scrollbar-thumb { background:#d8d4f5; border-radius:10px; }
 .hd-dropdown-empty {
-  display:flex; flex-direction:column; align-items:center; gap:10px;
-  padding:40px 20px; color:#64748b; font-size:13px; font-weight:500;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding:32px 16px; color:#9ca3af; font-size:12.5px; font-weight:500;
 }
 .hd-dropdown-empty svg { opacity:0.35; }
+
+/* Item : pilule compacte (titre seul, une ligne) — au survol elle s'étend
+   pour révéler la description complète. Fond bleu/violet, texte blanc. */
 .hd-dropdown-item {
   position:relative;
-  display:flex; align-items:flex-start; gap:11px;
-  padding:13px 18px 13px 15px; cursor:pointer;
-  transition:background .15s;
-  border-bottom:1px solid rgba(255,255,255,0.035);
+  display:flex; align-items:center; gap:9px;
+  padding:9px 11px; cursor:pointer;
+  border-radius:10px;
+  background:linear-gradient(135deg,#6366f1,#7c3aed);
+  transition:background .2s, box-shadow .2s, transform .15s;
+  overflow:hidden;
 }
-.hd-dropdown-item:last-child { border-bottom:none; }
-.hd-dropdown-item:hover { background:rgba(255,255,255,0.04); }
-.hd-dropdown-item-unread { background:rgba(99,102,241,0.05); }
-.hd-dropdown-item-unread:hover { background:rgba(99,102,241,0.09); }
-.hd-dropdown-item-unread::before {
-  content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px;
-  border-radius:0 3px 3px 0; background:linear-gradient(180deg,#818cf8,#6366f1);
+.hd-dropdown-item:hover {
+  background:linear-gradient(135deg,#4f46e5,#6d28d9);
+  box-shadow:0 6px 18px -4px rgba(79,70,229,0.5);
+  transform:translateY(-1px);
 }
-.hd-dropdown-dot { width:7px; height:7px; border-radius:50%; background:#818cf8; flex-shrink:0; margin-top:6px; box-shadow:0 0 6px rgba(129,140,248,0.7); }
+.hd-dropdown-dot { width:6px; height:6px; border-radius:50%; background:#fff; flex-shrink:0; box-shadow:0 0 6px rgba(255,255,255,0.9); }
 .hd-dropdown-icon {
   display:flex; align-items:center; justify-content:center;
-  width:32px; height:32px; border-radius:10px; flex-shrink:0;
-  background:rgba(255,255,255,0.05); font-size:15px;
+  width:26px; height:26px; border-radius:8px; flex-shrink:0;
+  background:rgba(255,255,255,0.22); color:#fff; font-size:13px;
 }
-.hd-dropdown-body { display:flex; flex-direction:column; gap:3px; min-width:0; flex:1; }
-.hd-dropdown-text { font-size:13px; font-weight:600; color:#f1f5f9; line-height:1.35; }
-.hd-dropdown-snippet { font-size:12px; color:#94a3b8; line-height:1.4; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; white-space:pre-wrap; }
-.hd-dropdown-time { font-size:11px; color:#64748b; margin-top:1px; }
+.hd-dropdown-body { display:flex; flex-direction:column; min-width:0; flex:1; }
+.hd-dropdown-text {
+  font-size:12.5px; font-weight:700; color:#fff; line-height:1.3;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+/* Description + heure : masquées par défaut (hauteur 0), révélées au survol. */
+.hd-dropdown-snippet {
+  font-size:11.5px; color:rgba(255,255,255,0.92); line-height:1.4;
+  max-height:0; opacity:0; overflow:hidden;
+  transition:max-height .22s ease, opacity .18s ease, margin-top .22s ease;
+  white-space:pre-wrap;
+}
+.hd-dropdown-time {
+  font-size:10.5px; color:rgba(255,255,255,0.75); margin-top:0;
+  max-height:0; opacity:0; overflow:hidden;
+  transition:max-height .22s ease, opacity .18s ease, margin-top .22s ease;
+}
+.hd-dropdown-item:hover .hd-dropdown-text { white-space:normal; }
+.hd-dropdown-item:hover .hd-dropdown-snippet { max-height:80px; opacity:1; margin-top:4px; }
+.hd-dropdown-item:hover .hd-dropdown-time { max-height:16px; opacity:1; margin-top:3px; }
 
 /* User section */
 .hd-user {
@@ -3867,6 +3885,37 @@ select.dash-prof-input option { background:#1e293b; color:#e2e8f0; }
 .es-search-filter-opt:hover { background: var(--es-hd-hover); }
 .es-search-filter-opt.active { background: rgba(99, 102, 241, 0.1); color: #4f46e5; }
 
+/* Gestionnaire de catégories de recherche rapide — ouvert par le bouton "+"
+   de l'en-tête Communication (n'ouvre plus la création de publication,
+   celle-ci reste accessible via le composeur en haut du fil Accueil). */
+.es-filter-manager {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 2000;
+  width: 240px; padding: 6px;
+  background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(20px);
+  border: 1px solid var(--es-hd-border, #e5e7eb); border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+  animation: esPopIn 0.2s var(--ag-bezier, ease);
+}
+.es-filter-manager-head {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: #9ca3af; padding: 8px 10px 6px;
+}
+.es-filter-manager-list { display: flex; flex-direction: column; gap: 2px; }
+.es-filter-manager-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 7px 10px; border-radius: 9px;
+}
+.es-filter-manager-row:hover { background: #f8fafc; }
+.es-filter-manager-label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #334155; }
+.es-filter-manager-toggle {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: none; border-radius: 7px; padding: 4px 9px;
+  font-size: 11.5px; font-weight: 700; cursor: pointer; transition: background .15s, color .15s;
+  background: #eef2ff; color: #4f46e5;
+}
+.es-filter-manager-toggle.is-on { background: #fee2e2; color: #dc2626; }
+.es-filter-manager-toggle:hover { filter: brightness(0.95); }
+
 /* Results dropdown */
 .es-search-results {
   position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 40;
@@ -4715,6 +4764,14 @@ select.dash-prof-input option { background:#1e293b; color:#e2e8f0; }
   color: var(--status-color); background: color-mix(in srgb, var(--status-color) 14%, transparent);
   box-shadow: 0 0 10px -3px var(--status-color);
 }
+
+/* Barre de progression (% du délai écoulé) + postulations — toujours
+   affichée, quel que soit le contexte (Accueil, PublicAccueil, cartes
+   Partenaire), pour ne plus dépendre de la présence d'un budget. */
+.proj-meta-progress { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+.proj-meta-progress-track { height: 6px; border-radius: 20px; background: rgba(99,102,241,0.12); overflow: hidden; }
+.proj-meta-progress-fill { height: 100%; border-radius: 20px; background: linear-gradient(90deg,#6366f1,#a855f7); transition: width .4s cubic-bezier(.16,1,.3,1); }
+.proj-meta-progress-label { font-size: 11px; color: #6366f1; font-weight: 600; }
 
 .es-global-toast { position: fixed; top: 76px; left: 50%; transform: translateX(-50%); z-index: 500; background: #1E293B; color: #fff; font-size: 13px; font-weight: 600; padding: 10px 20px; border-radius: 100px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); animation: esToastIn .2s ease; }
 @keyframes esToastIn { from { opacity: 0; transform: translateX(-50%) translateY(-8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }

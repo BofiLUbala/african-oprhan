@@ -142,7 +142,7 @@ export default function PublicAccueil({ API, onRequireAuth, onBack, focusChildId
                 <>
                   <ProjectMetaBar project={post.project_info} compact />
                   <div className="pub-post-project">
-                    <span>{PROJECT_TYPE_LABELS[post.project_info.type] || 'Projet'} · {post.project_info.montant_collecte} / {post.project_info.budget_total} collectés</span>
+                    <span>{PROJECT_TYPE_LABELS[post.project_info.type] || 'Projet'}</span>
                     <button className="pub-post-postulate" onClick={() => onRequireAuth?.('signup')}>Postuler</button>
                   </div>
                 </>

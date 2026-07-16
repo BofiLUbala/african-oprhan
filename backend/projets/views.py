@@ -102,6 +102,13 @@ def project_list(request):
         createur_role = request.query_params.get("createur_role")
         if createur_role:
             projets = projets.filter(createur_role=createur_role)
+        search = request.query_params.get("search")
+        if search:
+            projets = projets.filter(
+                models.Q(code__icontains=search)
+                | models.Q(titre__icontains=search)
+                | models.Q(description__icontains=search)
+            )
 
         projets = projets.order_by("-created_at")
         serializer = ProjetListSerializer(projets, many=True)

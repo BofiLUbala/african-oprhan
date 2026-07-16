@@ -20,6 +20,7 @@ class ProjetListSerializer(serializers.ModelSerializer):
     date_status = serializers.SerializerMethodField()
     source_update_category = serializers.SerializerMethodField()
     amelioration_fichier_url = serializers.SerializerMethodField()
+    candidatures_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -30,12 +31,15 @@ class ProjetListSerializer(serializers.ModelSerializer):
             "createur_role", "ambassadeur_validateur", "validateur_nom",
             "assigned_reviewer", "assigned_reviewer_nom",
             "statut", "motif_rejet", "commentaire_modification", "amelioration_fichier_url",
-            "budget_total", "montant_collecte", "progression",
+            "budget_total", "montant_collecte", "progression", "candidatures_count",
             "beneficiaires", "date_debut", "date_fin", "date_status",
             "enfant_info",
             "followers_count",
             "created_at", "updated_at",
         ]
+
+    def get_candidatures_count(self, obj):
+        return obj.candidatures.count()
 
     def get_amelioration_fichier_url(self, obj):
         if not obj.amelioration_fichier:

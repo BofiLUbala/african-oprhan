@@ -41,6 +41,7 @@ def _project_info(obj):
             "id", "code", "type", "titre", "statut", "budget_total",
             "montant_collecte", "createur", "createur_nom", "createur_role",
             "date_debut", "date_fin", "date_status", "created_at",
+            "candidatures_count",
         )
     }
 

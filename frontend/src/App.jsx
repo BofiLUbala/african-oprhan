@@ -1358,6 +1358,9 @@ const ES_ICON_PATHS = {
   shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
   heart: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
   hash: '<line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="14" x2="12" y1="3" y2="21"/>',
+  moreH: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+  copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  cursorClick: '<path d="M9.5 9.5 3 21l11.5-6.5L21 3z" opacity="0"/><path d="m13 13 6 6"/><path d="M4 4l7 16 2-7 7-2z"/>',
   message: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
   users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
   pencil: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>',
@@ -1916,6 +1919,18 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
   const [esSearchType, setEsSearchType] = React.useState('all')
   const [esSearchOpen, setEsSearchOpen] = React.useState(false)
   const [esFilterOpen, setEsFilterOpen] = React.useState(false)
+  // Catégories de recherche rapide activées par l'utilisateur (le bouton
+  // "+" de l'en-tête ouvre ce gestionnaire — ajouter/retirer une catégorie
+  // du filtre, plutôt que de créer une publication comme avant).
+  const [esEnabledFilterKeys, setEsEnabledFilterKeys] = React.useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('cdo_search_filters') || 'null')
+      if (Array.isArray(saved) && saved.length) return saved
+    } catch (_) {}
+    return ['messages', 'users', 'children', 'channels', 'projects']
+  })
+  const [esFilterManagerOpen, setEsFilterManagerOpen] = React.useState(false)
+  React.useEffect(() => { localStorage.setItem('cdo_search_filters', JSON.stringify(esEnabledFilterKeys)) }, [esEnabledFilterKeys])
   const [esSearchResults, setEsSearchResults] = React.useState([])
   const [esSearchLoading, setEsSearchLoading] = React.useState(false)
   const [esOnline, setEsOnline] = React.useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
@@ -1924,6 +1939,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
   const esSearchRef = React.useRef(null)
   const esOnlineRef = React.useRef(null)
   const esNotifDropRef = React.useRef(null)
+  const esFilterManagerRef = React.useRef(null)
 
   // ── Channels (Slack-like, role-based) ──────────────────────────────
   const [esChannels, setEsChannels] = React.useState(STATIC_CHANNELS)
@@ -2198,12 +2214,19 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
       if (esSearchRef.current && !esSearchRef.current.contains(e.target)) { setEsSearchOpen(false); setEsFilterOpen(false) }
       if (esOnlineRef.current && !esOnlineRef.current.contains(e.target)) { setEsOnlineOpen(false) }
       if (esNotifDropRef.current && !esNotifDropRef.current.contains(e.target)) { setEsNotifOpen(false) }
+      if (esFilterManagerRef.current && !esFilterManagerRef.current.contains(e.target)) { setEsFilterManagerOpen(false) }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
 
+  const PROJ_STATUT_LABELS_SEARCH = {
+    brouillon: 'Brouillon', soumis_validation: 'Soumis', en_attente_ambassadeur: 'En attente ambassadeur',
+    en_attente_federation: 'En attente fédération', modification_demandee: 'À modifier',
+    rejete: 'Annulé', approuve: 'Approuvé', publie: 'Publié',
+    en_financement: 'En financement', finance: 'Financé', cloture: 'Clôturé', suspendu: 'Suspendu',
+  }
   const ES_SEARCH_FILTERS = [
     { key: 'all', label: 'Tout', icon: 'search' },
     { key: 'messages', label: 'Messages', icon: 'message' },
@@ -2240,8 +2263,16 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
           if (res && res.ok) { const data = await res.json(); (Array.isArray(data) ? data : (data.results || [])).slice(0, 6).forEach(ch => results.push({ type: 'children', id: `ch${ch.id || ch.uid}`, title: `${ch.first_name || ''} ${ch.last_name || ''}`.trim() || ch.uid, subtitle: ch.uid ? `Code ${ch.uid}` : 'Enfant enregistré', icon: 'child' })) }
         }
         if (wants('projects')) {
+          // Recherche serveur (code/titre/description) — un projet se
+          // recherche aussi bien par son titre que par son code (ex: CHD-2026-0001).
           const res = await apiFetch(`${API}/projets/?search=${encodeURIComponent(q)}`, {}, onReturn)
-          if (res && res.ok) { const data = await res.json(); (Array.isArray(data) ? data : (data.results || [])).filter(p => (p.title || p.name || '').toLowerCase().includes(ql)).slice(0, 5).forEach(p => results.push({ type: 'projects', id: `p${p.id}`, title: p.title || p.name || `Projet #${p.id}`, subtitle: p.status || 'Projet', icon: 'folder' })) }
+          if (res && res.ok) {
+            const data = await res.json()
+            ;(Array.isArray(data) ? data : (data.results || [])).slice(0, 6).forEach(p => results.push({
+              type: 'projects', id: `p${p.id}`, title: p.titre || `Projet ${p.code}`,
+              subtitle: `${p.code} · ${PROJ_STATUT_LABELS_SEARCH[p.statut] || p.statut}`, icon: 'folder', project: p,
+            }))
+          }
         }
       } catch (_) { /* graceful */ }
       setEsSearchResults(results)
@@ -2254,6 +2285,11 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
     if (r.type === 'messages' && r.conv) { esNavigate('messages'); setEsActiveConv(r.conv) }
     else if (r.type === 'channels' && r.channel) { esOpenChannel(r.channel) }
     else if (r.type === 'users') { esNavigate('messages') }
+    else if (r.type === 'projects' && r.project) {
+      esNavigate('projects')
+      setEsProjView(r.project.type === 'enfant' ? 'children' : r.project.type === 'orphelinat' ? 'orphanage' : 'federation')
+      setEsProjMode('list')
+    }
     setEsSearchQuery(''); setEsSearchOpen(false)
   }
 
@@ -2663,6 +2699,31 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
   const esHandleShare = (post) => {
     setEsSharePost(post)
     setEsShareModal(true)
+  }
+
+  // ── Menu "···" du post (tout le monde) : sélectionner / copier / partager,
+  // Modifier/Supprimer réservés à l'auteur (déjà vérifié aussi côté backend
+  // post_detail PATCH/DELETE — 403 si l'appelant n'est pas post.author). ──
+  const esSelectPostText = (postId) => {
+    const el = document.querySelector(`[data-post-content="${postId}"]`)
+    if (!el) return
+    const range = document.createRange()
+    range.selectNodeContents(el)
+    const sel = window.getSelection()
+    sel.removeAllRanges()
+    sel.addRange(range)
+  }
+
+  const esCopyPostText = async (post) => {
+    try {
+      await navigator.clipboard.writeText(post.content || '')
+      setEsPostNotice('Texte copié dans le presse-papiers.')
+      setTimeout(() => setEsPostNotice(''), 3000)
+    } catch (_) {
+      esSelectPostText(post.id)
+      setEsPostNotice('Sélectionné — utilisez Ctrl+C pour copier.')
+      setTimeout(() => setEsPostNotice(''), 3000)
+    }
   }
 
   // ── Post actions: edit / delete (auteur uniquement) — même paire
@@ -3145,10 +3206,17 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
 
           {esFilterOpen && (
             <div className="es-search-filters" role="listbox">
-              {ES_SEARCH_FILTERS.map(f => (
+              {ES_SEARCH_FILTERS.filter(f => f.key === 'all' || esEnabledFilterKeys.includes(f.key)).map(f => (
                 <button key={f.key} role="option" aria-selected={esSearchType === f.key}
                   className={`es-search-filter-opt${esSearchType === f.key ? ' active' : ''}`}
-                  onClick={() => { setEsSearchType(f.key); setEsFilterOpen(false); if (esSearchQuery) setEsSearchOpen(true) }}>
+                  onClick={() => {
+                    setEsSearchType(f.key); setEsFilterOpen(false)
+                    if (esSearchQuery) { setEsSearchOpen(true); return }
+                    // Sans recherche en cours, choisir une catégorie navigue
+                    // directement vers cette sous-fonctionnalité (raccourci).
+                    if (f.key === 'messages' || f.key === 'users') esNavigate('messages')
+                    else if (f.key === 'projects') esNavigate('projects')
+                  }}>
                   <span><EsIcon name={f.icon} size={15} /></span> {f.label}
                   {esSearchType === f.key && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto' }}><path d="M20 6L9 17l-5-5"/></svg>}
                 </button>
@@ -3302,9 +3370,32 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
             </button>
           )}
 
-          <button className="es-icon-btn es-icon-primary" onClick={() => setEsModal('create')} title="Nouvelle publication" aria-label="Nouvelle publication">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-          </button>
+          <div className="hd-notif-wrap" ref={esFilterManagerRef}>
+            <button className="es-icon-btn es-icon-primary" onClick={() => setEsFilterManagerOpen(v => !v)} title="Gérer les catégories de recherche rapide" aria-label="Gérer les catégories de recherche rapide" aria-haspopup="true" aria-expanded={esFilterManagerOpen}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            {esFilterManagerOpen && (
+              <div className="es-filter-manager" role="menu">
+                <div className="es-filter-manager-head">Catégories de recherche rapide</div>
+                <div className="es-filter-manager-list">
+                  {ES_SEARCH_FILTERS.filter(f => f.key !== 'all').map(f => {
+                    const enabled = esEnabledFilterKeys.includes(f.key)
+                    return (
+                      <div key={f.key} className="es-filter-manager-row">
+                        <span className="es-filter-manager-label"><EsIcon name={f.icon} size={14} /> {f.label}</span>
+                        <button
+                          className={`es-filter-manager-toggle${enabled ? ' is-on' : ''}`}
+                          onClick={() => setEsEnabledFilterKeys(prev => enabled ? prev.filter(k => k !== f.key) : [...prev, f.key])}
+                        >
+                          {enabled ? <><EsIcon name="x" size={12} /> Retirer</> : <><EsIcon name="plus" size={12} /> Ajouter</>}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
 
           <button className="es-user-chip" onClick={() => esNavigate('profil')} title="Mon profil">
             <span className="es-user-ava">
@@ -4485,23 +4576,34 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                       <span className="es-post-author">{post.author_id === user?.id ? 'Vous' : post.author_name}</span>
                       <span className="es-author-time">{esTimeAgo(post.created_at)}{post.location ? ` · ${post.location}` : ''}</span>
                     </div>
-                    {post.author_id === user?.id ? (
-                      <div className="es-post-menu-wrap">
-                        <button className="es-post-options" onClick={e => { e.stopPropagation(); setEsPostMenuFor(m => m === post.id ? null : post.id) }} aria-label="Options" aria-haspopup="menu" aria-expanded={esPostMenuFor === post.id}>···</button>
-                        {esPostMenuFor === post.id && (
-                          <div className="es-post-menu" role="menu">
-                            <button role="menuitem" onClick={() => { setEsEditingPost({ id: post.id, content: post.content }); setEsPostMenuFor(null) }}>
-                              <EsIcon name="pencil" size={14} /> Modifier
-                            </button>
-                            <button role="menuitem" className="es-post-menu-danger" onClick={() => { setEsPostMenuFor(null); if (window.confirm('Supprimer cette publication ?')) esDeletePost(post.id) }}>
-                              <EsIcon name="trash" size={14} /> Supprimer
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <button className="es-post-options" onClick={e => { e.stopPropagation(); esHandleShare(post) }} aria-label="Options">···</button>
-                    )}
+                    <div className="es-post-menu-wrap">
+                      <button className="es-post-options" onClick={e => { e.stopPropagation(); setEsPostMenuFor(m => m === post.id ? null : post.id) }} aria-label="Options" aria-haspopup="menu" aria-expanded={esPostMenuFor === post.id}>
+                        <EsIcon name="moreH" size={17} />
+                      </button>
+                      {esPostMenuFor === post.id && (
+                        <div className="es-post-menu" role="menu">
+                          <button role="menuitem" onClick={() => { esSelectPostText(post.id); setEsPostMenuFor(null) }}>
+                            <EsIcon name="cursorClick" size={14} /> Sélectionner
+                          </button>
+                          <button role="menuitem" onClick={() => { esCopyPostText(post); setEsPostMenuFor(null) }}>
+                            <EsIcon name="copy" size={14} /> Copier
+                          </button>
+                          <button role="menuitem" onClick={() => { setEsPostMenuFor(null); esHandleShare(post) }}>
+                            <EsIcon name="share" size={14} /> Partager
+                          </button>
+                          {post.author_id === user?.id && (
+                            <>
+                              <button role="menuitem" onClick={() => { setEsEditingPost({ id: post.id, content: post.content }); setEsPostMenuFor(null) }}>
+                                <EsIcon name="pencil" size={14} /> Modifier
+                              </button>
+                              <button role="menuitem" className="es-post-menu-danger" onClick={() => { setEsPostMenuFor(null); if (window.confirm('Supprimer cette publication ?')) esDeletePost(post.id) }}>
+                                <EsIcon name="trash" size={14} /> Supprimer
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   {/* Publication liée à un enfant : profil enfant en tête,
                       façon Facebook — photo, nom complet, ID, drapeau pays. */}
@@ -4539,7 +4641,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                         </div>
                       </div>
                     ) : (
-                      <p style={{ whiteSpace: 'pre-line' }}>{esReadableUpdate(post.content)}</p>
+                      <p data-post-content={post.id} style={{ whiteSpace: 'pre-line' }}>{esReadableUpdate(post.content)}</p>
                     )}
                     {media && (
                       media.media_type === 'video' ? (
@@ -4556,18 +4658,9 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                   </div>
                   {post.project_info && (() => {
                     const pi = post.project_info
-                    const goal = Number(pi.budget_total) || 0
-                    const raised = Number(pi.montant_collecte) || 0
-                    const pct = goal > 0 ? Math.min(100, Math.round((raised / goal) * 100)) : 0
                     return (
                       <div className="es-project-panel">
                         <ProjectMetaBar project={pi} compact />
-                        {goal > 0 && (
-                          <div className="es-project-funding">
-                            <div className="es-project-funding-track"><div className="es-project-funding-fill" style={{ width: `${pct}%` }} /></div>
-                            <span className="es-project-funding-label">{raised.toLocaleString('fr-FR')} € / {goal.toLocaleString('fr-FR')} € · {pct}%</span>
-                          </div>
-                        )}
                         <div className="es-project-panel-footer">
                           <span className="es-project-initiator">
                             <EsIcon name="user" size={13} />
@@ -12568,9 +12661,6 @@ function PartnerProjectCard({ p, onApply, postulatingId, postulatedIds }) {
     <div className="pph-card">
       <div className="pph-card-top">
         <h3 className="pph-card-title">{p.titre}</h3>
-        {p.budget_total > 0 && (
-          <span className="pph-funding-label">{pphFmt(p.montant_collecte)} / {pphFmt(p.budget_total)} ({p.progression || 0}%)</span>
-        )}
       </div>
       <p className="pph-card-desc">{(p.resume || p.description || '').substring(0, 140)}</p>
       <ProjectMetaBar project={p} compact />
