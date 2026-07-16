@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import transaction, models
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -458,6 +458,33 @@ def project_modifier(request, project_id):
     return Response(ProjetListSerializer(projet).data)
 
 
+def _candidature_stakeholders(projet):
+    """Moteur de routage : qui gère la candidature (le publisher) et qui en
+    reçoit une copie lecture-seule, selon le type de projet et le rôle du
+    créateur. Réutilise ChildAssignment / Child.orphanage / User.orphanage —
+    aucune nouvelle relation de données."""
+    from django.contrib.auth import get_user_model
+    from children.models import ChildAssignment
+    User = get_user_model()
+
+    publisher = projet.createur
+    readonly = []
+
+    if projet.type == 'enfant' and projet.enfant:
+        if publisher and publisher.role == 'director':
+            readonly = list(User.objects.filter(
+                role='ambassador',
+                assigned_children__child=projet.enfant,
+            ).distinct())
+        elif publisher and publisher.role == 'ambassador' and projet.enfant.orphanage:
+            readonly = list(User.objects.filter(
+                role='director', orphanage=projet.enfant.orphanage,
+            ).distinct())
+
+    federation_users = list(User.objects.filter(role='federation', is_active=True))
+    return publisher, readonly, federation_users
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, PeutPostulerProjet])
 def project_candidature_create(request, project_id):
@@ -486,7 +513,31 @@ def project_candidature_create(request, project_id):
                 "modalite": candidature.modalite,
             },
         )
-        return Response(CandidatureSerializer(candidature).data, status=status.HTTP_201_CREATED)
+        publisher, readonly, federation_users = _candidature_stakeholders(projet)
+        link = f"communication:projects:review:{projet.id}"
+        if publisher:
+            _notification(
+                publisher,
+                f"Nouvelle candidature de sponsorship — {projet.code}",
+                f"{request.user.full_name} a postulé pour « {projet.titre} » ({candidature.montant_propose}€, {candidature.get_type_financement_display()}).",
+                link,
+            )
+        for u in readonly:
+            _notification(
+                u,
+                f"Candidature reçue (copie lecture seule) — {projet.code}",
+                f"{request.user.full_name} a postulé pour « {projet.titre} ». Le publisher traite cette candidature.",
+                link,
+            )
+        for u in federation_users:
+            if u != publisher:
+                _notification(
+                    u,
+                    f"Nouvelle candidature de sponsorship — {projet.code}",
+                    f"{request.user.full_name} a postulé pour « {projet.titre} ».",
+                    link,
+                )
+        return Response(CandidatureSerializer(candidature, context={"request": request}).data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -494,9 +545,50 @@ def project_candidature_create(request, project_id):
 @permission_classes([IsAuthenticated])
 def mes_candidatures(request):
     """Toutes les candidatures du partenaire connecté, tous projets confondus —
-    alimente l'onglet Sponsorship (« mes candidatures et leur statut »)."""
-    candidatures = CandidatureProjet.objects.filter(partenaire=request.user).select_related("projet").order_by("-created_at")
-    serializer = CandidatureSerializer(candidatures, many=True)
+    alimente le Response Board (« mes candidatures et leur statut »)."""
+    candidatures = CandidatureProjet.objects.filter(partenaire=request.user).select_related("projet", "projet__createur").order_by("-created_at")
+    serializer = CandidatureSerializer(candidatures, many=True, context={"request": request})
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, PeutGererCandidatures])
+def sponsorship_inbox(request):
+    """Boîte de réception Sponsorship du publisher (director/ambassador/
+    federation) : ses propres candidatures (actionnables) + les copies
+    lecture-seule des candidatures dont il n'est pas le publisher."""
+    from children.models import ChildAssignment
+    user = request.user
+    if user.role == 'director':
+        qs = CandidatureProjet.objects.filter(
+            models.Q(projet__createur=user) |
+            models.Q(projet__type='enfant', projet__enfant__orphanage=user.orphanage),
+        )
+    elif user.role == 'ambassador':
+        assigned_children = ChildAssignment.objects.filter(ambassador=user).values_list('child_id', flat=True)
+        qs = CandidatureProjet.objects.filter(
+            models.Q(projet__createur=user) |
+            models.Q(projet__type='enfant', projet__enfant_id__in=assigned_children),
+        )
+    else:  # federation / supermaster — visibilité totale
+        qs = CandidatureProjet.objects.all()
+
+    candidatures = qs.select_related("projet", "projet__createur", "partenaire").distinct().order_by("-created_at")
+    serializer = CandidatureSerializer(candidatures, many=True, context={"request": request})
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def sponsorship_responses(request):
+    """Historique des décisions (Response board de la Fédération) —
+    visibilité organisation-wide sur tout le workflow de sponsorship."""
+    if request.user.role not in ('federation', 'supermaster'):
+        return Response({"error": "Accès refusé."}, status=status.HTTP_403_FORBIDDEN)
+    candidatures = CandidatureProjet.objects.exclude(statut='en_attente_reponse').select_related(
+        "projet", "projet__createur", "partenaire", "repondu_par",
+    ).order_by("-updated_at")
+    serializer = CandidatureSerializer(candidatures, many=True, context={"request": request})
     return Response(serializer.data)
 
 
@@ -512,7 +604,7 @@ def project_candidature_list(request, project_id):
         return Response({"error": "Accès refusé."}, status=status.HTTP_403_FORBIDDEN)
 
     candidatures = projet.candidatures.all()
-    serializer = CandidatureSerializer(candidatures, many=True)
+    serializer = CandidatureSerializer(candidatures, many=True, context={"request": request})
     return Response(serializer.data)
 
 
@@ -525,8 +617,10 @@ def project_candidature_repondre(request, project_id, candidature_id):
     except (Project.DoesNotExist, CandidatureProjet.DoesNotExist):
         return Response({"error": "Projet ou candidature introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
-    if request.user.role == 'director' and projet.createur != request.user:
-        return Response({"error": "Accès refusé."}, status=status.HTTP_403_FORBIDDEN)
+    # Seul le publisher du projet (quel que soit son rôle) peut traiter la
+    # candidature — les autres parties prenantes n'ont qu'un accès lecture.
+    if projet.createur != request.user:
+        return Response({"error": "Seul le publisher de ce projet peut traiter cette candidature."}, status=status.HTTP_403_FORBIDDEN)
 
     if candidature.statut != 'en_attente_reponse':
         return Response({"error": "Cette candidature a déjà été traitée."}, status=status.HTTP_400_BAD_REQUEST)
@@ -535,6 +629,12 @@ def project_candidature_repondre(request, project_id, candidature_id):
     serializer.is_valid(raise_exception=True)
 
     action = serializer.validated_data["action"]
+    commentaire = serializer.validated_data.get("commentaire", "")
+
+    from django.utils import timezone
+    candidature.commentaire_reponse = commentaire
+    candidature.repondu_par = request.user
+    candidature.repondu_le = timezone.now()
 
     if action == "accepter":
         candidature.statut = 'acceptee'
@@ -548,6 +648,8 @@ def project_candidature_repondre(request, project_id, candidature_id):
             description=f"Candidature acceptée — {candidature.partenaire.full_name} — {candidature.montant_propose}€",
             metadata={"candidature_id": candidature.id, "montant": str(candidature.montant_propose)},
         )
+        notif_title = f"Candidature approuvée — {projet.code}"
+        notif_content = f"Votre candidature pour « {projet.titre} » a été approuvée."
     elif action == "refuser":
         candidature.statut = 'refusee'
         candidature.save()
@@ -556,8 +658,66 @@ def project_candidature_repondre(request, project_id, candidature_id):
             description=f"Candidature refusée — {candidature.partenaire.full_name}",
             metadata={"candidature_id": candidature.id},
         )
+        notif_title = f"Candidature rejetée — {projet.code}"
+        notif_content = f"Votre candidature pour « {projet.titre} » a été rejetée."
+    else:  # demander_amelioration
+        candidature.statut = 'amelioration_demandee'
+        candidature.save()
+        _creer_evenement(
+            projet, 'candidature_amelioration', auteur=request.user,
+            description=f"Amélioration demandée — {candidature.partenaire.full_name} : {commentaire}",
+            metadata={"candidature_id": candidature.id, "commentaire": commentaire},
+        )
+        notif_title = f"Amélioration demandée — {projet.code}"
+        notif_content = f"Le publisher demande une amélioration de votre candidature pour « {projet.titre} » : {commentaire}"
 
-    return Response(CandidatureSerializer(candidature).data)
+    link = "communication:sponsorship:response-board"
+    _notification(candidature.partenaire, notif_title, notif_content, link)
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    for u in User.objects.filter(role='federation', is_active=True):
+        if u != request.user:
+            _notification(u, notif_title, notif_content, link)
+
+    return Response(CandidatureSerializer(candidature, context={"request": request}).data)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def candidature_resubmit(request, candidature_id):
+    """Le partenaire modifie et resoumet une candidature dont on a demandé
+    l'amélioration — le workflow repart chez le publisher."""
+    try:
+        candidature = CandidatureProjet.objects.get(pk=candidature_id)
+    except CandidatureProjet.DoesNotExist:
+        return Response({"error": "Candidature introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+    if candidature.partenaire != request.user:
+        return Response({"error": "Accès refusé."}, status=status.HTTP_403_FORBIDDEN)
+    if candidature.statut != 'amelioration_demandee':
+        return Response({"error": "Cette candidature n'est pas en attente d'amélioration."}, status=status.HTTP_400_BAD_REQUEST)
+
+    for field in ("montant_propose", "modalite", "type_financement", "message"):
+        if field in request.data:
+            setattr(candidature, field, request.data[field])
+    candidature.statut = 'en_attente_reponse'
+    candidature.commentaire_reponse = ""
+    candidature.repondu_par = None
+    candidature.repondu_le = None
+    candidature.save()
+
+    projet = candidature.projet
+    _creer_evenement(
+        projet, 'candidature_resoumise', auteur=request.user,
+        description=f"Candidature resoumise par {request.user.full_name}",
+        metadata={"candidature_id": candidature.id},
+    )
+    publisher, readonly, federation_users = _candidature_stakeholders(projet)
+    link = f"communication:projects:review:{projet.id}"
+    if publisher:
+        _notification(publisher, f"Candidature resoumise — {projet.code}", f"{request.user.full_name} a resoumis sa candidature pour « {projet.titre} ».", link)
+
+    return Response(CandidatureSerializer(candidature, context={"request": request}).data)
 
 
 @api_view(["GET"])

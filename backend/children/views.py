@@ -471,6 +471,13 @@ def child_assignment_list(request):
             orphanage_id = request.query_params.get("orphanage_id")
             if orphanage_id:
                 qs = qs.filter(child__orphanage_id=orphanage_id)
+        elif user.role == "director":
+            # Un chef d'orphelinat ne doit voir que les ambassadeurs affectés
+            # à des enfants de SON orphelinat (FK directe User.orphanage,
+            # source canonique — jamais la requête d'inscription).
+            qs = ChildAssignment.objects.filter(
+                child__orphanage=user.orphanage
+            ).select_related("child__orphanage", "ambassador", "assigned_by").order_by("-assigned_at")
         else:
             qs = ChildAssignment.objects.none()
         return Response(ChildAssignmentSerializer(qs, many=True).data)

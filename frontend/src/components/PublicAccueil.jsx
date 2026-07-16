@@ -1,4 +1,5 @@
 import React from 'react'
+import ProjectMetaBar from './communication/ProjectMetaBar'
 
 /**
  * Communication → Accueil en lecture seule pour les visiteurs non connectés.
@@ -138,10 +139,13 @@ export default function PublicAccueil({ API, onRequireAuth, onBack, focusChildId
               <p className="pub-post-content" style={{ whiteSpace: 'pre-line' }}>{readableContent(post.content)}</p>
               {media && media.media_type !== 'video' && <img src={media.url} alt="" className="pub-post-media" />}
               {post.project_info && (
-                <div className="pub-post-project">
-                  <span>{PROJECT_TYPE_LABELS[post.project_info.type] || 'Projet'} · {post.project_info.montant_collecte} / {post.project_info.budget_total} collectés</span>
-                  <button className="pub-post-postulate" onClick={() => onRequireAuth?.('signup')}>Postuler</button>
-                </div>
+                <>
+                  <ProjectMetaBar project={post.project_info} compact />
+                  <div className="pub-post-project">
+                    <span>{PROJECT_TYPE_LABELS[post.project_info.type] || 'Projet'} · {post.project_info.montant_collecte} / {post.project_info.budget_total} collectés</span>
+                    <button className="pub-post-postulate" onClick={() => onRequireAuth?.('signup')}>Postuler</button>
+                  </div>
+                </>
               )}
               {!focusChildId && (
                 <div className="pub-post-actions">

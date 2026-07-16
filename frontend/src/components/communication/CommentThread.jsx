@@ -14,7 +14,7 @@ import ComposerTools from './ComposerTools'
 export default function CommentThread({
   post, user, comments, loading, error, canModerate,
   onSubmit, onEdit, onDelete, onRetry,
-  mediaUrl, roleLabel, avatarUrl,
+  mediaUrl, roleLabel, avatarUrl, onClose,
 }) {
   const [input, setInput] = React.useState('')
   const [files, setFiles] = React.useState([])
@@ -34,6 +34,10 @@ export default function CommentThread({
     setSending(false)
     if (ok) { setInput(''); setFiles([]); inputRef.current?.focus() }
   }
+
+  // Annuler ferme tout le panneau de commentaires (pas seulement le texte) —
+  // même geste que fermer via le bouton « Commenter » qui l'a ouvert.
+  const cancelCompose = () => { setInput(''); setFiles([]); onClose?.() }
 
   const saveEdit = async () => {
     if (!editing?.content.trim()) return
@@ -67,10 +71,13 @@ export default function CommentThread({
             <ComposerTools onFiles={addFiles} />
             <span className="cmt-count" aria-hidden="true">{input.length > 1600 ? `${input.length}/2000` : ''}</span>
             <span style={{ flex: 1 }} />
-            <button className="cmt-send" onClick={submit}
+            <button type="button" className="cmt-cancel" onClick={cancelCompose} disabled={sending || (!input.trim() && files.length === 0)} aria-label="Annuler le commentaire">
+              Annuler
+            </button>
+            <button className="cmt-send sm" onClick={submit}
               disabled={sending || (!input.trim() && files.length === 0)}
               aria-label="Publier le commentaire">
-              {sending ? <span className="cmt-spinner" aria-hidden="true" /> : <CIcon name="send" size={17} />}
+              {sending ? <span className="cmt-spinner" aria-hidden="true" /> : <><CIcon name="send" size={16} /> Publier</>}
             </button>
           </div>
         </div>

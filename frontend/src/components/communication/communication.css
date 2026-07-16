@@ -73,6 +73,7 @@
 .cmv2-edit textarea { width: 100%; box-sizing: border-box; padding: 10px 13px; border-radius: 11px; border: 1.5px solid #6366f1;
   font-size: 14px; font-family: inherit; outline: none; resize: vertical; background: var(--bg-card, #fff); color: var(--text-body, #1e293b); }
 .cmv2-edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.cmv2-edited-tag { font-size: 10.5px; opacity: 0.7; font-style: italic; margin-left: 4px; }
 .cmv2-empty { text-align: center; color: #94a3b8; padding: 52px 0; }
 .cmv2-empty-icon { width: 64px; height: 64px; margin: 0 auto 12px; border-radius: 18px; font-size: 30px;
   background: linear-gradient(135deg, #eef2ff, #f5f3ff); display: grid; place-items: center; }

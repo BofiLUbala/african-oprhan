@@ -27,17 +27,21 @@ def _child_info(obj):
 
 
 def _project_info(obj):
-    """Minimal project summary for a post, used to render the 'Postulate' button."""
+    """Project summary for a post — réutilise ProjetListSerializer (mêmes
+    champs code/expéditeur/dates/date_status que partout ailleurs dans
+    l'app) au lieu de dupliquer sa logique, en ne gardant que les clés utiles
+    à l'affichage d'un post (Accueil, PublicAccueil)."""
     project = obj.project
     if not project:
         return None
+    from projets.serializers import ProjetListSerializer
+    data = ProjetListSerializer(project).data
     return {
-        "id": project.pk,
-        "type": project.type,
-        "titre": project.titre,
-        "statut": project.statut,
-        "budget_total": str(project.budget_total),
-        "montant_collecte": str(project.montant_collecte),
+        k: data[k] for k in (
+            "id", "code", "type", "titre", "statut", "budget_total",
+            "montant_collecte", "createur", "createur_nom", "createur_role",
+            "date_debut", "date_fin", "date_status", "created_at",
+        )
     }
 
 

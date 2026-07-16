@@ -76,7 +76,7 @@ def post_list(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(["GET", "DELETE"])
+@api_view(["GET", "PATCH", "DELETE"])
 def post_detail(request, post_id):
     try:
         post = Post.objects.prefetch_related(
@@ -90,6 +90,21 @@ def post_detail(request, post_id):
 
     if request.method == "GET":
         PostView.objects.get_or_create(post=post, user=request.user)
+        serializer = PostDetailSerializer(post, context={"request": request})
+        return Response(serializer.data)
+
+    elif request.method == "PATCH":
+        # Seul l'auteur peut modifier sa publication — même règle que DELETE
+        # ci-dessous, aucun statut de workflow (approval) n'est touché.
+        if post.author != request.user:
+            return Response(
+                {"error": "Vous ne pouvez modifier que vos propres publications."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        content = request.data.get("content")
+        if content is not None:
+            post.content = content
+            post.save(update_fields=["content"])
         serializer = PostDetailSerializer(post, context={"request": request})
         return Response(serializer.data)
 

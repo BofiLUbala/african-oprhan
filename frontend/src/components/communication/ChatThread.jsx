@@ -20,7 +20,7 @@ import ComposerTools from './ComposerTools'
  */
 export default function ChatThread({
   conversation, other, messages, user,
-  onSend, onReact, onLoadOlder, onDelete, onForward,
+  onSend, onReact, onLoadOlder, onDelete, onEdit, onForward,
   mediaUrl, roleLabel, avatarUrl,
 }) {
   const [input, setInput] = React.useState('')
@@ -30,6 +30,7 @@ export default function ChatThread({
   const [selected, setSelected] = React.useState(null)   // message sélectionné au clic
   const [pickerFor, setPickerFor] = React.useState(null) // sélecteur d'émoji ouvert
   const [deleteFor, setDeleteFor] = React.useState(null)
+  const [editingMsg, setEditingMsg] = React.useState(null) // { id, content }
   const [loadingOlder, setLoadingOlder] = React.useState(false)
   const [noMore, setNoMore] = React.useState(false)
   const [hiddenIds, setHiddenIds] = React.useState(() => loadHidden(conversation?.id))
@@ -111,6 +112,11 @@ export default function ChatThread({
     setDeleteFor(null); clearSelection()
     await onDelete?.(msg.id)
   }
+  const startEdit = (msg) => { setEditingMsg({ id: msg.id, content: msg.content || '' }); clearSelection() }
+  const saveEdit = async () => {
+    if (!editingMsg?.content.trim()) return
+    if (await onEdit?.(editingMsg.id, editingMsg.content.trim())) setEditingMsg(null)
+  }
 
   const otherName = other ? `${other.first_name || ''} ${other.last_name || ''}`.trim() || other.email : ''
   const visible = messages.filter(m => !hiddenIds.has(m.id))
@@ -126,6 +132,9 @@ export default function ChatThread({
           <span className="cmv2-actionbar-count">1 sélectionné</span>
           <span style={{ flex: 1 }} />
           <button className="cmv2-actionbar-btn" onClick={() => startReply(selectedMsg)} aria-label="Répondre" title="Répondre"><CIcon name="reply" size={19} /></button>
+          {isMineMsg(selectedMsg) && (
+            <button className="cmv2-actionbar-btn" onClick={() => startEdit(selectedMsg)} aria-label="Modifier" title="Modifier"><CIcon name="pencil" size={19} /></button>
+          )}
           <div style={{ position: 'relative' }}>
             <button className="cmv2-actionbar-btn" onClick={() => setPickerFor(p => p === selectedMsg.id ? null : selectedMsg.id)}
               aria-label="Réagir" title="Réagir" aria-haspopup="menu" aria-expanded={pickerFor === selectedMsg.id}><CIcon name="smile" size={19} /></button>
@@ -176,7 +185,19 @@ export default function ChatThread({
                 >
                   <ReplyQuote reply={msg.reply_to} compact currentUserId={user?.id} />
                   <AttachmentList attachments={msg.attachments} mediaUrl={mediaUrl} />
-                  {msg.content && <span className="cmv2-bubble-text">{msg.content}</span>}
+                  {editingMsg?.id === msg.id ? (
+                    <div className="cmv2-edit" onClick={e => e.stopPropagation()}>
+                      <textarea autoFocus rows={2} value={editingMsg.content}
+                        onChange={e => setEditingMsg(v => ({ ...v, content: e.target.value }))}
+                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit() } if (e.key === 'Escape') setEditingMsg(null) }} />
+                      <div className="cmv2-edit-actions">
+                        <button className="cmv2-send" onClick={saveEdit}>Enregistrer</button>
+                        <button className="cmv2-cancel" onClick={() => setEditingMsg(null)}>Annuler</button>
+                      </div>
+                    </div>
+                  ) : (
+                    msg.content && <span className="cmv2-bubble-text">{msg.content}{msg.edited ? <em className="cmv2-edited-tag"> (modifié)</em> : null}</span>
+                  )}
                   <span className="cmv2-bubble-meta">
                     <time title={new Date(msg.created_at).toLocaleString('fr-FR')}>{fmtTime(msg.created_at)}</time>
                     {isMine && (

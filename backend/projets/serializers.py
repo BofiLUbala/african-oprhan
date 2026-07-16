@@ -11,17 +11,20 @@ class ProjetListSerializer(serializers.ModelSerializer):
     enfant_info = serializers.SerializerMethodField()
     progression = serializers.SerializerMethodField()
     followers_count = serializers.SerializerMethodField()
+    date_status = serializers.SerializerMethodField()
+    source_update_category = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         fields = [
             "id", "code", "type", "titre", "resume", "description",
-            "orphelinat", "enfant", "source_update", "createur", "createur_nom",
+            "orphelinat", "enfant", "source_update", "source_update_category",
+            "createur", "createur_nom",
             "createur_role", "ambassadeur_validateur", "validateur_nom",
             "assigned_reviewer", "assigned_reviewer_nom",
             "statut", "motif_rejet", "commentaire_modification",
             "budget_total", "montant_collecte", "progression",
-            "beneficiaires", "date_debut", "date_fin",
+            "beneficiaires", "date_debut", "date_fin", "date_status",
             "enfant_info",
             "followers_count",
             "created_at", "updated_at",
@@ -44,7 +47,7 @@ class ProjetListSerializer(serializers.ModelSerializer):
             "uid": obj.enfant.uid,
             "prenom": obj.enfant.prenom,
             "nom": obj.enfant.nom,
-            "photo": obj.enfant.photo,
+            "photo": obj.enfant.photo.url if obj.enfant.photo else None,
             "nationalite": obj.enfant.nationalite,
             "status_label": (obj.enfant.get_status_display() if hasattr(obj.enfant, 'get_status_display') else obj.enfant.status or ""),
             "orphanage_name": getattr(obj.enfant.orphanage, 'name', "") if obj.enfant.orphanage else "",
@@ -57,6 +60,23 @@ class ProjetListSerializer(serializers.ModelSerializer):
 
     def get_followers_count(self, obj):
         return obj.followers.count()
+
+    def get_date_status(self, obj):
+        """Statut calculé à partir de date_fin, distinct du statut de workflow
+        (`statut`) : active / ending_soon (<=7j) / closed. None si aucune
+        date_fin n'est définie (projets historiques sans échéance)."""
+        if not obj.date_fin:
+            return None
+        from datetime import date
+        today = date.today()
+        if obj.date_fin < today:
+            return "closed"
+        if (obj.date_fin - today).days <= 7:
+            return "ending_soon"
+        return "active"
+
+    def get_source_update_category(self, obj):
+        return obj.source_update.category if obj.source_update else None
 
 
 class ProjetCreateSerializer(serializers.ModelSerializer):
@@ -126,7 +146,7 @@ class ProjetSuspendreSerializer(serializers.Serializer):
 class CandidatureCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CandidatureProjet
-        fields = ["montant_propose", "modalite", "message"]
+        fields = ["montant_propose", "modalite", "type_financement", "message"]
 
     def create(self, validated_data):
         projet = self.context["projet"]
@@ -137,29 +157,76 @@ class CandidatureCreateSerializer(serializers.ModelSerializer):
 
 class CandidatureSerializer(serializers.ModelSerializer):
     partenaire_nom = serializers.SerializerMethodField()
+    partenaire_country = serializers.SerializerMethodField()
+    partenaire_avatar = serializers.SerializerMethodField()
     projet_titre = serializers.SerializerMethodField()
+    projet_code = serializers.SerializerMethodField()
     projet_type = serializers.SerializerMethodField()
+    createur = serializers.SerializerMethodField()
+    createur_nom = serializers.SerializerMethodField()
+    createur_role = serializers.SerializerMethodField()
+    repondu_par_nom = serializers.SerializerMethodField()
+    can_manage = serializers.SerializerMethodField()
 
     class Meta:
         model = CandidatureProjet
         fields = [
-            "id", "projet", "projet_titre", "projet_type", "partenaire", "partenaire_nom",
-            "montant_propose", "modalite", "message", "statut", "created_at",
+            "id", "projet", "projet_titre", "projet_code", "projet_type",
+            "partenaire", "partenaire_nom", "partenaire_country", "partenaire_avatar",
+            "createur", "createur_nom", "createur_role",
+            "montant_propose", "modalite", "type_financement", "message", "statut",
+            "commentaire_reponse", "repondu_par", "repondu_par_nom", "repondu_le",
+            "can_manage", "created_at", "updated_at",
         ]
-        read_only_fields = ["partenaire", "projet", "statut"]
+        read_only_fields = ["partenaire", "projet", "statut", "repondu_par", "repondu_le"]
 
     def get_partenaire_nom(self, obj):
         return obj.partenaire.full_name if obj.partenaire else ""
 
+    def get_partenaire_country(self, obj):
+        return obj.partenaire.country if obj.partenaire else ""
+
+    def get_partenaire_avatar(self, obj):
+        if obj.partenaire and obj.partenaire.avatar:
+            return obj.partenaire.avatar.url
+        return None
+
     def get_projet_titre(self, obj):
         return obj.projet.titre if obj.projet else ""
+
+    def get_projet_code(self, obj):
+        return obj.projet.code if obj.projet else ""
 
     def get_projet_type(self, obj):
         return obj.projet.type if obj.projet else ""
 
+    def get_createur(self, obj):
+        return obj.projet.createur_id if obj.projet else None
+
+    def get_createur_nom(self, obj):
+        return obj.projet.createur.full_name if obj.projet and obj.projet.createur else ""
+
+    def get_createur_role(self, obj):
+        return obj.projet.createur.role if obj.projet and obj.projet.createur else ""
+
+    def get_repondu_par_nom(self, obj):
+        return obj.repondu_par.full_name if obj.repondu_par else ""
+
+    def get_can_manage(self, obj):
+        request = self.context.get("request")
+        if not request or not obj.projet:
+            return False
+        return obj.projet.createur_id == request.user.id
+
 
 class CandidatureRepondreSerializer(serializers.Serializer):
-    action = serializers.ChoiceField(choices=["accepter", "refuser"])
+    action = serializers.ChoiceField(choices=["accepter", "refuser", "demander_amelioration"])
+    commentaire = serializers.CharField(required=False, allow_blank=True, default="")
+
+    def validate(self, data):
+        if data.get("action") == "demander_amelioration" and not data.get("commentaire", "").strip():
+            raise serializers.ValidationError({"commentaire": "Un commentaire est requis pour demander une amélioration."})
+        return data
 
 
 class ProjetHistorySerializer(serializers.ModelSerializer):

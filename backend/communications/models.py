@@ -197,6 +197,7 @@ class Message(models.Model):
         verbose_name="Expéditeur"
     )
     content = models.TextField(verbose_name="Contenu", blank=True)
+    edited = models.BooleanField(default=False, verbose_name="Modifié")
     reply_to = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True,
         related_name="replies", verbose_name="Réponse à"

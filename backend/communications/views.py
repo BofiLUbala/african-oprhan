@@ -335,11 +335,12 @@ def message_react(request, message_id):
     return Response(MessageSerializer(m, context={'request': request}).data)
 
 
-@api_view(['DELETE'])
+@api_view(['PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def message_detail(request, message_id):
-    """Supprimer pour tout le monde son propre message privé (WhatsApp
-    « Supprimer pour tout le monde »). « Supprimer pour moi » reste côté client."""
+    """Modifier ou supprimer (pour tout le monde) son propre message privé —
+    même règle d'auteur que channel_message_detail, sans dérogation modérateur
+    puisqu'une conversation privée n'a pas de modérateur de canal."""
     try:
         m = Message.objects.select_related('conversation').get(pk=message_id)
     except Message.DoesNotExist:
@@ -348,10 +349,19 @@ def message_detail(request, message_id):
     if not m.conversation.participants.filter(pk=request.user.pk).exists():
         return Response({'error': 'Accès refusé.'}, status=status.HTTP_403_FORBIDDEN)
     if m.sender_id != request.user.pk:
-        return Response({'error': 'Vous ne pouvez supprimer que vos propres messages.'}, status=status.HTTP_403_FORBIDDEN)
+        return Response({'error': 'Vous ne pouvez modifier que vos propres messages.'}, status=status.HTTP_403_FORBIDDEN)
 
-    m.delete()
-    return Response(status=status.HTTP_204_NO_CONTENT)
+    if request.method == 'DELETE':
+        m.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    content = request.data.get('content', '').strip()
+    if not content:
+        return Response({'error': 'Contenu requis.'}, status=status.HTTP_400_BAD_REQUEST)
+    m.content = content
+    m.edited = True
+    m.save(update_fields=['content', 'edited'])
+    return Response(MessageSerializer(m, context={'request': request}).data)
 
 
 @api_view(['GET'])

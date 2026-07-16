@@ -8,6 +8,7 @@ import PaymentManagementPage from './components/PaymentManagementPage'
 import ChannelFeed from './components/communication/ChannelFeed'
 import ChatThread from './components/communication/ChatThread'
 import CommentThread from './components/communication/CommentThread'
+import ProjectMetaBar from './components/communication/ProjectMetaBar'
 import LikesPopover from './components/communication/LikesPopover'
 import ShareDialog from './components/communication/ShareDialog'
 import useLiveChildren from './hooks/useLiveChildren'
@@ -447,7 +448,7 @@ function Hero({ pool, onBroken, onOpenFeed }) {
                     onKeyDown={e => { if (e.key === 'Enter') onOpenFeed?.(y.id ?? y.uid ?? null) }}
                     style={{ cursor: onOpenFeed ? 'pointer' : undefined }}
                     title="Voir les publications publiques">
-                    {photoUrl ? <img src={photoUrl} alt={name} onError={() => onBroken?.(photoUrl)} onLoad={e => { if (e.currentTarget.naturalWidth < 120 || e.currentTarget.naturalHeight < 120) onBroken?.(photoUrl) }} /> : <div className="hero-slide-placeholder" style={{background:`linear-gradient(135deg,${color}dd,${color}88)`}}><span className="hero-slide-initial">{initial}</span></div>}
+                    {photoUrl ? <img src={photoUrl} alt={name} onError={() => onBroken?.(photoUrl)} onLoad={e => { if (e.currentTarget.naturalWidth < 60 || e.currentTarget.naturalHeight < 60) onBroken?.(photoUrl) }} /> : <div className="hero-slide-placeholder" style={{background:`linear-gradient(135deg,${color}dd,${color}88)`}}><span className="hero-slide-initial">{initial}</span></div>}
                     <div className="hero-slide-overlay" style={{ background: `linear-gradient(transparent 50%, ${color}dd 100%)` }}>
                       <div className="hero-slide-info">
                         <span className="hero-slide-name">{name}</span>
@@ -701,6 +702,7 @@ const ROLE_NAV = {
     { label: 'Documents', key: 'documents' },
     { label: 'Ambassadeurs', key: 'ambassadeurs' },
     { label: 'Demandes', key: 'demandes' },
+    { label: 'Sponsorship', key: 'sponsorshipInbox' },
     { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
   ],
@@ -712,6 +714,7 @@ const ROLE_NAV = {
     { label: 'Vérifications', key: 'verifications' },
     { label: 'Dons', key: 'dons' },
     { label: 'Rapports', key: 'rapports' },
+    { label: 'Sponsorship', key: 'sponsorshipInbox' },
     { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
   ],
@@ -738,12 +741,18 @@ const ROLE_NAV = {
     { label: 'Validation des donnees', key: 'validationLocale' },
     { label: 'Partenaires', key: 'partenaires' },
     { label: 'Rapports', key: 'rapports' },
+    { label: 'Sponsorship', key: 'sponsorshipInbox' },
+    { label: 'Response', key: 'sponsorshipResponses' },
     { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
   ],
   partner: [
     { label: 'Tableau de bord', key: 'dashboard' },
     { label: 'Sponsorship', key: 'opportunites' },
+    { label: 'Child', key: 'partnerChild' },
+    { label: 'Orphanage', key: 'partnerOrphanage' },
+    { label: 'Federation', key: 'partnerFederation' },
+    { label: 'Response Board', key: 'partnerResponseBoard' },
     { label: 'Enfants', key: 'enfants' },
     { label: 'Projets', key: 'projets' },
     { label: 'Transactions', key: 'transactions' },
@@ -751,6 +760,58 @@ const ROLE_NAV = {
     { label: 'Communication', key: 'communication' },
     { label: 'Paramètres', key: 'parametres' },
   ],
+}
+
+// Icône sémantique par module (clé de nav) — réutilise le registre EsIcon
+// existant (ES_ICON_PATHS) au lieu d'emoji ou d'assignation positionnelle,
+// qui désynchronisait icône/texte dès qu'un rôle avait un ordre de modules
+// différent des 6 entrées historiques.
+const DASH_MODULE_ICON = {
+  enfants: 'child', 'enfants-enregistres': 'child', 'update-center': 'pencil',
+  'history-center': 'clock', projets: 'folder', projetsSubmitted: 'inbox',
+  orphelinats: 'building', documents: 'fileText', ambassadeurs: 'award',
+  demandes: 'inbox', communication: 'message', multiOrphelinats: 'building',
+  validationLocale: 'shield', verifications: 'check', dons: 'gift',
+  rapports: 'trend', executive: 'activity', organizations: 'landmark',
+  finances: 'dollar', systeme: 'settings', users: 'users', partenaires: 'users',
+  opportunites: 'heart', transactions: 'dollar', impact: 'trend',
+}
+const hexToRgba = (hex, alpha) => {
+  const h = (hex || '#f59e0b').replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16)
+  return `rgba(${r},${g},${b},${alpha})`
+}
+// Pastille de statut calculé (date_status, fourni par ProjetListSerializer
+// côté backend) — même palette que ProjectMetaBar (Communication), pour les
+// cartes projet du Dashboard historique qui ont déjà code/dates/créateur.
+const DASH_DATE_STATUS = {
+  active: { label: 'Actif', icon: 'check', color: '#22c55e' },
+  ending_soon: { label: 'Se termine bientôt', icon: 'clock', color: '#f59e0b' },
+  closed: { label: 'Clôturé', icon: 'x', color: '#ef4444' },
+}
+function DashDateStatusPill({ project }) {
+  const s = project?.date_status ? DASH_DATE_STATUS[project.date_status] : null
+  if (!s) return null
+  return (
+    <span className="dash-proj-date-status" style={{ color: s.color, background: hexToRgba(s.color, 0.14), boxShadow: `0 0 10px -3px ${s.color}` }}>
+      <EsIcon name={s.icon} size={11} /> {s.label}
+    </span>
+  )
+}
+// Icône de KPI dérivée du label réel renvoyé par /api/auth/stats/ (ou de
+// card.icon quand le backend le fournit), jamais d'une position d'index —
+// un KPI "DONS" affiche toujours l'icône don, quel que soit son rang.
+const dashKpiIconName = (card) => {
+  if (card.icon) return esKpiIcon(card.icon)
+  const l = (card.label || '').toLowerCase()
+  if (l.includes('enfant')) return 'child'
+  if (l.includes('don') || l.includes('revenu') || l.includes('dépense') || l.includes('versé')) return 'dollar'
+  if (l.includes('parrainage')) return 'heart'
+  if (l.includes('utilisateur') || l.includes('nouve')) return 'users'
+  if (l.includes('orphelinat') || l.includes('organisation')) return 'building'
+  if (l.includes('demande') || l.includes('attente')) return 'inbox'
+  if (l.includes('ambassad')) return 'award'
+  return 'activity'
 }
 
 const ROLE_PAGES = {
@@ -1333,6 +1394,9 @@ const ES_ICON_PATHS = {
   inbox: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
   clipboard: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>',
   fileText: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/>',
+  'chevron-right': '<path d="m9 18 6-6-6-6"/>',
+  chevronRight: '<path d="m9 18 6-6-6-6"/>',
+  graduation: '<path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.1 2.7 2 6 2s6-.9 6-2v-5"/><path d="M22 10v6"/>',
 }
 const esKpiIcon = (name) => ({ revenue: 'dollar', sparkle: 'star', child: 'child' }[name] || name)
 const esAttachIconName = (kind) => ({ image: 'image', video: 'video', audio: 'mic', pdf: 'file', word: 'file', excel: 'file', powerpoint: 'file', archive: 'archive' }[kind] || 'file')
@@ -1736,9 +1800,13 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
   const [esProjExistingLoading, setEsProjExistingLoading] = React.useState(false)
   const [esProjMode, setEsProjMode] = React.useState('list') // list | options | create
   const [esProjChoice, setEsProjChoice] = React.useState(null) // null | 'update' | 'attach' — le choix explicite à l'étape "options"
+  // Sous-étape du choix « Publier une mise à jour » : quelle catégorie de
+  // suivi (Santé / Éducation / Famille / Social / Documents — les mêmes
+  // catégories que le Centre d'Historique) avant d'afficher les updates.
+  const [esProjUpdateCategory, setEsProjUpdateCategory] = React.useState(null)
   const [esProjAttaching, setEsProjAttaching] = React.useState(null) // id du projet en cours de rattachement (feedback bouton)
   const [esProjSourceUpdate, setEsProjSourceUpdate] = React.useState(null) // traçabilité Update → Projet
-  const [esProjForm, setEsProjForm] = React.useState({ titre: '', description: '', budget_total: 0, beneficiaires: 0 })
+  const [esProjForm, setEsProjForm] = React.useState({ titre: '', description: '', budget_total: 0, beneficiaires: 0, date_debut: '', date_fin: '' })
   const [esProjFormError, setEsProjFormError] = React.useState('')
   const [esProjSubmitting, setEsProjSubmitting] = React.useState(false)
 
@@ -1831,6 +1899,14 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
   const [esCommentInput, setEsCommentInput] = React.useState('')
   const [esShareModal, setEsShareModal] = React.useState(false)
   const [esSharePost, setEsSharePost] = React.useState(null)
+  const [esPostMenuFor, setEsPostMenuFor] = React.useState(null) // id du post dont le menu ··· est ouvert
+  const [esEditingPost, setEsEditingPost] = React.useState(null) // { id, content }
+  React.useEffect(() => {
+    if (!esPostMenuFor) return
+    const close = () => setEsPostMenuFor(null)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [esPostMenuFor])
   // Commentaires inline par publication (façon LinkedIn/Facebook)
   const [esOpenComments, setEsOpenComments] = React.useState(() => new Set())
   const [esCommentsByPost, setEsCommentsByPost] = React.useState({}) // {postId: comment[]}
@@ -2015,8 +2091,9 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
     setEsProjSelectedTarget(target)
     setEsProjMode('options')
     setEsProjChoice(null)
+    setEsProjUpdateCategory(null)
     setEsProjSourceUpdate(null)
-    setEsProjForm({ titre: '', description: '', budget_total: 0, beneficiaires: 0 })
+    setEsProjForm({ titre: '', description: '', budget_total: 0, beneficiaires: 0, date_debut: '', date_fin: '' })
     setEsProjFormError('')
 
     if (esProjView === 'children' && target?.id) {
@@ -2044,6 +2121,21 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
       .finally(() => setEsProjExistingLoading(false))
   }
 
+  // Sélection de catégorie à l'intérieur du choix « Publier une mise à
+  // jour » : réutilise le même endpoint Update (déjà filtrable par
+  // ?category=), on ne fait qu'ajouter le paramètre — aucune nouvelle
+  // source de données.
+  const esProjPickUpdateCategory = (category) => {
+    setEsProjUpdateCategory(category)
+    if (!esProjSelectedTarget?.id) return
+    setEsProjUpdatesLoading(true)
+    apiFetch(`${API}/enfants/${esProjSelectedTarget.id}/updates/?sort=-created_at&category=${encodeURIComponent(category)}`, {}, onReturn)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(d => setEsProjUpdates((Array.isArray(d) ? d : (d.results || [])).slice(0, 5)))
+      .catch(() => setEsProjUpdates([]))
+      .finally(() => setEsProjUpdatesLoading(false))
+  }
+
   // Option 1 — convertir une Update existante (source de vérité : le
   // feature Update du Chef d'Orphelinat) en Projet, sans ressaisie.
   const esProjUseUpdate = (update) => {
@@ -2054,7 +2146,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
       // converti en « Libellé : valeur » pour que la publication Accueil
       // soit compréhensible par tous (publieur, partenaires, visiteurs).
       description: esReadableUpdate(update.description || update.new_value || ''),
-      budget_total: 0, beneficiaires: 1,
+      budget_total: 0, beneficiaires: 1, date_debut: '', date_fin: '',
     })
     setEsProjMode('create')
   }
@@ -2304,27 +2396,29 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
     return nat.length === 2 ? nat.toUpperCase() : countryCodeFromName(nat)
   }
 
-  const [esCandidature, setEsCandidature] = React.useState(null) // {post, montant, modalite, message, submitting, done}
-  const esOpenCandidature = (post) => setEsCandidature({ post, montant: '', modalite: 'unique', message: '', submitting: false, done: false })
-  const esSubmitCandidature = async () => {
+  // Formulaire de candidature — délégué à SponsorshipFormModal (partagé
+  // avec les features Partner Child/Orphanage/Federation), pas de logique
+  // dupliquée : ce state ne garde que le post ciblé + l'état d'envoi.
+  const [esCandidature, setEsCandidature] = React.useState(null) // {post, submitting, done, error}
+  const esOpenCandidature = (post) => setEsCandidature({ post, submitting: false, done: false })
+  const esSubmitCandidature = async ({ montant, typeFinancement, message }) => {
     if (!esCandidature || esCandidature.submitting) return
     setEsCandidature(c => ({ ...c, submitting: true }))
-    const projetId = esCandidature.post.project_info.id
-    const res = await apiFetch(`${API}/projets/${projetId}/candidature/`, {
+    const projetInfo = esCandidature.post.project_info
+    const res = await apiFetch(`${API}/projets/${projetInfo.id}/candidature/`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        montant_propose: esCandidature.montant || 0,
-        modalite: esCandidature.modalite,
-        message: esCandidature.message,
+        montant_propose: typeFinancement === 'total' ? projetInfo.budget_total : (montant || 0),
+        modalite: 'unique', type_financement: typeFinancement, message,
       }),
     }, onReturn)
     if (res && res.ok) {
       setEsCandidature(c => ({ ...c, submitting: false, done: true }))
       // La candidature soumise, on ramène le partenaire vers son propre
-      // espace Sponsorship (Dashboard → Opportunités) où elle apparaît —
-      // laisse le temps de lire la confirmation avant de naviguer.
+      // Response Board où elle apparaît — laisse le temps de lire la
+      // confirmation avant de naviguer.
       if (user?.role === 'partner') {
-        setTimeout(() => onReturn('opportunites'), 1800)
+        setTimeout(() => onReturn('partnerResponseBoard'), 1800)
       }
     } else {
       const err = res ? await res.json().catch(() => ({})) : {}
@@ -2517,6 +2611,33 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
   const esHandleShare = (post) => {
     setEsSharePost(post)
     setEsShareModal(true)
+  }
+
+  // ── Post actions: edit / delete (auteur uniquement) — même paire
+  // PATCH/DELETE et même vérification d'auteur que esEditChannelMsg /
+  // esDeleteChannelMsg, appliquée cette fois à publications/views.py
+  // post_detail. ──
+  const esEditPost = async (postId, content) => {
+    if (!content || !content.trim()) return false
+    const res = await apiFetch(`${API}/posts/${postId}/`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: content.trim() })
+    }, onReturn)
+    if (res && res.ok) {
+      const updated = await res.json()
+      setEsPosts(prev => prev.map(p => p.id === postId ? { ...p, content: updated.content } : p))
+      return true
+    }
+    return false
+  }
+
+  const esDeletePost = async (postId) => {
+    const res = await apiFetch(`${API}/posts/${postId}/`, { method: 'DELETE' }, onReturn)
+    if (res && (res.ok || res.status === 204)) {
+      setEsPosts(prev => prev.filter(p => p.id !== postId))
+      return true
+    }
+    return false
   }
 
   const esShareToFeed = async () => {
@@ -2726,6 +2847,22 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
     }
   }
 
+  // Modifier son propre message privé — même endpoint/permission que la
+  // suppression, PATCH ajouté côté backend (communications/views.py).
+  const esEditMessage = async (msgId, content) => {
+    if (!content || !content.trim()) return false
+    const res = await apiFetch(`${API}/conversations/messages/${msgId}/`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: content.trim() })
+    }, onReturn)
+    if (res && res.ok) {
+      const updated = await res.json()
+      setEsMessages(prev => prev.map(m => m.id === msgId ? updated : m))
+      return true
+    }
+    return false
+  }
+
   // Transférer : pré-remplit le composeur du canal Accueil (simple, sans casser l'archi).
   const esForwardMessage = (msg) => {
     const text = msg.content || (msg.attachments?.[0]?.name ? `[${msg.attachments[0].name}]` : '')
@@ -2890,7 +3027,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
       <header className="es-topbar">
         {/* Left — brand + breadcrumb */}
         <div className="es-topbar-left">
-          <button className="es-topbar-back" onClick={onReturn} title="Retour au tableau de bord" aria-label="Retour au tableau de bord">
+          <button className="es-topbar-back" onClick={() => onReturn()} title="Retour au tableau de bord" aria-label="Retour au tableau de bord">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
           <div className="es-brand">
@@ -3244,7 +3381,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
         )}
 
         <div className="es-sidebar-bottom">
-          <button className="es-return-btn" onClick={onReturn} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><path d='M19 12H5'/><path d='m12 19-7-7 7-7'/></svg> Retourner au dashboard</button>
+          <button className="es-return-btn" onClick={() => onReturn()} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><path d='M19 12H5'/><path d='m12 19-7-7 7-7'/></svg> Retourner au dashboard</button>
         </div>
       </aside>
       {/* Resize handle: Sidebar <-> Main */}
@@ -3315,6 +3452,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                   onReact={esReactToDm}
                   onLoadOlder={esLoadOlderMessages}
                   onDelete={esDeleteMessage}
+                  onEdit={esEditMessage}
                   onForward={esForwardMessage}
                   mediaUrl={esMediaUrl}
                   roleLabel={esRoleLabel}
@@ -3423,14 +3561,40 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                   </div>
                 )}
 
-                {esProjChoice === 'update' && (
+                {esProjChoice === 'update' && esProjUpdateCategory === null && (
+                  /* ── Sous-étape : quelle catégorie de suivi publier ? ──
+                     Mêmes catégories que le Centre d'Historique (Santé,
+                     Éducation, Famille, Social, Documents) pour que
+                     l'Ambassadeur/Chef d'Orphelinat choisisse explicitement
+                     le sujet avant de voir les mises à jour correspondantes. */
                   <>
                     <button className="es-pj-back" style={{ marginBottom: '10px' }} onClick={() => setEsProjChoice(null)}>{'←'} Changer de choix</button>
-                    <div className="es-pj-step-label">Mises à jour récentes (Chef d'Orphelinat)</div>
+                    <div className="es-pj-step-label">Quelle catégorie de mise à jour souhaitez-vous publier ?</div>
+                    <div className="es-pj-choice-grid">
+                      {[
+                        { key: 'health', label: 'Santé', icon: 'heart' },
+                        { key: 'education', label: 'Éducation', icon: 'book' },
+                        { key: 'family', label: 'Famille', icon: 'users' },
+                        { key: 'social', label: 'Social', icon: 'smile' },
+                        { key: 'documents', label: 'Documents', icon: 'file' },
+                      ].map(cat => (
+                        <button key={cat.key} className="es-pj-choice-card" onClick={() => esProjPickUpdateCategory(cat.key)}>
+                          <span className="es-pj-choice-icon"><EsIcon name={cat.icon} size={20} /></span>
+                          <span className="es-pj-choice-title">{cat.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {esProjChoice === 'update' && esProjUpdateCategory !== null && (
+                  <>
+                    <button className="es-pj-back" style={{ marginBottom: '10px' }} onClick={() => { setEsProjUpdateCategory(null); setEsProjUpdates([]) }}>{'←'} Changer de catégorie</button>
+                    <div className="es-pj-step-label">Mises à jour récentes — {PROJ_UPDATE_CATEGORY_LABELS[esProjUpdateCategory] || esProjUpdateCategory}</div>
                     {esProjUpdatesLoading ? (
                       <div className="es-pj-empty">Chargement des mises à jour…</div>
                     ) : esProjUpdates.length === 0 ? (
-                      <div className="es-pj-empty">Aucune mise à jour disponible pour cet enfant.</div>
+                      <div className="es-pj-empty">Aucune mise à jour disponible pour cette catégorie.</div>
                     ) : (
                       <div className="es-pj-target-list" style={{ marginBottom: '18px' }}>
                         {esProjUpdates.map(u => (
@@ -3518,17 +3682,32 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                       style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-card,#e2e8f0)', background: 'var(--bg-main,#fff)', color: 'var(--text,#334155)', fontSize: '14px', boxSizing: 'border-box' }} />
                   </div>
                 </div>
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Date de début *</label>
+                    <input type="date" required value={esProjForm.date_debut} onChange={e => setEsProjForm(f => ({ ...f, date_debut: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-card,#e2e8f0)', background: 'var(--bg-main,#fff)', color: 'var(--text,#334155)', fontSize: '14px', boxSizing: 'border-box' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Date de fin *</label>
+                    <input type="date" required value={esProjForm.date_fin} onChange={e => setEsProjForm(f => ({ ...f, date_fin: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-card,#e2e8f0)', background: 'var(--bg-main,#fff)', color: 'var(--text,#334155)', fontSize: '14px', boxSizing: 'border-box' }} />
+                  </div>
+                </div>
 
                 {esProjFormError && <div className="es-pj-error" style={{ marginBottom: '12px' }}>{esProjFormError}</div>}
 
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={async () => {
                     if (!esProjForm.titre.trim() || !esProjForm.description.trim()) { setEsProjFormError('Titre et description sont requis.'); return }
+                    if (!esProjForm.date_debut || !esProjForm.date_fin) { setEsProjFormError('La date de début et la date de fin sont requises.'); return }
+                    if (esProjForm.date_fin < esProjForm.date_debut) { setEsProjFormError('La date de fin doit être postérieure à la date de début.'); return }
                     setEsProjSubmitting(true); setEsProjFormError('')
                     const payload = {
                       type: esProjView === 'children' ? 'enfant' : esProjView === 'orphanage' ? 'orphelinat' : 'federation',
                       titre: esProjForm.titre.trim(), description: esProjForm.description.trim(),
                       budget_total: esProjForm.budget_total || 0, beneficiaires: esProjForm.beneficiaires || 0,
+                      date_debut: esProjForm.date_debut, date_fin: esProjForm.date_fin,
                     }
                     if (esProjSelectedTarget?.id) {
                       if (esProjView === 'children') payload.enfant = esProjSelectedTarget.id
@@ -3558,7 +3737,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                         setEsProjProjects(prev => [created, ...prev])
                         if (created.statut === 'publie') esLoadPosts()
                       }
-                      setEsProjForm({ titre: '', description: '', budget_total: 0, beneficiaires: 0 })
+                      setEsProjForm({ titre: '', description: '', budget_total: 0, beneficiaires: 0, date_debut: '', date_fin: '' })
                       setEsProjSelectedTarget(null); setEsProjSourceUpdate(null); setEsProjSubmitting(false); setEsProjMode('list')
                     } else {
                       const err = res ? await res.json().catch(() => ({})) : {}
@@ -3567,7 +3746,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                   }} disabled={esProjSubmitting} style={{ padding: '10px 24px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '14px', background: 'var(--accent,#3b82f6)', color: '#fff' }}>
                     {esProjSubmitting ? 'Envoi…' : 'Soumettre le projet'}
                   </button>
-                  <button onClick={() => { setEsProjMode(esProjSelectedTarget ? 'options' : 'list'); setEsProjForm({ titre: '', description: '', budget_total: 0, beneficiaires: 0 }); setEsProjFormError(''); setEsProjSourceUpdate(null) }}
+                  <button onClick={() => { setEsProjMode(esProjSelectedTarget ? 'options' : 'list'); setEsProjForm({ titre: '', description: '', budget_total: 0, beneficiaires: 0, date_debut: '', date_fin: '' }); setEsProjFormError(''); setEsProjSourceUpdate(null) }}
                     style={{ padding: '10px 24px', borderRadius: '10px', border: '1px solid var(--border-card,#e2e8f0)', cursor: 'pointer', fontWeight: 600, fontSize: '14px', background: 'transparent', color: 'var(--text,#334155)' }}>
                     Annuler
                   </button>
@@ -3667,7 +3846,8 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                   {items.map(p => (
                                     <div key={p.id} style={{ padding: '10px 14px', background: 'var(--bg-card,#f8fafc)', borderRadius: '10px', border: '1px solid var(--border-card,#e2e8f0)', fontSize: '13px' }}>
-                                      <strong>{p.titre}</strong> <span style={{ color: '#94a3b8' }}>— {p.createur_nom} · {esTimeAgo(p.created_at)}</span>
+                                      <strong>{p.titre}</strong>
+                                      <ProjectMetaBar project={p} compact />
                                     </div>
                                   ))}
                                 </div>
@@ -3699,7 +3879,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                           </div>
                           <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.description}</div>
                           {p.budget_total > 0 && <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '6px' }}>Budget: {p.budget_total}€ · Bénéficiaires: {p.beneficiaires || 0}</div>}
-                          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>Créé {esTimeAgo(p.created_at)}</div>
+                          <ProjectMetaBar project={p} compact />
                         </div>
                       ))}
                       {esProjProjects.filter(p => esProjView === 'children' ? p.type === 'enfant' : p.type === 'orphelinat').length === 0 && (
@@ -4181,7 +4361,23 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                       <span className="es-post-author">{post.author_id === user?.id ? 'Vous' : post.author_name}</span>
                       <span className="es-author-time">{esTimeAgo(post.created_at)}{post.location ? ` · ${post.location}` : ''}</span>
                     </div>
-                    <button className="es-post-options" onClick={e => { e.stopPropagation(); esHandleShare(post) }} aria-label="Options">···</button>
+                    {post.author_id === user?.id ? (
+                      <div className="es-post-menu-wrap">
+                        <button className="es-post-options" onClick={e => { e.stopPropagation(); setEsPostMenuFor(m => m === post.id ? null : post.id) }} aria-label="Options" aria-haspopup="menu" aria-expanded={esPostMenuFor === post.id}>···</button>
+                        {esPostMenuFor === post.id && (
+                          <div className="es-post-menu" role="menu">
+                            <button role="menuitem" onClick={() => { setEsEditingPost({ id: post.id, content: post.content }); setEsPostMenuFor(null) }}>
+                              <EsIcon name="pencil" size={14} /> Modifier
+                            </button>
+                            <button role="menuitem" className="es-post-menu-danger" onClick={() => { setEsPostMenuFor(null); if (window.confirm('Supprimer cette publication ?')) esDeletePost(post.id) }}>
+                              <EsIcon name="trash" size={14} /> Supprimer
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <button className="es-post-options" onClick={e => { e.stopPropagation(); esHandleShare(post) }} aria-label="Options">···</button>
+                    )}
                   </div>
                   {/* Publication liée à un enfant : profil enfant en tête,
                       façon Facebook — photo, nom complet, ID, drapeau pays. */}
@@ -4204,7 +4400,23 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                     );
                   })()}
                   <div className="es-post-content">
-                    <p style={{ whiteSpace: 'pre-line' }}>{esReadableUpdate(post.content)}</p>
+                    {esEditingPost?.id === post.id ? (
+                      <div className="es-post-edit">
+                        <textarea
+                          className="es-post-edit-input"
+                          value={esEditingPost.content}
+                          rows={3}
+                          onChange={e => setEsEditingPost(v => ({ ...v, content: e.target.value }))}
+                          autoFocus
+                        />
+                        <div className="es-post-edit-actions">
+                          <button className="cmt-send" onClick={async () => { if (await esEditPost(post.id, esEditingPost.content)) setEsEditingPost(null) }}>Enregistrer</button>
+                          <button className="cmt-cancel" onClick={() => setEsEditingPost(null)}>Annuler</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p style={{ whiteSpace: 'pre-line' }}>{esReadableUpdate(post.content)}</p>
+                    )}
                     {media && (
                       media.media_type === 'video' ? (
                         <div className="es-video-preview">
@@ -4219,12 +4431,15 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                     )}
                   </div>
                   {post.project_info && (
-                    <div className="es-project-plain">
-                      <span>{PROJECT_TYPE_LABELS[post.project_info.type] || 'Projet'} · {post.project_info.montant_collecte} / {post.project_info.budget_total} collectés</span>
-                      {user?.role === 'partner' && (
-                        <button className="es-project-plain-postulate" onClick={() => esOpenCandidature(post)}>Postuler</button>
-                      )}
-                    </div>
+                    <>
+                      <ProjectMetaBar project={post.project_info} compact />
+                      <div className="es-project-plain">
+                        <span>{PROJECT_TYPE_LABELS[post.project_info.type] || 'Projet'} · {post.project_info.montant_collecte} / {post.project_info.budget_total} collectés</span>
+                        {user?.role === 'partner' && (
+                          <button className="es-project-plain-postulate" onClick={() => esOpenCandidature(post)}>Postuler</button>
+                        )}
+                      </div>
+                    </>
                   )}
                   <div className="es-post-stats">
                     {post.likes_count > 0
@@ -4261,6 +4476,7 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
                       mediaUrl={esMediaUrl}
                       roleLabel={esRoleLabel}
                       avatarUrl={avatarSvg}
+                      onClose={() => esToggleComments(post.id)}
                     />
                   )}
                 </article>
@@ -4338,37 +4554,31 @@ function EclatSocialApp({ user, onReturn, notifTarget, setNotifTarget }) {
         </button>
       </nav>
 
-      {/* CANDIDATURE PARTENAIRE (Postuler) — réutilise l'API projets/candidature existante */}
-      {esCandidature && (
+      {/* CANDIDATURE PARTENAIRE (Postuler) — réutilise le même
+          SponsorshipFormModal que les features Partner Child/Orphanage/
+          Federation (même endpoint, même formulaire, aucune duplication). */}
+      {esCandidature && !esCandidature.done && (
+        <SponsorshipFormModal
+          project={esCandidature.post.project_info}
+          user={user}
+          API={API}
+          onSubmit={esSubmitCandidature}
+          onClose={() => setEsCandidature(null)}
+          submitting={esCandidature.submitting}
+          error={esCandidature.error}
+        />
+      )}
+      {esCandidature && esCandidature.done && (
         <div className="es-modal-overlay" onClick={() => setEsCandidature(null)}>
           <div className="es-create-modal es-pj-modal" onClick={e => e.stopPropagation()}>
             <div className="es-modal-header">
               <button className="es-close-btn" onClick={() => setEsCandidature(null)} aria-label="Fermer"><EsIcon name='x' size={18} /></button>
-              <h3>Postuler</h3>
+              <h3>Apply for Sponsorship</h3>
               <span style={{ width: 34 }} />
             </div>
-            {esCandidature.done ? (
-              <div className="es-pj-step">
-                <div className="es-pj-empty">Votre candidature a été envoyée. Vous serez notifié de la réponse.</div>
-              </div>
-            ) : (
-              <div className="es-pj-step">
-                <div className="es-pj-target-chip"><EsIcon name="folder" size={14} /> {esCandidature.post.project_info.titre}</div>
-                <input className="es-pj-input" type="number" min="0" placeholder="Montant proposé (€)"
-                  value={esCandidature.montant} onChange={e => setEsCandidature(c => ({ ...c, montant: e.target.value }))} />
-                <div className="es-pj-form-row">
-                  <label className="es-pj-radio"><input type="radio" checked={esCandidature.modalite === 'unique'} onChange={() => setEsCandidature(c => ({ ...c, modalite: 'unique' }))} /> Paiement unique</label>
-                  <label className="es-pj-radio"><input type="radio" checked={esCandidature.modalite === 'echelonne'} onChange={() => setEsCandidature(c => ({ ...c, modalite: 'echelonne' }))} /> Échelonné</label>
-                </div>
-                <textarea className="es-pj-textarea" placeholder="Message (optionnel)" rows={3}
-                  value={esCandidature.message} onChange={e => setEsCandidature(c => ({ ...c, message: e.target.value }))} />
-                {esCandidature.error && <div className="es-pj-error">{esCandidature.error}</div>}
-                <div className="es-pj-form-actions">
-                  <span />
-                  <button className="es-publish-btn" onClick={esSubmitCandidature} disabled={esCandidature.submitting}>{esCandidature.submitting ? '…' : 'Envoyer la candidature'}</button>
-                </div>
-              </div>
-            )}
+            <div className="es-pj-step">
+              <div className="es-pj-empty">Votre candidature a été envoyée. Vous serez notifié de la réponse dans le Response Board.</div>
+            </div>
           </div>
         </div>
       )}
@@ -4805,16 +5015,16 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
         .catch(() => {})
         .finally(() => setLoadingOrpDetails(false))
     }
-    if (activeKey === 'ambassadeurs' && orphanageName && user.role === 'director') {
-      const myOrp = orphanageRequests.find(o => String(o.director) === String(user.id))
-      if (myOrp) {
-        setDirAmbLoading(true)
-        apiFetch(`${API}/assignments/?orphanage_id=${myOrp.id}`, {}, onLogout)
-          .then(r => r && r.ok ? r.json() : [])
-          .then(d => setDirAmbAssignments(d))
-          .catch(() => {})
-          .finally(() => setDirAmbLoading(false))
-      }
+    if (activeKey === 'ambassadeurs' && user.role === 'director') {
+      // Le backend scope désormais lui-même à user.orphanage pour le rôle
+      // director (children/views.py) — plus besoin de résoudre l'orphelinat
+      // via orphanageRequests, ni de passer ?orphanage_id=.
+      setDirAmbLoading(true)
+      apiFetch(`${API}/assignments/`, {}, onLogout)
+        .then(r => r && r.ok ? r.json() : [])
+        .then(d => setDirAmbAssignments(Array.isArray(d) ? d : []))
+        .catch(() => {})
+        .finally(() => setDirAmbLoading(false))
     }
     /* ── Load document types for Federation validation (orphanage docs loaded in separate effect) ── */
     if (activeKey === 'validationLocale' && role === 'federation') {
@@ -5500,7 +5710,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
   }
 
   if (activeKey === 'communication') {
-    return <EclatSocialApp user={user} onReturn={(key) => { setActiveKey(key || 'dashboard'); setSubKey(null); setNotifTarget(null) }} notifTarget={notifTarget} setNotifTarget={setNotifTarget} />
+    return <EclatSocialApp user={user} onReturn={(key) => { setActiveKey(typeof key === 'string' && key ? key : 'dashboard'); setSubKey(null); setNotifTarget(null) }} notifTarget={notifTarget} setNotifTarget={setNotifTarget} />
   }
 
   return (
@@ -5577,31 +5787,19 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
               </div>
 
               <div className="dash-dash-kpi-row">
-                {statCards.map((card, i) => {
-                  const kpiIcons = [
-                    React.createElement('svg', { viewBox: '0 0 24 24', width: '22', height: '22', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M12 2a10 10 0 0 1 10 10c0 2.2-.7 4.2-1.9 5.9L12 12V2z' })),
-                    React.createElement('svg', { viewBox: '0 0 24 24', width: '22', height: '22', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' }), React.createElement('circle', { cx: '9', cy: '7', r: '4' }), React.createElement('path', { d: 'M23 21v-2a4 4 0 0 0-3-3.87' }), React.createElement('path', { d: 'M16 3.13a4 4 0 0 1 0 7.75' })),
-                    React.createElement('svg', { viewBox: '0 0 24 24', width: '22', height: '22', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z' }), React.createElement('path', { d: 'M9 20v-4h6v4' }), React.createElement('path', { d: 'M3 12h18' })),
-                    React.createElement('svg', { viewBox: '0 0 24 24', width: '22', height: '22', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M22 17v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-4' }), React.createElement('rect', { x: '2', y: '7', width: '20', height: '8', rx: '2' }), React.createElement('path', { d: 'M12 5V2' }), React.createElement('path', { d: 'M8 5V2' }), React.createElement('path', { d: 'M16 5V2' })),
-                    React.createElement('svg', { viewBox: '0 0 24 24', width: '22', height: '22', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('rect', { width: '8', height: '4', x: '8', y: '2', rx: '1' }), React.createElement('path', { d: 'M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2' })),
-                  ]
-                  const kpiTrends = []
-                  const trendColors = []
-                  const barColors = []
+                {statCards.length === 0 ? (
+                  <div className="dash-dash-empty dash-dash-kpi-empty">{t('dash_no_stats') || 'Statistiques indisponibles pour le moment'}</div>
+                ) : statCards.map((card, i) => {
+                  const glow = card.color || '#f59e0b'
                   return (
-                    <div key={i} className="dash-dash-kpi">
-                      <div className="dash-dash-kpi-icon" style={{ background: `rgba(${i === 3 ? '239,68,68' : i === 1 ? '168,85,247' : i === 2 ? '59,130,246' : i === 4 ? '34,197,94' : '245,158,11'},0.1)` }}>{kpiIcons[i % kpiIcons.length]}</div>
+                    <div key={i} className="dash-dash-kpi" style={{ '--kpi-glow': glow }}>
+                      <div className="dash-dash-kpi-icon" style={{ background: hexToRgba(glow, 0.14), color: glow }}>
+                        <EsIcon name={dashKpiIconName(card)} size={20} />
+                      </div>
                       <div className="dash-dash-kpi-body">
                         <span className="dash-dash-kpi-label">{t('stat_' + role + '_' + i + '_label') || card.label}</span>
-                        <span className="dash-dash-kpi-value">{card.value}</span>
-                      </div>
-                      <div className="dash-dash-kpi-trend">
-                        <span className="dash-dash-kpi-trend-pct" style={{ color: trendColors[i % trendColors.length] }}>{kpiTrends[i % kpiTrends.length]}</span>
-                        <div className="dash-dash-kpi-trend-bar">
-                          {INTEGRITY_BARS.slice(i * 2, i * 2 + 3).map((bar, bi) => (
-                            <div key={bi} className="dash-dash-kpi-bar" style={{ height: bar.height + '%', background: barColors[i % barColors.length], opacity: 0.4 + bi * 0.2 }} />
-                          ))}
-                        </div>
+                        <span className="dash-dash-kpi-value">{card.money ? '$' : ''}{card.value}</span>
+                        {card.sub && <span className="dash-dash-kpi-sub">{card.sub}</span>}
                       </div>
                     </div>
                   )
@@ -5714,27 +5912,26 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                 </div>
                 <div className="dash-dash-modules-grid">
                   {navItems.filter(n => n.key !== 'dashboard' && n.key !== 'parametres').map((item, i) => {
-                    const moduleIcons = ['\u{1F476}', '\u{1F4C1}', '\u{1F4CB}', '\u{1F465}', '\u{1F4E8}', '\u{1F4AC}']
-                    const moduleDescs = [
-                      t('dash_mod_enfants') || 'Gestion complète des enfants',
-                      t('dash_mod_documents') || 'Archivage numérique des documents',
-                      t('dash_mod_projets') || 'Suivi des projets et financements',
-                      t('dash_mod_ambassadeurs') || 'Gestion des ambassadeurs',
-                      t('dash_mod_demandes') || 'Gestion des demandes',
-                      t('dash_mod_comm') || 'Messages et annonces',
-                    ]
-                    const moduleCounts = [registeredChildren.length || statCards[0]?.value || 0, '86', ongoingProjects.length + ' actifs', statCards[2]?.value || 12, statCards[3]?.value || 5, '']
+                    // Compte réel uniquement pour les modules dont l'état est déjà
+                    // chargé sur ce tableau de bord — jamais de nombre inventé.
+                    const realCount = item.key === 'enfants' || item.key === 'enfants-enregistres' ? registeredChildren.length
+                      : item.key === 'projets' ? ongoingProjects.length
+                      : item.key === 'communication' ? dashChannels.length
+                      : null
                     const colors = ['#f59e0b', '#3b82f6', '#22c55e', '#a855f7', '#ef4444', '#06b6d4']
+                    const modColor = colors[i % colors.length]
                     return (
-                      <button key={item.key} className="dash-dash-module-card" style={{ '--mod-color': colors[i % colors.length] }} onClick={() => { setActiveKey(item.key); setSubKey(null); setEditingChild(null); }}>
-                        <div className="dash-dash-module-icon" style={{ background: `rgba(${i === 0 ? '245,158,11' : i === 1 ? '59,130,246' : i === 2 ? '34,197,94' : i === 3 ? '168,85,247' : i === 4 ? '239,68,68' : '6,182,212'},0.1)` }}>{moduleIcons[i % moduleIcons.length]}</div>
+                      <button key={item.key} className="dash-dash-module-card" style={{ '--mod-color': modColor }} onClick={() => { setActiveKey(item.key); setSubKey(null); setEditingChild(null); }}>
+                        <div className="dash-dash-module-icon" style={{ background: hexToRgba(modColor, 0.14), color: modColor }}>
+                          <EsIcon name={DASH_MODULE_ICON[item.key] || 'hash'} size={20} />
+                        </div>
                         <div className="dash-dash-module-info">
                           <span className="dash-dash-module-name">{t('nav_' + item.key.replace(/-/g, '_')) || item.label}</span>
-                          <span className="dash-dash-module-desc">{moduleDescs[i % moduleDescs.length]}</span>
+                          <span className="dash-dash-module-desc">{t('dash_mod_' + item.key.replace(/-/g, '_')) || item.label}</span>
                         </div>
                         <div className="dash-dash-module-meta">
-                          {moduleCounts[i % moduleCounts.length] && <span className="dash-dash-module-count">{moduleCounts[i % moduleCounts.length]}</span>}
-                          <span className="dash-dash-module-arrow">{'\u{2192}'}</span>
+                          {realCount !== null && <span className="dash-dash-module-count">{realCount}</span>}
+                          <EsIcon name="chevronRight" size={16} className="dash-dash-module-arrow" />
                         </div>
                       </button>
                     )
@@ -9325,95 +9522,83 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                       </>
                     )}
                   </div>
-                ) : activeKey === 'ambassadeurs' && orphanageName ? (
-                  <div>
-                    <div className="dash-role-card" style={{ marginBottom: '12px' }}>
-                      <div className="dash-role-avatar-wrap">
-                        <span style={{ fontSize: '32px' }}>{'\u{1F3E1}'}</span>
-                      </div>
-                      <div className="dash-role-info">
-                        <span className="dash-role-name">{orphanageName}</span>
-                        <span className="dash-role-badge" style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>ACTIF</span>
-                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                          <span>{flagImg(user.country || 'CD')} {countryName(user.country || 'CD')}</span>
-                          <span>Directeur: {user.first_name} {user.last_name}</span>
-                          <span>ID: {user.id}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {dirSelectedAmb ? (() => {
-                      const ambAssigns = dirAmbAssignments.filter(a => a.ambassador === dirSelectedAmb)
-                      return (
-                        <div>
-                          <button type="button" onClick={()=>setDirSelectedAmb(null)} style={{background:'rgba(255,255,255,0.05)',border:'none',borderRadius:10,color:'#94a3b8',fontSize:13,padding:'8px 16px',cursor:'pointer',marginBottom:16}}><HumanizedIcons.HumanizedArrowLeftIcon size={15} style={{verticalAlign:'-2px'}} /> Retour à la liste</button>
-                          <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'24px'}}>
-                            <h4 style={{fontSize:16,fontWeight:700,color:'#e2e8f0',margin:'0 0 16px',display:'flex',alignItems:'center',gap:8}}>
-                              <span style={{width:38,height:38,borderRadius:'50%',background:'linear-gradient(135deg,#f59e0b,#f97316)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:700,color:'#fff'}}>
-                                {(ambAssigns[0]?.ambassador_name||'?')[0].toUpperCase()}
-                              </span>
-                              {ambAssigns[0]?.ambassador_name || 'Ambassadeur'}
-                            </h4>
-                            <div style={{fontSize:13,color:'#64748b',marginBottom:12}}>{ambAssigns.length} enfant(s) assigné(s)</div>
-                            <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                              {ambAssigns.map(a => (
-                                <div key={a.id} style={{background:'rgba(255,255,255,0.03)',borderRadius:10,padding:'12px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                  <div>
-                                    <div style={{fontSize:13,fontWeight:600,color:'#e2e8f0'}}>{a.child_name}</div>
-                                    <div style={{fontSize:11,color:'#64748b'}}>UID: {a.child_uid}</div>
-                                  </div>
-                                  <span style={{fontSize:10,color:'#64748b'}}>{new Date(a.assigned_at).toLocaleDateString('fr-FR')}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })() : (
-                      <div style={{background:'rgba(30,41,59,0.6)',backdropFilter:'blur(20px)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:16,padding:'24px',marginBottom:16}}>
-                        <h4 style={{fontSize:16,fontWeight:700,color:'#e2e8f0',margin:'0 0 16px',display:'flex',alignItems:'center',gap:8}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Ambassadeurs assignés</h4>
-                        {dirAmbLoading ? (
-                          <div style={{textAlign:'center',padding:20,color:'#64748b',fontSize:14}}>Chargement...</div>
-                        ) : dirAmbAssignments.length === 0 ? (
-                          <div style={{padding:'20px',textAlign:'center',color:'#64748b',fontSize:14}}>
-                            <div style={{fontSize:36,marginBottom:8}}><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 17a1 1 0 0 1-1 1H5l-3-3 3-3h5a1 1 0 0 1 1 1v4Z"/><path d="M13 7a1 1 0 0 1 1-1h5l3 3-3 3h-5a1 1 0 0 1-1-1V7Z"/><path d="M6 14 3 11l3-3"/><path d="M18 10l3 3-3 3"/><path d="M6 14v4"/><path d="M18 10V6"/></svg></div>
-                            <p style={{margin:'0 0 4px'}}>Aucun ambassadeur assigné aux enfants de votre orphelinat.</p>
-                            <p style={{margin:0,fontSize:12,color:'#475569'}}>Les ambassadeurs sont assignés par la fédération.</p>
-                          </div>
-                        ) : (() => {
-                          const grouped = {}
-                          dirAmbAssignments.forEach(a => {
-                            if (!grouped[a.ambassador]) grouped[a.ambassador] = { name: a.ambassador_name, assigns: [] }
-                            grouped[a.ambassador].assigns.push(a)
-                          })
-                          return Object.entries(grouped).map(([ambId, g]) => (
-                            <button key={ambId} type="button" onClick={()=>setDirSelectedAmb(Number(ambId))} style={{width:'100%',textAlign:'left',background:'rgba(255,255,255,0.03)',border:'none',borderRadius:12,padding:'14px 16px',marginBottom:8,cursor:'pointer',display:'flex',alignItems:'center',gap:14,transition:'all .2s'}}
-                              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.06)'} onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.03)'}>
-                              <div style={{width:42,height:42,borderRadius:'50%',background:'linear-gradient(135deg,#f59e0b,#f97316)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,fontWeight:700,color:'#fff',flexShrink:0}}>{g.name.charAt(0).toUpperCase()}</div>
-                              <div style={{flex:1}}>
-                                <div style={{fontSize:14,fontWeight:600,color:'#f59e0b'}}>{g.name}</div>
-                                <div style={{fontSize:12,color:'#64748b',marginTop:2}}>{g.assigns.length} enfant(s) assigné(s)</div>
-                              </div>
-                              <span style={{color:'#64748b',fontSize:13,display:'inline-flex',alignItems:'center'}}><HumanizedIcons.HumanizedArrowRightIcon size={13} style={{verticalAlign:'-2px',margin:'0 2px'}} /></span>
-                            </button>
-                          ))
-                        })()}
-                      </div>
-                    )}
-                    <div className="dash-category-cards">
-                      {page?.categories?.map((cat, i) => (
-                        <button key={i} className="dash-category-card" onClick={() => {
-                          setSubKey(cat.title);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}>
-                          <div className="dash-card-icon-wrap">
-                            <span className="dash-card-icon">{CATEGORY_ICONS[i % CATEGORY_ICONS.length]}</span>
-                          </div>
-                          <span className="dash-card-title">{t('cat_' + role + '_' + (typeof activeKey === 'string' ? activeKey.replace(/-/g, '_') : '') + '_' + cat.id + '_title') || cat.title}</span>
-                          <span className="dash-card-desc">{t('cat_' + role + '_' + (typeof activeKey === 'string' ? activeKey.replace(/-/g, '_') : '') + '_' + cat.id + '_sub') || cat.subtitle}</span>
+                ) : activeKey === 'ambassadeurs' && role === 'director' ? (() => {
+                  // Rebuild complet — rien d'autre que la liste des ambassadeurs de
+                  // l'orphelinat (photo/nom/ID/nb enfants) puis, au clic, la liste
+                  // des enfants qui lui sont assignés (photo/ID/nom/âge/statut).
+                  // Aucun élément de décor supplémentaire (pas de carte orphelinat,
+                  // pas de grille de catégories générique).
+                  const mediaUrl = (u) => { if (!u) return null; if (u.startsWith('http') || u.startsWith('data:')) return u; const base = API.replace('/api', ''); return u.startsWith('/') ? base + u : base + '/' + u }
+                  if (dirSelectedAmb) {
+                    const ambAssigns = dirAmbAssignments.filter(a => a.ambassador === dirSelectedAmb)
+                    const ambAvatar = ambAssigns[0]?.ambassador_avatar
+                    const ambPhotoSrc = ambAvatar ? mediaUrl(ambAvatar) : svgUrl((ambAssigns[0]?.ambassador_name || '?')[0].toUpperCase(), '#f59e0b', 44, 44)
+                    return (
+                      <div className="amb-rebuild">
+                        <button type="button" className="amb-back-btn" onClick={() => setDirSelectedAmb(null)}>
+                          <EsIcon name="chevron-right" size={14} style={{ transform: 'rotate(180deg)' }} /> Retour à la liste
                         </button>
-                      ))}
+                        <div className="amb-detail-header">
+                          <img src={ambPhotoSrc} alt="" className="amb-detail-photo" />
+                          <div>
+                            <div className="amb-detail-name">{ambAssigns[0]?.ambassador_name || 'Ambassadeur'}</div>
+                            <div className="amb-detail-id">AMB-{String(dirSelectedAmb).padStart(4, '0')}</div>
+                          </div>
+                        </div>
+                        <div className="amb-child-list">
+                          {ambAssigns.length === 0 ? (
+                            <div className="amb-empty">Aucun enfant assigné à cet ambassadeur.</div>
+                          ) : ambAssigns.map(a => {
+                            const childPhotoSrc = a.child_photo ? mediaUrl(a.child_photo) : svgUrl((a.child_name || '?')[0].toUpperCase(), '#3b82f6', 44, 44)
+                            return (
+                              <div key={a.id} className="amb-child-card">
+                                <img src={childPhotoSrc} alt="" className="amb-child-photo" />
+                                <div className="amb-child-info">
+                                  <span className="amb-child-name">{a.child_name}</span>
+                                  <span className="amb-child-meta">ID {a.child_uid}{a.child_age != null ? ` · ${a.child_age} ans` : ''}{a.child_status_label ? ` · ${a.child_status_label}` : ''}</span>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  }
+                  const grouped = {}
+                  dirAmbAssignments.forEach(a => {
+                    if (!grouped[a.ambassador]) grouped[a.ambassador] = { name: a.ambassador_name, avatar: a.ambassador_avatar, assigns: [] }
+                    grouped[a.ambassador].assigns.push(a)
+                  })
+                  return (
+                    <div className="amb-rebuild">
+                      {dirAmbLoading ? (
+                        <div className="amb-empty">Chargement…</div>
+                      ) : Object.keys(grouped).length === 0 ? (
+                        <div className="amb-empty">Aucun ambassadeur assigné aux enfants de votre orphelinat.</div>
+                      ) : (
+                        <div className="amb-list">
+                          {Object.entries(grouped).map(([ambId, g]) => {
+                            const photoSrc = g.avatar ? mediaUrl(g.avatar) : svgUrl(g.name.charAt(0).toUpperCase(), '#f59e0b', 48, 48)
+                            return (
+                              <button key={ambId} type="button" className="amb-card" onClick={() => setDirSelectedAmb(Number(ambId))}>
+                                <img src={photoSrc} alt="" className="amb-card-photo" />
+                                <div className="amb-card-info">
+                                  <span className="amb-card-name">{g.name}</span>
+                                  <span className="amb-card-id">AMB-{String(ambId).padStart(4, '0')}</span>
+                                  <span className="amb-card-count">{g.assigns.length} enfant(s) assigné(s)</span>
+                                </div>
+                                <EsIcon name="chevron-right" size={16} className="amb-card-arrow" />
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )
+                })() : activeKey === 'sponsorshipInbox' && (role === 'director' || role === 'ambassador' || role === 'federation') ? (
+                  <SponsorshipInbox role={role} apiFetch={apiFetch} API={API} onLogout={onLogout} />
+                ) : activeKey === 'sponsorshipResponses' && role === 'federation' ? (
+                  <SponsorshipResponses apiFetch={apiFetch} API={API} onLogout={onLogout} />
                 ) : activeKey === 'projets' ? (
                   <div className="dash-projects">
                     {showOngoing ? (
@@ -9440,8 +9625,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <p className="dash-proj-desc">{selectedProject.description}</p>
                               {selectedProject.pdf_url && (
                                 <div className="dash-proj-pdf">
-                                  <a href={selectedProject.pdf_url} target="_blank" rel="noopener noreferrer" className="dash-proj-pdf-link">{'\u{1F4C4}'} {t('proj_read_pdf') || 'Lire le PDF'}</a>
-                                  <a href={selectedProject.pdf_url} download className="dash-proj-pdf-link">{'\u{1F4E5}'} {t('proj_download_pdf') || 'Télécharger le PDF'}</a>
+                                  <a href={selectedProject.pdf_url} target="_blank" rel="noopener noreferrer" className="dash-proj-pdf-link"><EsIcon name="file" size={13} /> {t('proj_read_pdf') || 'Lire le PDF'}</a>
+                                  <a href={selectedProject.pdf_url} download className="dash-proj-pdf-link"><EsIcon name="download" size={13} /> {t('proj_download_pdf') || 'Télécharger le PDF'}</a>
                                 </div>
                               )}
                               {role === 'partner' && selectedProject.status === 'open' && (
@@ -9473,11 +9658,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 <p className="dash-proj-card-summary">{proj.summary || proj.description?.substring(0, 80) + '...'}</p>
                                 <div className="dash-proj-card-dates">
                                   <span>{proj.start_date || '—'} <HumanizedIcons.HumanizedArrowRightIcon size={13} style={{verticalAlign:'-2px',margin:'0 2px'}} /> {proj.end_date || '—'}</span>
+                                  <DashDateStatusPill project={proj} />
                                 </div>
                               </div>
                             ))}
                             {(projects.length > 0 ? projects : ongoingProjects).filter(p => !p.end_date || p.end_date >= new Date().toISOString().split('T')[0]).length === 0 && (
-                              <div className="dash-empty-state"><span className="dash-empty-icon">{'\u{1F4CB}'}</span><p>{t('proj_no_ongoing') || 'Aucun projet en cours'}</p></div>
+                              <div className="dash-empty-state"><span className="dash-empty-icon"><EsIcon name="folder" size={22} /></span><p>{t('proj_no_ongoing') || 'Aucun projet en cours'}</p></div>
                             )}
                           </div>
                         )}
@@ -9500,6 +9686,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <p className="dash-proj-card-summary">{(proj.resume || proj.description || '').substring(0, 80)}</p>
                               <div className="dash-proj-card-dates">
                                 <span>Soumis le {proj.created_at ? new Date(proj.created_at).toLocaleDateString('fr-FR') : '\u2014'}{proj.budget_total ? ` \u00b7 ${proj.montant_collecte || 0} / ${proj.budget_total}` : ''}</span>
+                                <DashDateStatusPill project={proj} />
                               </div>
                             </div>
                           ))}
@@ -9532,8 +9719,8 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                               <p className="dash-proj-desc">{selectedProject.description}</p>
                               {selectedProject.pdf_url && (
                                 <div className="dash-proj-pdf">
-                                  <a href={selectedProject.pdf_url} target="_blank" rel="noopener noreferrer" className="dash-proj-pdf-link">{'\u{1F4C4}'} {t('proj_read_pdf') || 'Lire le PDF'}</a>
-                                  <a href={selectedProject.pdf_url} download className="dash-proj-pdf-link">{'\u{1F4E5}'} {t('proj_download_pdf') || 'Télécharger le PDF'}</a>
+                                  <a href={selectedProject.pdf_url} target="_blank" rel="noopener noreferrer" className="dash-proj-pdf-link"><EsIcon name="file" size={13} /> {t('proj_read_pdf') || 'Lire le PDF'}</a>
+                                  <a href={selectedProject.pdf_url} download className="dash-proj-pdf-link"><EsIcon name="download" size={13} /> {t('proj_download_pdf') || 'Télécharger le PDF'}</a>
                                 </div>
                               )}
                             </div>
@@ -9550,11 +9737,12 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                 <p className="dash-proj-card-summary">{proj.summary || proj.description?.substring(0, 80) + '...'}</p>
                                 <div className="dash-proj-card-dates">
                                   <span>{proj.start_date || '—'} <HumanizedIcons.HumanizedArrowRightIcon size={13} style={{verticalAlign:'-2px',margin:'0 2px'}} /> {proj.end_date || '—'}</span>
+                                  <DashDateStatusPill project={proj} />
                                 </div>
                               </div>
                             ))}
                             {(projects.length > 0 ? projects : ongoingProjects).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).length === 0 && (
-                              <div className="dash-empty-state"><span className="dash-empty-icon">{'\u{1F4CB}'}</span><p>{t('proj_no_expired') || 'Aucun projet expiré'}</p></div>
+                              <div className="dash-empty-state"><span className="dash-empty-icon"><EsIcon name="folder" size={22} /></span><p>{t('proj_no_expired') || 'Aucun projet expiré'}</p></div>
                             )}
                           </div>
                         )}
@@ -9729,7 +9917,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                             {'\u{25B6}'} {t('proj_ongoing') || 'En cours'} ({(projects.length > 0 ? projects : ongoingProjects).filter(p => !p.end_date || p.end_date >= new Date().toISOString().split('T')[0]).length})
                           </button>
                           <button className="dash-proj-tab dash-proj-tab-expired" style={{ fontSize:'12px', padding:'6px 14px' }} onClick={() => { setShowExpired(true); setShowOngoing(false); setSelectedProject(null) }}>
-                            {'\u{23F3}'} {t('proj_expired') || 'Expirés'} ({(projects.length > 0 ? projects : ongoingProjects).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).length})
+                            <EsIcon name="clock" size={13} /> {t('proj_expired') || 'Expirés'} ({(projects.length > 0 ? projects : ongoingProjects).filter(p => p.end_date && p.end_date < new Date().toISOString().split('T')[0]).length})
                           </button>
                           {(role === 'ambassador' || role === 'director') && (
                             <button className="dash-proj-tab" style={{ fontSize:'12px', padding:'6px 14px' }} onClick={() => { setShowProjHistory(true); setShowOngoing(false); setShowExpired(false); setSelectedProject(null) }}>
@@ -9783,6 +9971,7 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                                   <p className="dash-proj-card-summary">{(proj.resume || proj.description || '').substring(0, 80)}</p>
                                   <div className="dash-proj-card-dates">
                                     <span>{proj.createur_nom || '—'} · {proj.created_at ? new Date(proj.created_at).toLocaleDateString('fr-FR') : '—'}</span>
+                                    <DashDateStatusPill project={proj} />
                                   </div>
                                 </div>
                               ))}
@@ -9794,6 +9983,14 @@ function DashboardShell({ user, role, onLogout, activeKey, setActiveKey, subKey,
                   </div>
                 ) : activeKey === 'opportunites' && role === 'partner' ? (
                   <OpportunityCenter user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} />
+                ) : activeKey === 'partnerChild' && role === 'partner' ? (
+                  <PartnerChildFeature user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} />
+                ) : activeKey === 'partnerOrphanage' && role === 'partner' ? (
+                  <PartnerOrphanageFeature user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} />
+                ) : activeKey === 'partnerFederation' && role === 'partner' ? (
+                  <PartnerFederationFeature user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} />
+                ) : activeKey === 'partnerResponseBoard' && role === 'partner' ? (
+                  <PartnerResponseBoard user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} />
                 ) : activeKey === 'enfants' && role === 'partner' ? (
                   <PartnerChildren user={user} apiFetch={apiFetch} API={API} onLogout={onLogout} t={t} countryName={countryName} flagImg={flagImg} onNavigateSponsorship={() => setActiveKey('opportunites')} />
                 ) : activeKey === 'transactions' && role === 'partner' ? (
@@ -12007,38 +12204,573 @@ function OpportunityCenter({ user, apiFetch, API, onLogout, t }) {
         <div className="opp-filters">{FILTERS.map(f => <button key={f.key} className={`opp-filter${filter === f.key ? ' active' : ''}`} onClick={() => setFilter(f.key)}>{f.label}</button>)}</div>
       </div>
       <div className="opp-grid">
-        {loading ? Array.from({length:6}).map((_,i) => <div key={i} className="opp-card opp-skeleton" />) :
-          opportunities.length === 0 ? <div className="opp-empty">Aucune opportunité trouvée</div> :
-          opportunities.map(opp => (
-            <div key={opp.id} className={`opp-card${selectedOpp?.id === opp.id ? ' selected' : ''}`} onClick={() => setSelectedOpp(selectedOpp?.id === opp.id ? null : opp)}>
-              <div className="opp-card-top">
-                <span className="opp-type-badge">{TYPE_ICONS[opp.type] || <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2"/></svg>} {opp.type_label}</span>
-                <span className={`opp-priority-badge`} style={PRIORITY_COLORS[opp.priority] || PRIORITY_COLORS.normal}>{opp.priority_label}</span>
+            {loading ? Array.from({length:6}).map((_,i) => <div key={i} className="opp-card opp-skeleton" />) :
+              opportunities.length === 0 ? <div className="opp-empty">Aucune opportunité trouvée</div> :
+              opportunities.map(opp => (
+                <div key={opp.id} className={`opp-card${selectedOpp?.id === opp.id ? ' selected' : ''}`} onClick={() => setSelectedOpp(selectedOpp?.id === opp.id ? null : opp)}>
+                  <div className="opp-card-top">
+                    <span className="opp-type-badge">{TYPE_ICONS[opp.type] || <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:4}}><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2"/></svg>} {opp.type_label}</span>
+                    <span className={`opp-priority-badge`} style={PRIORITY_COLORS[opp.priority] || PRIORITY_COLORS.normal}>{opp.priority_label}</span>
+                  </div>
+                  <h3 className="opp-card-title">{opp.title}</h3>
+                  <p className="opp-card-desc">{opp.summary || opp.description?.substring(0, 100) || ''}</p>
+                  {opp.funding_goal > 0 && (
+                    <div className="opp-funding-bar">
+                      <div className="opp-funding-track"><div className="opp-funding-fill" style={{ width: `${opp.funding_percentage}%` }} /></div>
+                      <span className="opp-funding-label">{fmt(opp.current_funding)} / {fmt(opp.funding_goal)} ({opp.funding_percentage}%)</span>
+                    </div>
+                  )}
+                  <div className="opp-card-meta">
+                    {opp.location && <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:3}}><path d="M12 22s8-8 8-13c0-4.4-3.6-8-8-8S4 4.6 4 9c0 5 8 13 8 13z"/><circle cx="12" cy="9" r="3"/></svg> {opp.location}</span>}
+                    {opp.days_remaining != null && <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:3}}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> {opp.days_remaining > 0 ? `${opp.days_remaining}j restants` : 'Expiré'}</span>}
+                    {opp.beneficiary_count > 0 && <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:3}}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> {opp.beneficiary_count}</span>}
+                  </div>
+                  {selectedOpp?.id === opp.id && (
+                    <div className="opp-detail">
+                      <p>{opp.description}</p>
+                      <div className="opp-detail-actions">
+                        <button className="opp-btn-primary" onClick={e => { e.stopPropagation(); alert('Fonctionnalité à venir : soutenir cette opportunité') }}>Soutenir</button>
+                        <button className="opp-btn-ghost" onClick={e => { e.stopPropagation(); setSelectedOpp(null) }}>Fermer</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════ PARTNER — trois features indépendantes (Child / Orphanage /
+   Federation), chacune avec sa propre entrée de navigation, son propre
+   composant monté séparément, son propre état et son propre chargement.
+   Elles ne sont PAS des onglets d'une même page : chaque fonction ci-dessous
+   est une feature autonome au sens du routage (activeKey dédié) — seule la
+   soumission de candidature (même endpoint /projets/{id}/candidature/ déjà
+   utilisé partout dans l'app) et le rendu de carte sont mutualisés via un
+   hook et un sous-composant partagés, pour ne pas dupliquer cette logique
+   métier trois fois. La détection de catégorie/type est déjà faite côté
+   backend (_publier_projet fixe statut='publie' ; ProjetListSerializer
+   expose déjà type et source_update_category) — chaque feature ne fait que
+   filtrer sur le champ qui la concerne. */
+
+function usePartnerCandidature({ apiFetch, API, onLogout }) {
+  const [postulatingId, setPostulatingId] = useState(null)
+  const [postulatedIds, setPostulatedIds] = useState(new Set())
+  const [formProjet, setFormProjet] = useState(null) // le projet pour lequel le formulaire de candidature est ouvert
+
+  useEffect(() => {
+    apiFetch(`${API}/projets/mes-candidatures/`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(data => setPostulatedIds(new Set((Array.isArray(data) ? data : []).map(c => c.projet))))
+      .catch(() => {})
+  }, [])
+
+  const openForm = (projet) => setFormProjet(projet)
+  const closeForm = () => setFormProjet(null)
+
+  const submitForm = async ({ montant, typeFinancement, message }) => {
+    if (!formProjet || postulatingId) return
+    setPostulatingId(formProjet.id)
+    const res = await apiFetch(`${API}/projets/${formProjet.id}/candidature/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        montant_propose: typeFinancement === 'total' ? formProjet.budget_total : (montant || 0),
+        modalite: 'unique', type_financement: typeFinancement, message,
+      }),
+    }, onLogout)
+    setPostulatingId(null)
+    if (res && res.ok) {
+      setPostulatedIds(prev => new Set(prev).add(formProjet.id))
+      closeForm()
+      alert(`Candidature envoyée pour « ${formProjet.titre} ». Retrouvez-la dans le Response Board.`)
+    } else {
+      const err = res ? await res.json().catch(() => ({})) : {}
+      alert(err.error || Object.values(err)[0] || 'Une erreur est survenue.')
+    }
+  }
+
+  return { openForm, closeForm, formProjet, submitForm, postulatingId, postulatedIds }
+}
+
+const pphFmt = (n) => { const v = Number(n) || 0; return v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v.toLocaleString('fr-FR') }
+const PARTNER_ROLE_LABEL = { director: "Chef d'Orphelinat", ambassador: 'Ambassadeur', federation: 'Chef de Fédération', supermaster: 'Super Master' }
+
+/* Formulaire complet de candidature de sponsorship — auto-rempli
+   (partenaire / projet / publisher), choix Financement total/partiel,
+   boutons Postuler + Annuler. Réutilisé par les 3 features Partner ET par
+   le bouton « Postuler » d'Accueil (même endpoint /candidature/). */
+function SponsorshipFormModal({ project, user, API, onSubmit, onClose, submitting, error, initial, submitLabel, title }) {
+  const [typeFinancement, setTypeFinancement] = useState(initial?.typeFinancement || 'partiel')
+  const [montant, setMontant] = useState(initial?.montant != null ? String(initial.montant) : '')
+  const [message, setMessage] = useState(initial?.message || '')
+  const mediaUrl = (u) => { if (!u) return null; if (u.startsWith('http') || u.startsWith('data:')) return u; const base = API.replace('/api', ''); return u.startsWith('/') ? base + u : base + '/' + u }
+  const partnerName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.email
+  const partnerAvatar = user?.avatar ? mediaUrl(user.avatar) : svgUrl((user?.first_name?.[0] || '?').toUpperCase(), '#f59e0b', 40, 40)
+
+  return (
+    <div className="es-modal-overlay" onClick={onClose}>
+      <div className="es-create-modal es-pj-modal" onClick={e => e.stopPropagation()}>
+        <div className="es-modal-header">
+          <button className="es-close-btn" onClick={onClose} aria-label="Fermer"><EsIcon name="x" size={18} /></button>
+          <h3>{title || 'Apply for Sponsorship'}</h3>
+          <span style={{ width: 34 }} />
+        </div>
+        <div className="es-pj-step">
+          <div className="sf-auto-block">
+            <div className="sf-auto-row">
+              <img src={partnerAvatar} alt="" className="sf-auto-avatar" />
+              <div>
+                <div className="sf-auto-name">{partnerName}</div>
+                <div className="sf-auto-sub">{user?.country && flagImg(user.country, user.country, '13px')} {countryName(user?.country || '')}</div>
               </div>
-              <h3 className="opp-card-title">{opp.title}</h3>
-              <p className="opp-card-desc">{opp.summary || opp.description?.substring(0, 100) || ''}</p>
-              {opp.funding_goal > 0 && (
-                <div className="opp-funding-bar">
-                  <div className="opp-funding-track"><div className="opp-funding-fill" style={{ width: `${opp.funding_percentage}%` }} /></div>
-                  <span className="opp-funding-label">{fmt(opp.current_funding)} / {fmt(opp.funding_goal)} ({opp.funding_percentage}%)</span>
+            </div>
+            <div className="sf-auto-grid">
+              <div><span className="sf-auto-label">Project ID</span><span className="sf-auto-val">{project.code}</span></div>
+              <div><span className="sf-auto-label">Project Title</span><span className="sf-auto-val">{project.titre}</span></div>
+              <div><span className="sf-auto-label">Publisher ID</span><span className="sf-auto-val">{project.createur}</span></div>
+              <div><span className="sf-auto-label">Publisher Role</span><span className="sf-auto-val">{PARTNER_ROLE_LABEL[project.createur_role] || project.createur_role}</span></div>
+            </div>
+          </div>
+
+          <div className="es-pj-step-label">Sponsorship Type</div>
+          <div className="es-pj-form-row">
+            <label className="es-pj-radio"><input type="radio" checked={typeFinancement === 'total'} onChange={() => setTypeFinancement('total')} /> Fund Entire Project</label>
+            <label className="es-pj-radio"><input type="radio" checked={typeFinancement === 'partiel'} onChange={() => setTypeFinancement('partiel')} /> Fund Partial Project</label>
+          </div>
+          {typeFinancement === 'partiel' && (
+            <input className="es-pj-input" type="number" min="0" placeholder="Montant proposé (€)"
+              value={montant} onChange={e => setMontant(e.target.value)} />
+          )}
+          <textarea className="es-pj-textarea" placeholder="Message (optionnel)" rows={3}
+            value={message} onChange={e => setMessage(e.target.value)} />
+          {error && <div className="es-pj-error">{error}</div>}
+          <div className="es-pj-form-actions">
+            <button className="es-pj-back" onClick={onClose} disabled={submitting}>Annuler</button>
+            <button className="es-publish-btn" disabled={submitting} onClick={() => onSubmit({ montant, typeFinancement, message })}>
+              {submitting ? '…' : (submitLabel || 'Postulate')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PartnerProjectCard({ p, onApply, postulatingId, postulatedIds }) {
+  return (
+    <div className="pph-card">
+      <div className="pph-card-top">
+        <h3 className="pph-card-title">{p.titre}</h3>
+        {p.budget_total > 0 && (
+          <span className="pph-funding-label">{pphFmt(p.montant_collecte)} / {pphFmt(p.budget_total)} ({p.progression || 0}%)</span>
+        )}
+      </div>
+      <p className="pph-card-desc">{(p.resume || p.description || '').substring(0, 140)}</p>
+      <ProjectMetaBar project={p} compact />
+      <div className="pph-card-actions">
+        <button className="pph-btn-primary" disabled={postulatingId === p.id || postulatedIds.has(p.id)} onClick={() => onApply(p)}>
+          {postulatingId === p.id ? 'Envoi…' : postulatedIds.has(p.id) ? 'Déjà postulé' : 'Apply for Sponsorship'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ── Feature 1/3 : Child — navigation dédiée « Child », propre entrée
+   activeKey='partnerChild'. Sous-features internes : Santé / Famille /
+   Social / Éducation / Documents, alimentées par source_update_category. ── */
+function PartnerChildFeature({ user, apiFetch, API, onLogout }) {
+  const [projects, setProjects] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [categoryTab, setCategoryTab] = useState('all')
+  const { openForm, closeForm, formProjet, submitForm, postulatingId, postulatedIds } = usePartnerCandidature({ apiFetch, API, onLogout })
+
+  useEffect(() => {
+    setLoading(true)
+    apiFetch(`${API}/projets/?statut=publie&type=enfant`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(data => setProjects(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const CATEGORY_TABS = [
+    { key: 'all', label: 'Toutes' },
+    { key: 'health', label: 'Health', icon: 'heart' },
+    { key: 'family', label: 'Family', icon: 'users' },
+    { key: 'social', label: 'Social', icon: 'smile' },
+    { key: 'education', label: 'Education', icon: 'graduation' },
+    { key: 'documents', label: 'Documents', icon: 'fileText' },
+    { key: 'autres', label: 'Autres', icon: 'hash' },
+  ]
+  const visible = categoryTab === 'all' ? projects : projects.filter(p => (p.source_update_category || 'autres') === categoryTab)
+
+  return (
+    <div className="pph-center">
+      <div className="pph-header">
+        <h2 className="pph-title">Child</h2>
+        <p className="pph-sub">Projets Enfant publiés — Health, Family, Social, Education, Documents</p>
+      </div>
+      <div className="pph-cat-tabs" role="tablist" aria-label="Catégorie de suivi enfant">
+        {CATEGORY_TABS.map(c => (
+          <button key={c.key} role="tab" aria-selected={categoryTab === c.key}
+            className={`pph-cat-tab${categoryTab === c.key ? ' active' : ''}`}
+            onClick={() => setCategoryTab(c.key)}>
+            {c.icon && <EsIcon name={c.icon} size={13} />} {c.label}
+          </button>
+        ))}
+      </div>
+      <div className="pph-list">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => <div key={i} className="pph-card pph-skeleton" />)
+        ) : visible.length === 0 ? (
+          <div className="pph-empty">Aucun projet enfant publié dans cette catégorie pour le moment.</div>
+        ) : visible.map(p => (
+          <PartnerProjectCard key={p.id} p={p} onApply={openForm} postulatingId={postulatingId} postulatedIds={postulatedIds} />
+        ))}
+      </div>
+      {formProjet && <SponsorshipFormModal project={formProjet} user={user} API={API} onSubmit={submitForm} onClose={closeForm} submitting={postulatingId === formProjet.id} />}
+    </div>
+  )
+}
+
+/* ── Feature 2/3 : Orphanage — navigation dédiée « Orphanage », propre
+   entrée activeKey='partnerOrphanage'. Aucune sous-catégorie. ── */
+function PartnerOrphanageFeature({ user, apiFetch, API, onLogout }) {
+  const [projects, setProjects] = useState([])
+  const [loading, setLoading] = useState(true)
+  const { openForm, closeForm, formProjet, submitForm, postulatingId, postulatedIds } = usePartnerCandidature({ apiFetch, API, onLogout })
+
+  useEffect(() => {
+    setLoading(true)
+    apiFetch(`${API}/projets/?statut=publie&type=orphelinat`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(data => setProjects(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  return (
+    <div className="pph-center">
+      <div className="pph-header">
+        <h2 className="pph-title">Orphanage</h2>
+        <p className="pph-sub">Projets Orphelinat publiés</p>
+      </div>
+      <div className="pph-list">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => <div key={i} className="pph-card pph-skeleton" />)
+        ) : projects.length === 0 ? (
+          <div className="pph-empty">Aucun projet orphelinat publié pour le moment.</div>
+        ) : projects.map(p => (
+          <PartnerProjectCard key={p.id} p={p} onApply={openForm} postulatingId={postulatingId} postulatedIds={postulatedIds} />
+        ))}
+      </div>
+      {formProjet && <SponsorshipFormModal project={formProjet} user={user} API={API} onSubmit={submitForm} onClose={closeForm} submitting={postulatingId === formProjet.id} />}
+    </div>
+  )
+}
+
+/* ── Feature 3/3 : Federation — navigation dédiée « Federation », propre
+   entrée activeKey='partnerFederation'. Aucune sous-catégorie. ── */
+function PartnerFederationFeature({ user, apiFetch, API, onLogout }) {
+  const [projects, setProjects] = useState([])
+  const [loading, setLoading] = useState(true)
+  const { openForm, closeForm, formProjet, submitForm, postulatingId, postulatedIds } = usePartnerCandidature({ apiFetch, API, onLogout })
+
+  useEffect(() => {
+    setLoading(true)
+    apiFetch(`${API}/projets/?statut=publie&type=federation`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(data => setProjects(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  return (
+    <div className="pph-center">
+      <div className="pph-header">
+        <h2 className="pph-title">Federation</h2>
+        <p className="pph-sub">Projets Fédération publiés</p>
+      </div>
+      <div className="pph-list">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => <div key={i} className="pph-card pph-skeleton" />)
+        ) : projects.length === 0 ? (
+          <div className="pph-empty">Aucun projet fédération publié pour le moment.</div>
+        ) : projects.map(p => (
+          <PartnerProjectCard key={p.id} p={p} onApply={openForm} postulatingId={postulatingId} postulatedIds={postulatedIds} />
+        ))}
+      </div>
+      {formProjet && <SponsorshipFormModal project={formProjet} user={user} API={API} onSubmit={submitForm} onClose={closeForm} submitting={postulatingId === formProjet.id} />}
+    </div>
+  )
+}
+
+/* ═══════════ PARTNER — RESPONSE BOARD (feature autonome, entrée de nav
+   dédiée « Response Board ») ═══════════
+   Toutes les candidatures du partenaire (mes-candidatures, déjà existant),
+   avec les 4 statuts, le commentaire du répondant, et pour le statut
+   « amelioration_demandee » un bouton Modifier & resoumettre qui rouvre le
+   même SponsorshipFormModal pré-rempli et PATCH candidature_resubmit. */
+const SPONSORSHIP_STATUS = {
+  en_attente_reponse: { label: 'Awaiting Response', color: '#f59e0b', icon: 'clock' },
+  amelioration_demandee: { label: 'Improvement Requested', color: '#3b82f6', icon: 'pencil' },
+  acceptee: { label: 'Approved', color: '#22c55e', icon: 'check' },
+  refusee: { label: 'Rejected', color: '#ef4444', icon: 'x' },
+}
+
+function PartnerResponseBoard({ user, apiFetch, API, onLogout }) {
+  const [candidatures, setCandidatures] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(null) // la candidature en cours de modification/resoumission
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  const load = useCallback(() => {
+    setLoading(true)
+    apiFetch(`${API}/projets/mes-candidatures/`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(data => setCandidatures(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+  useEffect(() => { load() }, [load])
+
+  const resubmit = async ({ montant, typeFinancement, message }) => {
+    if (!editing) return
+    setSubmitting(true); setError('')
+    const res = await apiFetch(`${API}/projets/candidatures/${editing.id}/`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ montant_propose: montant || 0, type_financement: typeFinancement, message }),
+    }, onLogout)
+    setSubmitting(false)
+    if (res && res.ok) {
+      setEditing(null)
+      load()
+    } else {
+      const err = res ? await res.json().catch(() => ({})) : {}
+      setError(err.error || Object.values(err)[0] || 'Une erreur est survenue.')
+    }
+  }
+
+  return (
+    <div className="pph-center">
+      <div className="pph-header">
+        <h2 className="pph-title">Response Board</h2>
+        <p className="pph-sub">Suivez le statut de chaque candidature de sponsorship</p>
+      </div>
+      <div className="pph-list">
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => <div key={i} className="pph-card pph-skeleton" />)
+        ) : candidatures.length === 0 ? (
+          <div className="pph-empty">Aucune candidature soumise pour le moment.</div>
+        ) : candidatures.map(c => {
+          const st = SPONSORSHIP_STATUS[c.statut] || SPONSORSHIP_STATUS.en_attente_reponse
+          return (
+            <div key={c.id} className="rb-card">
+              <div className="rb-card-top">
+                <div>
+                  <h3 className="pph-card-title">{c.projet_titre}</h3>
+                  <span className="pph-funding-label">{c.projet_code} · {c.createur_nom} ({PARTNER_ROLE_LABEL[c.createur_role] || c.createur_role})</span>
+                </div>
+                <span className="rb-status-pill" style={{ color: st.color, background: `${st.color}22`, borderColor: `${st.color}55` }}>
+                  <EsIcon name={st.icon} size={13} /> {st.label}
+                </span>
+              </div>
+              <div className="rb-card-meta">
+                <span>{c.type_financement === 'total' ? 'Fund Entire Project' : 'Fund Partial Project'}</span>
+                {c.montant_propose > 0 && <span>{pphFmt(c.montant_propose)} €</span>}
+                <span>Soumise le {new Date(c.created_at).toLocaleDateString('fr-FR')}</span>
+              </div>
+              {c.commentaire_reponse && (
+                <div className="rb-comment-block">
+                  <span className="rb-comment-label">Commentaire de {c.repondu_par_nom || 'l’examinateur'}</span>
+                  <p className="rb-comment-text">{c.commentaire_reponse}</p>
                 </div>
               )}
-              <div className="opp-card-meta">
-                {opp.location && <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:3}}><path d="M12 22s8-8 8-13c0-4.4-3.6-8-8-8S4 4.6 4 9c0 5 8 13 8 13z"/><circle cx="12" cy="9" r="3"/></svg> {opp.location}</span>}
-                {opp.days_remaining != null && <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:3}}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> {opp.days_remaining > 0 ? `${opp.days_remaining}j restants` : 'Expiré'}</span>}
-                {opp.beneficiary_count > 0 && <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style={{verticalAlign:'middle',marginRight:3}}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> {opp.beneficiary_count}</span>}
-              </div>
-              {selectedOpp?.id === opp.id && (
-                <div className="opp-detail">
-                  <p>{opp.description}</p>
-                  <div className="opp-detail-actions">
-                    <button className="opp-btn-primary" onClick={e => { e.stopPropagation(); alert('Fonctionnalité à venir : soutenir cette opportunité') }}>Soutenir</button>
-                    <button className="opp-btn-ghost" onClick={e => { e.stopPropagation(); setSelectedOpp(null) }}>Fermer</button>
-                  </div>
+              {c.statut === 'amelioration_demandee' && (
+                <div className="pph-card-actions">
+                  <button className="pph-btn-primary" onClick={() => setEditing(c)}>Modifier et resoumettre</button>
                 </div>
               )}
             </div>
-          ))}
+          )
+        })}
+      </div>
+      {editing && (
+        <SponsorshipFormModal
+          project={{ code: editing.projet_code, titre: editing.projet_titre, createur: editing.createur, createur_role: editing.createur_role, budget_total: editing.montant_propose }}
+          user={user} API={API}
+          initial={{ typeFinancement: editing.type_financement, montant: editing.montant_propose, message: editing.message }}
+          title="Resoumettre la candidature" submitLabel="Resoumettre"
+          onSubmit={resubmit} onClose={() => { setEditing(null); setError('') }}
+          submitting={submitting} error={error}
+        />
+      )}
+    </div>
+  )
+}
+
+/* ═══════════ SPONSORSHIP INBOX (Chef d'Orphelinat / Ambassadeur / Chef de
+   Fédération) — feature « Sponsorship » de chaque dashboard publisher.
+   Une seule boîte de réception : candidatures actionnables (can_manage,
+   le publisher) + copies lecture-seule (autres parties prenantes). ═══════════ */
+function SponsorshipInbox({ role, apiFetch, API, onLogout }) {
+  const [candidatures, setCandidatures] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [improving, setImproving] = useState(null) // id de la candidature en cours de « demander amélioration »
+  const [comment, setComment] = useState('')
+  const [actingId, setActingId] = useState(null)
+
+  const load = useCallback(() => {
+    setLoading(true)
+    apiFetch(`${API}/projets/candidatures/inbox/`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(data => setCandidatures(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+  useEffect(() => { load() }, [load])
+
+  const repondre = async (c, action, commentaire = '') => {
+    setActingId(c.id)
+    const res = await apiFetch(`${API}/projets/${c.projet}/candidatures/${c.id}/repondre/`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, commentaire }),
+    }, onLogout)
+    setActingId(null)
+    if (res && res.ok) {
+      setImproving(null); setComment('')
+      load()
+    } else {
+      const err = res ? await res.json().catch(() => ({})) : {}
+      alert(err.error || Object.values(err)[0] || 'Une erreur est survenue.')
+    }
+  }
+
+  return (
+    <div className="pph-center">
+      <div className="pph-header">
+        <h2 className="pph-title">Sponsorship</h2>
+        <p className="pph-sub">Candidatures de partenaires sur vos projets publiés</p>
+      </div>
+      <div className="pph-list">
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => <div key={i} className="pph-card pph-skeleton" />)
+        ) : candidatures.length === 0 ? (
+          <div className="pph-empty">Aucune candidature pour le moment.</div>
+        ) : candidatures.map(c => {
+          const st = SPONSORSHIP_STATUS[c.statut] || SPONSORSHIP_STATUS.en_attente_reponse
+          const partnerAvatar = c.partenaire_avatar || svgUrl((c.partenaire_nom || '?')[0].toUpperCase(), '#3b82f6', 36, 36)
+          return (
+            <div key={c.id} className="rb-card">
+              <div className="rb-card-top">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <img src={partnerAvatar} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                  <div>
+                    <h3 className="pph-card-title">{c.partenaire_nom}</h3>
+                    <span className="pph-funding-label">{countryName(c.partenaire_country)} · {c.projet_code} — {c.projet_titre}</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                  <span className="rb-status-pill" style={{ color: st.color, background: `${st.color}22`, borderColor: `${st.color}55` }}>
+                    <EsIcon name={st.icon} size={13} /> {st.label}
+                  </span>
+                  {!c.can_manage && <span className="rb-readonly-badge">Lecture seule</span>}
+                </div>
+              </div>
+              <div className="rb-card-meta">
+                <span>{c.type_financement === 'total' ? 'Fund Entire Project' : 'Fund Partial Project'}</span>
+                {c.montant_propose > 0 && <span>{pphFmt(c.montant_propose)} €</span>}
+                <span>Soumise le {new Date(c.created_at).toLocaleDateString('fr-FR')}</span>
+              </div>
+              {c.message && <p className="pph-card-desc">{c.message}</p>}
+              {c.commentaire_reponse && (
+                <div className="rb-comment-block">
+                  <span className="rb-comment-label">Commentaire de {c.repondu_par_nom}</span>
+                  <p className="rb-comment-text">{c.commentaire_reponse}</p>
+                </div>
+              )}
+              {c.can_manage && c.statut === 'en_attente_reponse' && (
+                improving === c.id ? (
+                  <div className="rb-improve-box">
+                    <textarea rows={2} placeholder="Décrivez précisément ce que le partenaire doit améliorer (obligatoire)…"
+                      value={comment} onChange={e => setComment(e.target.value)} />
+                    <div className="rb-actions">
+                      <button className="rb-btn rb-btn-improve" disabled={actingId === c.id || !comment.trim()} onClick={() => repondre(c, 'demander_amelioration', comment)}>
+                        {actingId === c.id ? '…' : 'Envoyer la demande'}
+                      </button>
+                      <button className="es-pj-back" onClick={() => { setImproving(null); setComment('') }}>Annuler</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rb-actions">
+                    <button className="rb-btn rb-btn-approve" disabled={actingId === c.id} onClick={() => repondre(c, 'accepter')}>Valider</button>
+                    <button className="rb-btn rb-btn-reject" disabled={actingId === c.id} onClick={() => repondre(c, 'refuser')}>Rejeter</button>
+                    <button className="rb-btn rb-btn-improve" disabled={actingId === c.id} onClick={() => { setImproving(c.id); setComment('') }}>Demander une amélioration</button>
+                  </div>
+                )
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════ FÉDÉRATION — RESPONSE (historique des décisions, visibilité
+   organisation-wide sur tout le workflow de sponsorship) ═══════════ */
+function SponsorshipResponses({ apiFetch, API, onLogout }) {
+  const [candidatures, setCandidatures] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    apiFetch(`${API}/projets/candidatures/responses/`, {}, onLogout)
+      .then(r => r && r.ok ? r.json() : [])
+      .then(data => setCandidatures(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  return (
+    <div className="pph-center">
+      <div className="pph-header">
+        <h2 className="pph-title">Response</h2>
+        <p className="pph-sub">Historique de toutes les décisions de sponsorship — visibilité fédération</p>
+      </div>
+      <div className="pph-list">
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => <div key={i} className="pph-card pph-skeleton" />)
+        ) : candidatures.length === 0 ? (
+          <div className="pph-empty">Aucune décision enregistrée pour le moment.</div>
+        ) : candidatures.map(c => {
+          const st = SPONSORSHIP_STATUS[c.statut] || SPONSORSHIP_STATUS.en_attente_reponse
+          return (
+            <div key={c.id} className="rb-card">
+              <div className="rb-card-top">
+                <div>
+                  <h3 className="pph-card-title">{c.projet_titre}</h3>
+                  <span className="pph-funding-label">{c.projet_code} · Publisher : {c.createur_nom} ({PARTNER_ROLE_LABEL[c.createur_role] || c.createur_role})</span>
+                </div>
+                <span className="rb-status-pill" style={{ color: st.color, background: `${st.color}22`, borderColor: `${st.color}55` }}>
+                  <EsIcon name={st.icon} size={13} /> {st.label}
+                </span>
+              </div>
+              <div className="rb-card-meta">
+                <span>Partenaire : {c.partenaire_nom}</span>
+                <span>Décidé par {c.repondu_par_nom} le {c.repondu_le ? new Date(c.repondu_le).toLocaleDateString('fr-FR') : '—'}</span>
+              </div>
+              {c.commentaire_reponse && (
+                <div className="rb-comment-block">
+                  <span className="rb-comment-label">Commentaire</span>
+                  <p className="rb-comment-text">{c.commentaire_reponse}</p>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

@@ -69,7 +69,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = ['id', 'conversation', 'sender', 'content', 'reply_to',
+        fields = ['id', 'conversation', 'sender', 'content', 'edited', 'reply_to',
                   'attachments', 'reactions', 'is_read', 'read_at', 'created_at']
 
     def get_sender(self, obj):

@@ -8,6 +8,19 @@ from .models import Child, ChildUpdate, ChildHistory, ChildAssignment, Consultat
 User = get_user_model()
 
 
+def _compute_age(date_naissance):
+    """Âge en années entières à partir d'une date de naissance — logique
+    unique, réutilisée par ChildSerializer, ChildPublicSerializer et
+    ChildAssignmentSerializer (auparavant dupliquée dans les deux premiers)."""
+    if not date_naissance:
+        return None
+    from datetime import date
+    today = date.today()
+    return today.year - date_naissance.year - (
+        (today.month, today.day) < (date_naissance.month, date_naissance.day)
+    )
+
+
 class Base64ImageField(serializers.ImageField):
     def to_internal_value(self, data):
         if isinstance(data, str) and data.startswith("data:image"):
@@ -64,13 +77,7 @@ class ChildSerializer(serializers.ModelSerializer):
         return obj.orphanage.name if obj.orphanage else ""
 
     def get_age(self, obj):
-        if not obj.date_naissance:
-            return None
-        from datetime import date
-        today = date.today()
-        return today.year - obj.date_naissance.year - (
-            (today.month, today.day) < (obj.date_naissance.month, obj.date_naissance.day)
-        )
+        return _compute_age(obj.date_naissance)
 
     def validate_date_naissance(self, value):
         if value in (None, "", "null", "None"):
@@ -113,13 +120,7 @@ class ChildPublicSerializer(serializers.ModelSerializer):
         return obj.orphanage.name if obj.orphanage else ""
 
     def get_age(self, obj):
-        if not obj.date_naissance:
-            return None
-        from datetime import date
-        today = date.today()
-        return today.year - obj.date_naissance.year - (
-            (today.month, today.day) < (obj.date_naissance.month, obj.date_naissance.day)
-        )
+        return _compute_age(obj.date_naissance)
 
     IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.gif', '.webp')
 
@@ -282,16 +283,21 @@ class ConsultationHistoriqueSerializer(serializers.ModelSerializer):
 class ChildAssignmentSerializer(serializers.ModelSerializer):
     child_name = serializers.SerializerMethodField()
     child_uid = serializers.SerializerMethodField()
+    child_photo = serializers.SerializerMethodField()
+    child_age = serializers.SerializerMethodField()
+    child_status_label = serializers.SerializerMethodField()
     orphanage_name = serializers.SerializerMethodField()
     ambassador_name = serializers.SerializerMethodField()
+    ambassador_avatar = serializers.SerializerMethodField()
     assigned_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = ChildAssignment
         fields = [
-            "id", "child", "child_name", "child_uid",
+            "id", "child", "child_name", "child_uid", "child_photo",
+            "child_age", "child_status_label",
             "orphanage_name",
-            "ambassador", "ambassador_name",
+            "ambassador", "ambassador_name", "ambassador_avatar",
             "assigned_by", "assigned_by_name",
             "note", "assigned_at", "updated_at",
         ]
@@ -303,11 +309,23 @@ class ChildAssignmentSerializer(serializers.ModelSerializer):
     def get_child_uid(self, obj):
         return obj.child.uid
 
+    def get_child_photo(self, obj):
+        return obj.child.photo.url if obj.child.photo else None
+
+    def get_child_age(self, obj):
+        return _compute_age(obj.child.date_naissance)
+
+    def get_child_status_label(self, obj):
+        return dict(Child.STATUS_CHOICES).get(obj.child.status, obj.child.status)
+
     def get_orphanage_name(self, obj):
         return obj.child.orphanage.name if obj.child.orphanage else ""
 
     def get_ambassador_name(self, obj):
         return obj.ambassador.full_name
+
+    def get_ambassador_avatar(self, obj):
+        return obj.ambassador.avatar.url if obj.ambassador.avatar else None
 
     def get_assigned_by_name(self, obj):
         return obj.assigned_by.full_name if obj.assigned_by else ""

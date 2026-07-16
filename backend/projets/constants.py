@@ -41,6 +41,7 @@ STATUTS_CANDIDATURE = {
     'EN_ATTENTE': 'en_attente_reponse',
     'ACCEPTEE': 'acceptee',
     'REFUSEE': 'refusee',
+    'AMELIORATION': 'amelioration_demandee',
 }
 
 STATUTS_CANDIDATURE_CHOICES = [(v, k.replace('_', ' ').title()) for k, v in STATUTS_CANDIDATURE.items()]
@@ -68,6 +69,8 @@ TYPES_EVENEMENTS_PROJET = {
     'CANDIDATURE_SOUMISE': 'candidature_soumise',
     'CANDIDATURE_ACCEPTEE': 'candidature_acceptee',
     'CANDIDATURE_REFUSEE': 'candidature_refusee',
+    'CANDIDATURE_AMELIORATION': 'candidature_amelioration',
+    'CANDIDATURE_RESOUMISE': 'candidature_resoumise',
     'PROJET_FINANCE': 'projet_finance',
     'PROJET_CLOTURE': 'projet_cloture',
 }

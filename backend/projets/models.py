@@ -134,12 +134,24 @@ class CandidatureProjet(models.Model):
     )
     montant_propose = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Montant proposé")
     modalite = models.CharField(max_length=20, choices=MODALITES_CHOICES, default='unique', verbose_name="Modalité")
+    type_financement = models.CharField(
+        max_length=20,
+        choices=[('total', 'Financement total'), ('partiel', 'Financement partiel')],
+        default='partiel', verbose_name="Type de financement",
+    )
     message = models.TextField(blank=True, verbose_name="Message")
     statut = models.CharField(
         max_length=30, choices=STATUTS_CANDIDATURE_CHOICES,
         default='en_attente_reponse', verbose_name="Statut",
     )
+    commentaire_reponse = models.TextField(blank=True, default="", verbose_name="Commentaire du répondant")
+    repondu_par = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="candidatures_traitees", verbose_name="Répondu par",
+    )
+    repondu_le = models.DateTimeField(null=True, blank=True, verbose_name="Répondu le")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Candidature le")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Mis à jour le")
 
     class Meta:
         verbose_name = "Candidature"
