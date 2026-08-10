@@ -74,9 +74,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# ── Database (SQLite par défaut, PostgreSQL si DB_ENGINE est défini) ────────
+# ── Database (SQLite par défaut, PostgreSQL via DATABASE_URL or env vars) ─────
 _db_engine = os.environ.get("DB_ENGINE", "sqlite3")
-if _db_engine == "postgresql":
+_db_url = os.environ.get("DATABASE_URL")
+if _db_url:
+    import urllib.parse
+    _parsed = urllib.parse.urlparse(_db_url)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": _parsed.path[1:],
+            "USER": _parsed.username,
+            "PASSWORD": _parsed.password,
+            "HOST": _parsed.hostname,
+            "PORT": str(_parsed.port or 5432),
+        }
+    }
+elif _db_engine == "postgresql":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
