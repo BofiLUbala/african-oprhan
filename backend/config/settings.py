@@ -90,7 +90,7 @@ if _db_url:
             "PORT": str(_parsed.port or 5432),
         }
     }
-elif _db_engine == "postgresql":
+elif _db_engine == "postgresql" and os.environ.get("DB_NAME"):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -102,6 +102,11 @@ elif _db_engine == "postgresql":
         }
     }
 else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
