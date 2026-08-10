@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-
-const API = 'http://localhost:8000/api'
+import { API_URL as API } from '../config/api'
 
 async function apiFetch(url, options = {}) {
   const token = localStorage.getItem('access_token')

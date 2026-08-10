@@ -17,8 +17,8 @@ import * as HumanizedIcons from './components/HumanizedIcons'
 import PublicAccueil from './components/PublicAccueil'
 import './App.css'
 import './components/partner/partner-dashboard.css'
-
-export const API = 'http://localhost:8000/api'
+import { API_URL as API } from './config/api'
+export { API }
 
 export async function apiFetch(url, options = {}, onLogout) {
   const token = localStorage.getItem('access_token')

@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
+import { API_URL as API_URL } from '../config/api'
 
-const API_URL = 'http://localhost:8000/api'
+const API = API_URL
 const POLL_MS = 20000
 
 // ── Store singleton ─────────────────────────────────────────────────

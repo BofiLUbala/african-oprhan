@@ -1,0 +1,67 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Render Infrastructure-as-Code configuration
+# Two services: Django API backend (with PostgreSQL) + Vite static frontend
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── Backend: Django REST API ─────────────────────────────────────────────
+  - type: web
+    name: cdo-backend
+    region: oregon
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: |
+      pip install --upgrade pip &&
+      pip install -r requirements.txt &&
+      python manage.py collectstatic --noinput &&
+      python manage.py migrate
+    startCommand: gunicorn --bind 0.0.0.0:10000 --workers 2 config.wsgi:application
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DB_ENGINE
+        value: postgresql
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,localhost,127.0.0.1"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://cdo-frontend.onrender.io,https://cdo-backend.onrender.io"
+      - key: FRONTEND_URL
+        value: https://cdo-frontend.onrender.io
+      - key: SECURE_SSL_REDIRECT
+        value: "True"
+      - key: EMAIL_HOST_USER
+        value: ""
+      - key: EMAIL_HOST_PASSWORD
+        value: ""
+      - key: DEFAULT_FROM_EMAIL
+        value: noreply@cdo.africa
+    healthCheckPath: /health/
+
+  # ── Frontend: Vite static site ────────────────────────────────────────────
+  - type: web
+    name: cdo-frontend
+    region: oregon
+    runtime: node
+    plan: free
+    rootDir: frontend
+    buildCommand: |
+      npm install &&
+      npm run build
+    startCommand: npx serve dist -s -l $PORT
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: VITE_API_URL
+        value: https://cdo-backend.onrender.io/api
+      - key: VITE_WS_URL
+        value: https://cdo-backend.onrender.io
+      - key: VITE_MEDIA_URL
+        value: https://cdo-backend.onrender.io
+
+databases:
+  - name: cdo-db
+    region: oregon
+    plan: free
