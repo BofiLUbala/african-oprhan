@@ -158,6 +158,9 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
     "CORS_ALLOWED_ORIGINS",
     "http://localhost:5173,http://localhost:5174,http://localhost:3000",
 ).split(",")
+# Auto-allow all .onrender.com origins in production
+if not DEBUG:
+    CORS_ALLOWED_ORIGIN_REGEXES = [r"^https://.*\.onrender\.com$"]
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOW_CREDENTIALS = True
 
