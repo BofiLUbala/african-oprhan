@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from config.throttles import LoginRateThrottle, TokenRefreshRateThrottle
@@ -14,7 +15,12 @@ class ThrottledTokenRefreshView(TokenRefreshView):
     throttle_classes = [TokenRefreshRateThrottle]
 
 
+def health_check(request):
+    return JsonResponse({"status": "ok", "service": "cdo-backend"})
+
+
 urlpatterns = [
+    path("health/", health_check, name="health"),
     path("admin/", admin.site.urls),
     path("api/auth/", include("accounts.urls")),
     path("api/token/", ThrottledTokenObtainPairView.as_view(), name="token-obtain"),
